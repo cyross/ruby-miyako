@@ -1,0 +1,817 @@
+*******************************************************************************
+【   作者名   】　サイロス誠
+【  ソフト名  】　Interactive Media Authoring System "Miyako"
+【 バージョン 】　1.5.0a
+【   作成日   】　2008/07/21
+【    種別    】　フリーウェア
+【  開発言語  】　Ruby 1.8.7-p22
+【 ランタイム 】　Ruby 1.8.6～
+【  対応機種  】　Windows 2000/XP/Vista、Linux、MacOSX
+【   再配布   】　GNU LGPL 2.1に基く
+【    転載    】　GNU LGPL 2.1に基く
+【ホームページ】　http://www.twin.ne.jp/~cyross/Miyako/
+【   連絡先   】　cyross@po.twin.ne.jp
+*******************************************************************************
+
+【 注意事項  】
+
+本バージョンは、1.5.0公式リリース版です。
+本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
+（RDOC化を進めていますので、我こそはと思う方は是非・・・）
+
+(メインサイト)
+http://www.twin.ne.jp/~cyross/Miyako/
+(日記)
+http://d.hatena.ne.jp/cyross/
+(Wiki)
+http://wiki.fdiary.net/MiyakoDevSrc/
+
+【 はじめに 】
+
+このソフトはゲームを作成したり、ゲームを作成したり、ゲームを作成するような感覚でプレゼンテーションなどを作成できるRubyのライブラリ・簡易フレームワークです。
+Ruby上で使えるメディアライブラリ「Ruby/SDL」のラッパークラスとして利用します。
+
+元々は「EGSR(Easy Game Scripting by Ruby)」というタイトルで、汎用ゲーム作成クラスライブラリでしたが、ゲーム以外にも応用が利くため、ゲームに囚われないタイトルにしようと考え、名称を変更いたしました。
+
+「簡単」とまではいかなくても、「気楽」に制作やRubyの勉強が出来ていただければと思っています。
+
+【 Miyakoの由来 】
+
+Miyakoのタイトルは、以下の事柄に由来しています
+
+・「都」というネーミングは勿論「京都」から取った
+・ゲーム業界に大きな影響を与えた任天堂の本社が京都にあることに由来する
+・リッチ・コンテンツを気楽に作れるということで、優雅そうなイメージを「はんなりと」醸し出す、「都」という漢字から取った
+・Miyakoの前身、EGSRの制作のきっかけとなったのが京都で行われた「Ruby勉強会＠関西-7」だったため
+・名前を考える際にたまたま読んでいた漫画『えすぴー都見参！(岬下部せすな・まんがタイムKRコミックス)』の主人公・五条都（ごじょう・みやこ）から取った？
+
+【   特徴    】
+
+このライブラリの特徴は以下の通り。
+
+・ゲームを作るような感覚でプレゼンテーションやe-ラーニングのシステムを作れる（はず）
+・カスタマイズ性に富んだMiyako APIとより簡単にコンテンツ作成ができるMiyako Extensionの２構成
+・シナリオ言語Yuki(DSL風Rubyスクリプト、v1.5pre6からはスレッドに対応)
+・Storyモジュールによる簡単なフレームワークを用意(各画面の構成が分かり易くなります)
+・スプライトには、位置情報を抽象的に実装できるレイアウト機能、
+　対象の図形のレイアウトに準じたレイアウト設定が出来るスナップ機能を搭載
+・図形を描いたスプライトを作成するShapeクラス
+・アニメーションを管理するAnimationSpriteクラス
+・スプライトへの効果を楽に記述できるEffectクラス
+・当たり判定を簡単に実装できるCollisionクラス
+・スプライト以外の画像を表示できるSpriteUnit構造体とScreen.sprite_list
+・拡張ライブラリを使用した高速な描画
+・Windows/Linux等に対応(他OSへの動作レポートお願いします)
+・インストーラー付き
+・ゲーム作成に最低限必要な構成をカプセル化(スプライト、ウィンドウ、サウンド等)
+・スプライトを通じての文字描画や図形描画が可能（図形描画はブロックを介して行う、takahashiメソッドも追加）
+・文字描画を簡潔に行うTextBoxクラス
+・Waveファイルによる効果音、ogg/MIDI/MP3によるBGM演奏
+・MPEGファイルによるムービー再生に対応
+・キーボード、ジョイパッド両対応(1人プレイのみという制限付きです・・・)
+・マウス対応（v1.0～）
+・Stateパターン(状態遷移図のようなもの)を使用して処理の流れを記述できるDiagramProcessorクラスなど(v1.5pre6～)
+・Ruby/SDLの機能が使える（ラッパークラスなので）
+・Rubyの勉強に役に立つ（ハズ）
+
+ちなみに、今のところ以下の問題・制限があります。
+
+・エラーの整備が不十分
+・ドキュメントが全然整っていない（リファレンスはまだまだ・・・）
+　→各種チュートリアルや「るびま」記事などでドキュメントを拡充する予定
+
+【 開発環境  】
+
+＜メイン開発PC＞
+CPU : Core2Duo E6850
+MEM : 8GB(2GBx4)
+M/B : GIGABYTE P35-DS4
+VID : GeForce 8800GT
+S/B : Creative SoundBlaster X-Fi
+PAD : BUFFALO BGC-FC802
+      Logicool G-UF13
+OS  : Microsoft WindowsXp SP2
+      Microsoft WindowsVista Ultimate(x64) SP1
+DEV : NetBeans 6.1
+      ActiveRuby 1.8.7-p22 + Ruby/SDL 1.3.1
+      MinGW+MSYS(idaten_miyako,miyako_no_katanaビルド)
+
+＜サブ開発PC＞
+Panasonic Let'sNOTE Light R3
+CPU : PentiumM 1.1GHz
+MEM : 784(256+512)MB
+PAD : SANWA SUPPLY JY-P1W
+OS  : Microsoft WindowsXp SP2
+DEV : RDE 1.1.1
+      ActiveRuby 1.8.7-p22 + Ruby/SDL 1.3.1
+      Microsoft VisualStudio 2005(拡張ライブラリソース記述)
+      MinGW+MSYS(idaten_miyako,miyako_no_katanaビルド)
+
+【 動作環境  】
+
+WindowsXp Home/Pro、WindowsVista、Linux、MacOSX等、Ruby/SDLが動作する環境
+(但し、Windows,Linux以外の動作未確認です
+ もし動いたらレポートお願いします)
+
+ＣＰＵ　　　　：PentiumIII以降（Pentium4奨励、動画使うなら2GHzは欲しい）
+メモリ　　　　：256MB（512MB以上奨励）
+ビデオメモリ　：8MB（32bitカラー対応、64MB以上奨励）
+サウンドカード：必須(出来ればSoundBlaster Live!クラス)
+
+Ruby1.8.6以降
+Ruby/SDL 1.0＋対応SDLライブラリ群
+(SDL、SDL_ttf、SDL_image、SDL_Mixer、SGE、smpeg)
+
+【 ファイル構成  】
+
+アーカイブファイルを展開すると以下のファイルが展開されます。
+
+・Miyako/miyako.rb（Miyakoライブラリ）
+・Miyako/miyako_ext.rb（Miyako拡張ライブラリ）
+・Miyako/win/idaten_miyako.so(Windows用idaten_miyako)
+・Miyako/win/miyako_no_katana.so(Windows用miyako_no_katana)
+・Miyako/libディレクトリ（ライブラリ本体）
+・idaten_miyako/idaten_miyako.c(idaten_miyakoソース)
+・idaten_miyako/extconf.rb(idaten_miyakoコンパイル用configureファイル)
+・miyako_no_katana/miyako_no_katana.c(miyako_no_katanaソース)
+・miyako_no_katana/extconf.rb(miyako_no_katanaコンパイル用configureファイル)
+・install_miyako.rb(Miyakoインストール実行ファイル)
+・readme.txt（本ファイル）
+・docディレクトリ（リファレンスマニュアル）
+
+【  インストール   】
+
+以下の手順でインストールを行います。
+
+１．Rubyのインストール
+
+Linuxでは標準でRubyがインストールされていいるはずですので説明は割愛します。
+なお、バージョンは最新の1.8系統（出来れば1.8.4以降）でお願いします。
+
+Windowsでは、以下のサイトにあるActiveRubyのインストールをお願いします。
+（詳しい説明は割愛）
+
+「COM Meets Ruby」
+http://arton.hp.infoseek.co.jp/indexj.html
+
+また、Windows用には、後述の「Ruby、SDL、Ruby/SDLパック」というものがあり、これをインストールすると、別途Ruby/SDLをインストールすることなく、RubyとRuby/SDLを利用することが出来ます（但し、Windowsの詳しい操作に慣れていない方には難しい作業が必要になる可能性があります。また、ベースとなっているRuby/SDLがv1.2ですので、MP3ファイルの再生はサポートされておりません）。
+
+２．SDLのインストール
+
+Linuxでインストールされる場合は、まずSDLをインストールする必要があります。
+以下のサイトでSDLが配布されていますので必要なライブラリをダウンロードします。
+
+http://www.libsdl.org/
+
+必須ライブラリは以下の通り
+・SDL
+・SDL_image
+・SDL_Mixer
+・SDL_ttf
+・SGE
+・SMPEG(←1.4で追加)
+
+Windowsでは、Ruby/SDL公式サイトにあるバイナリパッケージや、Ruby/SDL入りRubyパッケージのインストールの方が便利でしょう。
+
+インストールが完了したら、続いてRuby/SDLをインストールします。
+
+３．Ruby/SDLのインストール
+
+もうひとつの必須ライブラリ、Ruby/SDLをインストールします、。。
+インストールの仕方は以下のRuby/SDL公式サイトを参考にしてください。
+
+http://www.kmc.gr.jp/~ohai/rubysdl.html
+
+Windowsでは、Ruby/SDLバイナリパッケージの使用をお奨めします。
+
+なお、RubyやSDL、Ruby/SDLのインストールに関するトラブルは当方では一切責任を負いません。
+また、インストールに関する質問にも受付できません。
+自己責任でお願いします。
+
+４．Miyakoのインストール
+
+展開したフォルダにあるinstall_miyako.rbをRubyで実行します。
+
+インストールには、以下のオプションが利用できます。
+
+--force :     Rubyライブラリフォルダに既にMiyakoフォルダがあるときはインストールを行いませんが、インストールを強制したいときに使います。
+
+また、本ライブラリでは、標準フォントとして「ＭＳ　明朝」「ＭＳ　ゴシック」
+「メイリオ」「さざなみフォント」「VLゴシックフォント」が利用できます。
+
+フォントのインストール等については自己責任でお願いします。
+（MS明朝／ゴシック／メイリオはWindows標準添付(メイリオはVistaのみ)ですので、特にインストールの必要がありません）
+
+これでインストールが完了です。
+
+【 アンインストール  】
+
+特に、レジストリなどのシステム部分をいじっていないので、ライブラリディレクトリのMiyakoフォルダを削除すればアンインストールは完了です。
+
+【  使い方   】
+
+まず、Miyakoを使用したいRubyスクリプトにmiyako.rbをrequireしてください。
+
+require 'Miyako/miyako'
+
+これで、Miyakoの機能を利用できます。
+
+Miyakoを高速化させたい場合は、次の行に
+
+require 'Miyako/idaten_miyako'
+
+と入力します。
+
+更に、拡張機能を使いたいときは、次の行に
+
+require 'Miyako/miyako_ext'
+
+と入力します。
+
+各種機能につきましては、リファレンスマニュアルをご参照ください。
+
+【ライセンス】
+
+本ライブラリはGNU Lesser General Public Lisence 2.1に準拠しています。
+しかし、本ライブラリを使用したソフトウェアについては、その制作者に帰属します。
+ただし、事後でも構いませんので連絡いただけると幸いです。
+
+同時に収録している、wait_cursor.png、cursor.png、dice.pngはご自身のMiyako Scriptでご自由に使っていただいて構いません。
+
+フォントの再利用につきましては、それぞれのフォントのライセンスに従うよう、ご了承お願いいたします。
+
+【   免責    】
+
+本ソフトは”無保証”です。
+本ソフトを使用した事によるトラブルにつきましては、いかなる理由があっても一切責任を負いません。
+本ソフトのバージョンアップやバグフィックスには出来る限り対処いたします。しかし、上記に対する責務は負いません。
+
+【   謝辞    】
+
+Rubyを作られたまつもとゆきひろさん
+Ruby/SDLを作られたo-haiさん
+ActiveRubyを作られたartonさん
+RGSSを作られた尾島陽児さん
+
+EGSR作成のきっかけを作ってくださったGollumさん
+
+RGSS発表の場を与えて下さったRuby@関西の皆さん
+
+MacOSX対応のアドバイスをいただいた、waturaさん、makさん
+
+その他、活動を支えてくださった皆様
+
+あなた方が居なければ、こんなに楽しい作業に踏み込める機会はなかったと思います。
+
+－皆様に並々ならぬ感謝の気持ちで一杯です。ありがとうございます。
+
+【 開発履歴  】
+
+V0.0.1(2006.02.19)
+
+・初版
+
+V0.0.2(2006.02.26)
+
+・ウィンドウの背景から余分な領域を切り取る割合を指定できる
+　EGSR::Window#marginプロパティを追加
+・ウィンドウ表示中でもクライアント領域の大きさを変更することが可能になった
+　(EGSR::Window#clientW/H、EGSR::Window#setClientプロパティを追加)
+・スプライト描画順の決定を見直し、高速化を行った
+・画面への文字描画を制御するEGSR::Sprite#contextVisibleプロパティを追加
+　(EGSR::Windowクラスにも同様のプロパティを追加)
+・drawText,drawTextMildメソッドから表示の高さを指定する引数を廃止
+　(ユーザ側の責任によるコーディングに変更)
+・contextプロパティに文字列を代入すると自動的にコンパイルされ、
+　コンテキストデータクラス(EGSR::ContextDataクラス)の配列を生成するように修正
+・スクロール文字列(文字が左から右に流れる描画)の可否を指定する
+　EGSR::Sprite/Window#textScrollプロパティを追加
+・コンテキスト取得のための操作メソッド
+　EGSR::Sprite/Window#nextContext,clearContext,resetContextメソッドを追加
+・EGSR::Sprite/Window#rcontextプロパティの廃止
+・効果音を演奏しているかを示すEGSR::Andio::SE#playing?メソッドの追加
+・その他、若干のバグの修正
+
+V0.02a(2006.02.27)
+
+・サンプルプログラムrubyma.rbの文字化けを解消
+・サンプルにwindow.pngが入っていなかったため、添付
+・readme.txtを修正
+
+V0.1(2006.03.05)
+
+・OSの制限を撤廃した(Windows系統とその他OSの違いは、フォントサーチにc:\windows\fontを探しに行くだけ)
+・スプライトのtextAreaX、textAreaYプロパティの廃止→x,yに共通化
+・プロパティtextMarginLeft/Right/Top/BottomをSpriteクラスのプロパティに
+　（Windowsクラスのものは内部スプライトへ委譲）
+・Mapクラスのスクロールの高速化
+・Mapクラスのコンストラクタのインタフェース仕様変更
+　(マップチップファイル名のところをnilにするとイベントマップとして認識するように変更)
+・Map/MapFastクラスのgetCodeのインタフェースを変更(レイヤの指定を行うようにした)
+・Point,Sizeクラスの追加
+・Colorクラスのバグを修正、Colorクラスのプロパティにa(α値)を追加
+・Spiriteクラスのコンストラクタに機能追加、aplha値をnilにするとアルファブレンディング付きの画像と認識する
+・リファレンスマニュアルにイメージを追加
+・windowtestサンプルをより見栄え良く変更
+・各種バグ修正
+・readme.txtを修正
+
+V0.1a(2006.03.05)
+
+・Map/MapFast#getCodeメソッドのバグ修正
+・マップ上で使用されているチップ１枚の大きさを返す
+　Map/MapFast#chipSizeプロパティの追加
+・コンテキストコンパイラで、一部文字列で改行のContextDataが出力されなかった
+　バグを修正
+・マップ移動に関するサンプルスクリプトを同梱
+・コマンド選択ウィンドウに関するサンプルスクリプトを同梱
+
+V0.5(2006.03.19)
+
+・タイトルを「Miyako」に変更、モジュール名も「Miyako」に変更
+・Screenモジュールにx,yプロパティを追加(画面揺らし等に使用)
+・文字列の表示位置を指定する{Locate=x,y}マクロを追加
+・Font::drawText(Mild)メソッドのh引数を廃止
+・文字列表示に使用する配列の名称を、「コンテキスト」から「メッセージ」に変更
+・ContextDataクラスの名前をMessageDataに変更
+・ContextCompilerクラスの名前をMessageCompilerに変更
+・MessageArrayクラスの追加
+・Sprite/Windowクラスのメッセージ関連メソッドはmesプロパティ
+　(MessageArrayクラス)に移動
+・Spriteクラスにエフェクト管理プロパティeffectを追加
+・Inputモジュールの移動キーにカーソルキーを追加
+・Inputモジュールにtrigger?、pushed?メソッドを追加
+・InputモジュールにtriggerAmount、pushedAmountを追加
+・InputモジュールにamountX、amountYを追加
+・Authorモジュールの追加
+・エフェクト処理クラスEffectを追加
+・その他、若干のバグ修正
+
+V0.6(2006.4.23)
+
+・スプライト描画で、文字描画と図形描画の順番を入れ替え
+　(スプライトを表示したとき、前面から図形→文字→画像の順に表示される)
+・透明度付きスプライト作成の記述を簡潔にするための
+　Sprite.load2/create2/createFromBitmap2/createPlane2メソッドを追加
+　透明色座標→透明度の順番を透明度→透明度座標の順になり、
+　透明度のデフォルトがnilに
+・TextBoxクラスの追加(ウィンドウに表示する文字数が多くなると
+　その量に比例して文字の表示速度が落ちる問題の修正)
+・WindowクラスをWindow2クラスに変更
+・新規にWindowクラスを追加（ベースがTextBoxクラスに）
+・WindowParamクラスの仕様を変更、クラス名をWParamクラスに
+・InputモジュールにtriggerDirNum、pushedDirNumメソッドを追加
+・Inputモジュールでデジタル・アナログ両対応のゲームパッドを使用すると
+　操作中に誤動作が起こる問題を修正
+・MessageDataクラスのコマンドに「yesno」、「command」を追加
+・MessageDataクラスのコマンドに「label」、「expr」、「sound」を追加
+・MessageDataクラスのコマンドに「"～"(値を返さない評価)」「""～""（値を返す評価）」を追加(区切り子はクォーテーション以外、例えば|～|、||～||でも使用できる)
+・フォントファイルのサーチパスを入れるグローバル配列「$font_path」を追加
+　（使用時に、Arrayクラスのインスタンスを作成しておきます）
+・miyako拡張クラスライブラリ「miyako_ext.rb」を追加
+・インストール方法の変更
+・リファレンスマニュアルの改訂
+・その他、若干のバグ修正
+
+V0.7(2006.6.3)
+
+・システムフォントが必要でないスクリプトでも、システムフォントを用意していないとエラーになる問題を修正
+・Miyako Extensionで、サイコロを使わなくてもDice.pngが必要な問題を修正
+・Authorモジュールで、サブルーチンからの復帰を、「任意の文字列」ではなく「return」のみに変更(サブルーチンからのシーン移動に対応)
+・Autherモジュールで、直前に通ったシーン・次に進むシーン・サブルーチンジャンプ元のそれぞれのラベルを返すメソッド・prev_label、next_label、upper_labelを追加
+・TextBox上で使用するフォントサイズ設定マクロが適応されていなかった問題を修正
+・soundマクロの問題を修正
+・メッセージマクロに、スプライトを表示させるshow,hideマクロを追加
+・Miyako Extensionで、スプライト表示・隠蔽に関する値を格納する
+　ShowData,HideDataクラスを追加
+・Auther::Scriptクラスにinterruptメソッドを追加。
+　Author::Scriptクラス上でのオーバーライドとして実装する
+・フルスクリーンモードに対応
+・スクリーンモードを変更するScreen.setScreenModeメソッドと
+・使用できるキーを追加。
+　BTN7～BTN12(Q,W,E,V,B,Nの各キーに対応)
+・triggerAlt?/Ctrl?/Shift?を追加
+・puehedAlt?/Ctrl?/Shift?を追加
+・Alt＋Enterでフルスクリーンモードの切り替えを標準で追加
+・CmpsクラスをMiyako APIに移動
+　Screen.toggleScreenModeメソッドを追加
+・画面の解像度を変更するScreen.setScreenSizeメソッドを追加
+・Window2,MapFastクラスの廃止
+・マップ用パラメータクラス、MParamクラスの追加
+・loopx,loopyの廃止(マップの端でスクロールを停止するかどうかはユーザが決める)
+・Mapクラス、Inputモジュールのリファクタリング
+・ScreenモジュールのfadeIn,fadeOut,whiteIn,whiteOut,effecting?の
+　各メソッドを廃止
+・Sprite、Window、TextBoxクラスに、抽象化した位置関係を指定できるメソッド
+　(centerling、setLayout、snap等)を追加
+　→それに伴って、Window、TextBoxクラスにrectメソッドを追加
+・Spriteのcreate、create2クラスメソッドの引数に、透過色を指定できるようにした
+・図形やテキストを描画するSpriteを作成するShapeクラス・ShapeParameterクラスを追加
+・スプライトのアニメーションを管理するAnimationSpriteクラスの追加
+・sepalateメソッドを"separate"に修正
+・Miyako ExtensionにSlides,Slideクラスを追加
+・上記修正に伴うリファレンスマニュアルの改訂
+・他、若干のバグ修正
+
+V0.8(2006.7.28)
+
+・実際の秒数からウェイトを計算するWaitCounterクラスを追加
+・SpriteAnimationクラスにWaitCounterクラス対応を追加
+・Spriteクラスのレイアウト計算のバグを修正
+・各クラスのprivateメソッドをprotectedメソッドに変更(何か役に立ちそうだったので念のため)
+・Sprite,Plane,Window,TextBox,MessageBoxクラスにshow、hideメソッドを追加
+・Slidesクラスに登録しているスライド集のリストを作成するように変更
+・Slidesクラスにget_name_list,get_slidesクラスメソッドを追加
+・他、若干のバグ修正
+
+V0.9(2006.9.3)
+
+・Colorクラスのメソッドをクラスメソッドのみに(色情報は[r,g,b]の配列で持つ)
+・Colorクラスに、定数を追加(Color::RED,Color::BLACKなど)
+・Colorクラスは、色定数とクラスメソッドのみのクラスに変更
+・#xxxxxx(16進数)形式の文字列をr,g,bに変換するColor.hex2rgbメソッドを追加
+・メッセージマクロに{color=定数名(red,blackなど)}、{color=#(６ケタの１６進数)}を追加
+・ColorクラスからA(Alpha)関連のパラメータを廃止
+・Sprite::create系統のリファクタリング
+・スプライト生成メソッドcreate、create_from_bitmap、loadをnewひとつにまとめる
+・Sprite.createPlaneメソッドをSprite.create_planeメソッドに改名
+・Sprite#draw_line,draw_rect,draw_circle,draw_ellipseメソッドの追加
+・Sprite#tr_colorメソッドの追加
+・Screen::updateメソッド中のfps計算部分をコメントアウト(コメントを外すことで
+　計測可能)
+・Window、TextBox、MessageBoxクラスからclientW=、clientH=、setClientSizeの
+　各メソッドを廃止
+・MessageBoxクラスのコンストラクタにメッセージボックスの大きさを指定する
+　引数を追加
+・WParamクラスを、WindowParameter, CursorParameterクラスに分割
+・WindowParts,CursorPartsクラスを追加
+・上記修正に伴い、Windows,TextBoxクラスもWindowParts,CursorPartsに準拠
+・Window,TextBoxのinitializeメソッドの引数インタフェースを変更
+・Window,TextBoxクラスに各パーツのパラメータデータを取得する
+　window_params,cursor_paramsメソッドを追加
+・MessageDataのコード番号毎の処理をカスタマイズできるMessageDirectorクラスの追加
+・MessageDataクラスにtypeメソッドを追加(設定/実行の区別のため)
+・Miyako ExtensionのVars,Cmds,ShowData,HideDataクラスをMiyako APIのクラスに移動
+・FontクラスからBDFフォントのサポートを廃止
+・Fontクラスから、スタイル関連の設定(Italic,Bold等)を削除
+・Font#setCodingSystem,Font#addメソッドを廃止
+・フォントキャッシュに対応(Font.get_fontメソッドの追加)
+　→MS明朝、MSゴシックなどを指定すると途端に挙動が劣化する症状を解消
+・Font.systemFontメソッドをFont.system_fontメソッドに改名
+・Font.systemFont=メソッドを廃止
+・FontクラスにFont.serif,Font.sans_serifメソッドを追加
+・Fontクラスにheight,ascent,descent,line_skipメソッドを追加
+・Point,Size,Rect,Colorクラスにto_sメソッドを追加
+・Miyako::getOSNameメソッドの返却値に"linux"を追加(修正漏れ対応)
+・他、若干のバグ修正・リファクタリングを実施
+
+v0.9.1(2006.9.4)
+・Authorモジュール、ScriptクラスをStoryモジュール、Sceneクラスに改名
+・TextBoxクラスのcursorDirメソッドで、変更前のカーソルが表示されたままになっているバグを修正
+・Windowクラスで、show/hideメソッドで文字表示部に変化がないバグを修正
+・TextBoxクラスにtext_show,text_hide,back_show,back_hideメソッドを追加
+・TextBoxクラスのshow,hideメソッドの変更
+・MessageDirectorクラスにreset,restart,reset_select,selecting?,clear,show,hide,cansel_pauseメソッドを追加
+・MessageDirectorクラスのvar予約語に:pause,:cansel_pause,:canselを追加
+・Cmds.compileメソッドのバグを修正。それに伴うコマンド記述の書式を変更
+・マニュアルの修正
+・若干のバグ修正
+
+v0.9.9(10.beta)(2006.12.17)
+・Yukiモジュールの追加
+・Yuki::versionメソッドの追加
+・Yuki::Plotクラスを追加
+・メッセージ関連クラスをYukiモジュールに移動、名前も変更
+・マクロの書式の変更(=の替わりにスペースを利用)
+・それに伴うMessageDirectorクラスの各種メソッドの統廃合
+・Yuki::Variablesクラスを独立インスタンス形式に変更
+・Yuki::Commandsクラスを独立インスタンス形式に変更、メソッドの構成も変更
+・Yuki::Directorクラス上で、varプロパティに格納されていた特定シンボルでの値の格
+　納(:pause,:select_resultなど)を、新たに追加したeventプロパティに格納するように
+　変更。
+・Yuki::Directorクラスのeventプロパティで扱うイベントにselect_scenario,
+　cansel_scinario,yn_scinarioを追加
+・Yuki::Directorクラスのeventプロパティで扱うイベント、show_data,hide_data
+　を廃止
+・Yuki::Directorクラスのyes_no、commandの各メソッドをpublicメソッドに
+・Yuki::Directorクラスで、コマンド選択可能になるタイミングを変更
+・Yuki::Directorクラスで、コマンドの選択番号が正しく取得できていなかった
+　バグを修正
+・Yuki::Directorクラスに、set_commands,append_commandsメソッドを追加
+・Yuki::Director.command/yes_noメソッドで、TextMarginLeftを考慮した
+　カーソル位置計算になっていなかったバグを修正
+　yes_no/commandメソッド実行時→showメソッド実行時
+・Miyako::versionメソッドを追加
+・Screenモジュールのtrasition,freeze,freezing?メソッドの廃止
+・Inputモジュールに、trigger_all?,trigger_any?,pushed_all?,pushed_any?メソッドを追加
+・Inputモジュールを大幅にブラッシュアップ。Inputモジュールのメソッドを大幅に整理
+・Audioモジュールの初期化設定を変更
+・カーソル移動・ポーズボタン解除時に、即座に反応しないバグを修正
+・Color::to_rgbメソッドを追加
+　[r,g,b]、"[r,g,b]"、"r,g,b"、"#rrggbb"、32bit値、文字列・シンボルからの変換を一つのメソッドで変換可能に
+・Fontクラスのserif,sans_serifメソッドで、フォントのサイズを変更すると他の
+　serif,sans_serifフォントを使用した描画にも影響が出る問題を修正
+・FontクラスのsetColorメソッドの引数を１つに
+・image_init,command_init,do,alpha,layout,move,move_to,command_append,image_view,
+　animation_init,animation_character,animation_start,animation_stop,animation_re
+　set,if,caseマクロを追加
+・anime_on,anime_off,effect_on,effect_off,'...',''...''マクロの廃止
+・"expr '...'"マクロの書式を"expr ..." に変更
+・"expr ''...''"マクロの書式を"get ..."に変更
+・showマクロの仕様を変更
+・exprマクロのバグを修正
+・sleepマクロを:settingタイプになっていたバグを修正
+・yes_noマクロの書式変更、{yes_no Yes時のシナリオ名 No時のシナリオ名}へ
+・message_wait、sleepマクロの値を秒単位(実数可)に
+・コマンド書式に「:cansel (キャンセル選択時のシナリオ)」を追加、:canselが無い
+　ときはキャンセル禁止になる
+・ShowDataクラス、HideDataクラスの廃止
+・Spriteクラスにdraw_text,in_bounds?,in_bounds_x?,in_bounds_y?,in_bounds_ex?,in_bounds_ex_x?,in_bounds_ex_y?,round,round_x,round_yメソッドを追加
+・Sprite#drawBlockプロパティを廃止
+・Windowクラスにメソッドmsg=を追加
+・TextBoxクラスのメソッドmsg=の修正
+・TextBox/WindowクラスのpauseWait、cursorWait、pageWaitのウェイトをフレーム単位
+　から秒単位(実数可)に変更
+・Sceneクラスのテンプレートメソッドをinitializeからinitに変更
+　引数の記述とsuperの必要が無くなる
+・Sceneクラス内部で使用するクラス・インスタンス変数に@prev,@next,@upper,@@historyを追加。
+　直前に実行していたシーンによる分岐を可能に
+・Sceneクラスインスタンスのキャッシュ化に対応
+　最大２０個までキャッシュ対応
+・Miyako Extensionに、ScenarioWindowDirector、ScenarioWindowクラスを追加
+・Miyako Extensionから、MessageBoxクラスを廃し
+・CPU占有率低減のため、最低限のウェイトをかけるようにした
+・「Rubyist Magazine 17号」に掲載された添削記事をもとにコードを修正
+・Object,String,Array,Integer,Symbolクラスにto_miyako_colorメソッドを追加
+　Color.to_rgbメソッドの簡素化
+・標準フォントを、みかちゃんフォントからＶＬゴシックフォントに変更
+・サウンドボードを必須環境に変更
+・マニュアルの修正(特にマクロリファレンス(stuff_reference.txt))
+・その他、若干のバグ修正
+
+v0.9.9改(1.0beta)(2007.02.12)
+・スプライトに使用する画像ファイルが256色などの為の対応を追加
+・その他、若干のバグ修正
+
+v1.0(2007.02.22)
+・メッセージノーウェイト機能追加(Yuki::Directorクラスにno_waitプロパティを追加)
+・Yuki::Direction.typeプロパティを廃止
+・Yuki::Directorクラスのprocess_?メソッドに返却値を追加(ノーウェイト機能実現のため)
+・Miyako::Font#drawText,Miyako::Font#drawTextMild,Miyako::Font#drawTextRange,Miyako::Font#drawTextMildRange,Miyako::Font#drawText_with_Layoutメソッドの引数を変更。スプライトの左上座標（マージン）を追加。
+・Miyako::ScinarioWindowDirectorクラスにあった@msg_stackをYuki::Directorに移動
+・getマクロを使用すると表示内容がおかしくなるバグを修正
+・ピクセル中のビット数を示すグローバル変数$miyako_bppを追加(フルスクリーンによる256色モードの対応が可能に)
+・Alt+Enterでスクリーンモードを変えても、そのキーが後のInput関連メソッドでも有効になっていた問題を修正
+・Inputモジュールにマウスカーソルの表示・隠蔽を示すmouse_cursor_show,mouse_cursor_hideを追加
+・InputモジュールにAlt+Entによる画面モードの変更可否を指定するenable_toggle_screen_mode,disenable_toggle_screen_modeを追加
+・BitmapクラスにBitmap.cacheメソッドを追加
+・Inputモジュールに、マウスの状態を示すmouseプロパティを追加
+・Window/TextBoxクラスのx=,y=,disenable_layoutメソッドを廃止(move、move_toメソッドをご利用ください)
+
+v1.4(2007.12.16)
+・idaten_miyako拡張ライブラリの導入(Screen.update等の高速化)
+・Miyako::Sprite.ViewPort/setViewPortメソッドの廃止
+・Miyako::Screen.viewport/set_viewportメソッドの追加
+・Miyako::Screen.begin_scene/draw/end_sceneメソッドの追加
+・Miyako::Screen.sprite_listメソッドの追加
+・Miyako::SpriteAnimation#newメソッドインタフェースの大幅な変更
+・Miyako::Collisionクラスの追加
+・Miyako::MParamクラスの廃止
+・Miyako::MapChipクラスの追加
+・Miyako::MapEventクラスの追加
+・Miyako::Movieクラスの追加
+・$not_use_audioグローバル変数の追加
+・$sampling_freqグローバル変数の追加
+・Mapクラスの高速化
+・ファイルをクラス別に分割
+・リファレンスマニュアルをクラス別に分割
+・サンプルを別ファイルに分離
+・他、細かい修正
+
+v1.4.1(2007.12.16)
+・Ruby側Map,MapLayerクラスの修正
+・他、細かい修正
+
+v1.4.2(2007.12.24)
+・FixedMap,FixedMapLayerクラスを追加
+・Map,MapLayer,MapEventの各クラスを修正
+・拡張ライブラリのソースを、Ruby1.9との互換性を向上のために修正
+・Windows用システムフォントに「メイリオ」を追加
+
+v1.4.2a(2007.12.24)
+・Screenモジュールのコーディングミスによるバグを修正
+
+v1.4.3(2008.01.01)
+・Map/FixedMap.updateメソッドを明示的呼び出しに変更
+・SpriteAnimationクラスのバグを修正
+・SpriteAnimation#newメソッドパラメータに、アニメーション画像の
+　表示開始位置をずらす:position_offsetを追加
+・SpriteAnimation#newメソッドパラメータ:alignの既定値を:maxに変更
+・Map/FixedMap.getCodeRealメソッドのバグを修正
+・MapLayer/FixedMapLayer.convert_positionメソッドのバグを修正
+・Map/FixedMap.get_view_positionメソッドを追加
+・他、細かいバグを修正
+
+v1.4.4(2008.01.14)
+・Movie#scaleメソッドを廃止(動画の表示倍率を1.0倍に固定)
+・SpriteAnimation/update/update_frame/update_wait_counter/set_patメソッドを
+　idaten_miyakoによる高速化
+・他、細かい修正
+
+v1.4.5(2008.01.19)
+・Story::Scene#interruptメソッドを廃止
+・Story::Scene#view_in_to_update, update_to_view_outメソッドを追加
+・Spritre#newメソッドの第２・第３引数をnilにすることにより、
+　αレイヤー付きの画像に対応
+・Miyako.main_loopメソッドを追加
+・Miyako.main_loopメソッドをidaten_miyakoによる高速化
+
+v1.4.6(2008.02.03)
+・表示色を３２ビットに固定
+・拡張ライブラリmiyako_no_katanaを追加
+・BitmapクラスにBitmap.dec_alphaメソッドを追加
+・BitmapクラスにBitmap.additive, Bitmap.inverseメソッドを追加
+・Screen.update_tick,WaitCounter.start/stop/finish?/waiting?/wait/wait_inner
+　メソッドをidaten_miyako化
+・Scene,Sprite,Shape各クラスで使われていたinstance_evalメソッド呼び出しを廃止
+・一部メソッドの引数等(SpriteAnimationクラスのパラメータ等)で、引数がPoint,Size,
+　Rect構造体と整数の配列、両方に対応するように修正
+・Colorクラスの値を、[R,G,B,A]の４要素の配列になるように変更
+・Color#to_sメソッドの返却値を、"[R,G,B,A]"の４要素の配列になるように変更
+・Color.rgb2ccメソッドの廃止
+・TextBox(Window)クラスでの表示文字を、アンチエイリアス付き文字でも描画可能に
+　(但し、文字サイズが24ピクセル以上)
+・Window#vspace/vspace=メソッドの追加
+・Window#draw_type/draw_type=メソッドの追加
+・Font#use_shadow/use_shadow=メソッドの追加
+・Font#shadow_color/shadow_color=メソッドの追加
+・Font#shadow_margin/shadow_margin=メソッドの追加
+・Font#color/color=メソッドの追加
+・Movie#current/lengthメソッドの追加
+・Screen.captureメソッドの追加
+・Map/FixedMap#add_eventメソッドの追加
+・Yukiの{size}{color}命令で、変更前の色・サイズに戻す{size 0}{color return}をサポート
+・install_miyako.rbからオプション--not_idatenを削除
+・他、細かい修正
+
+v1.5.0pre(2008.03.12)
+・全クラスの大幅な見直し(インタフェースの改良、不要なメソッド・変数の削除)
+・Window,WindowParameter,WindowParts,CurosorParameter,CurosorPartsクラスの廃止
+・Layout,SpriteBase,Animation,SingleEnemerableモジュールの追加
+・MapEvent,Yukiクラスをモジュールに変更
+・LayoutSpace,Parts,Choices,MapChipFactoryなどのクラスの追加
+・MapChipなどの構造体の追加
+・Screen.updateによる自動更新の対象を、TextBox,Map,SpritAnimationに拡大
+・YukiのDSL化(マクロ形式は廃止)
+・他、細かい修正
+
+v1.5.0pre2(2008.03.16)
+・animation.rbをmodules.rbに改名
+・MiyakoTapモジュールの追加(propertyメソッドのみ)
+・Spriteクラス、SpriteAnimationクラスにrecalc_layoutメソッドを追加・自動化
+・Spriteクラスのbitmap=メソッドを呼び出した後、fillなどのメソッドが機能しないバグを修正
+・Audio::BGMクラス、Audio::SEクラスのメソッドチェイン化
+・idaten_miyakoの一部メソッドの廃止
+・Partsクラスのバグを修正
+・Rdocのひな形を追加(まだ途中です・・・)
+
+v1.5.0pre3(2008.03.20)
+・TextBox#dpメソッドのバグを修正
+・Partsクラスにmain_top、main_bottom、sort_dpメソッドを追加
+・Shapeクラス/Yukiモジュールのcolorメソッドのバグを修正
+・EXT/SlideクラスをSlideモジュールに変更、実装を見直し
+
+v1.5.0pre4(2008.03.22)
+・Map/FixedMapクラスで、マップレイヤ(非イベントレイヤ)上で、存在しないマップチップ番号が
+　指定されたときは-1にするように修正
+・Spriteクラスで、アルファチャネルが付かない画像に対して、alpha=メソッドが機能していなかった問題を修正
+・デバッグモード用に、$miyako_debug_modeグローバル変数を追加
+　現在は以下の機能が利用可能
+　・Yukiでのメッセージ表示中・コマンド選択中に、×キーを押せば終了する
+・Yuki.init_yukiの引数インタフェースを変更。メッセージボックス・コマンドボックスにPartsクラスのインスタンスを渡すことが可能に
+・Parts,Sprite,SpriteAnimationの各クラスのshowメソッドにブロック引数を渡すことが可能に(ブロック実行中はそれぞれの表示ができる)
+
+v1.5.0pre5(2008.03.28)
+・Fontクラスで、αチャネルがない画像に対する文字描画に問題があったため修正
+・同時に、αチャネル付き画像に対して、綺麗に文字が描画されていなかった問題を修正
+・Rdoc形式の説明のひな形を作成(リファレンスを逐次更新中)
+・Miyako.main_loopメソッドにウェイトを追加。CPUのリソース消費を軽減
+・Sprite,SpriteAnimation,TextBox,Choices,Maplayer,FixedMaplayer,Planeの各クラスにrenderインスタンスメソッドを追加
+・Screen.render,Screen.clearメソッドの追加
+　(画像の明示的な描画が可能に)
+
+v1.5.0pre6(2008.05.09)
+・StoryモジュールをStoryクラスに変更。インスタンスの作成はStoryクラスのインスタンスを作成する方式に変更
+・DiagramProcessor、Diagramクラスなど、遷移図処理に必要なクラス・モジュール・構造体を追加
+・Yukiのスレッド化(内部処理での話。Yukiでのスクリプティングは影響無し)
+・Yuki#setup_yukiメソッドの追加(Yukiをmixinしたシーンでは、setupメソッド内で呼び出しを義務化)
+・Yuki#exec_plot, Yuki#update_plot, Yuki#plot_executing? メソッドの追加
+・Yuki#update_plot_input、Yuki#get_plot_resultメソッドの追加
+・Yukiの処理を、別クラスでチェック可能に(たぶん。未検証)
+・処理が重くなってしまった・・・
+・他、細かい修正
+
+v1.5.0pre7(2008.05.13)
+・暫定的にMacOSXに対応(人柱求む)
+・miyako.rbにdiagram.rbが組み込まれていないバグを修正
+・DiagramNodeBase#reset_inputメソッドを呼び出すタイミングを変更
+・コメントの追加(RDoc形式)
+
+v1.5.0pre7a(2008.05.15)
+・DiagramProcessor#update_inputメソッドで、DiagramFacade#update_inputメソッドを呼び出さないバグを修正
+・DiagramFacade#update_inputメソッドが未定義だったバグを修正
+・RDoc形式リファレンスマニュアルを同梱
+
+v1.5.0RC1(2008.05.18)
+・インストーラーでmiyako_no_katanaがインストールされていなかったバグを修正
+・MacOSX上のOSチェックにミスがあったため、修正
+・MacOSX上でのフォント検索パスを追加
+・MacOSX上でのserif,sans_serifで検索できるファイル名を追加
+・フォントパスの区切りを「/」に統一
+・serif,sans_serifフォントにume-plus-gothicを追加
+・遷移図関係のクラス・モジュールを「Diagram」モジュール(名前空間)にまとめる
+　DiagramNodeBaseモジュールをDiagram::NodeBaseに変更
+　NodeTriggerBaseモジュールをDiagram::TriggerBaseに変更
+　NodeTriggerクラスをDiagram::DefaultTriggerに変更
+　DiagramクラスをDiagram::DiagramBodyに変更
+　DiagramFacadeクラスをDiagram::Managerに変更
+　DiagramRendererクラスをDiagram::Rendererに変更
+　DiagramProcessorクラスをDiagram::Processorに変更
+・NodeBase#finish?メソッドを追加
+・NodeBase#disposeメソッドを追加
+・Yuki::YukiManagerクラス、Yuki#managerメソッドを追加(外部クラスからのYukiの管理を簡素化)
+・RDoc形式リファレンスマニュアルを修正(一部)
+
+v1.5.0RC2(2008.05.31)
+・Plane#disposeでエラーが出るバグを修正
+・Yuki.#get_plot_resultで、仕様通りに結果が返ってきていないバグを修正
+・Yuki.#selectingで、コマンド選択の入力情報が確実に反映されていなかったバグを修正
+・Slide.#createメソッドで、新しいSlideインスタンスが作成されないバグを修正
+・RDoc形式リファレンスマニュアルを修正(一部)
+
+v1.5.0RC3(2008.06.05)
+・Diagram::Processor#nowメソッドを追加
+・Diagram::Processor#now_nodeメソッドを追加
+・Story.scenes、Story#listup、Story#listup2csvメソッドを廃止
+・Stiry#disposeメソッドを追加
+・Scene.scenes、Scene.has_scene?メソッドを追加
+・Scene.listup、Scene.listup2csvメソッドを追加
+・パッケージング時に付けていた余計なファイルを削除
+・RDoc形式リファレンスマニュアルを修正(ごく一部)
+
+v1.5.0RC4(2008.06.08)
+・MacOSXでのデフォルトフォントファイル名を修正。ヒラギノProW6を追加
+・遷移図形式で、遷移図の処理が終了してもスレッドが終了しなかったバグを修正
+
+v1.5.0RC5(2008.06.16)
+・MacOSX対応の強化(UTF-8-MACへの変換対応)
+・Sprite#draw_circleメソッドに引数引き渡し時のバグがあったため修正
+・ドラッグアンドドロップに限らずマウスのボタンが押されているかどうかを問い合わせる Input.mouse_trigger? メソッドを追加
+・Audio::SEクラスに、同時発音数を変更するAudio::SE.channels=メソッドを追加
+・音声のバッファサイズを変更する$sound_buffer_sizeグローバル変数を追加
+・Diagram::Processor#main_loopメソッドをidaten_miyako化
+・Yuki#.update_plot_thread, Yuki::Yuki2#update_plot_threadメソッドをidaten_miyako化
+・Audio::BGM#dispose, Audio::SE#disposeメソッドを追加
+・RDoc形式リファレンスマニュアルを修正(一部)
+
+v1.5.0RC6(2008.06.30)
+・Sprite.get_listメソッドの高速化
+・Diagram::Processor#updateメソッドの追加(同期実行用)
+・Planeクラスで、画像が正常に描画されない問題を修正
+・RDoc形式リファレンスマニュアルを修正(一部)
+
+v1.5.0RC7(2008.07.01)
+・Collisionsクラスの追加
+
+v1.5.0RC8(2008.07.16)
+・Collision#turn,adjustメソッドの追加
+・Collisions#turn,adjustメソッドの追加
+・Sprite.update_spriteメソッドの追加(Spriteの描画高速化)
+・Sprite#update_spriteメソッドの追加(Spriteの描画高速化)
+・Sprite#updateメソッドの返却値の変更(自分自身を返すように変更)
+・Screen.updateメソッドの修正
+・LayoutStruct,LayoutSnapStruct構造体の追加
+・Yuki2#parts, vars, regist_parts, regist_diagram, remove_parts, remove_diagram メソッドの追加
+・Yuki2#show, hide, start, play, stop, wait_by_finish, result= メソッドの追加
+・Yuki2#wait_by_condの引数をtrue/falseからブロックに変更
+・RDoc形式リファレンスマニュアルを修正(一部)
+
+v1.5.0(2008.07.19)
+・Planeクラスのバグ修正(移動方向によっては画像が表示されない問題の修正)
+・Layout#top,right,left,bottomメソッドのバグの修正(別座標の値がリセットされていた問題の修正。これにより別座標の値は保存される)
+・Layout#round_x,round_yメソッドのバグの修正(移動量が0のときに不正が不正になる問題の修正)
+・Layout#in_bound_rev?, in_bound_rev_x?, in_bound_rev_y?メソッドの追加
+・Layout#in_bound_rev2?, in_bound_rev2_x?, in_bound_rev2_y?メソッドの追加
+・Layout#round_rev?, round_rev_x?, round_rev_y?メソッドの追加
+・Layout#round_rev2?, round_rev2_x?, round_rev2_y?メソッドの追加
+・RDoc形式リファレンスマニュアルを修正(Layoutモジュールの説明拡充)
+・正式版として公開
+
+v1.5.0a(2008.07.21)
+・Layout#round_rev_x, round_rev_yメソッドのバグ修正
+・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
+・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
+
+*******************************************************************************
+このReadMeファイルは「れ～どめ～えじた～」によって作成されました。
+
