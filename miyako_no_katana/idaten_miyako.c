@@ -1,5 +1,5 @@
 /* 
-Miyako v1.5 Extend Library "Idaten Miyako"
+Miyako v2.0 Extend Library "Idaten Miyako"
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -19,68 +19,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <stdlib.h>
 #include "ruby.h"
-#if 0
-#include "rubysig.h"
-#endif
 
-VALUE mSDL;
-VALUE mMiyako;
-VALUE mScreen;
-VALUE mInput;
-VALUE mMapEvent;
-VALUE mLayout;
-VALUE mDiagram;
-VALUE mYuki;
-VALUE eMiyakoError;
-VALUE cEvent2;
-VALUE cJoystick;
-VALUE cWaitCounter;
-VALUE cColor;
-VALUE cFont;
-VALUE cSprite;
-VALUE cSpriteAnimation;
-VALUE cPlane;
-VALUE cTextBox;
-VALUE cMap;
-VALUE cMapLayer;
-VALUE cFixedMap;
-VALUE cFixedMapLayer;
-VALUE cCollision;
-VALUE cCollisions;
-VALUE cMovie;
-VALUE cProcessor;
-VALUE cYuki2;
-VALUE cThread;
-VALUE nZero;
-VALUE nOne;
-volatile ID id_update;
-volatile ID id_kakko;
-volatile int zero;
-volatile int one;
-
-static int comp_value(const VALUE *a, const VALUE *b)
-{
-  int aa = NUM2INT(*(RSTRUCT_PTR(*a)));
-  int bb = NUM2INT(*(RSTRUCT_PTR(*b)));
-  return bb - aa;
-}
-
-#if 0
-static VALUE miyako_main_loop(VALUE self)
-{
-  if(rb_block_given_p() == Qfalse){
-    rb_raise(eMiyakoError, "Miyako.main_loop needs brock!");
-    return Qnil;
-  }
-  while(1){
-    rb_funcall(mInput, id_update, 0);
-    rb_yield(Qnil);
-    rb_funcall(mScreen, id_update, 0);
-    CHECK_INTS;
-  }
-  return Qnil;
-}
-#endif
+static VALUE mSDL = Qnil;
+static VALUE mMiyako = Qnil;
+static VALUE mScreen = Qnil;
+static VALUE mInput = Qnil;
+static VALUE mMapEvent = Qnil;
+static VALUE mLayout = Qnil;
+static VALUE mDiagram = Qnil;
+static VALUE eMiyakoError = Qnil;
+static VALUE cSurface = Qnil;
+static VALUE cEvent2 = Qnil;
+static VALUE cJoystick = Qnil;
+static VALUE cWaitCounter = Qnil;
+static VALUE cColor = Qnil;
+static VALUE cFont = Qnil;
+static VALUE cSprite = Qnil;
+static VALUE cSpriteAnimation = Qnil;
+static VALUE cPlane = Qnil;
+static VALUE cTextBox = Qnil;
+static VALUE cMap = Qnil;
+static VALUE cMapLayer = Qnil;
+static VALUE cFixedMap = Qnil;
+static VALUE cFixedMapLayer = Qnil;
+static VALUE cCollision = Qnil;
+static VALUE cCollisions = Qnil;
+static VALUE cMovie = Qnil;
+static VALUE cProcessor = Qnil;
+static VALUE cYuki = Qnil;
+static VALUE cThread = Qnil;
+static VALUE nZero = Qnil;
+static VALUE nOne = Qnil;
+static volatile ID id_update = Qnil;
+static volatile ID id_kakko = Qnil;
+static volatile int zero = Qnil;
+static volatile int one = Qnil;
 
 static VALUE sprite_update(VALUE self)
 {
@@ -90,37 +63,6 @@ static VALUE sprite_update(VALUE self)
   if(rb_block_given_p() == Qtrue){ rb_yield(self); }
 
   return self;
-}
-
-static VALUE sprite_get_list(VALUE self)
-{
-  VALUE ulist = rb_ary_new();
-  VALUE slist = rb_iv_get(cSprite, "@@sprites");
-  
-  int i;
-  for(i=0; i<RARRAY_LEN(slist); i++){
-    VALUE spr = *(RARRAY_PTR(slist) + i);
-    if(spr == Qnil){ continue; }
-      if(rb_iv_get(spr, "@visible") == Qtrue){
-        sprite_update(self);
-        rb_ary_push(ulist, rb_iv_get(spr, "@unit"));
-      }
-  }
-  return ulist;
-}
-
-static VALUE sprite_update_sprite(VALUE self)
-{
-  VALUE visible = rb_iv_get(self, "@visible");
-
-  if(visible == Qtrue){
-    VALUE vSpriteList = rb_iv_get(mScreen, "@@sprite_list");
-    VALUE unit = rb_iv_get(self, "@unit");
-    sprite_update(self);
-    rb_ary_push(vSpriteList, unit);
-  }
-
-  return Qnil;
 }
 
 static VALUE screen_update_tick(VALUE self)
@@ -135,145 +77,100 @@ static VALUE screen_update_tick(VALUE self)
     interval = t - tt;
   }
 
-  VALUE fps_sprite = rb_iv_get(mScreen, "@@fps_sprite");
-  if(fps_sprite != Qnil){
-    rb_funcall(fps_sprite, rb_intern("hide"), 0);
-    rb_funcall(fps_sprite, rb_intern("dispose"), 0);
-  }
-
-  VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
-  if(fps_view == Qtrue){
-    char str[256];
-    int fps_max = NUM2INT(rb_const_get(mScreen, rb_intern("FpsMax")));
-    if(interval == 0){ interval = 1; }
-
-    VALUE sans_serif = rb_funcall(cFont, rb_intern("sans_serif"), 0);
-
-    sprintf(str, "%d fps", fps_max / interval);
-    VALUE fps_str = rb_str_new2((const char *)str);
-		
-    fps_sprite = rb_funcall(fps_str, rb_intern("to_sprite"), 1, sans_serif);
-    rb_funcall(fps_sprite, rb_intern("show"), 0);
-    rb_iv_set(mScreen, "@@fps_sprite", fps_sprite);
-  }
-
   rb_iv_set(mScreen, "@@t", INT2NUM(t));
+  rb_iv_set(mScreen, "@@interval", INT2NUM(interval));
 
-  return Qnil;
-}
-
-static VALUE screen_update(VALUE self)
-{
-  VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
-  VALUE screen_w = rb_funcall(mvScreen, rb_intern("w"), 0);
-  VALUE screen_h = rb_funcall(mvScreen, rb_intern("h"), 0);
-
-  rb_funcall(cSprite, rb_intern("update_sprite"), 0);
-  rb_funcall(cSpriteAnimation, rb_intern("update_animation"), 0);
-  rb_funcall(cPlane, id_update, 0);
-  rb_funcall(cTextBox, id_update, 0);
-  rb_funcall(cMap, id_update, 0);
-  rb_funcall(cFixedMap, id_update, 0);
-
-  VALUE slist1 = rb_iv_get(mScreen, "@@sprite_list");
-
-#if 0
-  VALUE slist2 = rb_funcall(cSprite, rb_intern("get_list"), 0, NULL);
-  rb_ary_concat(slist1, slist2);
-#endif
-
-  qsort(RARRAY_PTR(slist1), RARRAY_LEN(slist1), sizeof(VALUE), (int (*)(const void*, const void*))comp_value);
-
-  rb_funcall(mvScreen, rb_intern("fillRect"), 5, nZero, nZero, screen_w, screen_h,
-	     rb_funcall(cColor, rb_intern("[]"), 2, ID2SYM(rb_intern("black")), nZero));
-
-  int i;
-  for(i=(RARRAY_LEN(slist1)-1); i>=0; i--){
-    VALUE unit = *(RARRAY_PTR(slist1) + i);
-      
-      VALUE vp_a = *(RSTRUCT_PTR(unit) + 9);
-      if(vp_a != Qnil){
-	VALUE *vp = RARRAY_PTR(rb_funcall(vp_a, rb_intern("to_a"), 0));
-	rb_funcall(mvScreen, rb_intern("set_clip_rect"), 4, *vp, *(vp+1), *(vp+2), *(vp+3));
-      }
-      else{
-	rb_raise(eMiyakoError, "viewport is nil!");
-	return Qnil;
-      }
-
-      VALUE effect  = *(RSTRUCT_PTR(unit) + 8);
-      if(effect != Qnil && RTEST(rb_iv_get(effect, "@effecting")) == 1){
-	rb_funcall(effect, id_update, 1, mvScreen);
-      }
-      else{
-	VALUE bitmap   = *(RSTRUCT_PTR(unit) + 1);
-	VALUE x        = *(RSTRUCT_PTR(unit) + 6);
-	VALUE y        = *(RSTRUCT_PTR(unit) + 7);
-	
-	rb_funcall(mSDL, rb_intern("blitSurface"), 8,
-		   bitmap,
-		   *(RSTRUCT_PTR(unit) + 2), *(RSTRUCT_PTR(unit) + 3),
-		   *(RSTRUCT_PTR(unit) + 4), *(RSTRUCT_PTR(unit) + 5),
-		   mvScreen, x, y);
-      }
-  }
-  rb_funcall(mvScreen, rb_intern("set_clip_rect"), 4, nZero, nZero, screen_w, screen_h);
-
-  rb_ary_clear(slist1);
-  rb_funcall(mScreen, rb_intern("update_tick"), 0, NULL);
-  rb_funcall(mvScreen, rb_intern("flip"), 0, NULL);
-    
   return Qnil;
 }
 
 static VALUE screen_render(VALUE self)
 {
   VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
-  VALUE screen_w = rb_funcall(mvScreen, rb_intern("w"), 0);
-  VALUE screen_h = rb_funcall(mvScreen, rb_intern("h"), 0);
-
-  VALUE slist = rb_iv_get(mScreen, "@@sprite_list");
-
-  int i;
-  for(i=0; i<RARRAY_LEN(slist); i++){
-    VALUE unit = *(RARRAY_PTR(slist) + i);
-      
-    VALUE vp_a = *(RSTRUCT_PTR(unit) + 9);
-    if(vp_a != Qnil){
-      VALUE *vp = RARRAY_PTR(rb_funcall(vp_a, rb_intern("to_a"), 0));
-      rb_funcall(mvScreen, rb_intern("set_clip_rect"), 4, *vp, *(vp+1), *(vp+2), *(vp+3));
-    }
-    else{
-      rb_raise(eMiyakoError, "viewport is nil!");
-      return Qnil;
-    }
-
-    VALUE effect  = *(RSTRUCT_PTR(unit) + 8);
-    if(effect != Qnil && RTEST(rb_iv_get(effect, "@effecting")) == 1){
-      rb_funcall(effect, id_update, 1, mvScreen);
-    }
-    else{
-      VALUE bitmap   = *(RSTRUCT_PTR(unit) + 1);
-      VALUE x        = *(RSTRUCT_PTR(unit) + 6);
-      VALUE y        = *(RSTRUCT_PTR(unit) + 7);
-      
-      rb_funcall(mSDL, rb_intern("blitSurface"), 8,
-		 bitmap,
-		 *(RSTRUCT_PTR(unit) + 2), *(RSTRUCT_PTR(unit) + 3),
-		 *(RSTRUCT_PTR(unit) + 4), *(RSTRUCT_PTR(unit) + 5),
-		 mvScreen, x, y);
-    }
-  }
-  rb_funcall(mvScreen, rb_intern("set_clip_rect"), 4, nZero, nZero, screen_w, screen_h);
-  
-  rb_ary_clear(slist);
-  rb_funcall(mScreen, rb_intern("update_tick"), 0, NULL);
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
+
   if(fps_view == Qtrue){
-    VALUE fps_sprite = rb_iv_get(mScreen, "@@fps_sprite");
-    if(fps_sprite != Qnil){ rb_funcall(fps_sprite, rb_intern("render"), 0); }
+    char str[256];
+    int interval = NUM2INT(rb_iv_get(mScreen, "@@interval"));
+    int fps_max = NUM2INT(rb_const_get(mScreen, rb_intern("FpsMax")));
+    VALUE sans_serif = rb_funcall(cFont, rb_intern("sans_serif"), 0);
+    VALUE fps_sprite = Qnil;
+
+    if(interval == 0){ interval = 1; }
+
+    sprintf(str, "%d fps", fps_max / interval);
+    VALUE fps_str = rb_str_new2((const char *)str);
+		
+    fps_sprite = rb_funcall(fps_str, rb_intern("to_sprite"), 1, sans_serif);
+    rb_funcall(fps_sprite, rb_intern("render"), 0);
   }
+
+  rb_funcall(mScreen, rb_intern("update_tick"), 0, NULL);
+
   rb_funcall(mvScreen, rb_intern("flip"), 0, NULL);
+  
+  return Qnil;
+}
+
+static VALUE screen_render_screen1(VALUE unit)
+{
+  VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
+	VALUE bitmap   = *(RSTRUCT_PTR(unit) + 0);
+	VALUE x        = INT2NUM(NUM2INT(*(RSTRUCT_PTR(unit) + 5)) + NUM2INT(*(RSTRUCT_PTR(unit) + 7)));
+	VALUE y        = INT2NUM(NUM2INT(*(RSTRUCT_PTR(unit) + 6)) + NUM2INT(*(RSTRUCT_PTR(unit) + 8)));
+
+  rb_funcall(cSurface, rb_intern("blit"), 8,
+             bitmap,
+             *(RSTRUCT_PTR(unit) + 1), *(RSTRUCT_PTR(unit) + 2),
+             *(RSTRUCT_PTR(unit) + 3), *(RSTRUCT_PTR(unit) + 4),
+             mvScreen, x, y);
+  
+  return Qtrue;
+}
+
+static VALUE screen_render_screen2(VALUE unit)
+{
+  return Qfalse;
+}
+
+static VALUE screen_render_screen(VALUE self, VALUE unit)
+{
+  while(1)
+  {
+    if(rb_rescue(screen_render_screen1, unit, screen_render_screen2, unit) == Qtrue)
+      break;
+  }
+  
+  return Qnil;
+}
+
+static VALUE screen_transform_screen1(VALUE unit)
+{
+  VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
+	VALUE bitmap   = *(RSTRUCT_PTR(unit) + 0);
+	VALUE x        = INT2NUM(NUM2INT(*(RSTRUCT_PTR(unit) + 5))
+                         + NUM2INT(*(RSTRUCT_PTR(unit) + 7))
+                         + NUM2INT(*(RSTRUCT_PTR(unit) + 14)));
+	VALUE y        = INT2NUM(NUM2INT(*(RSTRUCT_PTR(unit) + 6))
+                         + NUM2INT(*(RSTRUCT_PTR(unit) + 8))
+                         + NUM2INT(*(RSTRUCT_PTR(unit) + 15)));
+
+  rb_funcall(cSurface, rb_intern("transform_blit"), 10,
+             bitmap, mvScreen,
+             *(RSTRUCT_PTR(unit) + 9),
+             *(RSTRUCT_PTR(unit) + 10), *(RSTRUCT_PTR(unit) + 11),
+             *(RSTRUCT_PTR(unit) + 12), *(RSTRUCT_PTR(unit) + 13),
+             x, y, nZero);
+  
+  return Qtrue;
+}
+
+static VALUE screen_transform_screen(VALUE self, VALUE unit)
+{
+  while(1)
+  {
+    if(rb_rescue(screen_transform_screen1, unit, screen_render_screen2, unit) == Qtrue)
+      break;
+  }
   
   return Qnil;
 }
@@ -328,38 +225,35 @@ static VALUE counter_wait(VALUE self)
   return self;
 }
 
-static VALUE maplayer_update(VALUE self)
+static VALUE maplayer_render(int argc, VALUE *argv, VALUE self)
 {
-  VALUE vSpriteList = rb_iv_get(mScreen, "@@sprite_list");
-  VALUE visible = rb_iv_get(self, "@visible");
-  VALUE view_pos = rb_iv_get(self, "@view_pos");
-  VALUE size = rb_iv_get(self, "@size");
-  VALUE map_type = rb_iv_get(self, "@map_type");
-  VALUE real_size = rb_iv_get(self, "@real_size");
-  VALUE param = rb_iv_get(self, "@mapchip");
-  VALUE baseimg = rb_iv_get(self, "@baseimg");
-
+  VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
   int cw = NUM2INT(rb_iv_get(self, "@cw"));
   int ch = NUM2INT(rb_iv_get(self, "@ch"));
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(view_pos) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(view_pos) + 1));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  VALUE margin = rb_iv_get(self, "@margin");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0)) + NUM2INT(*(RSTRUCT_PTR(margin) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1)) + NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
   int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
   int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE real_size = rb_iv_get(self, "@real_size");
   int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
   int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
+
+  VALUE param = rb_iv_get(self, "@mapchip");
   VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
   int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
   int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
-  VALUE mc_size = *(RSTRUCT_PTR(param) + 2);
-  int mc_size_w = NUM2INT(*(RSTRUCT_PTR(mc_size) + 0));
-  int mc_size_h = NUM2INT(*(RSTRUCT_PTR(mc_size) + 1));
 
-  VALUE units = rb_iv_get(self, "@units");
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
   
-  if(RTEST(visible) == 0){ return Qnil; }
-
   if(pos_x < 0){ pos_x = real_size_w + (pos_x % real_size_w); }
   if(pos_y < 0){ pos_y = real_size_h + (pos_y % real_size_h); }
   if(pos_x >= real_size_w){ pos_x %= real_size_w; }
@@ -370,7 +264,6 @@ static VALUE maplayer_update(VALUE self)
   int dy = pos_y / mc_chip_size_h;
   int my = pos_y % mc_chip_size_h;
 
-  int p = 0;
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
     idx1 = (y + dy) % size_h;
@@ -379,58 +272,34 @@ static VALUE maplayer_update(VALUE self)
       idx2 = (x + dx) % size_w;
       int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
       if(code == -1){ continue; }
-      VALUE unit = *(RARRAY_PTR(units) + p);
-      VALUE munit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
-      *(RSTRUCT_PTR(unit) + 1) = *(RSTRUCT_PTR(munit) + 1);
-      *(RSTRUCT_PTR(unit) + 2) = *(RSTRUCT_PTR(munit) + 2);
-      *(RSTRUCT_PTR(unit) + 3) = *(RSTRUCT_PTR(munit) + 3);
-      *(RSTRUCT_PTR(unit) + 4) = *(RSTRUCT_PTR(munit) + 4);
-      *(RSTRUCT_PTR(unit) + 5) = *(RSTRUCT_PTR(munit) + 5);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(x * mc_chip_size_w - mx);
-      *(RSTRUCT_PTR(unit) + 7) = INT2NUM(y * mc_chip_size_h - my);
-      p++;
+      VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
+      screen_render_screen(mvScreen, unit);
     }
   }
-  
-  VALUE units2 = rb_funcall(units, id_kakko, 2, nZero, INT2NUM(p));
-  rb_ary_concat(vSpriteList, units2);
-  
   return Qnil;
 }
 
-static VALUE fixedmaplayer_update(VALUE self)
+static VALUE fixedmaplayer_render(int argc, VALUE *argv, VALUE self)
 {
-  VALUE vSpriteList = rb_iv_get(mScreen, "@@sprite_list");
-  VALUE visible = rb_iv_get(self, "@visible");
-  VALUE pos = rb_iv_get(self, "@pos");
-  VALUE size = rb_iv_get(self, "@size");
-  VALUE map_type = rb_iv_get(self, "@map_type");
-  VALUE real_size = rb_iv_get(self, "@real_size");
-  VALUE param = rb_iv_get(self, "@mapchip");
-  VALUE baseimg = rb_iv_get(self, "@baseimg");
-
+  VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
   int cw = NUM2INT(rb_iv_get(self, "@cw"));
   int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
   int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
   int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
-  int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
-  int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
-  VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
-  int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
-  int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
-  VALUE mc_size = *(RSTRUCT_PTR(param) + 2);
-  int mc_size_w = NUM2INT(*(RSTRUCT_PTR(mc_size) + 0));
-  int mc_size_h = NUM2INT(*(RSTRUCT_PTR(mc_size) + 1));
 
-  VALUE units = rb_iv_get(self, "@units");
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
 
-  if(RTEST(visible) == 0){ return Qnil; }
-
-  int p = 0;
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
     idx1 = y % size_h;
@@ -439,72 +308,33 @@ static VALUE fixedmaplayer_update(VALUE self)
       idx2 = x % size_w;
       int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
       if(code == -1){ continue; }
-      VALUE unit = *(RARRAY_PTR(units) + p);
-      VALUE munit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
-      *(RSTRUCT_PTR(unit) + 1) = *(RSTRUCT_PTR(munit) + 1);
-      *(RSTRUCT_PTR(unit) + 2) = *(RSTRUCT_PTR(munit) + 2);
-      *(RSTRUCT_PTR(unit) + 3) = *(RSTRUCT_PTR(munit) + 3);
-      *(RSTRUCT_PTR(unit) + 4) = *(RSTRUCT_PTR(munit) + 4);
-      *(RSTRUCT_PTR(unit) + 5) = *(RSTRUCT_PTR(munit) + 5);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_x + x * mc_chip_size_w);
-      *(RSTRUCT_PTR(unit) + 7) = INT2NUM(pos_y + y * mc_chip_size_h);
-      p++;
+      VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      screen_render_screen(mvScreen, unit);
     }
   }
 
-  VALUE units2 = rb_funcall(units, id_kakko, 2, nZero, INT2NUM(p));
-  rb_ary_concat(vSpriteList, units2);
-
   return Qnil;
 }
 
-static VALUE map_update(int argc, VALUE *argv, VALUE self)
+static VALUE map_render(int argc, VALUE *argv, VALUE self)
 {
-  VALUE param;
-
-  rb_scan_args(argc, argv, "01", &param);
-  
   VALUE map_layers = rb_iv_get(self, "@map_layers");
-  VALUE event_layer = rb_iv_get(self, "@event_layer");
-  VALUE visible = rb_iv_get(self, "@visible");
-  
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
-    VALUE map_layer = *(RARRAY_PTR(map_layers) + i);
-    rb_funcall(map_layer, id_update, 0);
-  }
-  
-  if(RTEST(visible) == 0){ return Qnil; }
-
-  for(i=0; i<RARRAY_LEN(event_layer); i++){
-    VALUE e = *(RARRAY_PTR(event_layer) + i);
-    rb_funcall(e, id_update, 3, self, event_layer, param);
+    maplayer_render(argc, argv, *(RARRAY_PTR(map_layers) + i));
   }
   
   return Qnil;
 }
 
-static VALUE fixedmap_update(int argc, VALUE *argv, VALUE self)
+static VALUE fixedmap_render(int argc, VALUE *argv, VALUE self)
 {
-  VALUE param;
-
-  rb_scan_args(argc, argv, "01", &param);
-
   VALUE map_layers = rb_iv_get(self, "@map_layers");
-  VALUE event_layer = rb_iv_get(self, "@event_layer");
-  VALUE visible = rb_iv_get(self, "@visible");
-
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
-    VALUE map_layer = *(RARRAY_PTR(map_layers) + i);
-    rb_funcall(map_layer, id_update, 0);
-  }
-
-  if(RTEST(visible) == 0){ return Qnil; }
-
-  for(i=0; i<RARRAY_LEN(event_layer); i++){
-    VALUE e = *(RARRAY_PTR(event_layer) + i);
-    rb_funcall(e, id_update, 3, self, event_layer, param);
+    fixedmaplayer_render(argc, argv, *(RARRAY_PTR(map_layers) + i));
   }
 
   return Qnil;
@@ -547,21 +377,16 @@ static VALUE sa_update(VALUE self)
   VALUE s = *(RARRAY_PTR(slist) + NUM2INT(*(RARRAY_PTR(plist) + NUM2INT(num))));
   VALUE move_off = *(RARRAY_PTR(molist) + NUM2INT(num));
 
-  *(RSTRUCT_PTR(now) + 6) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("x"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
-  *(RSTRUCT_PTR(now) + 7) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("y"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne)));
+  *(RSTRUCT_PTR(now) + 5) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("x"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
+  *(RSTRUCT_PTR(now) + 6) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("y"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne)));
 
   pos_off = *(RARRAY_PTR(polist) + NUM2INT(num));
   
   if(rb_to_id(dir) == rb_intern("h")){
-    *(RSTRUCT_PTR(now) +  3) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  3)) + NUM2INT(pos_off));
-  }
-  else{
     *(RSTRUCT_PTR(now) +  2) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  2)) + NUM2INT(pos_off));
   }
-
-  if(rb_iv_get(self, "@visible") == Qtrue){
-    VALUE vSpriteList = rb_iv_get(mScreen, "@@sprite_list");
-    rb_ary_push(vSpriteList, now);
+  else{
+    *(RSTRUCT_PTR(now) +  1) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  1)) + NUM2INT(pos_off));
   }
 
   return Qnil;
@@ -635,10 +460,9 @@ static VALUE sa_set_pat(VALUE self)
   return self;
 }
 
-static VALUE plane_update(VALUE self)
+static VALUE plane_render(int argc, VALUE *argv, VALUE self)
 {
-  VALUE vSpriteList = rb_iv_get(mScreen, "@@sprite_list");
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE mvScreen = rb_iv_get(mScreen, "@@screen");
   VALUE pos = rb_iv_get(self, "@pos");
   VALUE size = rb_iv_get(self, "@size");
   VALUE sprite = rb_iv_get(self, "@sprite");
@@ -650,15 +474,13 @@ static VALUE plane_update(VALUE self)
   int sw = NUM2INT(rb_funcall(sprite, rb_intern("w"), 0));
   int sh = NUM2INT(rb_funcall(sprite, rb_intern("h"), 0));
 
-  if(RTEST(visible) == 0){ return Qnil; }
-
   int x, y;
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
-      VALUE munit = rb_funcall(rb_funcall(sprite, rb_intern("to_unit"), 0), rb_intern("dup"), 0);
-      *(RSTRUCT_PTR(munit) + 6) = INT2NUM((x-1) * sw + pos_x);
-      *(RSTRUCT_PTR(munit) + 7) = INT2NUM((y-1) * sh + pos_y);
-      rb_ary_push(vSpriteList, munit);
+      VALUE unit = rb_funcall(sprite, rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM((x-1) * sw + pos_x);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM((y-1) * sh + pos_y);
+      screen_render_screen(mvScreen, unit);
     }
   }
   
@@ -993,31 +815,6 @@ static VALUE processor_mainloop(VALUE self)
 
 static VALUE yuki_update_plot_thread(VALUE self)
 {
-  VALUE yuki = rb_iv_get(self, "@@yuki");
-  VALUE str_exec = rb_str_new2("exec_plot");
-  VALUE sym_exec = rb_funcall(str_exec, rb_intern("to_sym"), 0);
-  VALUE str_pausing = rb_str_new2("pausing");
-  VALUE sym_pausing = rb_funcall(str_pausing, rb_intern("to_sym"), 0);
-  VALUE str_selecting = rb_str_new2("exec_selecting");
-  VALUE sym_selecting = rb_funcall(str_selecting, rb_intern("to_sym"), 0);
-  VALUE str_waiting = rb_str_new2("waiting");
-  VALUE sym_waiting = rb_funcall(str_waiting, rb_intern("to_sym"), 0);
-  VALUE exec = rb_funcall(yuki, id_kakko, 1, sym_exec);
-  while(exec == Qtrue){
-    VALUE pausing   = rb_funcall(yuki, id_kakko, 1, sym_pausing);
-    if(pausing == Qtrue){ rb_funcall(self, rb_intern("pausing"), 0); }
-    VALUE selecting = rb_funcall(yuki, id_kakko, 1, sym_selecting);
-    if(selecting == Qtrue){ rb_funcall(self, rb_intern("selecting"), 0); }
-    VALUE waiting   = rb_funcall(yuki, id_kakko, 1, sym_waiting);
-    if(waiting == Qtrue){ rb_funcall(self, rb_intern("waiting"), 0); }
-    rb_funcall(cThread, rb_intern("pass"), 0);
-    exec = rb_funcall(yuki, id_kakko, 1, sym_exec);
-  }
-  return self;
-}
-
-static VALUE yuki2_update_plot_thread(VALUE self)
-{
   VALUE yuki = rb_iv_get(self, "@yuki");
   VALUE str_exec = rb_str_new2("exec_plot");
   VALUE sym_exec = rb_funcall(str_exec, rb_intern("to_sym"), 0);
@@ -1050,8 +847,8 @@ void Init_idaten_miyako()
   mMapEvent = rb_define_module_under(mMiyako, "MapEvent");
   mLayout = rb_define_module_under(mMiyako, "Layout");
   mDiagram = rb_define_module_under(mMiyako, "Diagram");
-  mYuki = rb_define_module_under(mMiyako, "Yuki");
   eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
+  cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
   cEvent2  = rb_define_class_under(mSDL, "Event2", rb_cObject);
   cJoystick  = rb_define_class_under(mSDL, "Joystick", rb_cObject);
   cWaitCounter  = rb_define_class_under(mMiyako, "WaitCounter", rb_cObject);
@@ -1069,7 +866,7 @@ void Init_idaten_miyako()
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
   cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
-  cYuki2 = rb_define_class_under(mYuki, "Yuki2", rb_cObject);
+  cYuki = rb_define_class_under(mMiyako, "Yuki", rb_cObject);
   cThread = rb_define_class("Thread", rb_cObject);
 
   id_update = rb_intern("update");
@@ -1080,17 +877,10 @@ void Init_idaten_miyako()
   one = 1;
   nOne = INT2NUM(one);
 
-#if 0
-  rb_define_module_function(mMiyako, "main_loop", miyako_main_loop, 0);
-#endif
-
-  rb_define_singleton_method(cSprite, "get_list", sprite_get_list, 0);
-  rb_define_method(cSprite, "update", sprite_update, 0);
-  rb_define_method(cSprite, "update_sprite", sprite_update_sprite, 0);
-
   rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
-  rb_define_module_function(mScreen, "update", screen_update, 0);
   rb_define_module_function(mScreen, "render", screen_render, 0);
+  rb_define_module_function(mScreen, "render_screen", screen_render_screen, 1);
+  rb_define_module_function(mScreen, "transform_screen", screen_transform_screen, 1);
 
   rb_define_method(cWaitCounter, "start", counter_start, 0);
   rb_define_method(cWaitCounter, "stop",  counter_stop,  0);
@@ -1104,7 +894,7 @@ void Init_idaten_miyako()
   rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);
   rb_define_method(cSpriteAnimation, "set_pat", sa_set_pat, 0);
 
-  rb_define_method(cPlane, "update", plane_update, 0);
+  rb_define_method(cPlane, "render", plane_render, -1);
 
   rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 2);
   rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 2);
@@ -1129,11 +919,10 @@ void Init_idaten_miyako()
   rb_define_method(cCollisions, "cover_all?", collisions_cover_all, 1);
 
   rb_define_method(cProcessor, "main_loop", processor_mainloop, 0);
-  rb_define_module_function(mYuki, "update_plot_thread", yuki_update_plot_thread, 0);
-  rb_define_method(cYuki2, "update_plot_thread", yuki2_update_plot_thread, 0);
+  rb_define_method(cYuki, "update_plot_thread", yuki_update_plot_thread, 0);
   
-  rb_define_method(cMapLayer, "update", maplayer_update, 0);
-  rb_define_method(cFixedMapLayer, "update", fixedmaplayer_update, 0);
-  rb_define_method(cMap, "update", map_update, -1);
-  rb_define_method(cFixedMap, "update", fixedmap_update, -1);
+  rb_define_method(cMapLayer, "render", maplayer_render, -1);
+  rb_define_method(cFixedMapLayer, "render", fixedmaplayer_render, -1);
+  rb_define_method(cMap, "render", map_render, -1);
+  rb_define_method(cFixedMap, "render", fixedmap_render, -1);
 }
