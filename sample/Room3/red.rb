@@ -25,12 +25,12 @@ class Red
   end
   
   def get_command
-    return [Yuki::Command.new("挨拶する",   lambda{var[:akamatsu_aisatsu] == false}, self.method(:red2)),
-             Yuki::Command.new("辺りを見る", lambda{var[:akamatsu_aisatsu]==true }, self.method(:look)),
-             Yuki::Command.new("話す",       lambda{var[:akamatsu_aisatsu]==true }, self.method(:talk)),
-             Yuki::Command.new("渡す",       lambda{var[:akamatsu_aisatsu] && var[:release_akamatsu_book] && var[:search_bookmark]==false}, self.method(:send1)),
-             Yuki::Command.new("渡す",       lambda{var[:search_bookmark] && var[:get_bookmark] && var[:aikotoba]==false}, self.method(:send2)),
-             Yuki::Command.new("戻る",       lambda{var[:akamatsu_aisatsu]==true}, MainScene)]
+    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:akamatsu_aisatsu] == false}, self.method(:red2)),
+             Yuki::Command.new("辺りを見る", nil, lambda{var[:akamatsu_aisatsu]==true }, self.method(:look)),
+             Yuki::Command.new("話す",       nil, lambda{var[:akamatsu_aisatsu]==true }, self.method(:talk)),
+             Yuki::Command.new("渡す",       nil, lambda{var[:akamatsu_aisatsu] && var[:release_akamatsu_book] && var[:search_bookmark]==false}, self.method(:send1)),
+             Yuki::Command.new("渡す",       nil, lambda{var[:search_bookmark] && var[:get_bookmark] && var[:aikotoba]==false}, self.method(:send2)),
+             Yuki::Command.new("戻る",       nil, lambda{var[:akamatsu_aisatsu]==true}, MainScene)]
   end
   
   def update

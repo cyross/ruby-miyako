@@ -47,24 +47,24 @@ class Blue
   end
   
   def get_command
-    return [Yuki::Command.new("挨拶する", lambda{var[:aoyama_aisatsu]==false}, self.method(:blue2)),
-             Yuki::Command.new("辺りを見る", lambda{var[:aoyama_aisatsu]==true}, self.method(:look_blue)),
-             Yuki::Command.new("話す", lambda{var[:aoyama_aisatsu]==true}, self.method(:talk)),
-             Yuki::Command.new("渡す", lambda{var[:aoyama_aisatsu]==true && var[:release_aoyama_book]==true && var[:release_akamatsu_book]==false}, self.method(:send1)),
-             Yuki::Command.new("探す", lambda{var[:search_bookmark]==true && var[:get_bookmark]==false}, self.method(:search)),
-             Yuki::Command.new("戻る", lambda{var[:aoyama_aisatsu]==true}, MainScene)]
+    return [Yuki::Command.new("挨拶する", nil, lambda{var[:aoyama_aisatsu]==false}, self.method(:blue2)),
+             Yuki::Command.new("辺りを見る", nil, lambda{var[:aoyama_aisatsu]==true}, self.method(:look_blue)),
+             Yuki::Command.new("話す", nil, lambda{var[:aoyama_aisatsu]==true}, self.method(:talk)),
+             Yuki::Command.new("渡す", nil, lambda{var[:aoyama_aisatsu]==true && var[:release_aoyama_book]==true && var[:release_akamatsu_book]==false}, self.method(:send1)),
+             Yuki::Command.new("探す", nil, lambda{var[:search_bookmark]==true && var[:get_bookmark]==false}, self.method(:search)),
+             Yuki::Command.new("戻る", nil, lambda{var[:aoyama_aisatsu]==true}, MainScene)]
   end
   
   def get_search
     "どこを？"
-    return [Yuki::Command.new("壁", nil, self.method(:wall)),
-             Yuki::Command.new("テレビ", nil, self.method(:tv)),
-             Yuki::Command.new("テレビ台", nil, self.method(:tv_base)),
-             Yuki::Command.new("ビデオデッキ", lambda{var[:look_video_base] == true}, self.method(:video)),
-             Yuki::Command.new("テレビゲーム機", lambda{var[:look_video_base] == true}, self.method(:tv_game)),
-             Yuki::Command.new("ソファー", nil, self.method(:sofar)),
-             Yuki::Command.new("ベッド", nil, self.method(:bed)),
-             Yuki::Command.new("戻る", nil, "ret")]
+    return [Yuki::Command.new("壁", nil, nil, self.method(:wall)),
+             Yuki::Command.new("テレビ", nil, nil, self.method(:tv)),
+             Yuki::Command.new("テレビ台", nil, nil, self.method(:tv_base)),
+             Yuki::Command.new("ビデオデッキ", nil, lambda{var[:look_video_base] == true}, self.method(:video)),
+             Yuki::Command.new("テレビゲーム機", nil, lambda{var[:look_video_base] == true}, self.method(:tv_game)),
+             Yuki::Command.new("ソファー", nil, nil, self.method(:sofar)),
+             Yuki::Command.new("ベッド", nil, nil, self.method(:bed)),
+             Yuki::Command.new("戻る", nil, nil, "ret")]
   end
   
   def plot(yuki)

@@ -46,10 +46,10 @@ class Green
   end
   
   def get_command
-    return [Yuki::Command.new("挨拶する",   lambda{var[:midori_aisatsu]==false}, self.method(:green2)),
-             Yuki::Command.new("辺りを見る", lambda{var[:midori_aisatsu]==true},  self.method(:look_green)),
-             Yuki::Command.new("話す",       lambda{var[:midori_aisatsu]==true},  self.method(:talk)),
-             Yuki::Command.new("戻る",       lambda{var[:midori_aisatsu]==true},  MainScene)]
+    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:midori_aisatsu]==false}, self.method(:green2)),
+             Yuki::Command.new("辺りを見る", nil, lambda{var[:midori_aisatsu]==true},  self.method(:look_green)),
+             Yuki::Command.new("話す",       nil, lambda{var[:midori_aisatsu]==true},  self.method(:talk)),
+             Yuki::Command.new("戻る",       nil, lambda{var[:midori_aisatsu]==true},  MainScene)]
   end
   
   def plot(yuki) 

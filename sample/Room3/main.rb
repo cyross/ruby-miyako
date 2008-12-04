@@ -31,11 +31,11 @@ class MainScene
   end
   
   def get_command
-    return [Yuki::Command.new("緑の扉から入る", nil, Green),
-             Yuki::Command.new("赤の扉から入る", lambda{var[:sekkaku] == true }, self.method(:red_sekkaku)),
-             Yuki::Command.new("赤の扉から入る", lambda{var[:sekkaku] == false}, Red),
-             Yuki::Command.new("青の扉から入る", nil, Blue),
-             Yuki::Command.new("合い言葉を言う", lambda{var[:aikotoba] == true}, self.method(:tell_aikotoba))]
+    return [Yuki::Command.new("緑の扉から入る", nil, nil, Green),
+             Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == true }, self.method(:red_sekkaku)),
+             Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == false}, Red),
+             Yuki::Command.new("青の扉から入る", nil, nil, Blue),
+             Yuki::Command.new("合い言葉を言う", nil, lambda{var[:aikotoba] == true}, self.method(:tell_aikotoba))]
   end
   
   def plot(yuki)
