@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 # Miyako Extension
 =begin
-Miyako Extention Library v1.5
+Miyako Extention Library v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or

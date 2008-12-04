@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -102,17 +103,14 @@ module Miyako
     def play(vol = nil)
       set_volume(vol) if vol
       @movie.play
-      @sprite.show
       if block_given?
         yield self
-        @sprite.show
         @movie.stop
       end
     end
 
     #===動画再生を停止する
     def stop
-      @sprite.hide
       @movie.stop
     end
 
@@ -130,6 +128,18 @@ module Miyako
       return @movie.info.total_time
     end
 
+    #===画面に描画を指示する
+    #現在表示できる選択肢を、現在の状態で描画するよう指示する
+    #--
+    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
+    #++
+    #返却値:: 自分自身を返す
+    def render
+      @sprite.render
+      return self
+    end
+    
+    
     #===一時停止中の動画の再生を再開する
     #Miyako::Movie#pause メソッドを実行した後に呼び出す
     def_delegators(:@movie, :rewind)

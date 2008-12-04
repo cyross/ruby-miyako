@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -26,7 +27,6 @@ module Miyako
 ==フォント管理クラス
 =end
   class Font
-    include MiyakoTap
     extend Forwardable
 
     attr_reader :size, :line_skip, :height, :ascent, :descent
@@ -123,6 +123,7 @@ module Miyako
       @use_shadow = false
       @shadow_color = [128, 128, 128]
       @shadow_margin = [2, 2]
+      @unit = SpriteUnitFactory.create
     end
 
     #===フォントの大きさを変更する
@@ -251,18 +252,19 @@ module Miyako
       #αチャネルを持たないときは、直接描画
       #αチャネルを持つときは、いったん中間画像に描画する
       if dst.alpha
-        @font.drawBlendedUTF8(dst.bitmap, str, x + @shadow_margin[0], y + @shadow_margin[1], @shadow_color[0], @shadow_color[1], @shadow_color[2]) if @use_shadow
+        @font.drawBlendedUTF8(dst.bitmap, str, x + @shadow_margin[0], y + @shadow_margin[1],
+                              @shadow_color[0], @shadow_color[1], @shadow_color[2]) if @use_shadow
         @font.drawBlendedUTF8(dst.bitmap, str, x, y, @color[0], @color[1], @color[2])
       else
         src = @font.renderBlendedUTF8(str, @color[0], @color[1], @color[2])
         if src
-         if @use_shadow
+          if @use_shadow
             src2 = @font.renderBlendedUTF8(str, @shadow_color[0], @shadow_color[1], @shadow_color[2])
-            src2 = Miyako::Bitmap.miyako_blit_aa(src, src2, @shadow_margin[0], @shadow_margin[1])
-         else
-            src2 = src
-         end
-          dst.bitmap = Miyako::Bitmap.miyako_blit_aa2(src2, dst.bitmap, x, y)
+            SpriteUnitFactory.apply(@unit, {:bitmap=>src2, :ow=>src2.w, :oh=>src2.h})
+            Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
+          end
+          SpriteUnitFactory.apply(@unit, {:bitmap=>src, :ow=>src.w, :oh=>src.h})
+          Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x, y)
         else
           return x
         end

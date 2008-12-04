@@ -1,14 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
-#=コンテンツ作成ライブラリMiyako1.5
+#=コンテンツ作成ライブラリMiyako2.0
 #
 #Authors:: サイロス誠
-#Version:: 1.5pre2
+#Version:: 2.0.0
 #Copyright:: 2007-2008 Cyross Makoto
 #License:: LGPL2.1
 #
 =begin
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -26,14 +26,28 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
+if RUBY_VERSION < '1.8.7'
+  puts 'Sorry. Miyako needs Ruby 1.8.7 or above...'
+  exit
+end
+
 require 'sdl'
+
+if SDL::VERSION < '2.0.0'
+  puts 'Sorry. Miyako needs Ruby/SDL 2.0.0 or above...'
+  exit
+end
+
 require 'forwardable'
 require 'iconv'
-require 'kconv'
+if RUBY_VERSION < '1.9.0'
+  require 'kconv'
+end
 require 'jcode'
 require 'rbconfig'
 
 $KCODE = 'u'
+
 
 #デバッグモードの設定
 $miyako_debug_mode ||= false
@@ -47,7 +61,7 @@ else
   SDL.init(SDL::INIT_VIDEO | SDL::INIT_AUDIO | SDL::INIT_JOYSTICK)
 end
 
-require 'Miyako/API/yuki'
+Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
@@ -68,7 +82,7 @@ module Miyako
   #===Miyakoのバージョン番号を出力する
   #返却値:: バージョン番号を示す文字列
   def Miyako::version
-    return "1.5"
+    return "2.0.0"
   end
 
   #==Miyakoの例外クラス
@@ -112,10 +126,15 @@ module Miyako
   end
 end
 
+require 'Miyako/API/yuki'
 require 'Miyako/API/basic_data'
 require 'Miyako/API/modules'
 require 'Miyako/API/font'
 require 'Miyako/API/layout'
+require 'Miyako/API/bitmap'
+require 'Miyako/API/drawing'
+require 'Miyako/API/rop'
+require 'Miyako/API/spriteunit'
 require 'Miyako/API/sprite_animation'
 require 'Miyako/API/sprite'
 require 'Miyako/API/effect'
@@ -134,15 +153,17 @@ require 'Miyako/API/diagram'
 
 module Miyako
   #===Miyakoのメインループ
-  #ブロックを受け取り、ブロックの前後に<i>Input::update</i>と<i>Screen::update</i>を呼び出す
+  #ブロックを受け取り、そのブロックを評価する
+  #ブロック評価前に<i>Input::update</i>と<i>Screen::clear</i>、評価後に<i>Screen::render</i>を呼び出す
   #
   #ブロックを渡さないと例外が発生する
   def Miyako.main_loop
     raise MiyakoError, "Miyako.main_loop needs brock!" unless block_given?
     loop do
       Input::update
+      Screen::clear
       yield
-      Screen::update
+      Screen::render
       sleep 0.01
     end
   end

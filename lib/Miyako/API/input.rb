@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or

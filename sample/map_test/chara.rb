@@ -13,7 +13,6 @@ class PChara # Player Character
     raise MiyakoError, "Character Size is not aligned by Map Chip Size!" unless (@spr.w % @size[0] == 0 && @spr.h % @size[1] == 0)
     @spr.ow = @size[0]
     @spr.oh = @size[1]
-    @spr.dp = 1000
     param = Hash.new
     param[:sprite] = @spr
     param[:wait] = pw
@@ -24,22 +23,28 @@ class PChara # Player Character
 
   # マップの表示座標と実座標とのマージンを設定
   def margin
-    return Size.new(@spr.x, @spr.y)
+    return Size.new(-@spr.x, -@spr.y)
   end
 
   def turn(d)
     @anim.character(@@amt2dir[d])
   end
 
-  def show
+  def start
     @anim.start
-    @anim.show
   end
   
-  def hide
-    @anim.hide
+  def stop
     @anim.stop
   end
 
-  def_delegators(:@spr, :visible, :visible=, :dispose, :rect, :ow, :oh, :x, :y)
+  def update
+    @anim.update_animation
+  end
+  
+  def render
+    @anim.render
+  end
+  
+  def_delegators(:@spr, :dispose, :rect, :ow, :oh, :x, :y)
 end

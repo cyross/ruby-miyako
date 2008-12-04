@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.4
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -18,6 +19,8 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
+
+require 'singleton'
 
 module Miyako
 
@@ -54,24 +57,24 @@ module Miyako
 
     @@fps = 0 # fps=0 : no-limit
     @@fpsView = false
-    @@fps_sprite = nil
     @@fpscnt = Screen::get_fps_count
+    @@interval = 0
     @@min_interval = 3
     @@min_interval_r = @@min_interval / 1000
     @@t = 0
     @@freezing  = false
     @@mode      = WINDOW_MODE
+    @@unit      = SpriteUnitFactory.create
 
     @@size      = Size.new(DefaultWidth, DefaultHeight)
     @@in_the_scene = false
 
     @@screen = nil
 
-    @@sprite_list = Array.new
-    
     def Screen::set_screen(f) #:nodoc:
       return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << f))
       @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << f))
+      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
       return true
     end
 
@@ -79,22 +82,12 @@ module Miyako
     #単位はピクセル単位
     #_w_:: 画面の幅
     #_h_:: 画面の高さ
-    #_f_:: スプライトやシーンなどの設定(ビューポートやレイアウト)の情報をリセットするときに true を渡す
     #返却値:: 変更に成功したときは trueを返す
-    def Screen::set_size(w, h, f=true)
+    def Screen::set_size(w, h)
       return false unless SDL.checkVideoMode(w, h, BPP, ScreenFlag[@@mode])
       @@size = Size.new(w, h)
       @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
-
-      if f
-        Sprite.recalc_layout
-        SpriteAnimation.recalc_layout
-        Plane.resize
-        Sprite.reset_viewport
-        SpriteAnimation.reset_viewport
-        Map.reset_viewport
-        FixedMap.reset_viewport
-      end
+      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
       return true
     end
 
@@ -157,17 +150,22 @@ module Miyako
       return @@size[1]
     end
 
-    #===現在の画面の大きさを取得する
+    #===画面を管理するSpriteUnitを取得する
+    #返却値:: SpriteUnitインスタンス
+    def Screen::to_unit
+      return @@unit.dup
+    end
+
+    #===現在の画面の大きさを矩形で取得する
     #返却値:: 画像の大きさ(Rect構造体のインスタンス)
     def Screen::rect
       return Rect.new(*([0, 0]+@@size.to_a))
     end
 
-    #===SpriteUnit構造体の配列を取得する
-    #
-    #返却値:: あとで書く
-    def Screen::sprite_list
-      return @@sprite_list
+    #===現在の画面の大きさを取得する
+    #返却値:: 画像の大きさ(Size構造体のインスタンス)
+    def Screen::size
+      return @@size.dup
     end
 
     #===現在表示されている画面を画像(Spriteクラスのインスタンス)として取り込む
@@ -185,18 +183,10 @@ module Miyako
 
     def Screen::update_tick #:nodoc:
       t = SDL.getTicks
-      interval = t - @@t
-      while interval < @@fpscnt do
+      @@interval = t - @@t
+      while @@interval < @@fpscnt do
         t = SDL.getTicks
-        interval = t - @@t
-      end
-      if @@fps_sprite
-        @@fps_sprite.hide
-        @@fps_sprite.dispose
-      end
-      if @@fpsView
-        @@fps_sprite = Shape.text({:text => (FpsMax/(interval == 0 ? 1 : interval)).to_s() + " fps", :font => Font.sans_serif})
-        @@fps_sprite.show
+        @@interval = t - @@t
       end
       @@t = t
     end
@@ -207,61 +197,64 @@ module Miyako
       @@screen.fillRect(0, 0, @@screen.w, @@screen.h, [0, 0, 0, 0])
     end
     
-    #===画面を更新する(自前でrenderメソッドを呼び出す形式)
-    #画像を、それぞれのインスタンスのrenderメソッドを呼び出した順に貼り付ける
-    #
-    #各インスタンスのdp,visibleメソッドの値は無視する
-    #
-    #SpriteAnimation.update_animationメソッドによる
-    #アニメーションも明示的に行う必要がある
-    #
-    #(注)画面の消去は行わないので、必要ならScreen.clearメソッドで画面を消去する
+    #===画面を更新する
+    #描画した画面を、実際にミニ見える形に反映させる
+    #呼び出し時に画面の消去は行われないため、明示的にScreen.clearメソッドを呼び出す必要がある
     def Screen::render
-      @@sprite_list.each{|s|
-        @@screen.set_clip_rect(*(s.viewport.to_a))
-        if s.effect && s.effect.effecting?
-          s.effect.update(@@screen)
-        else
-          SDL.blitSurface(s.bitmap, s.ox, s.oy, s.ow, s.oh, @@screen, s.x, s.y)
-        end
-      }
-      @@screen.set_clip_rect(0, 0, @@size.w, @@size.h)
-      @@sprite_list.clear
-      @@fps_sprite.render if @@fps_sprite
+      Shape.text({:text => (FpsMax/(@@interval == 0 ? 1 : @@interval)).to_s() + " fps", :font => Font.sans_serif}).render  if @@fpsView
       Screen::update_tick
       @@screen.flip
     end
 
-    #===画面を更新する
-    #Sprite,Plane,TextBox,Map,FixedMapの各クラスに登録されている
-    #画像を画面に貼り付ける
-    #
-    #順番は、各画像(SpriteUnit構造体)のdp値を昇順に貼り付ける
-    #(dp値が小さい画像が奥に貼られるように見える)
-    #
-    #また、SpriteAnimation.update_animationメソッドを呼び出し、
-    #アニメーションを自動更新する
-    def Screen::update
-      @@screen.fillRect(0, 0, @@screen.w, @@screen.h, [0, 0, 0, 0])
-      Sprite.update_sprite
-      SpriteAnimation.update_animation
-      Plane.update
-      TextBox.update
-      Map.update
-      FixedMap.update
-      list1 = @@sprite_list.sort{|a,b| a.dp <=> b.dp}
-      list1.each{|s|
-        @@screen.set_clip_rect(*(s.viewport.to_a))
-        if s.effect && s.effect.effecting?
-          s.effect.update(@@screen)
-        else
-          SDL.blitSurface(s.bitmap, s.ox, s.oy, s.ow, s.oh, @@screen, s.x, s.y)
+    def Screen::render_screen(unit) #:nodoc:
+      loop do
+        begin
+          SDL::Surface.blit(unit.bitmap, unit.ox, unit.oy, unit.ow, unit.oh, @@screen, unit.x + unit.dx, unit.y + unit.dy)
+          break
+        rescue 
         end
-      }
-      @@screen.set_clip_rect(0, 0, @@size.w, @@size.h)
-      @@sprite_list.clear
-      Screen::update_tick
-      @@screen.flip
+      end
+    end
+    
+    def Screen::transform_screen(unit) #:nodoc:
+      loop do
+        begin
+          SDL::Surface.transform_blit(unit.bitmap, @@screen, unit.angle, unit.xscale, unit.yscale, unit.px, unit.py, unit.x + unit.qx + unit.dx, unit.y + unit.qy + unit.dy, 0)
+          break
+        rescue 
+        end
+      end
+    end
+  end
+  
+  #==ビューポートクラス
+  #描画時の表示範囲を変更する
+  #画面全体を基準(640x480の画面のときは(0,0)-(639,479)の範囲)として、範囲を設定する
+  #範囲の設定はいつでも行えるが、描画にはrenderメソッドを呼び出した時の値が反映される
+  class Viewport
+    def initialize(x, y, w, h)
+      @rect = Rect.new(x, y, w, h)
+    end
+
+    def render(params = nil)
+      @@screen.set_clip_rect(@rect)
+    end
+
+    def move(dx,dy)
+      @rect.move(dx,dy)
+    end
+
+    def move_to(x,y)
+      @rect.move(x,y)
+    end
+    
+    def dispose
+      @rect = nil
+      @unit = nil
+    end
+    
+    def viewport
+      return @rect
     end
   end
 end

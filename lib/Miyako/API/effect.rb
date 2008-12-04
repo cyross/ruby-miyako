@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -24,10 +25,10 @@ module Miyako
 ==エフェクトクラス
 =end
   class Effect
-  #===あとで書く
-  #_sspr_:: あとで書く
-  #_dspr_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_sspr_:: あとで書く
+    #_dspr_:: あとで書く
+    #返却値:: あとで書く
     def initialize(sspr, dspr = nil)
       @src = sspr
       @dst = dspr
@@ -37,10 +38,10 @@ module Miyako
       @params = Array.new
     end
     
-  #===あとで書く
-  #_w_:: あとで書く
-  #_param_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_w_:: あとで書く
+    #_param_:: あとで書く
+    #返却値:: あとで書く
     def start(w, *param)
       return if @effecting
       @wait = w
@@ -49,27 +50,43 @@ module Miyako
       @effecting = true
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def effecting?
       return @effecting
     end
     
-  #===あとで書く
-  #_params_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_params_:: あとで書く
+    #返却値:: あとで書く
     def update(*params)
+      return if @effecting == false # dummy code
+    end
+
+    #===画面に描画を指示する
+    #現在の画像を、現在の状態で描画するよう指示する
+    #但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
+    #返却値:: 自分自身を返す
+    def render
+      effect if @effecting
+      return self
+    end
+
+    #===あとで書く
+    #_params_:: あとで書く
+    #返却値:: あとで書く
+    def effect(*params)
       @effecting = false # dummy code
     end
-    
-  #===あとで書く
-  #返却値:: あとで書く
+
+    #===あとで書く
+    #返却値:: あとで書く
     def stop
       @effecting = false
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def dispose
       @dst = nil
     end

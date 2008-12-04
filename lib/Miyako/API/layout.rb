@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -774,30 +775,6 @@ module Miyako
     def initialize(size)
       init_layout
       set_layout_size(*(size.to_a))
-      @dp = 0
-      @visible = false
-    end
-
-    #===インスタンスの状態を「表示」状態にさせる
-    #レイアウト空間辞退は非表示だが、ダックタイピングのためにメソッドを用意している
-    #返却値:: 自分自身を返す
-    def show
-      @visible = true
-      return self
-    end
-
-    #===インスタンスの状態を「非表示」状態にさせる
-    #レイアウト空間辞退は非表示だが、ダックタイピングのためにメソッドを用意している
-    #返却値:: 自分自身を返す
-    def hide
-      @visible = false
-      return self
-    end
-
-    #===表示状態を問い合わせる
-    #返却値:: 「表示」状態の時は true を返す
-    def visible?
-      return @visible
     end
 
     #===インスタンスを解放させる

@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -20,30 +21,131 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
+  #==位置情報のための構造体クラス
+  #位置変更メソッドを追加
+  class PointStruct < Struct
+    #===位置を変更する(変化量を指定)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move(dx, dy)
+      self[0]+=dx
+      self[1]+=dy
+      return self
+    end
+
+    #===位置を変更する(位置指定)
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to(x, y)
+      self[0]=x
+      self[1]=y
+      return self
+    end
+  end
+
+  #==サイズ情報のための構造体クラス
+  #サイズ変更メソッドを追加
+  class SizeStruct < Struct
+    #===サイズを変更する(変化量を指定)
+    #_w_:: 幅変更。単位はピクセル
+    #_h_:: 高さ変更。単位はピクセル
+    #返却値:: 自分自身を返す
+    def resize(w, h)
+      self[0]=w
+      self[1]=h
+      return self
+    end
+  end
+
+  #==矩形情報のための構造体クラス
+  #矩形変更メソッドを追加
+  class RectStruct < Struct
+    #===位置を変更する(変化量を指定)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move(dx, dy)
+      self[0]+=dx
+      self[1]+=dy
+      return self
+    end
+
+    #===位置を変更する(位置指定)
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to(x, y)
+      self[0]=x
+      self[1]=y
+      return self
+    end
+
+    #===サイズを変更する(変化量を指定)
+    #_w_:: 幅変更。単位はピクセル
+    #_h_:: 高さ変更。単位はピクセル
+    #返却値:: 自分自身を返す
+    def resize(w, h)
+      self[2]=w
+      self[3]=h
+      return self
+    end
+  end
+
+  #==Square構造体用クラス
+  #位置変更メソッドを追加
+  class SquareStruct < Struct
+    #===位置を変更する(変化量を指定)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move(dx, dy)
+      self[0]+=dx
+      self[1]+=dy
+      self[2]+=dx
+      self[3]+=dy
+      return self
+    end
+
+    #===位置を変更する(位置指定)
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to(x, y)
+      w = self[2] - self[0]
+      h = self[3] - self[1]
+      self[0]=x
+      self[1]=y
+      self[2]=x+w
+      self[3]=y+h
+      return self
+    end
+  end
 
   #==座標などを構成するために使用する構造体
   #_x_:: X座標の値
   #_y_:: Y座標の値
-  Point = Struct.new(:x, :y)
+  Point = PointStruct.new(:x, :y)
 
   #==サイズなどを構成するために使用する構造体
   #_w_:: 横幅
   #_h_:: 高さ
-  Size = Struct.new(:w, :h)
+  Size = SizeStruct.new(:w, :h)
 
   #==矩形などを構成するために使用する構造体
   #_x_:: X座標の値
   #_y_:: Y座標の値
   #_w_:: 横幅
   #_h_:: 高さ
-  Rect = Struct.new(:x, :y, :w, :h)
+  Rect = RectStruct.new(:x, :y, :w, :h)
 
   #==矩形などを構成するために使用する構造体
   #_left_:: 左上X座標の値
   #_top_:: 左上Y座標の値
   #_right_:: 右下X座標の値
   #_bottom_:: 右下Y座標の値
-  Square = Struct.new(:left, :top, :right, :bottom)
+  Square = SquareStruct.new(:left, :top, :right, :bottom)
 
   #==色を管理するクラス
   #
@@ -308,12 +410,6 @@ module SingleEnumerable
   def each
     yield self
     return self
-  end
-
-  #===要素数を返す
-  #返却値:: 1を返す
-  def size
-    return 1
   end
 
   #===sizeメソッドと同様

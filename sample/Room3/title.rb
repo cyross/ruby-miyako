@@ -1,6 +1,5 @@
 class Title
   include Story::Scene
-  include MainComponent
 
   def self.scene_type
     return :scene
@@ -12,135 +11,161 @@ class Title
     font.color = Color[:white]
     @push_key = Shape.text(:text=>"Push Any Key", :font=>font)
     @push_key.center.bottom{|body| (0.1).ratio(body) }
-    @push_key.dp = 300
 
-    @copy_right = Shape.text(:text=>"2006 Cyross Makoto", :font=>font)
+    @copy_right = Shape.text(:text=>"2006-2008 Cyross Makoto", :font=>font)
     @copy_right.center.bottom{|body| (0.05).ratio(body) }
-    @copy_right.dp = 300
+
+    @visible = false
 
     @title = Sprite.new(:file=>"image/mittsu_no_oheya.png", :type=>:ck)
-    @title.dp = 200
+    
+    @exec = self.method(:view_in)
   end
 
   def setup
-    @title.show
     @title.move_to(Screen.w, 0)
   end
 
   def view_in
     if @title.x > 0
       @title.move(-8, 0)
-      return true
+      return @now
     end
-    @push_key.show
-    @copy_right.show
-    return false
+    @visible = true
+    @exec = self.method(:waiting)
+    return @now
   end
 
-  def update
-    return nil if (Input.pushed_any?(:esc) || Input.quit?)
-    return Input.pushed_any? ? TitleCall : @now
+  def waiting
+    if Input.pushed_any?
+      @exec = self.method(:view_out)
+      @visible = false
+    end
+    return @now
   end
 
   def view_out
-    if @title.x == 0
-      @push_key.hide
-      @copy_right.hide
-    end
     if @title.x > -Screen.w
       @title.move(-8, 0)
-      return true
+      return @now
     end
-    return false
+    return TitleCall
+  end
+  
+  def update
+    return nil if (Input.pushed_any?(:esc) || Input.quit?)
+    return @exec.call
+  end
+
+  def render
+    @title.render
+    if @visible
+      @push_key.render
+      @copy_right.render
+    end
   end
 end
 
 class TitleCall
   include Story::Scene
-  include Yuki
   include MainComponent
 
   def init
-    init_yuki(message_box, command_box, :box)
+    @yuki = Yuki.new
+    @yuki.select_textbox(message_box[:box])
     @man = Sprite.new(:file=>"image/start.png", :type=>:ck)
     @man.center.bottom
-    @man.dp = 10
     @wait = WaitCounter.new(0.2)
+    @exec = self.method(:view_in)
   end
 
   def setup
+    @yuki.setup
     @man.alpha = 0
-    @man.show
     @wait.start
   end
 
+  def update
+    return nil if (Input.pushed_any?(:esc) || Input.quit?)
+    return @exec.call
+  end
+  
   def view_in
     if @wait.finish?
       if @man.alpha == 255
-        return false
+        @yuki.start_plot(self.method(:plot))
+        @exec = self.method(:exec_yuki)
+        return @now
       end
       @man.alpha += 15
       @wait.start
     end
-    return true
+    return @now
   end
 
-  def plot
-    text("「レディ〜ス　エ〜ン　ジェントルメ〜ン！」").pause.cr
-    text("「本日も、視聴者参加バラエティー").cr
-    text("　『ルーム３』の時間がは〜じまりま〜した〜！」").pause.clear
-    text("「司会はわたくし、").cr
-    wait 0.3
-    text("　サミュエル・ボチボチデンナーが").cr
-    text("　お送りしま〜す！」").pause.clear
-    text("「本日も、難関を乗り越え、").cr
-    text("　豪華賞品をゲットするだけ！").cr
-    wait 0.5
-    text("　カンタン！」").pause.clear
-    text("「ルールもカンタン！").cr
-    text("　３つの部屋にいる住人からヒントを得て、").pause.cr
-    text("　合言葉を見つけるだけ！").cr
-    wait 0.5
-    text("　ほら、カンタンでしょ？」").pause.clear
-    text("「でも、これらの部屋にいる住人、").cr
-    text("　一筋縄じゃ合い言葉を教えてくれない。").cr
-    wait 0.5
-    text("　いろいろ話して、").cr
-    text("　合い言葉をゲットしてくれ！」").pause.clear
-    text "「さぁ、最初の挑戦者だ。"
-    wait 0.5
-    text "お名前は？"
-    wait 1.5
-    cr
-    text "　・・・おおー、元気いいねー！"
-    wait 0.5
-    cr
-    text "　じゃあ、どっから来たの？"
-    wait 1.0
-    cr
-    text("　・・・オーケイ、よくできました！」").pause.clear
-    text "「じゃ、ルールは分かるよね？"
-    wait 0.5
-    cr
-    text "　・・・よし」"
-    pause.clear
-    text "「ドキドキするねぇ、"
-    wait 0.5
-    cr
-    text "　ワクワクするねぇ"
-    pause.cr
-    text "　それじゃ、元気よく、"
-    cr
-    text "　目の前のドアから入ってみよう。」"
-    pause.clear
-    text "「よーい、"
-    wait 0.5
-    text "スタート！」"
-    pause.clear
-    return MainScene
+  def exec_yuki
+    message_box.update_animation
+    @yuki.update
+    return @yuki.result ? @yuki.result : @now
   end
   
-  def final
-    @man.hide
+  def plot(yuki)
+    yuki.text("「レディ〜ス　エ〜ン　ジェントルメ〜ン！」").pause.cr
+    yuki.text("「本日も、視聴者参加バラエティー").cr
+    yuki.text("　『ルーム３』の時間がは〜じまりま〜した〜！」").pause.clear
+    yuki.text("「司会はわたくし、").cr
+    yuki.wait 0.3
+    yuki.text("　サミュエル・ボチボチデンナーが").cr
+    yuki.text("　お送りしま〜す！」").pause.clear
+    yuki.text("「本日も、難関を乗り越え、").cr
+    yuki.text("　豪華賞品をゲットするだけ！").cr
+    yuki.wait 0.5
+    yuki.text("　カンタン！」").pause.clear
+    yuki.text("「ルールもカンタン！").cr
+    yuki.text("　３つの部屋にいる住人からヒントを得て、").pause.cr
+    yuki.text("　合言葉を見つけるだけ！").cr
+    yuki.wait 0.5
+    yuki.text("　ほら、カンタンでしょ？」").pause.clear
+    yuki.text("「でも、これらの部屋にいる住人、").cr
+    yuki.text("　一筋縄じゃ合い言葉を教えてくれない。").cr
+    yuki.wait 0.5
+    yuki.text("　いろいろ話して、").cr
+    yuki.text("　合い言葉をゲットしてくれ！」").pause.clear
+    yuki.text "「さぁ、最初の挑戦者だ。"
+    yuki.wait 0.5
+    yuki.text "お名前は？"
+    yuki.wait 1.5
+    yuki.cr
+    yuki.text "　・・・おおー、元気いいねー！"
+    yuki.wait 0.5
+    yuki.cr
+    yuki.text "　じゃあ、どっから来たの？"
+    yuki.wait 1.0
+    yuki.cr
+    yuki.text("　・・・オーケイ、よくできました！」").pause.clear
+    yuki.text "「じゃ、ルールは分かるよね？"
+    yuki.wait 0.5
+    yuki.cr
+    yuki.text "　・・・よし」"
+    yuki.pause.clear
+    yuki.text "「ドキドキするねぇ、"
+    yuki.wait 0.5
+    yuki.cr
+    yuki.text "　ワクワクするねぇ"
+    yuki.pause.cr
+    yuki.text "　それじゃ、元気よく、"
+    yuki.cr
+    yuki.text "　目の前のドアから入ってみよう。」"
+    yuki.pause.clear
+    yuki.text "「よーい、"
+    yuki.wait 0.5
+    yuki.text "スタート！」"
+    yuki.pause.clear
+    return MainScene
+  end
+
+  def render
+    @man.render
+    message_box.render if @exec == self.method(:exec_yuki)
   end
 end

@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -23,41 +24,23 @@ module Miyako
   #==パーツ構成クラス
   #複数のスプライト・アニメーションをまとめて一つの部品として構成できるクラス
   #
-  #最初に、基準となる「メインパーツ」を登録し、更にパーツ(補助パーツ)を加える
+  #最初に、基準となる「レイアウト空間(LayoutSpaceクラスのインスタンス)」を登録し、その上にパーツを加える
   #
-  #すべての補助パーツは、すべてメインパーツにスナップされる
+  #すべてのパーツは、すべてレイアウト空間にスナップされる
   #(登録したパーツのレイアウト情報が変わることに注意)
   class Parts
-    include Layout
     include Enumerable
-    include MiyakoTap
+    include Layout
     extend Forwardable
 
-    #===dp値をソートする際に値を増やす間隔
-    attr_accessor :dp_interval
-    #===メインパーツのオブジェクトを返す
-    attr_reader :main_parts
-
-    #_dp_:: メインパーツのdp値を返す
-    #_visible_:: パーツを表示・非表示のフラグを返す
-    #_visible?_:: visibleと同様
-    def_delegators(:@main_parts, :dp, :visible, :visible?)
-
     #===Partsクラスインスタンスを生成
-    #_main_parts_:: メインパーツとなるインスタンス
-    def initialize(main_parts)
+    #_size_:: パーツ全体の大きさ。Size構造体のインスタンスもしくは要素数が2の配列
+    def initialize(size)
       init_layout
-
-      @main_parts = main_parts
-      set_layout_size(@main_parts.w, @main_parts.h)
-
-      @main_parts.snap(self)
-      @main_parts.centering
+      set_layout_size(size[0], size[1])
 
       @parts = {}
       @parts_list = []
-      @main_top = true
-      @dp_interval = 100
     end
 
     #===nameで示した補助パーツを返す
@@ -70,19 +53,11 @@ module Miyako
     #===補助パーツvalueをnameに割り当てる
     #_name_:: 補助パーツに与える名前(シンボル)
     #_value_:: 補助パーツのインスタンス(スプライト、テキストボックス、アニメーション、レイアウトボックスなど)
-    #          配列の時は、0番目の要素が補助パーツ、1番目の要素がスナップ先(補助パーツを示すシンボル)を示す
     #返却値:: 自分自身
-    def []=(name, *value)
-      value = value.flatten
+    def []=(name, value)
       @parts_list.push(name)
-      if value.length == 1
-        @parts[name] = value[0]
-        @parts[name].snap(@main_parts)
-      else
-        @parts[name] = value[0]
-        @parts[name].snap(@parts[value[1]])
-      end
-      @parts[name].viewport = @main_parts.viewport
+      @parts[name] = value
+      @parts[name].snap(self)
       return self
     end
 
@@ -92,67 +67,11 @@ module Miyako
       return @parts_list
     end
 
-    #===メインパーツを一番前に表示する
-    #パーツ表示のソーティングも同時に行う
-    #返却値:: 自分自身
-    def main_top
-      @main_top = true
-      sort_dp
-      return self
-    end
-    
-    #===メインパーツを一番後ろに表示する
-    #パーツ表示のソーティングも同時に行う
-    #返却値:: 自分自身
-    def main_bottom
-      @main_top = false
-      sort_dp
-      return self
-    end
-
-    #===dp値の最大値を返す
-    def max_dp
-      return ([@main_parts.dp] + @parts_list.map{|k| @parts.values.dp }).compact.max
-    end
-
-    #===dp値の最小値を返す 
-    def min_dp
-      return ([@main_parts.dp] + @parts_list.map{|k| @parts.values.dp }).compact.min
-    end
-    
-    #===補助パーツの表示の順番を入れ替える
-    #実際は、引数の順に、dp値を大きくしている(間隔はdp_intervalメソッドで与えた値)
-    #_parts_:: 補助パーツ名(シンボル)の配列。省略したときは、登録した順に与える
-    #返却値:: 自分自身
-    def sort_dp(*parts)
-      parts = parts.dup
-      @parts_list.each{|pt| parts.push(pt) unless parts.include?(pt) }
-      dp = 0
-      if @main_top
-        parts.each{|pt|
-          if @parts[pt].dp
-            @parts[pt].dp = dp
-            dp += @dp_interval
-          end
-        }
-        @main_parts.dp = dp if @main_parts.dp
-      else
-        @main_parts.dp = dp if @main_parts.dp
-        parts.each{|pt|
-          if @parts[pt].dp
-            dp += @dp_interval
-            @parts[pt].dp = dp
-          end
-        }
-      end
-      return self
-    end
-    
     #===指定の補助パーツを除外する
     #_name_:: 除外するパーツ名(シンボル)
     #返却値:: 自分自身
     def remove(name)
-      @main_parts.delete_snap_child(@parts[name])
+      self.delete_snap_child(@parts[name])
       @parts.delete(name)
       return self
     end
@@ -160,44 +79,21 @@ module Miyako
     #===メインパーツと補助パーツに対してブロックを評価する
     #返却値:: 自分自身
     def each
-      yield @main_parts
-      @parts_list.each{|k|
-        yield @parts[k]
-      }
-      return self
-    end
-
-    #===メインパーツと補助パーツをすべて表示する
-    #返却値:: 自分自身
-    def show
-      org_visible = @main_parts.visible
-      self.each{|parts| parts.show ; parts.start }
-      if block_given?
-        res = Proc.new.call
-        hide unless org_visible
-        return res
-      end
-      return self
-    end
-
-    #===メインパーツと補助パーツをすべて隠蔽する
-    #返却値:: 自分自身
-    def hide
-      self.each{|parts| parts.hide ; parts.stop }
+      @parts_list.each{|k| yield @parts[k] }
       return self
     end
 
     #===メインパーツと補助パーツのすべてのアニメーションを開始する
     #返却値:: 自分自身
     def start
-      self.each{|parts| parts.start ; parts.show }
+      self.each{|parts| parts.start }
       return self
     end
 
     #===メインパーツと補助パーツのすべてのアニメーションを停止する
     #返却値:: 自分自身
     def stop
-      self.each{|parts| parts.stop ;  parts.hide }
+      self.each{|parts| parts.stop }
       return self
     end
 
@@ -227,27 +123,25 @@ module Miyako
       return self
     end
     
-    #===パーツのビューポートを取得する
-    #返却値:: ビューポートを示すRectクラスのインスタンス
-    def viewport
-      return @main_parts.viewport
-    end
-
-    #===パーツ共通のビューポートを設定
-    #_vp_:: ビューポートを示すRectクラスのインスタンス
-    #返却値:: 自分自身
-    def viewport=(vp)
-      @layout.viewport = vp
-      @main_parts.viewport = vp
-      self.each{|parts| parts.viewport = vp }
+    #===画面に描画を指示する
+    #現在表示できる選択肢を、現在の状態で描画するよう指示する
+    #
+    #デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
+    #--
+    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
+    #++
+    #返却値:: 自分自身を返す
+    def render
+      self.each{|parts| parts.render }
       return self
     end
     
     #===パーツに登録しているインスタンスを解放する
     def dispose
-      @main_parts = nil
       @parts_list.clear
+      @parts_list = nil
       @parts.clear
+      @parts = nil
     end
   end
 
@@ -258,14 +152,16 @@ module Miyako
   #選択肢を表示させるときは、body 自体の表示位置を変更させる必要がある
   #
   #_body_:: 選択肢を示す画像
+  #_body_selected_:: 選択肢を示す画像(選択時) 
   #_condition_:: 選択肢が選択できる条件を記述したブロック
+  #_selected_:: 選択肢が選択されているときはtrue、選択されていないときはfalse
   #_result_:: 選択した結果を示すインスタンス
   #_left_:: 左方向を選択したときに参照するChoice構造体のインスタンス
   #_right_:: 右方向を選択したときに参照するChoice構造体のインスタンス
   #_up_:: 上方向を選択したときに参照するChoice構造体のインスタンス
   #_down_:: 下方向を選択したときに参照するChoice構造体のインスタンス
   #_base_:: 構造体が要素となっている配列
-  Choice = Struct.new(:body, :condition, :result, :left, :right, :up, :down, :base)
+  Choice = Struct.new(:body, :body_selected, :condition, :selected, :result, :left, :right, :up, :down, :base)
 
   #==選択肢を管理するクラス
   #選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
@@ -274,7 +170,6 @@ module Miyako
     include SpriteBase
     include Animation
     include Enumerable
-    include MiyakoTap
     extend Forwardable
 
     # インスタンスを生成する
@@ -289,9 +184,12 @@ module Miyako
     # 
     # 構造体には、引数bodyと、必ず true を返す条件ブロックが登録されている。残りは nil
     #_body_:: 選択肢を示す画像
+    #_body_selected_:: 選択肢を示す画像(選択時)。デフォルトはnil
+    #_selected_:: 生成時に選択されているときはtrue、そうでないときはfalseを設定する
     #返却値:: 生成された Choice構造体のインスタンス
-    def Choices.create_choice(body)
-      choice = Choice.new(body, Proc.new{ true }, nil, nil, nil, nil, nil, nil)
+    def Choices.create_choice(body, body_selected = nil, selected = false)
+      choice = Choice.new(body, body_selected, Proc.new{ true }, selected,
+                          nil, nil, nil, nil, nil, nil)
       choice.left = choice
       choice.right = choice
       choice.up = choice
@@ -314,12 +212,10 @@ module Miyako
     end
 
     def each #:nodoc:
-      @choices.each{|ch|
-        yield ch
-      }
+      @choices.each{|ch| yield ch }
     end
 
-    def_delegators(:@choices, :push, :pop, :shift, :unshift, :[], :[]=, :clear, :size, :length)
+    def_delegators(:@choices, :push, :pop, :shift, :unshift, :[], :[]=, :clear, :length)
 
     #===選択を開始する
     #選択肢の初期位置を指定することができる
@@ -327,13 +223,14 @@ module Miyako
     #_y_:: 初期位置(y 座標)。規定値は 0
     def start_choice(x = 0, y = 0)
       @now = @choices[x][y]
+      @now.selected = true
     end
 
     #===選択肢本体を取得する
     #選択肢の表示対象となる
     #返却値::
     def body
-      return @now.body
+      return @now.body_selected ? @now.body_selected : @now.body
     end
 
     #===選択結果を取得する
@@ -347,8 +244,14 @@ module Miyako
       obase = org.base
       nbase = nxt.base
       unless obase.eql?(nbase)
-        obase.each{|b| b.body.hide; b.body.stop }
-        nbase.each{|b| b.body.show; b.body.start }
+        obase.each{|b|
+          b.body.stop
+          b.body_selected.stop if b.body_selected
+        }
+        nbase.each{|b|
+          b.body.start
+          b.body_selected.start if b.body_selected
+        }
       end
     end
 
@@ -361,57 +264,55 @@ module Miyako
     #++
     #返却値:: 自分自身を返す
     def render
-      @now.each{|ch| ch.render }
+      @now.base.each{|c|
+        ((c.body_selected && c.selected) ?
+          c.body_selected.render :
+          c.body.render) if c.condition.call
+      }
       return self
     end
     
     # 選択肢を左移動させる
     # 返却値:: 自分自身を返す
     def left
+      @now.selected = false
       obj = @now.left
       update_choices(@now, obj)
       @now = obj
+      @now.selected = true
       return self
     end
 
     # 選択肢を右移動させる
     # 返却値:: 自分自身を返す
     def right
+      @now.selected = false
       obj = @now.right
       update_choices(@now, obj)
       @now = obj
+      @now.selected = true
       return self
     end
 
     # 選択肢を上移動させる
     # 返却値:: 自分自身を返す
     def up
+      @now.selected = false
       obj = @now.up
       update_choices(@now, obj)
       @now = obj
+      @now.selected = true
       return self
     end
 
     # 選択肢を下移動させる
     # 返却値:: 自分自身を返す
     def down
+      @now.selected = false
       obj = @now.down
       update_choices(@now, obj)
       @now = obj
-      return self
-    end
-
-    # 選択肢を表示させる
-    # 返却値:: 自分自身を返す
-    def show
-      @now.base.each{|c| c.body.show if c.condition.call }
-      return self
-    end
-
-    # 選択肢を隠す
-    # 返却値:: 自分自身を返す
-    def hide
-      @now.base.each{|c| c.body.hide if c.condition.call }
+      @now.selected = true
       return self
     end
 
@@ -440,21 +341,11 @@ module Miyako
     # (手動で更新する必要があるときに呼び出す)
     # 返却値:: 自分自身を返す
     def update_animation
-      @now.base.each{|c| c.body.update_animation if c.condition.call }
-    end
-
-    # 選択肢の表示範囲を取得する
-    # 返却値:: 表示範囲(4要素の配列)
-    def viewport
-      return @now.body.viewport
-    end
-
-    # 選択肢の表示範囲を設定する
-    # 返却値:: 自分自身を返す
-    def viewport=(vp)
-      @layout.viewport = vp
-      @choices.each{|cc| cc.each{|c| c.viewport = vp } }
-      return self
+      @now.base.each{|c|
+        ((c.body_selected && c.selected) ?
+         c.body_selected.update_animation :
+         c.body.update_animation) if c.condition.call
+      }
     end
   end
 end

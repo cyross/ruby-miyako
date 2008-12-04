@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -80,7 +81,7 @@ module Miyako
       def reset_input
       end
     
-      #===ノードでのレンダリング処理の後始末を実装する
+      #===ノードでのレンダリング処理を実装する
       #Screen.update メソッドを呼び出しているときは、本メソッドを実装する必要はない
       #Processor#render メソッドが呼ばれたときの処理を実装する
       def render
@@ -443,6 +444,12 @@ module Miyako
         yield @diagram if block_given?
       end
 
+      #===同期実行かどうかの問い合わせメソッド
+      #返却値: 同期実行のときはtrue
+      def sync?
+        return @sync
+      end
+
       #===遷移図形式の処理を開始する
       def start
         return if @states[:execute]
@@ -499,7 +506,7 @@ module Miyako
         @states[:execute] = false if @diagram.finish?
       end
     
-       #===レンダリング処理を行う
+      #===レンダリング処理を行う
       #Screen.update メソッドを使用している場合は使う必要はない
       def render
         @mutex.lock unless @sync

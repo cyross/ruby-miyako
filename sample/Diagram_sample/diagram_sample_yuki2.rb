@@ -1,9 +1,8 @@
 #! /usr/bin/ruby
-# Diagram sample for Miyako v1.5
-# 2008.3.13 Cyross Makoto
+# Diagram sample for Miyako v2.0
+# 2008.11.23 Cyross Makoto
 
 require 'Miyako/miyako'
-require 'Miyako/idaten_miyako'
 
 include Miyako
 
@@ -172,7 +171,6 @@ end
 
 class MainScene
   include Story::Scene
-  include Yuki
 
   TEXTBOX_MARGIN = 16
   TEXTBOX_BOTTOM = 24
@@ -180,30 +178,30 @@ class MainScene
   def init
     ws = Sprite.new(:file=>"wait_cursor.png", :type=>:ac)
     ws.oh = ws.ow
+    ws = SpriteAnimation.new(:sprite=>ws, :wait=>0.2, :pattern_list=>[0,1,2,3,2,1])
     cs = Sprite.new(:file=>"cursor.png", :type=>:ac)
     cs.oh = cs.ow
+    cs = SpriteAnimation.new(:sprite=>cs, :wait=>0.2, :pattern_list=>[0,1,2,3,2,1])
     font = Font.sans_serif
     font.color = Color[:white]
     font.size = 24
     @box = TextBox.new(:size=>[20,5], :wait_cursor => ws, :select_cursor => cs, :font => font)
-    @box.dp = 10
     @box_bg = Sprite.new(:size => @box.size.to_a.map{|v| v + TEXTBOX_MARGIN}, :type => :ac)
     @box_bg.fill([0,0,255,128])
-    @box_bg.dp = 4
-    @parts = Miyako::Parts.new(@box_bg).center.bottom{ TEXTBOX_BOTTOM }
+    @parts = Parts.new(@box.size)
+    @parts[:box_bg] = @box_bg
     @parts[:box] = @box
+    @parts[:box_bg].centering
     @parts[:box].centering
+    @parts.center.bottom{ TEXTBOX_BOTTOM }
 
-    @yuki = Yuki::Yuki2.new(@parts, @parts, :box)
+    @yuki = Yuki.new
     @yuki.update_text = self.method(:update_text)
-    @y_manager = @yuki.manager(self.method(:plot)) # プロット実行メソッド名はデフォルトのメソッド名のため、指定不要
+    @y_manager = @yuki.manager(self.method(:plot), false, true)
     
     @c1 = Sprite.new(:file=>"chr01.png", :type=>:ac).bottom
-    @c1.dp = 2
     @c2 = Sprite.new(:file=>"chr02.png", :type=>:ac).bottom
-    @c2.dp = 3
     @bk = Sprite.new(:file=>"back.png", :type=>:as).centering
-    @bk.dp = 0
 
     
     @pr = Diagram::Processor.new{|dia|
@@ -220,18 +218,24 @@ class MainScene
   end
 
   def setup
-    @c1.show
-    @c2.show
-    @bk.show
     @pr.start
     @yuki.setup
+    @yuki.select_textbox(@box)
   end
   
   def update
     return nil if Input.quit_or_escape?
     @pr.update_input
+    @parts.update_animation
     return nil if @pr.finish?
     return @now
+  end
+  
+  def render
+    @bk.render
+    @c1.render
+    @c2.render
+    @parts.render if @y_manager.executing?
   end
   
   def plot(yuki)
@@ -271,9 +275,6 @@ class MainScene
   end
   
   def final
-    @c1.hide
-    @c2.hide
-    @bk.hide
     @pr.stop
   end
 end

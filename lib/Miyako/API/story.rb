@@ -1,6 +1,8 @@
+# -*- encoding: utf-8 -*-
+
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -24,10 +26,6 @@ module Miyako
   #==シーン実行クラス
   #用意したシーンインスタンスを実行
   class Story
-    @@draw_types = [:auto_update, :auto_render, :manual_render]
-
-    attr_reader :draw_mode
-    
     #===あとで書く
     #返却値:: あとで書く
     def prev_label
@@ -47,20 +45,13 @@ module Miyako
     end
 
     #===インスタンスの作成
-    #_draw_mode_:: 画面描画モード。モードは次の3種類。
     #
-    #:auto_update : 従来通り、Screen.updateを使用
-    #:auto_render : シーンクラスのrenderメソッドを呼び出す。
-    #自動的にScreen.clearとScreen.renderを呼び出す
-    #:manual_render : シーンクラスのrenderメソッドを呼び出す。
     #返却値:: あとで書く
-    def initialize(draw_mode = :auto_update)
-      @draw_mode = draw_mode
-
+    def initialize
       @prev_label = nil
       @next_label = nil
 
-	  @stack = Array.new
+      @stack = Array.new
 
       @scene_cache = Hash.new
       @scene_cache_list = Array.new
@@ -97,33 +88,16 @@ module Miyako
         u.init_inner(@prev_label, self.upper_label)
         u.setup
         
-        methods = {}
-        @@draw_types.each{|dt| methods[dt] = self.method(dt) }
-        
-        f = true
         loop do
           Input.update
-          f = u.view_in
-          break unless f
-          methods[@draw_mode].call(u)
-        end
-        u.view_in_to_update
-        loop do
-          Input.update
+          Screen.clear
           n = u.update
           break unless n && on.eql?(n)
-          methods[@draw_mode].call(u)
+          u.render
+          Screen.render
         end
         u.next = n
         @next_label = n
-        u.update_to_view_out
-        f = true
-        loop do
-          Input.update
-          f = u.view_out
-          break unless f
-          methods[@draw_mode].call(u)
-        end
         u.final
         if n == nil
           if u.scene_type == :sub_routine && @stack.empty? == false
@@ -143,10 +117,6 @@ module Miyako
       @scene_cache_list.clear
     end
 
-    def auto_update(scene)
-      Screen.update
-    end
-    
     def auto_render(scene)
       Screen.clear
       scene.render
@@ -212,47 +182,15 @@ module Miyako
 
       #===あとで書く
       #返却値:: あとで書く
-      def view_in
-        return false
-      end
-
-      #===あとで書く
-      #返却値:: あとで書く
-      def render_view_in
-      end
-      
-      #===あとで書く
-      #返却値:: あとで書く
-      def view_in_to_update
-      end
-
-      #===あとで書く
-      #返却値:: あとで書く
       def update
         return @now
       end
 
       #===あとで書く
       #返却値:: あとで書く
-      def render_update
-      end
-      
-      #===あとで書く
-      #返却値:: あとで書く
-      def update_to_view_out
+      def render
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
-      def view_out
-        return false
-      end
-
-      #===あとで書く
-      #返却値:: あとで書く
-      def render_view_out
-      end
-      
       #===あとで書く
       #返却値:: あとで書く
       def final

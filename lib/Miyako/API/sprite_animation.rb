@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v1.5
@@ -27,10 +28,7 @@ module Miyako
     include Animation
     include Layout
     include SingleEnumerable
-    include MiyakoTap
 
-    @@animation_list = []
-    
     #===インスタンスの作成
     #アニメーションを行うための初期設定を行う。
     #アニメーションは２種類の方法があり、
@@ -53,11 +51,13 @@ module Miyako
     #
     #利用できるパラメータは以下の通り
     #
-    #:sprite => sprite|spriteの配列　アニメーションさせるスプライト(インスタンス単体もしくはインスタンスの配列)。必須パラメータ。
+    #:sprite => sprite|spriteの配列　アニメーションさせるスプライト(インスタンス単体もしくはインスタンスの配列)。必須パラメータ
     #
-    #:dir => :h|:v　単体アニメーションのとき、縦方向に位置をずらして表示させる(:h指定時)か、横方向か(:v指定時)を決定する。デフォルトは:h。
+    #:dir => :h|:v　単体アニメーションのとき、縦方向に位置をずらして表示させる(:h指定時)か、横方向か(:v指定時)を決定する。デフォルトは:h
     #
-    #:pattern_list => 表示させるパターン番号を指定するための配列。配列の要素の順にパターンが表示される。
+    #:pattern_list => 表示させるパターン番号を指定するための配列。配列の要素の順にパターンが表示される
+    #
+    #:loop => アニメーションを繰り返し更新するかどうかを示すフラグ。falseのときは、1回パターンを実行した後、アニメーションを終了する(true/false)
     #
     #_hash_:: パラメータ名とパラメータとのハッシュ
     #返却値:: 生成されたインスタンス
@@ -94,7 +94,6 @@ module Miyako
         s.snap(self)
         s.left
         s.top
-        s.hide
         @pat_len  = @dir == :h ? s.h  : s.w
         @pat_olen = @dir == :h ? s.oh : s.ow
         @chr_len  = @dir == :h ? s.w  : s.h
@@ -104,12 +103,9 @@ module Miyako
         first = s[0]
         set_layout_size(first.ow, first.oh)
         move_to(first.x, first.y)
-        s.each{|ss|
+        @slist = s.map{|ss|
           ss.snap(self)
-          ss.left
-          ss.top
-          @slist.push(ss)
-          ss.hide
+          ss.left.top
         }
         @pat_len  = @slist.length
         @pats     = @slist.length
@@ -161,85 +157,67 @@ module Miyako
       if @plist.length == 0
         @pats.times{|p| @plist.push(p)}
       elsif @plist.length < @pats
-        tmp = @plist
-        @plist = Array.new
-        @pats.times{|p|
-          v = p % tmp.length
-          @plist.push(tmp[v])
-        }
+        @plist = @plist.cycle.take(@pats)
       end
 
       if @slist.length == 0
-        @pats.times{|p| @slist.push(s) }
-        @pats.times{|p|
-          u = SpriteUnit.new(@slist[p].dp, @slist[p].bitmap, @slist[p].ox, @slist[p].oy, @slist[p].ow, @slist[p].oh, 0, 0, nil, Screen.rect)
-          px = p % (@pat_len / @pat_olen)
+        @slist = Array.new(@pats){|pat| s }
+        @units = Array.new(@pats){|pat|
+          u = SpriteUnitFactory.create(:bitmap=>@slist[pat].bitmap,
+                                       :ox => @slist[pat].ox,
+                                       :oy => @slist[pat].oy,
+                                       :ow => @slist[pat].ow,
+                                       :oh => @slist[pat].oh)
+          px = pat % (@pat_len / @pat_olen)
           if @dir == :h
-            u.oy = @slist[p].oh * @plist[px]
+            u.oy = @slist[pat].oh * @plist[px]
           else
-            u.ox = @slist[p].ow * @plist[px]
+            u.ox = @slist[pat].ow * @plist[px]
           end
-          @units.push(u)
+          u
         }
       elsif @slist.length < @pats
         tmp = @slist
-        @slist = Array.new
-        @pats.times{|p|
-          v = p % tmp.length
-          @slist.push(tmp[v])
-          u = SpriteUnit.new(tmp[v].dp, tmp[v].bitmap, tmp[v].ox, tmp[v].oy, tmp[v].ow, tmp[v].oh, 0, 0, nil, Screen.rect)
-          @units.push(u)
+        @slist = @slist.cycle.take(@pats)
+        @units = Array.new(@pats){|pat|
+          SpriteUnitFactory.create(:bitmap=>@slist[pat].bitmap,
+                                   :ox => @slist[pat].ox,
+                                   :oy => @slist[pat].oy,
+                                   :ow => @slist[pat].ow,
+                                   :oh => @slist[pat].oh)
         }
       else
-        @pats.times{|p|
-          u = SpriteUnit.new(@slist[p].dp, @slist[p].bitmap, @slist[p].ox, @slist[p].oy, @slist[p].ow, @slist[p].oh, 0, 0, nil, Screen.rect)
-          @units.push(u)
+        @units = Array.new(@pats){|pat|
+          SpriteUnitFactory.create(:bitmap=>@slist[p].bitmap,
+                                   :ox => @slist[p].ox,
+                                   :oy => @slist[p].oy,
+                                   :ow => @slist[p].ow,
+                                   :oh => @slist[p].oh)
         }
       end
 
       if @move_offset.length == 0
-        @pats.times{|p|
-          @move_offset.push(Point.new(0,0))
-        }
+        @move_offset = Array.new(@pats){|pat| Point.new(0,0) }
       elsif @move_offset.length < @pats
-        tmp = @move_offset
-        @move_offset = Array.new
-        @pats.times{|p|
-          v = p % tmp.length
-          @move_offset.push(tmp[v])
-        }
+        @move_offset = @move_offset.cycle.take(@pats)
       end
 
       if @pos_offset.length == 0
-        @pats.times{|p|
-          @pos_offset.push(0)
-        }
+        @pos_offset = Array.new(@pats){|pat| 0 }
       elsif @pos_offset.length < @pats
-        tmp = @pos_offset
-        @pos_offset = Array.new
-        @pats.times{|p|
-          v = p % tmp.length
-          @pos_offset.push(tmp[v])
-        }
+        @pos_offset = @pos_offset.cycle.take(@pats)
       end
 
       if @waits.length == 0
         if wait.kind_of?(Integer)
-          @waits = Array.new
-          @waits.fill(wait, 0, @pats)
+          @waits = Array.new(@pats){|pat| wait}
         elsif wait.kind_of?(Float)
-          @waits = Array.new
-          @waits.fill(WaitCounter.new(wait), 0, @pats)
+          @waits = Array.new(@pats){|pat| WaitCounter.new(wait)}
         else
           raise MiyakoError, "Illegal wait counter for SpriteAnimation."
         end
       elsif @waits.length < @pats
-        tmp = @waits
-        @waits = Array.new
-        @pats.times{|p|
-          v = p % tmp.length
-          @waits.push(tmp[@plist[v]])
-        }
+        @waits = @waits.cycle.take(@pats)
       end
 
       @chrs  = @chr_len / @chr_olen
@@ -251,34 +229,14 @@ module Miyako
       @visible = false
 
       @now = @units[0]
-      @now.x = @slist[@plist[@pnum]].x + @move_offset[@pnum][0]
-      @now.y = @slist[@plist[@pnum]].y + @move_offset[@pnum][1]
-
-      @@animation_list.push(self)
+      @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
+                   @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
 
     attr_accessor :visible
 
     def update_layout_position #:nodoc:
-      if @now
-        @now.x = @layout.pos[0]
-        @now.y = @layout.pos[1]
-      end
-    end
-    
-    #===アニメーションのdp値を取得する
-    #返却値:: アニメ-ションのdp値
-    def dp
-      return @units[0].dp
-    end
-
-    #===アニメーションのdp値を変更する
-    #スプライト本体のdpには影響が無い
-    #
-    #(逆に言うと、必ず設定すること！)
-    #_v_:: dp値
-    def dp=(v)
-      @units.each{|u| u.dp = v}
+      @now.move_to(*@layout.pos) if @now
     end
 
     #===現在表示しているスプライトのowを取得する
@@ -313,7 +271,7 @@ module Miyako
     #_cnum_:: あとで書く
     #返却値:: あとで書く
     def character(cnum)
-      return if cnum >= @chrs
+      return self if cnum >= @chrs
       @cnum = cnum
       set_chr
       return self
@@ -337,10 +295,10 @@ module Miyako
     #パターンがリセットされていないときは、一時停止から復帰した時と同じ動作をする
     #返却値:: 自分自身
     def start
-      return if @exec
+      return self if @exec
       set_pat
-      @now.x = @slist[@plist[@pnum]].x + @move_offset[@pnum][0]
-      @now.y = @slist[@plist[@pnum]].y + @move_offset[@pnum][1]
+      @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
+                   @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
       if @dir == :h
         @now.oy += @pos_offset[@pnum]
       else
@@ -356,7 +314,7 @@ module Miyako
     #停止しても、表示していたパターンはリセットされていない
     #返却値:: 自分自身
     def stop
-      return unless @exec
+      return self unless @exec
       if @dir == :h
         @now.oy -= @pos_offset[@pnum]
       else
@@ -378,53 +336,60 @@ module Miyako
       return self
     end
 
-    def update_animation #:nodoc:
-      return unless @exec
+    #===アニメーションの更新を行う
+    #アニメーションのカウントをチェックし、カウントが終了したときは新しいパターンに切り替えて、カウントを開始する
+    #すべてのパターンのアニメーションが終了すれば、最初のパターンに戻り、カウントを開始する
+    #但し、インスタンス生成時に:loop->falseを設定していれば、アニメーションを終了する
+    #返却値:: アニメーションパターンが切り替わればtrue、切り替わらないとき、アニメーションが終了したときはfalseを返す
+    def update_animation
+      is_change = false
+      return is_change unless @exec
       if @dir == :h
         @now.oy -= @pos_offset[@pnum]
       else
         @now.ox -= @pos_offset[@pnum]
       end
       if @cnt.kind_of?(Integer)
-        update_frame
+        is_change = update_frame
       else
-        update_wait_counter
+        is_change = update_wait_counter
       end
-      @now.x = @slist[@plist[@pnum]].x + @move_offset[@pnum][0]
-      @now.y = @slist[@plist[@pnum]].y + @move_offset[@pnum][1]
+      @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
+                   @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
       if @dir == :h
         @now.oy += @pos_offset[@pnum]
       else
         @now.ox += @pos_offset[@pnum]
       end
-      Screen.sprite_list.push(@now) if @visible
+      return is_change
     end
 
     def update_frame #:nodoc:
-      if @cnt == 0
-        @pnum = (@pnum + 1) % @pats
-        if @loop == false && @pnum == 0
-          stop
-          return
-        end
-        set_pat
-        @cnt = @waits[@plist[@pnum]]
-      else
+      if @cnt > 0
         @cnt -= 1
+        return false
       end
+      @pnum = (@pnum + 1) % @pats
+      if @loop == false && @pnum == 0
+        stop
+        return false
+      end
+      set_pat
+      @cnt = @waits[@plist[@pnum]]
+      return true
     end
     
     def update_wait_counter #:nodoc:
-      unless @cnt.waiting?
-        @pnum = (@pnum + 1) % @pats
-        if @loop == false && @pnum == 0
-          stop
-          return
-        end
-        set_pat
-        @cnt = @waits[@plist[@pnum]]
-        @cnt.start
+      return false if @cnt.waiting?
+      @pnum = (@pnum + 1) % @pats
+      if @loop == false && @pnum == 0
+        stop
+        return false
       end
+      set_pat
+      @cnt = @waits[@plist[@pnum]]
+      @cnt.start
+      return true
     end
 
     def set_pat #:nodoc:
@@ -455,44 +420,9 @@ module Miyako
       return @exec
     end
 
-    #===アニメーションを表示する
-    #返却値:: 自分自身
-    def show
-      org_visible = @visible
-      @visible = true
-      if block_given?
-        res = Proc.new.call
-        hide unless org_visible
-        return res
-      end
-      return self
-    end
-    
-    #===アニメーションを隠蔽する
-    #返却値:: 自分自身
-    def hide
-      @visible = false
-      return self
-    end
-    
-    # アニメーションのビューポートを返す
-    # 返却値:: ビューポートを示すRectクラスのインスタンス
-    def viewport
-      return @now.viewport
-    end
-
-    # ビューポートを新しく設定する
-    # _vp_:: 新しいビューポートを示すRectクラスのインスタンス
-    # 返却値:: 自分自身を返す
-    def viewport=(vp)
-      @layout.viewport = vp
-      @units.each{|u| u.viewport = vp }
-      return self
-    end
-
     # 現在実行中のパターンの元になったスプライトユニットを返す
     # 返却値:: 現在表示しているスプライトユニット
-   def to_unit
+    def to_unit
       return @now.dup
     end
     
@@ -508,14 +438,12 @@ module Miyako
       return @slist[@plist[@pnum]]
     end
     
-    #===画面に描画を指示する
+    #===画面に描画示する
     #現在の画像を、現在の状態で描画するよう指示する
-    #--
-    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-    #++
+    #但し、描画が実際の画面に反映されるのはScreen.renderメソッドが呼び出された時
     #返却値:: 自分自身を返す
     def render
-      Screen.sprite_list.push(@now.dup)
+      Screen.render_screen(@now)
       return self
     end
 
@@ -528,27 +456,6 @@ module Miyako
       @plist.clear
       @move_offset.clear
       @pos_offset.clear
-      @@animation_list.delete(self)
-    end
-
-    def SpriteAnimation.clear #:nodoc:
-      @@animation_list.clear
-    end
-
-    #===すべてのSpriteAnimationクラスのインスタンスのアニメーション状態を更新する
-    #Sprite.update、Miyako.main_loopメソッド、Sceneモジュールを使用しているとき
-    #は呼び出す必要はないが、Sprite.renderメソッドを使用するときは明示的に呼び出す
-    #必要がある。
-    def SpriteAnimation.update_animation
-      @@animation_list.each{|a| a.update_animation }
-    end
-    
-    def SpriteAnimation::recalc_layout #:nodoc:
-      @@animation_list.each{|a| a.calc_layout }
-    end
-    
-    def SpriteAnimation.reset_viewport #:nodoc:
-      @@animation_list.each{|a| a.viewport = Screen.rect }
     end
   end
 end

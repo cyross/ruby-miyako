@@ -22,899 +22,542 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 =拡張ライブラリmiyako_no_katana
 Authors:: サイロス誠
-Version:: 1.5pre2
+Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
  */
+#include <SDL.h>
 #include <stdlib.h>
 #include <math.h>
 #include "ruby.h"
+#include "rubysdl.h"
 
-#define GET_SHIFT(MASK) ((MASK>>24)&24)|((MASK>>16)&16)|((MASK>>8)&8)
-#define GET_VAR(VAR, SHIFT) (VAR>>SHIFT)&0xff
-#define COLOR_R 0
-#define COLOR_G 1
-#define COLOR_B 2
-#define COLOR_A 3
+static VALUE mSDL = Qnil;
+static VALUE mMiyako = Qnil;
+static VALUE mScreen = Qnil;
+static VALUE mInput = Qnil;
+static VALUE mMapEvent = Qnil;
+static VALUE mLayout = Qnil;
+static VALUE mDiagram = Qnil;
+static VALUE eMiyakoError = Qnil;
+static VALUE cSurface = Qnil;
+static VALUE cEvent2 = Qnil;
+static VALUE cJoystick = Qnil;
+static VALUE cWaitCounter = Qnil;
+static VALUE cColor = Qnil;
+static VALUE cFont = Qnil;
+static VALUE cPixelFormat = Qnil;
+static VALUE cBitmap = Qnil;
+static VALUE cSprite = Qnil;
+static VALUE cSpriteAnimation = Qnil;
+static VALUE cPlane = Qnil;
+static VALUE cTextBox = Qnil;
+static VALUE cMap = Qnil;
+static VALUE cMapLayer = Qnil;
+static VALUE cFixedMap = Qnil;
+static VALUE cFixedMapLayer = Qnil;
+static VALUE cCollision = Qnil;
+static VALUE cCollisions = Qnil;
+static VALUE cMovie = Qnil;
+static VALUE cProcessor = Qnil;
+static VALUE cYuki = Qnil;
+static VALUE cThread = Qnil;
+static VALUE nZero = Qnil;
+static VALUE nOne = Qnil;
+static volatile ID id_update;
+static volatile ID id_update = Qnil;
+static volatile ID id_kakko = Qnil;
+static volatile int zero;
+static volatile int one = Qnil;
 
-VALUE mSDL;
-VALUE mMiyako;
-VALUE mScreen;
-VALUE eMiyakoError;
-VALUE cSurface;
-VALUE cBitmap;
-VALUE cSprite;
-VALUE nZero;
-ID id_update;
-volatile int zero;
+typedef struct
+{
+	SDL_Surface* surface;
+} Surface;
 
-static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE src1, VALUE src2, VALUE mx, VALUE my){
-  const int bytes_pp = 4;
-  int i;
+typedef struct
+{
+	Uint32 r;
+	Uint32 g;
+	Uint32 b;
+	Uint32 a;
+} MiyakoColor;
 
-  rb_funcall(src1, rb_intern("lock"), 0);
-  rb_funcall(src2, rb_intern("lock"), 0);
+DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
+DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFormat");
 
-  VALUE src1_px = rb_funcall(src1, rb_intern("pixels"), 0);
-  VALUE src2_px = rb_funcall(src2, rb_intern("pixels"), 0);
-  VALUE s1w = rb_funcall(src1, rb_intern("w"), 0);
-  VALUE s1h = rb_funcall(src1, rb_intern("h"), 0);
-  VALUE s2w = rb_funcall(src2, rb_intern("w"), 0);
-  VALUE s2h = rb_funcall(src2, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src2, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src2, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src2, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src2, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src2, rb_intern("Amask"), 0);
+#define MIYAKO_GETCOLOR(COLOR) \
+	tmp = pixel & fmt->Rmask; \
+	tmp >>= fmt->Rshift; \
+	COLOR.r = (Uint32)(tmp << fmt->Rloss); \
+	tmp = pixel & fmt->Gmask; \
+	tmp >>= fmt->Gshift; \
+	COLOR.g = (Uint32)(tmp << fmt->Gloss); \
+	tmp = pixel & fmt->Bmask; \
+	tmp >>= fmt->Bshift; \
+	COLOR.b = (Uint32)(tmp << fmt->Bloss); \
+  tmp = pixel & fmt->Amask; \
+	tmp >>= fmt->Ashift; \
+	COLOR.a = (Uint32)(tmp << fmt->Aloss);
 
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2ULONG(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
+#define MIYAKO_SETCOLOR(COLOR) \
+  pixel = 0; \
+	tmp = COLOR.r >> fmt->Rloss; \
+	tmp <<= fmt->Rshift; \
+	pixel |= tmp; \
+	tmp = COLOR.g >> fmt->Gloss; \
+	tmp <<= fmt->Gshift; \
+	pixel |= tmp; \
+	tmp = COLOR.b >> fmt->Bloss; \
+	tmp <<= fmt->Bshift; \
+	pixel |= tmp; \
+  tmp = COLOR.a >> fmt->Aloss; \
+	tmp <<= fmt->Ashift; \
+	pixel |= tmp; \
+
+/*
+===画像をαチャネル付き画像へ転送する
+本メソッドは、転送先ビットマップを破壊的に変更することに注意！
+範囲は、srcの(ow,oh)の範囲で転送する。
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
+_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
+返却値:: なし
+*/
+static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx, VALUE vy)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+
+  //SpriteUnit:
+  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+	int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+	int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+	int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+	int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+	int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+	int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+	int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+	int x =  NUM2INT(vx);
+	int y =  NUM2INT(vy);
+	int dlx = dox + x;
+	int dly = doy + y;
+	int dmx = dlx + sow;
+	int dmy = dly + soh;
+  int rx = dst->clip_rect.x + dst->clip_rect.w;
+  int ry = dst->clip_rect.y + dst->clip_rect.h;
+  
+	if(dmx > dow) dmx = dow;
+	if(dmy > doh) dmy = doh;
+
+  if(dlx < dst->clip_rect.x)
+  {
+    sox += (dst->clip_rect.x - dlx);
+    dlx = dst->clip_rect.x;
   }
-
-  int mg_x = NUM2INT(mx);
-  int mg_y = NUM2INT(my);
-  if(mg_x < 0 || mg_y < 0){ return Qnil; }
-
-  int src_w = NUM2INT(s2w);
-  int src_h = NUM2INT(s2h);
-  if(NUM2INT(s1w) != src_w || NUM2INT(s1h) != src_h){ return Qnil; }
-
-  int dst_w = src_w + mg_x;
-  int dst_h = src_h + mg_y;
-  int dst_sz = dst_w * dst_h * bytes_pp;
-
-  char *src1_pixels = RSTRING_PTR(src1_px);
-  char *src2_pixels = RSTRING_PTR(src2_px);
-  VALUE dst_px = rb_str_new(NULL, dst_sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, dst_sz);
-
-  int dst_len = dst_w * bytes_pp;
-
-  int x, y;
-  for(y=0; y<src_h; y++){
-    unsigned long *src_p = (unsigned long *)src2_pixels + y * src_w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + (mg_y + y) * dst_w + mg_x;
-    for(x=0; x<src_w; x++){ *dst_p++ = *src_p++; }		
+  if(dly < dst->clip_rect.y)
+  {
+    soy += (dst->clip_rect.y - dly);
+    dly = dst->clip_rect.y;
   }
-  for(y=0; y<src_h; y++){
-    unsigned long *src_p = (unsigned long *)src1_pixels + y * src_w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * dst_w;
-    for(x=0; x<src_w; x++){
-#if 0
-      unsigned long pa = GET_VAR(*src_p, shift[COLOR_A]);
-      if(pa > 0){ *dst_p = *src_p; }
-#else
-      unsigned long sr = GET_VAR(*src_p, shift[COLOR_R]);
-      unsigned long sg = GET_VAR(*src_p, shift[COLOR_G]);
-      unsigned long sb = GET_VAR(*src_p, shift[COLOR_B]);
-      unsigned long sa = GET_VAR(*src_p, shift[COLOR_A]);
-      unsigned long dr = GET_VAR(*dst_p, shift[COLOR_R]);
-      unsigned long dg = GET_VAR(*dst_p, shift[COLOR_G]);
-      unsigned long db = GET_VAR(*dst_p, shift[COLOR_B]);
-      unsigned long da = GET_VAR(*dst_p, shift[COLOR_A]);
-
-      if(da == 0){ *dst_p = *src_p; }
-      else{
-	if(sa > 0){
-	  dr = ((sr * (sa + 1)) >> 8) + ((dr * (256 - sa)) >> 8);
-	  dg = ((sg * (sa + 1)) >> 8) + ((dg * (256 - sa)) >> 8);
-	  db = ((sb * (sa + 1)) >> 8) + ((db * (256 - sa)) >> 8);
-	  da = 0xff;
-	  *dst_p = ((dr << shift[COLOR_R]) | (dg << shift[COLOR_G]) | (db << shift[COLOR_B]) | (da << shift[COLOR_A]));
-	}
+  if(dmx > rx){ dmx = rx; }
+  if(dly > ry){ dmy = ry; }
+  
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+  
+	int px, py, sx, sy;
+  for(sy = soy, py = dly; py < dmy; sy++, py++)
+  {
+    for(sx = sox, px = dlx; px < dmx; sx++, px++)
+    {
+      pixel = *(psrc + sy * src->w + sx);
+      MIYAKO_GETCOLOR(scolor)
+      pixel = *(pdst + py * dst->w + px);
+      MIYAKO_GETCOLOR(dcolor)
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(scolor)
+        *(pdst + py * dst->w + px) = pixel;
+        continue;
       }
-#endif
-      src_p++;
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(dst_w), INT2NUM(dst_h),
-			 bpp, INT2NUM(dst_len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src1, rb_intern("unlock"), 0);
-  rb_funcall(src2, rb_intern("unlock"), 0);
-
-  return dst;
-}
-
-static VALUE bitmap_miyako_blit_aa2(VALUE self, VALUE src1, VALUE src2, VALUE px, VALUE py){
-  const int bytes_pp = 4;
-  int i;
-
-  rb_funcall(src1, rb_intern("lock"), 0);
-  rb_funcall(src2, rb_intern("lock"), 0);
-
-  VALUE src1_px = rb_funcall(src1, rb_intern("pixels"), 0);
-  VALUE src2_px = rb_funcall(src2, rb_intern("pixels"), 0);
-  VALUE s1w = rb_funcall(src1, rb_intern("w"), 0);
-  VALUE s1h = rb_funcall(src1, rb_intern("h"), 0);
-  VALUE s2w = rb_funcall(src2, rb_intern("w"), 0);
-  VALUE s2h = rb_funcall(src2, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src2, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src2, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src2, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src2, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src2, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2ULONG(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int pt_x = NUM2INT(px);
-  int pt_y = NUM2INT(py);
-  if(pt_x < 0 || pt_y < 0){ return src2; }
-
-  int src_w = NUM2INT(s1w);
-  int src_h = NUM2INT(s1h);
-
-  int dst_w = NUM2INT(s2w);
-  int dst_h = NUM2INT(s2h);
-  int dst_sz = dst_w * dst_h * bytes_pp;
-
-  char *src1_pixels = RSTRING_PTR(src1_px);
-  char *src2_pixels = RSTRING_PTR(src2_px);
-  VALUE dst_px = rb_str_new(NULL, dst_sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, dst_sz);
-
-  int dst_len = dst_w * bytes_pp;
-
-  int x, y;
-  for(y=0; y<dst_h; y++){
-    unsigned long *src2_p = (unsigned long *)src2_pixels + y * dst_w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * dst_w;
-#if 0
-    for(x=0; x<dst_w; x++){ *dst_p++ = *src2_p++; }
-#else
-    for(x=0; x<dst_w; x++){
-      unsigned long sr = GET_VAR(*src2_p, shift[COLOR_R]);
-      unsigned long sg = GET_VAR(*src2_p, shift[COLOR_G]);
-      unsigned long sb = GET_VAR(*src2_p, shift[COLOR_B]);
-      unsigned long sa = GET_VAR(*src2_p, shift[COLOR_A]);
-      unsigned long dr = GET_VAR(*dst_p, shift[COLOR_R]);
-      unsigned long dg = GET_VAR(*dst_p, shift[COLOR_G]);
-      unsigned long db = GET_VAR(*dst_p, shift[COLOR_B]);
-      unsigned long da = GET_VAR(*dst_p, shift[COLOR_A]);
-
-      if(da == 0){ *dst_p = *src2_p; }
-      else{
-	if(sa > 0){
-	  dr = ((sr * (sa + 1)) >> 8) + ((dr * (256 - sa)) >> 8);
-	  dg = ((sg * (sa + 1)) >> 8) + ((dg * (256 - sa)) >> 8);
-	  db = ((sb * (sa + 1)) >> 8) + ((db * (256 - sa)) >> 8);
-	  da = sa;
-	  *dst_p = ((dr << shift[COLOR_R]) | (dg << shift[COLOR_G]) | (db << shift[COLOR_B]) | (da << shift[COLOR_A]));
-	}
+      if(scolor.a > 0)
+      {
+        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = scolor.a;
+        MIYAKO_SETCOLOR(dcolor)
+        *(pdst + py * dst->w + px) = pixel;
       }
-      src2_p++;
-      dst_p++;
-    }		
-#endif
-  }
-  for(y=0; y<src_h; y++){
-    if(pt_y + y >= dst_h){ break; }
-    unsigned long *src_p = (unsigned long *)src1_pixels + y * src_w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + (pt_y + y) * dst_w + pt_x;
-    for(x=0; x<src_w; x++){
-      if(pt_x + x >= dst_w){ break; }
-
-      unsigned long sr = GET_VAR(*src_p, shift[COLOR_R]);
-      unsigned long sg = GET_VAR(*src_p, shift[COLOR_G]);
-      unsigned long sb = GET_VAR(*src_p, shift[COLOR_B]);
-      unsigned long sa = GET_VAR(*src_p, shift[COLOR_A]);
-      unsigned long dr = GET_VAR(*dst_p, shift[COLOR_R]);
-      unsigned long dg = GET_VAR(*dst_p, shift[COLOR_G]);
-      unsigned long db = GET_VAR(*dst_p, shift[COLOR_B]);
-      unsigned long da = GET_VAR(*dst_p, shift[COLOR_A]);
-
-      if(da == 0){ *dst_p = *src_p; }
-      else{
-	if(sa > 0){
-	  dr = ((sr * (sa + 1)) >> 8) + ((dr * (256 - sa)) >> 8);
-	  dg = ((sg * (sa + 1)) >> 8) + ((dg * (256 - sa)) >> 8);
-	  db = ((sb * (sa + 1)) >> 8) + ((db * (256 - sa)) >> 8);
-	  da = 0xff;
-	  *dst_p = ((dr << shift[COLOR_R]) | (dg << shift[COLOR_G]) | (db << shift[COLOR_B]) | (da << shift[COLOR_A]));
-	}
-      }
-      src_p++;
-      dst_p++;
-    }		
+    }
   }
 
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(dst_w), INT2NUM(dst_h),
-			 bpp, INT2NUM(dst_len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
+	SDL_UnlockSurface(src);
+	SDL_UnlockSurface(dst);
 
-  rb_funcall(src1, rb_intern("unlock"), 0);
-  rb_funcall(src2, rb_intern("unlock"), 0);
-
-  return dst;
+  return Qnil;
 }
 
 /*
-===画像のαチャネルの値を一定の割合で減少させる
-_src_v_:: 対象の画像(Surfaceクラスのインスタンス)
+===画像のαチャネルの値を一定の割合で減少させて転送する
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+src == dst : 元の画像を変換した画像に置き換える
+src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
 _degree_:: 減少率。0.0<degree<1.0までの実数
-返却値:: 変更後の画像インスタンス
 */
-static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE src_v, VALUE degree){
-  const int bytes_pp = 4;
-  int i;
+static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+	double deg = NUM2DBL(degree);
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
 
-  rb_funcall(src_v, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src_v, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src_v, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src_v, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src_v, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src_v, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src_v, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src_v, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src_v, rb_intern("Amask"), 0);
+  if(src == dst){
+    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+    int dlx = dox + x;
+    int dly = doy + y;
+    int dmx = dlx + sow;
+    int dmy = dly + soh;
+    int rx = dst->clip_rect.x + dst->clip_rect.w;
+    int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
+    if(dmx > dow) dmx = dow;
+    if(dmy > doh) dmy = doh;
+
+    if(dlx < dst->clip_rect.x)
+    {
+      sox += (dst->clip_rect.x - dlx);
+      dlx = dst->clip_rect.x;
+    }
+    if(dly < dst->clip_rect.y)
+    {
+      soy += (dst->clip_rect.y - dly);
+      dly = dst->clip_rect.y;
+    }
+    if(dmx > rx){ dmx = rx; }
+    if(dly > ry){ dmy = ry; }
+  
+    SDL_LockSurface(src);
+    SDL_LockSurface(dst);
+  
+    int px, py, sx, sy;
+    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    {
+      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      {
+        pixel = *(psrc + sy * src->w + sx);
+        MIYAKO_GETCOLOR(scolor)
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+        scolor.a = (Uint32)((double)scolor.a * deg);
+        if(scolor.a < 0){ scolor.a = 0; }
+        if(scolor.a > 255){ scolor.a = 255; }
+        if(dcolor.a == 0){
+          MIYAKO_SETCOLOR(scolor)
+          *(pdst + py * dst->w + px) = pixel;
+          continue;
+        }
+        if(scolor.a > 0)
+        {
+          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+          if(dcolor.r > 255){ dcolor.r = 255; }
+          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+          if(dcolor.g > 255){ dcolor.g = 255; }
+          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+          if(dcolor.b > 255){ dcolor.b = 255; }
+          dcolor.a = scolor.a;
+          MIYAKO_SETCOLOR(dcolor)
+          *(pdst + py * dst->w + px) = pixel;
+        }
+      }
+    }
+
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+  }
+  else
+  {
+    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+
+    SDL_LockSurface(src);
+
+    int x, y;
+    for(y = oy; y < ob; y++)
+    {
+      for(x = ox; x < or; x++)
+      {
+        pixel = *(psrc + y * src->w + x);
+        MIYAKO_GETCOLOR(scolor)
+        scolor.a = (Uint32)((double)scolor.a * deg);
+        if(scolor.a < 0){ scolor.a = 0; }
+        if(scolor.a > 255){ scolor.a = 255; }
+        MIYAKO_SETCOLOR(scolor)
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+
+    SDL_UnlockSurface(src);
   }
 
-  double deg = NUM2DBL(degree);
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  int sz = w * h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w * bytes_pp;
-
-  unsigned long unmask = 0xffffffff ^ (0xff << shift[COLOR_A]);
-
-  int x, y;
-  for(y=0; y<h; y++){
-    unsigned long *src_p = (unsigned long *)src_pixels + y * w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w;
-    for(x=0; x<w; x++){
-      unsigned long src = *src_p;
-      unsigned long pa = GET_VAR(src, shift[COLOR_A]);
-      pa = (unsigned long)((double)pa * deg);
-      if(pa < 0){ pa = 0; }
-      if(pa > 255){ pa = 255; }
-      *dst_p = (src & unmask) | (pa << shift[COLOR_A]);
-      src_p++;
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w), INT2NUM(h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src_v, rb_intern("unlock"), 0);
-
-  return dst;
+	return Qnil;
 }
 
 /*
 ===画像のRGB値を反転させる
 αチャネルの値は変更しない
-_src_:: 対象の画像(Surfaceクラスのインスタンス)
-返却値:: 変更後の画像インスタンス
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+src == dst : 元の画像を変換した画像に置き換える
+src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
 */
-static VALUE bitmap_miyako_inverse(VALUE self, VALUE src){
-  const int bytes_pp = 4;
-  int i;
+static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
 
-  rb_funcall(src, rb_intern("lock"), 0);
+  if(src == dst){
+    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+    int dlx = dox + x;
+    int dly = doy + y;
+    int dmx = dlx + sow;
+    int dmy = dly + soh;
+    int rx = dst->clip_rect.x + dst->clip_rect.w;
+    int ry = dst->clip_rect.y + dst->clip_rect.h;
+  
+    if(dmx > dow) dmx = dow;
+    if(dmy > doh) dmy = doh;
 
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
+    if(dlx < dst->clip_rect.x)
+    {
+      sox += (dst->clip_rect.x - dlx);
+      dlx = dst->clip_rect.x;
+    }
+    if(dly < dst->clip_rect.y)
+    {
+      soy += (dst->clip_rect.y - dly);
+      dly = dst->clip_rect.y;
+    }
+    if(dmx > rx){ dmx = rx; }
+    if(dly > ry){ dmy = ry; }
+  
+    SDL_LockSurface(src);
+    SDL_LockSurface(dst);
+  
+    int px, py, sx, sy;
+    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    {
+      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      {
+        pixel = *(psrc + sy * src->w + sx);
+        MIYAKO_GETCOLOR(scolor)
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+        scolor.r ^= 0xff;
+        scolor.g ^= 0xff;
+        scolor.b ^= 0xff;
+        if(dcolor.a == 0){
+          MIYAKO_SETCOLOR(scolor)
+          *(pdst + py * dst->w + px) = pixel;
+          continue;
+        }
+        if(scolor.a > 0)
+        {
+          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+          if(dcolor.r > 255){ dcolor.r = 255; }
+          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+          if(dcolor.g > 255){ dcolor.g = 255; }
+          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+          if(dcolor.b > 255){ dcolor.b = 255; }
+          dcolor.a = scolor.a;
+          MIYAKO_SETCOLOR(dcolor)
+          *(pdst + py * dst->w + px) = pixel;
+        }
+      }
+    }
 
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+  }
+  else
+  {
+    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+
+    SDL_LockSurface(src);
+
+    int x, y;
+    for(y = oy; y < ob; y++)
+    {
+      for(x = ox; x < or; x++)
+      {
+        pixel = *(psrc + y * src->w + x);
+        MIYAKO_GETCOLOR(scolor)
+        scolor.r ^= 0xff;
+        scolor.g ^= 0xff;
+        scolor.b ^= 0xff;
+        MIYAKO_SETCOLOR(scolor)
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+
+    SDL_UnlockSurface(src);
   }
 
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  int sz = w * h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w * bytes_pp;
-
-  int x, y;
-  for(y=0; y<h; y++){
-    unsigned long *src_p = (unsigned long *)src_pixels + y * w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w;
-    for(x=0; x<w; x++){
-      unsigned long src = *src_p;
-      unsigned long pr = (GET_VAR(src, shift[COLOR_R])) ^ 0xff;
-      unsigned long pg = (GET_VAR(src, shift[COLOR_G])) ^ 0xff;
-      unsigned long pb = (GET_VAR(src, shift[COLOR_B])) ^ 0xff;
-      unsigned long pa = (GET_VAR(src, shift[COLOR_A]));
-      *dst_p = ((pr << shift[COLOR_R]) | (pg << shift[COLOR_G]) | (pb << shift[COLOR_B]) | (pa << shift[COLOR_A]));
-      src_p++;
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w), INT2NUM(h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
+	return Qnil;
 }
 
 /*
 ===2枚の画像の加算合成を行う
-_src1_:: 合成する画像インスタンス(Surfaceクラスのインスタンス)
-_src2_:: 合成元の画像インスタンス
-_vmx_:: src1をsrc2上に貼り付けるときに補正する位置
-_vmy_:: src1をsrc2上に貼り付けるときに補正する位置
-返却値:: 合成後の画像インスタンス
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
 */
-static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE src1, VALUE src2, VALUE vmx, VALUE vmy){
-  const int bytes_pp = 4;
-  int i;
+static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+
+  int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+  int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+  int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+  int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+  int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+  int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+  int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+  int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+  int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+  int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+  int dlx = dox + x;
+  int dly = doy + y;
+  int dmx = dlx + sow;
+  int dmy = dly + soh;
+  int rx = dst->clip_rect.x + dst->clip_rect.w;
+  int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-  rb_funcall(src1, rb_intern("lock"), 0);
-  rb_funcall(src2, rb_intern("lock"), 0);
+  if(dmx > dow) dmx = dow;
+  if(dmy > doh) dmy = doh;
 
-  VALUE src1_px = rb_funcall(src1, rb_intern("pixels"), 0);
-  VALUE s1w = rb_funcall(src1, rb_intern("w"), 0);
-  VALUE s1h = rb_funcall(src1, rb_intern("h"), 0);
-  VALUE src2_px = rb_funcall(src2, rb_intern("pixels"), 0);
-  VALUE s2w = rb_funcall(src2, rb_intern("w"), 0);
-  VALUE s2h = rb_funcall(src2, rb_intern("h"), 0);
-
-  int w1 = NUM2INT(s1w);
-  int h1 = NUM2INT(s1h);
-  int w2 = NUM2INT(s2w);
-  int h2 = NUM2INT(s2h);
-  int mx = NUM2INT(vmx);
-  int my = NUM2INT(vmy);
-
-  if(mx < 0 || my < 0){ return Qnil; }
-  if(mx >= w2 || my >= h2){ return Qnil; }
-
-  VALUE bpp = rb_funcall(src2, rb_intern("bpp"), 0);
-
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src2, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src2, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src2, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src2, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
+  if(dlx < dst->clip_rect.x)
+  {
+    sox += (dst->clip_rect.x - dlx);
+    dlx = dst->clip_rect.x;
+  }
+  if(dly < dst->clip_rect.y)
+  {
+    soy += (dst->clip_rect.y - dly);
+    dly = dst->clip_rect.y;
+  }
+  if(dmx > rx){ dmx = rx; }
+  if(dly > ry){ dmy = ry; }
+  
+  SDL_LockSurface(src);
+  SDL_LockSurface(dst);
+  
+  int px, py, sx, sy;
+  for(sy = soy, py = dly; py < dmy; sy++, py++)
+  {
+    for(sx = sox, px = dlx; px < dmx; sx++, px++)
+    {
+      pixel = *(psrc + sy * src->w + sx);
+      MIYAKO_GETCOLOR(scolor)
+			if(scolor.a > 0){
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+				dcolor.r += scolor.r;
+				if(dcolor.r > 255){ dcolor.r = 255; }
+				dcolor.g += scolor.g;
+				if(dcolor.g > 255){ dcolor.g = 255; }
+				dcolor.b += scolor.b;
+				if(dcolor.b > 255){ dcolor.b = 255; }
+				dcolor.a = (dcolor.a > scolor.a ? dcolor.a : scolor.a);
+        MIYAKO_SETCOLOR(dcolor)
+        *(pdst + py * dst->w + px) = pixel;
+			}
+    }
   }
 
-  int sz = w2 * h2 * bytes_pp;
-
-  char *src1_pixels = RSTRING_PTR(src1_px);
-  char *src2_pixels = RSTRING_PTR(src2_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w2 * bytes_pp;
-
-  unsigned long unmask = 0xffffffff ^ (0xff << shift[COLOR_A]);
-
-  if(mx + w1 > w2){ w1 -= (mx + w1 - w2); }
-  if(my + h1 > h2){ h1 -= (my + h1 - h2); }
+  SDL_UnlockSurface(src);
+  SDL_UnlockSurface(dst);
 	
-  int x, y;
-  for(y=0; y<h2; y++){
-    unsigned long *src2_p = (unsigned long *)src2_pixels + y * w2;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w2;
-    for(x=0; x<w2; x++){ *dst_p++ = *src2_p++; }
-  }
-  for(y=0; y<h1; y++){
-    unsigned long *src1_p = (unsigned long *)src1_pixels + y * w1;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + (y + my) * w2 + mx;
-    for(x=0; x<w1; x++){
-      unsigned long src1 = *src1_p;
-      unsigned long dst1 = *dst_p;
-      unsigned long pa1 = (GET_VAR(src1, shift[COLOR_A]));
-      unsigned long pa2 = (GET_VAR(dst1, shift[COLOR_A]));
-      unsigned long pr = (GET_VAR(src1, shift[COLOR_R])) + (GET_VAR(dst1, shift[COLOR_R]));
-      unsigned long pg = (GET_VAR(src1, shift[COLOR_G])) + (GET_VAR(dst1, shift[COLOR_G]));
-      unsigned long pb = (GET_VAR(src1, shift[COLOR_B])) + (GET_VAR(dst1, shift[COLOR_B]));
-      if(pa1 == 0){
-	src1_p++;
-	dst_p++;
-	continue;
-      }
-      if(pr > 0xff) pr = 0xff;
-      if(pg > 0xff) pg = 0xff;
-      if(pb > 0xff) pb = 0xff;
-      *dst_p = ((pr << shift[COLOR_R]) | (pg << shift[COLOR_G]) | (pb << shift[COLOR_B]) | ((pa1>pa2?pa1:pa2) << shift[COLOR_A]));
-      src1_p++;
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w2), INT2NUM(h2),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src1, rb_intern("unlock"), 0);
-  rb_funcall(src2, rb_intern("unlock"), 0);
-
-  return dst;
+	return Qnil;
 }
 
 /*
 ===2枚の画像の減算合成を行う
-_src1_:: 合成する画像インスタンス(Surfaceクラスのインスタンス)
-_src2_:: 合成元の画像インスタンス
-_vmx_:: src1をsrc2上に貼り付けるときに補正する位置
-_vmy_:: src1をsrc2上に貼り付けるときに補正する位置
-返却値:: 合成後の画像インスタンス
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
 */
-static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src1, VALUE src2, VALUE vmx, VALUE vmy){
-  VALUE inv_bitmap = bitmap_miyako_inverse(self, src2);
-  VALUE add_bitmap = bitmap_miyako_additive_synthesis(self, src1, inv_bitmap, vmx, vmy);
-  return bitmap_miyako_inverse(self, add_bitmap);
+static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE dst)
+{
+  bitmap_miyako_inverse(self, dst, dst);
+  bitmap_miyako_additive_synthesis(self, src, dst);
+  bitmap_miyako_inverse(self, dst, dst);
+  return Qnil;
 }
 
-/*
-===画像を回転させる
-画像を回転させる際に、縦横の大きさが違っているときは、長辺に合わせた正方形で出力される
-
-引数<i>size_force</i>がfalseのときは、<b>画像サイズが1.5倍になる</b>ことに注意すること
-
-(特にメモリ周り！)
-
-<i>size_force_</i>がtrueのときは画像サイズは変化しないが、画像の一部が欠けたり大幅に崩れるため、注意すること
-
-_src_:: 回転元の画像
-_radian_:: 回転角度。反時計回りに回転する。単位はラジアン。範囲は0.0〜Math::PI*2
-_size_force_:: trueのときは、回転による画像の大きさの変更を行わない。規定値はfalse
-返却値:: 回転後の画像インスタンス
-*/
-static VALUE bitmap_miyako_rotate(int argc, VALUE *argv, VALUE self){
-  const int bytes_pp = 4;
-  int i;
-
-  VALUE src, radian, size_force;
-  rb_scan_args(argc, argv, "21", &src, &radian, &size_force);
-  
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  if(w >= 32768 || h >= 32768){ return self; }
-
-  int org_center_x = w >> 1;
-  int org_center_y = h >> 1;
-  int new_w = w + (size_force == Qtrue ? 0 : org_center_x);
-  int new_h = h + (size_force == Qtrue ? 0 : org_center_y);
-  if(new_w > new_h){ new_h = new_w; }
-  int new_center_x = new_w >> 1;
-  int new_center_y = new_h >> 1;
-
-  int sz = new_w * new_h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = new_w * bytes_pp;
-
-  double rad = NUM2DBL(radian);
-  long isin = (long)(sin(rad)*4096.0);
-  long icos = (long)(cos(rad)*4096.0);
-
-  int x, y;
-  unsigned long *src_p;
-  for(y=0; y<new_h; y++){
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * new_w;
-    for(x=0; x<new_w; x++){
-      int nx = (((x-new_center_x)*icos-(y-new_center_y)*isin) >> 12) + org_center_x;
-      int ny = (((x-new_center_x)*isin+(y-new_center_y)*icos) >> 12) + org_center_y;
-      if(nx < 0 || nx >= w || ny < 0 || ny >= h){ dst_p++; continue; }
-      *dst_p = *((unsigned long *)src_pixels + ny * w + nx);
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(new_w), INT2NUM(new_h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
-}
-
-/*
-===画像を拡大・縮小・反転させる
-_src_:: 変形元の画像
-_scale_x_:: x軸の拡大率。-1を指定すると、y軸方向のミラー反転となる
-_scale_y_:: y軸の拡大率。-1を指定すると、x軸方向のミラー反転となる
-返却値:: 変形後の画像インスタンス
-*/
-static VALUE bitmap_miyako_scale(VALUE self, VALUE src, VALUE scale_x, VALUE scale_y){
-  const int bytes_pp = 4;
-  int i;
-
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  if(w >= 32768 || h >= 32768){ return self; }
-
-  double scx = NUM2DBL(scale_x);
-  double scy = NUM2DBL(scale_y);
-  double ascx = scx < 0.0 ? -scx : scx;
-  double ascy = scy < 0.0 ? -scy : scy;
-
-  if(scx == 0.0 || scy == 0.0){ return self; }
-
-  int new_w = (int)((double)w * ascx);
-  int new_h = (int)((double)h * ascy);
-
-  if(new_w == 0 || new_h == 0 || new_w >= 32768 || new_h >= 32768){ return self; }
-
-  scx = 1.0 / scx;
-  scy = 1.0 / scy;
-
-  int org_center_x = w >> 1;
-  int org_center_y = h >> 1;
-  int new_center_x = new_w >> 1;
-  int new_center_y = new_h >> 1;
-
-  int sz = new_w * new_h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = new_w * bytes_pp;
-
-  int off_x = scx < 0 ? 1 : 0;
-  int off_y = scy < 0 ? 1 : 0;
-
-  int x, y;
-  unsigned long *src_p;
-  for(y=0; y<new_h; y++){
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * new_w;
-    for(x=0; x<new_w; x++){
-      int nx = (int)((double)(x-new_center_x) * scx) + org_center_x - off_x;
-      int ny = (int)((double)(y-new_center_y) * scy) + org_center_y - off_y;
-      *dst_p = *((unsigned long *)src_pixels + ny * w + nx);
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(new_w), INT2NUM(new_h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
-}
-
-/*
-===画像を変形(回転・拡大・縮小・反転)させる
-画像を回転させる際に、縦横の大きさが違っているときは、長辺に合わせた正方形で出力される
-
-引数<i>size_force</i>がfalseのときは、<b>画像サイズが1.5倍になる</b>ことに注意すること
-
-(特にメモリ周り！)
-
-<i>size_force_</i>がtrueのときは画像サイズは変化しないが、画像の一部が欠けたり大幅に崩れるため、注意すること
-
-_src_:: 変形元の画像
-_radian_:: 回転角度。反時計回りに回転する。単位はラジアン。範囲は0.0〜Math::PI*2
-_scale_x_:: x軸の拡大率。-1を指定すると、y軸方向のミラー反転となる
-_scale_y_:: y軸の拡大率。-1を指定すると、x軸方向のミラー反転となる
-_size_force_:: trueのときは、回転による画像の大きさの変更を行わない。規定値はfalse
-返却値:: 変形後の画像インスタンス
-*/
-static VALUE bitmap_miyako_transform(int argc, VALUE *argv, VALUE self){
-  const int bytes_pp = 4;
-  int i;
-
-  VALUE src, radian, scale_x, scale_y, size_force;
-  rb_scan_args(argc, argv, "41", &src, &radian, &scale_x, &scale_y, &size_force);
-  
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  if(w >= 32768 || h >= 32768){ return self; }
-
-  double rad = NUM2DBL(radian);
-  long isin = (long)(sin(rad)*4096.0);
-  long icos = (long)(cos(rad)*4096.0);
-
-  double scx = NUM2DBL(scale_x);
-  double scy = NUM2DBL(scale_y);
-  double ascx = scx < 0.0 ? -scx : scx;
-  double ascy = scy < 0.0 ? -scy : scy;
-
-  if(scx == 0.0 || scy == 0.0){ return self; }
-
-  int org_center_x = w >> 1;
-  int org_center_y = h >> 1;
-  int new_w = (int)((double)(w + (size_force == Qtrue ? 0 : org_center_x)) * ascx);
-  int new_h = (int)((double)(h + (size_force == Qtrue ? 0 : org_center_y)) * ascy);
-  if(new_w > new_h){ new_h = new_w; }
-  int new_center_x = new_w >> 1;
-  int new_center_y = new_h >> 1;
-
-  if(new_w == 0 || new_h == 0 || new_w >= 32768 || new_h >= 32768){ return self; }
-
-  scx = 1.0 / scx;
-  scy = 1.0 / scy;
-
-  int sz = new_w * new_h * bytes_pp;
-  int len = new_w * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int off_x = scx < 0 ? 1 : 0;
-  int off_y = scy < 0 ? 1 : 0;
-
-  int x, y;
-  unsigned long *src_p;
-  for(y=0; y<new_h; y++){
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * new_w;
-    for(x=0; x<new_w; x++){
-      int nx = (int)((double)(((x-new_center_x)*icos-(y-new_center_y)*isin) >> 12) * scx) + org_center_x - off_x;
-      int ny = (int)((double)(((x-new_center_x)*isin+(y-new_center_y)*icos) >> 12) * scy) + org_center_y - off_y;
-      if(nx < 0 || nx >= w || ny < 0 || ny >= h){ dst_p++; continue; }
-      *dst_p = *((unsigned long *)src_pixels + ny * w + nx);
-      dst_p++;
-    }		
-  }
-
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(new_w), INT2NUM(new_h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
-}
-
-/*
-===自分自身のαチャネルの値を一定の割合で減少させる
-_degree_:: 減少率。0.0<degree<1.0までの実数
-返却値:: 変更後の画像インスタンス
-*/
-static VALUE surface_miyako_dec_alpha(VALUE self, VALUE degree){
-  return bitmap_miyako_dec_alpha(cBitmap, self, degree);
-}
-
-/*
-===自分自身のRGB値を反転させる
-αチャネルの値は変更しない
-返却値:: 変更後の画像インスタンス
-*/
-static VALUE surface_miyako_inverse(VALUE self){
-  return bitmap_miyako_inverse(cBitmap, self);
-}
-
-/*
-===自分自身との2枚の画像の加算合成を行う
-_src2_:: 合成元の画像インスタンス
-_vmx_:: src2上に貼り付けるときに補正する位置
-_vmy_:: src2上に貼り付けるときに補正する位置
-返却値:: 合成後の画像インスタンス
-*/
-static VALUE surface_miyako_additive_synthesis(VALUE self, VALUE src2, VALUE vmx, VALUE vmy){
-  return bitmap_miyako_additive_synthesis(cBitmap, self, src2, vmx, vmy);
-}
-
-/*
-===自分自身との2枚の画像の減算合成を行う
-_src2_:: 合成元の画像インスタンス
-_vmx_:: src2上に貼り付けるときに補正する位置
-_vmy_:: src2上に貼り付けるときに補正する位置
-返却値:: 合成後の画像インスタンス
-*/
-static VALUE surface_miyako_subtraction_synthesis(VALUE self, VALUE src2, VALUE vmx, VALUE vmy){
-  return bitmap_miyako_subtraction_synthesis(cBitmap, self, src2, vmx, vmy);
-}
-
-/*
-===自分自身を回転させる
-画像を回転させる際に、縦横の大きさが違っているときは、長辺に合わせた正方形で出力される
-
-引数<i>size_force</i>がfalseのときは、<b>画像サイズが1.5倍になる</b>ことに注意すること
-
-(特にメモリ周り！)
-
-<i>size_force_</i>がtrueのときは画像サイズは変化しないが、画像の一部が欠けたり大幅に崩れるため、注意すること
-
-_radian_:: 回転角度。反時計回りに回転する。単位はラジアン。範囲は0.0〜Math::PI*2
-_size_force_:: trueのときは、回転による画像の大きさの変更を行わない。規定値はfalse
-返却値:: 回転後の画像インスタンス
-*/
-static VALUE surface_miyako_rotate(int argc, VALUE *argv, VALUE self){
-  VALUE *new_p = ALLOC_N(VALUE, argc+1);
-  *new_p = self;
-  int i;
-  for(i=0; i<argc; i++){ *(new_p+i+1) = *(argv+i); }
-  VALUE ret = bitmap_miyako_rotate(argc+1, new_p, cBitmap);
-  free(new_p);
-  return ret;
-}
-
-/*
-===自分自身を拡大・縮小・反転させる
-_scale_x_:: x軸の拡大率。-1を指定すると、y軸方向のミラー反転となる
-_scale_y_:: y軸の拡大率。-1を指定すると、x軸方向のミラー反転となる
-返却値:: 変形後の画像インスタンス
-*/
-static VALUE surface_miyako_scale(VALUE self, VALUE scale_x, VALUE scale_y){
-  return bitmap_miyako_scale(cBitmap, self, scale_x, scale_y);
-}
-
-/*
-===自分自身を変形(回転・拡大・縮小・反転)させる
-画像を回転させる際に、縦横の大きさが違っているときは、長辺に合わせた正方形で出力される
-
-引数<i>size_force</i>がfalseのときは、<b>画像サイズが1.5倍になる</b>ことに注意すること
-
-(特にメモリ周り！)
-
-<i>size_force_</i>がtrueのときは画像サイズは変化しないが、画像の一部が欠けたり大幅に崩れるため、注意すること
-
-_radian_:: 回転角度。反時計回りに回転する。単位はラジアン。範囲は0.0〜Math::PI*2
-_scale_x_:: x軸の拡大率。-1を指定すると、y軸方向のミラー反転となる
-_scale_y_:: y軸の拡大率。-1を指定すると、x軸方向のミラー反転となる
-_size_force_:: trueのときは、回転による画像の大きさの変更を行わない。規定値はfalse
-返却値:: 変形後の画像インスタンス
-*/
-static VALUE surface_miyako_transform(int argc, VALUE *argv, VALUE self){
-  VALUE *new_p = ALLOC_N(VALUE, argc+1);
-  *new_p = self;
-  int i;
-  for(i=0; i<argc; i++){ *(new_p+i+1) = *(argv+i); }
-  VALUE ret = bitmap_miyako_transform(argc+1, new_p, cBitmap);
-  free(new_p);
-  return ret;
-}
-
-static void bitmap_miyako_rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v){
+static void bitmap_miyako_rgb_to_hsv(MiyakoColor *rgb, double *h, double *s, double *v)
+{
+  double r = (double)(rgb->r) / 255.0;
+  double g = (double)(rgb->g) / 255.0;
+  double b = (double)(rgb->b) / 255.0;
   double max = r;
   double min = max;
   max = max < g ? g : max;
@@ -935,8 +578,9 @@ static void bitmap_miyako_rgb_to_hsv(double r, double g, double b, double *h, do
   if(*h < 0){ *h += 360.0; }
 }
 
-static void bitmap_miyako_hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b){
-  if(s == 0.0){ *r = *g = *b = v; return; }
+static void bitmap_miyako_hsv_to_rgb(double h, double s, double v, MiyakoColor *rgb)
+{
+  if(s == 0.0){ rgb->r = rgb->g = rgb->b = (Uint32)(v * 255.0); return; }
   double i = h / 60.0;
   if(     i < 1.0){ i = 0.0; }
   else if(i < 2.0){ i = 1.0; }
@@ -948,424 +592,1419 @@ static void bitmap_miyako_hsv_to_rgb(double h, double s, double v, double *r, do
   double m = v * (1 - s);
   double n = v * (1 - s * f);
   double k = v * (1 - s * (1 - f));
-  if(     i == 0.0){ *r = v; *g = k, *b = m; }
-  else if(i == 1.0){ *r = n; *g = v, *b = m; }
-  else if(i == 2.0){ *r = m; *g = v, *b = k; }
-  else if(i == 3.0){ *r = m; *g = n, *b = v; }
-  else if(i == 4.0){ *r = k; *g = m, *b = v; }
-  else if(i == 5.0){ *r = v; *g = m, *b = n; }
+  double r, g, b;
+  if(     i == 0.0){ r = v; g = k, b = m; }
+  else if(i == 1.0){ r = n; g = v, b = m; }
+  else if(i == 2.0){ r = m; g = v, b = k; }
+  else if(i == 3.0){ r = m; g = n, b = v; }
+  else if(i == 4.0){ r = k; g = m, b = v; }
+  else if(i == 5.0){ r = v; g = m, b = n; }
+  rgb->r = (Uint32)(r * 255.0);
+  rgb->g = (Uint32)(g * 255.0);
+  rgb->b = (Uint32)(b * 255.0);
 }
 
 /*
 ===画像の色相を変更する
-_src_:: 変更元の画像
-_radian_:: 色相の変更量。単位はラジアン。範囲は0.0〜Math::PI*2
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+src == dst : 元の画像を変換した画像に置き換える
+src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
 返却値:: 変更後の画像インスタンス
 */
-static VALUE bitmap_miyako_hue(VALUE self, VALUE src, VALUE radian){
-  const int bytes_pp = 4;
-  int i;
-
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  int sz = w * h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w * bytes_pp;
-
-  double deg = (NUM2DBL(radian) * 180.0) / 3.14;
-
-  int x, y;
-  long pr, pg, pb, pa;
+static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+  double deg = NUM2DBL(degree);
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
   double ph, ps, pv;
-  double d_pi = M_PI * 2;
-  for(y=0; y<h; y++){
-    unsigned long *src_p = (unsigned long *)src_pixels + y * w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w;
-    for(x=0; x<w; x++){
-      unsigned long src = *src_p;
-      double pr_d = (double)(GET_VAR(src, shift[COLOR_R])) / 255.0;
-      double pg_d = (double)(GET_VAR(src, shift[COLOR_G])) / 255.0;
-      double pb_d = (double)(GET_VAR(src, shift[COLOR_B])) / 255.0;
-      pa = GET_VAR(src, shift[COLOR_A]);
-      bitmap_miyako_rgb_to_hsv(pr_d, pg_d, pb_d, &ph, &ps, &pv);
-      ph += deg;
-      if(ph < 0.0){ while(ph >= 0.0){ ph += d_pi; } }
-      if(ph > d_pi){ while(ph <= d_pi){ ph -= d_pi; } }
-      bitmap_miyako_hsv_to_rgb(ph, ps, pv, &pr_d, &pg_d, &pb_d);
-      pr = (unsigned long)(pr_d * 255.0);
-      pg = (unsigned long)(pg_d * 255.0);
-      pb = (unsigned long)(pb_d * 255.0);
-      *dst_p = ((pr << shift[COLOR_R]) | (pg << shift[COLOR_G]) | (pb << shift[COLOR_B]) | (pa << shift[COLOR_A]));
-      src_p++;
-      dst_p++;
-    }		
+  double d_pi = 360.0;
+
+  if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
+  
+  if(src != dst){
+    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+    int dlx = dox + x;
+    int dly = doy + y;
+    int dmx = dlx + sow;
+    int dmy = dly + soh;
+    int rx = dst->clip_rect.x + dst->clip_rect.w;
+    int ry = dst->clip_rect.y + dst->clip_rect.h;
+    rx = rx < dow ? rx : dow;
+    ry = ry < doh ? ry : doh;
+
+    if(dlx < dst->clip_rect.x)
+    {
+      sox += (dst->clip_rect.x - dlx);
+      dlx = dst->clip_rect.x;
+    }
+    if(dly < dst->clip_rect.y)
+    {
+      soy += (dst->clip_rect.y - dly);
+      dly = dst->clip_rect.y;
+    }
+    if(dmx > rx){ dmx = rx; }
+    if(dly > ry){ dmy = ry; }
+  
+    SDL_LockSurface(src);
+    SDL_LockSurface(dst);
+  
+    int px, py, sx, sy;
+    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    {
+      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      {
+        pixel = *(psrc + sy * src->w + sx);
+        MIYAKO_GETCOLOR(scolor)
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        ph += deg;
+        if(ph < 0.0){ ph += d_pi; }
+        if(ph >= d_pi){ ph -= d_pi; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &scolor);
+        if(dcolor.a == 0){
+          MIYAKO_SETCOLOR(scolor)
+          *(pdst + py * dst->w + px) = pixel;
+          continue;
+        }
+        if(scolor.a > 0)
+        {
+          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+          if(dcolor.r > 255){ dcolor.r = 255; }
+          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+          if(dcolor.g > 255){ dcolor.g = 255; }
+          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+          if(dcolor.b > 255){ dcolor.b = 255; }
+          dcolor.a = scolor.a;
+          MIYAKO_SETCOLOR(dcolor)
+          *(pdst + py * dst->w + px) = pixel;
+        }
+      }
+    }
+
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+  }
+  else
+  {
+    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+
+    SDL_LockSurface(src);
+
+    int x, y;
+    for(y = oy; y < ob; y++)
+    {
+      for(x = ox; x < or; x++)
+      {
+        pixel = *(psrc + y * src->w + x);
+        MIYAKO_GETCOLOR(scolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        ph += deg;
+        if(ph < 0.0){ ph += d_pi; }
+        if(ph >= d_pi){ ph -= d_pi; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &dcolor);
+        MIYAKO_SETCOLOR(dcolor)
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+
+    SDL_UnlockSurface(src);
   }
 
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w), INT2NUM(h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
+  return Qnil;
 }
 
 /*
 ===画像の彩度を変更する
-_src_:: 変更元の画像
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+src == dst : 元の画像を変換した画像に置き換える
+src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
 _saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
-返却値:: 変更後の画像インスタンス
 */
-static VALUE bitmap_miyako_saturation(VALUE self, VALUE src, VALUE saturation){
-  const int bytes_pp = 4;
-  int i;
-
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  int sz = w * h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w * bytes_pp;
-
+static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE saturation)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
   double sat = NUM2DBL(saturation);
-
-  int x, y;
-  long pr, pg, pb, pa;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
   double ph, ps, pv;
-  for(y=0; y<h; y++){
-    unsigned long *src_p = (unsigned long *)src_pixels + y * w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w;
-    for(x=0; x<w; x++){
-      unsigned long src = *src_p;
-      double pr_d = (double)(GET_VAR(src, shift[COLOR_R])) / 255.0;
-      double pg_d = (double)(GET_VAR(src, shift[COLOR_G])) / 255.0;
-      double pb_d = (double)(GET_VAR(src, shift[COLOR_B])) / 255.0;
-      pa = GET_VAR(src, shift[COLOR_A]);
-      bitmap_miyako_rgb_to_hsv(pr_d, pg_d, pb_d, &ph, &ps, &pv);
-      ps += sat;
-      if(ps < 0.0){ ps = 0.0; }
-      if(ps > 1.0){ ps = 1.0; }
-      bitmap_miyako_hsv_to_rgb(ph, ps, pv, &pr_d, &pg_d, &pb_d);
-      pr = (unsigned long)(pr_d * 255);
-      pg = (unsigned long)(pg_d * 255);
-      pb = (unsigned long)(pb_d * 255);
-      *dst_p = ((pr << shift[COLOR_R]) | (pg << shift[COLOR_G]) | (pb << shift[COLOR_B]) | (pa << shift[COLOR_A]));
-      src_p++;
-      dst_p++;
-    }		
+
+  if(src != dst){
+    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+    int dlx = dox + x;
+    int dly = doy + y;
+    int dmx = dlx + sow;
+    int dmy = dly + soh;
+    int rx = dst->clip_rect.x + dst->clip_rect.w;
+    int ry = dst->clip_rect.y + dst->clip_rect.h;
+  
+    if(dmx > dow) dmx = dow;
+    if(dmy > doh) dmy = doh;
+
+    if(dlx < dst->clip_rect.x)
+    {
+      sox += (dst->clip_rect.x - dlx);
+      dlx = dst->clip_rect.x;
+    }
+    if(dly < dst->clip_rect.y)
+    {
+      soy += (dst->clip_rect.y - dly);
+      dly = dst->clip_rect.y;
+    }
+    if(dmx > rx){ dmx = rx; }
+    if(dly > ry){ dmy = ry; }
+  
+    SDL_LockSurface(src);
+    SDL_LockSurface(dst);
+  
+    int px, py, sx, sy;
+    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    {
+      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      {
+        pixel = *(psrc + sy * src->w + sx);
+        MIYAKO_GETCOLOR(scolor)
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        ps += sat;
+        if(ps < 0.0){ ps = 0.0; }
+        if(ps > 1.0){ ps = 1.0; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &scolor);
+        if(dcolor.a == 0){
+          MIYAKO_SETCOLOR(scolor)
+          *(pdst + py * dst->w + px) = pixel;
+          continue;
+        }
+        if(scolor.a > 0)
+        {
+          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+          if(dcolor.r > 255){ dcolor.r = 255; }
+          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+          if(dcolor.g > 255){ dcolor.g = 255; }
+          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+          if(dcolor.b > 255){ dcolor.b = 255; }
+          dcolor.a = scolor.a;
+          MIYAKO_SETCOLOR(dcolor)
+          *(pdst + py * dst->w + px) = pixel;
+        }
+      }
+    }
+
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+  }
+  else
+  {
+    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+
+    SDL_LockSurface(src);
+
+    int x, y;
+    for(y = oy; y < ob; y++)
+    {
+      for(x = ox; x < or; x++)
+      {
+        pixel = *(psrc + y * src->w + x);
+        MIYAKO_GETCOLOR(scolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        ps += sat;
+        if(ps < 0.0){ ps = 0.0; }
+        if(ps > 1.0){ ps = 1.0; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &dcolor);
+        MIYAKO_SETCOLOR(dcolor)
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+
+    SDL_UnlockSurface(src);
   }
 
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w), INT2NUM(h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
+  return Qnil;
 }
 
 /*
 ===画像の明度を変更する
-_src_:: 変更元の画像
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+src == dst : 元の画像を変換した画像に置き換える
+src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
 _value_:: 明度の変更量。範囲は0.0〜1.0の実数
 返却値:: 変更後の画像インスタンス
 */
-static VALUE bitmap_miyako_value(VALUE self, VALUE src, VALUE value){
-  const int bytes_pp = 4;
-  int i;
-
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  int sz = w * h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w * bytes_pp;
-
+static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
   double val = NUM2DBL(value);
-
-  int x, y;
-  long pr, pg, pb, pa;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
   double ph, ps, pv;
-  for(y=0; y<h; y++){
-    unsigned long *src_p = (unsigned long *)src_pixels + y * w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w;
-    for(x=0; x<w; x++){
-      unsigned long src = *src_p;
-      double pr_d = (double)(GET_VAR(src, shift[COLOR_R])) / 255.0;
-      double pg_d = (double)(GET_VAR(src, shift[COLOR_G])) / 255.0;
-      double pb_d = (double)(GET_VAR(src, shift[COLOR_B])) / 255.0;
-      pa = GET_VAR(src, shift[COLOR_A]);
-      bitmap_miyako_rgb_to_hsv(pr_d, pg_d, pb_d, &ph, &ps, &pv);
-      pv += val;
-      if(pv < 0.0){ pv = 0.0; }
-      if(pv > 1.0){ pv = 1.0; }
-      bitmap_miyako_hsv_to_rgb(ph, ps, pv, &pr_d, &pg_d, &pb_d);
-      pr = (unsigned long)(pr_d * 255);
-      pg = (unsigned long)(pg_d * 255);
-      pb = (unsigned long)(pb_d * 255);
-      *dst_p = ((pr << shift[COLOR_R]) | (pg << shift[COLOR_G]) | (pb << shift[COLOR_B]) | (pa << shift[COLOR_A]));
-      src_p++;
-      dst_p++;
-    }		
+
+  if(src != dst){
+    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+    int dlx = dox + x;
+    int dly = doy + y;
+    int dmx = dlx + sow;
+    int dmy = dly + soh;
+    int rx = dst->clip_rect.x + dst->clip_rect.w;
+    int ry = dst->clip_rect.y + dst->clip_rect.h;
+  
+    if(dmx > dow) dmx = dow;
+    if(dmy > doh) dmy = doh;
+
+    if(dlx < dst->clip_rect.x)
+    {
+      sox += (dst->clip_rect.x - dlx);
+      dlx = dst->clip_rect.x;
+    }
+    if(dly < dst->clip_rect.y)
+    {
+      soy += (dst->clip_rect.y - dly);
+      dly = dst->clip_rect.y;
+    }
+    if(dmx > rx){ dmx = rx; }
+    if(dly > ry){ dmy = ry; }
+  
+    SDL_LockSurface(src);
+    SDL_LockSurface(dst);
+  
+    int px, py, sx, sy;
+    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    {
+      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      {
+        pixel = *(psrc + sy * src->w + sx);
+        MIYAKO_GETCOLOR(scolor)
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        pv += val;
+        if(pv < 0.0){ pv = 0.0; }
+        if(pv > 1.0){ pv = 1.0; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &scolor);
+        if(dcolor.a == 0){
+          MIYAKO_SETCOLOR(scolor)
+          *(pdst + py * dst->w + px) = pixel;
+          continue;
+        }
+        if(scolor.a > 0)
+        {
+          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+          if(dcolor.r > 255){ dcolor.r = 255; }
+          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+          if(dcolor.g > 255){ dcolor.g = 255; }
+          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+          if(dcolor.b > 255){ dcolor.b = 255; }
+          dcolor.a = scolor.a;
+          MIYAKO_SETCOLOR(dcolor)
+          *(pdst + py * dst->w + px) = pixel;
+        }
+      }
+    }
+
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+  }
+  else
+  {
+    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+
+    SDL_LockSurface(src);
+
+    int x, y;
+    for(y = oy; y < ob; y++)
+    {
+      for(x = ox; x < or; x++)
+      {
+        pixel = *(psrc + y * src->w + x);
+        MIYAKO_GETCOLOR(scolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        pv += val;
+        if(pv < 0.0){ pv = 0.0; }
+        if(pv > 1.0){ pv = 1.0; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &dcolor);
+        MIYAKO_SETCOLOR(dcolor)
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+
+    SDL_UnlockSurface(src);
   }
 
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w), INT2NUM(h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
+  return Qnil;
 }
 
 /*
 ===画像の色相・彩度・明度を変更する
-_radian_:: 色相の変更量。単位はラジアン。範囲は0.0〜Math::PI*2
+範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+src == dst : 元の画像を変換した画像に置き換える
+src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
 _saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
 _value_:: 明度の変更量。範囲は0.0〜1.0の実数
 返却値:: 変更後の画像インスタンス
 */
-static VALUE bitmap_miyako_hsv(VALUE self, VALUE src, VALUE radian, VALUE saturation, VALUE value){
-  const int bytes_pp = 4;
-  int i;
-
-  rb_funcall(src, rb_intern("lock"), 0);
-
-  VALUE src_px = rb_funcall(src, rb_intern("pixels"), 0);
-  VALUE sw = rb_funcall(src, rb_intern("w"), 0);
-  VALUE sh = rb_funcall(src, rb_intern("h"), 0);
-  VALUE bpp = rb_funcall(src, rb_intern("bpp"), 0);
-  VALUE Mask[bytes_pp];
-  Mask[0] = rb_funcall(src, rb_intern("Rmask"), 0);
-  Mask[1] = rb_funcall(src, rb_intern("Gmask"), 0);
-  Mask[2] = rb_funcall(src, rb_intern("Bmask"), 0);
-  Mask[3] = rb_funcall(src, rb_intern("Amask"), 0);
-
-  unsigned long mask[bytes_pp];
-  unsigned long shift[bytes_pp];
-  for(i=0; i<bytes_pp; i++){
-    mask[i] = NUM2UINT(Mask[i]);
-    shift[i] = GET_SHIFT(mask[i]);
-  }
-
-  int w = NUM2INT(sw);
-  int h = NUM2INT(sh);
-
-  int sz = w * h * bytes_pp;
-
-  char *src_pixels = RSTRING_PTR(src_px);
-  VALUE dst_px = rb_str_new(NULL, sz);
-  char *dst_pixels = RSTRING_PTR(dst_px);
-  memset(dst_pixels, 0, sz);
-
-  int len = w * bytes_pp;
-
-  double deg = (NUM2DBL(radian) * 180.0) / 3.14;
+static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree, VALUE saturation, VALUE value)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+  double deg = NUM2DBL(degree);
   double sat = NUM2DBL(saturation);
   double val = NUM2DBL(value);
-
-  int x, y;
-  long pr, pg, pb, pa;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
   double ph, ps, pv;
-  for(y=0; y<h; y++){
-    unsigned long *src_p = (unsigned long *)src_pixels + y * w;
-    unsigned long *dst_p = (unsigned long *)dst_pixels + y * w;
-    for(x=0; x<w; x++){
-      unsigned long src = *src_p;
-      double pr_d = (double)(GET_VAR(src, shift[COLOR_R])) / 255.0;
-      double pg_d = (double)(GET_VAR(src, shift[COLOR_G])) / 255.0;
-      double pb_d = (double)(GET_VAR(src, shift[COLOR_B])) / 255.0;
-      pa = GET_VAR(src, shift[COLOR_A]);
-      bitmap_miyako_rgb_to_hsv(pr_d, pg_d, pb_d, &ph, &ps, &pv);
+  double d_pi = 360.0;
 
-      ph += deg;
-      if(ph < 0.0){ ph += 360.0; }
-      if(ph > 360.0){ ph -= 360.0; }
+  if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
+  
+  if(src != dst){
+    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
+    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
+    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
+    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+    int dlx = dox + x;
+    int dly = doy + y;
+    int dmx = dlx + sow;
+    int dmy = dly + soh;
+    int rx = dst->clip_rect.x + dst->clip_rect.w;
+    int ry = dst->clip_rect.y + dst->clip_rect.h;
+  
+    if(dmx > dow) dmx = dow;
+    if(dmy > doh) dmy = doh;
 
-      ps += sat;
-      if(ps < 0.0){ ps = 0.0; }
-      if(ps > 1.0){ ps = 1.0; }
+    if(dlx < dst->clip_rect.x)
+    {
+      sox += (dst->clip_rect.x - dlx);
+      dlx = dst->clip_rect.x;
+    }
+    if(dly < dst->clip_rect.y)
+    {
+      soy += (dst->clip_rect.y - dly);
+      dly = dst->clip_rect.y;
+    }
+    if(dmx > rx){ dmx = rx; }
+    if(dly > ry){ dmy = ry; }
+  
+    SDL_LockSurface(src);
+    SDL_LockSurface(dst);
+  
+    int px, py, sx, sy;
+    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    {
+      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      {
+        pixel = *(psrc + sy * src->w + sx);
+        MIYAKO_GETCOLOR(scolor)
+        pixel = *(pdst + py * dst->w + px);
+        MIYAKO_GETCOLOR(dcolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        ph += deg;
+        if(ph < 0.0){ ph += d_pi; }
+        if(ph >= d_pi){ ph -= d_pi; }
+        ps += sat;
+        if(ps < 0.0){ ps = 0.0; }
+        if(ps > 1.0){ ps = 1.0; }
+        pv += val;
+        if(pv < 0.0){ pv = 0.0; }
+        if(pv > 1.0){ pv = 1.0; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &scolor);
+        if(dcolor.a == 0){
+          MIYAKO_SETCOLOR(scolor)
+          *(pdst + py * dst->w + px) = pixel;
+          continue;
+        }
+        if(scolor.a > 0)
+        {
+          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+          if(dcolor.r > 255){ dcolor.r = 255; }
+          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+          if(dcolor.g > 255){ dcolor.g = 255; }
+          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+          if(dcolor.b > 255){ dcolor.b = 255; }
+          dcolor.a = scolor.a;
+          MIYAKO_SETCOLOR(dcolor)
+          *(pdst + py * dst->w + px) = pixel;
+        }
+      }
+    }
 
-      pv += val;
-      if(pv < 0.0){ pv = 0.0; }
-      if(pv > 1.0){ pv = 1.0; }
+    SDL_UnlockSurface(src);
+    SDL_UnlockSurface(dst);
+  }
+  else
+  {
+    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
 
-      bitmap_miyako_hsv_to_rgb(ph, ps, pv, &pr_d, &pg_d, &pb_d);
-      pr = (unsigned long)(pr_d * 255);
-      pg = (unsigned long)(pg_d * 255);
-      pb = (unsigned long)(pb_d * 255);
-      *dst_p = ((pr << shift[COLOR_R]) | (pg << shift[COLOR_G]) | (pb << shift[COLOR_B]) | (pa << shift[COLOR_A]));
-      src_p++;
-      dst_p++;
-    }		
+    SDL_LockSurface(src);
+
+    int x, y;
+    for(y = oy; y < ob; y++)
+    {
+      for(x = ox; x < or; x++)
+      {
+        pixel = *(psrc + y * src->w + x);
+        MIYAKO_GETCOLOR(scolor)
+        bitmap_miyako_rgb_to_hsv(&scolor, &ph, &ps, &pv);
+        ph += deg;
+        if(ph < 0.0){ ph += d_pi; }
+        if(ph >= d_pi){ ph -= d_pi; }
+        ps += sat;
+        if(ps < 0.0){ ps = 0.0; }
+        if(ps > 1.0){ ps = 1.0; }
+        pv += val;
+        if(pv < 0.0){ pv = 0.0; }
+        if(pv > 1.0){ pv = 1.0; }
+        bitmap_miyako_hsv_to_rgb(ph, ps, pv, &dcolor);
+        MIYAKO_SETCOLOR(dcolor)
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+
+    SDL_UnlockSurface(src);
   }
 
-  VALUE dst = rb_funcall(cSurface, rb_intern("new_from"), 9, 
-			 dst_px, 
-			 INT2NUM(w), INT2NUM(h),
-			 bpp, INT2NUM(len), 
-			 Mask[COLOR_R], Mask[COLOR_G], Mask[COLOR_B], Mask[COLOR_A]);
-
-  rb_funcall(src, rb_intern("unlock"), 0);
-
-  return dst;
+  return Qnil;
 }
 
-/*
-===自分自身の色相を変更する
-_radian_:: 色相の変更量。単位はラジアン。範囲は0.0〜Math::PI*2
-返却値:: 変更後の画像インスタンス
-*/
-static VALUE surface_miyako_hue(VALUE self, VALUE radian){
-  return bitmap_miyako_hue(cBitmap, self, radian);
+static VALUE sprite_update(VALUE self)
+{
+  VALUE update = rb_iv_get(self, "@update");
+  
+  if(update != Qnil){ rb_funcall(update, rb_intern("call"), 1, self); }
+  if(rb_block_given_p() == Qtrue){ rb_yield(self); }
+
+  return self;
 }
 
-/*
-===自分自身の彩度を変更する
-_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
-返却値:: 変更後の画像インスタンス
-*/
-static VALUE surface_miyako_saturation(VALUE self, VALUE saturation){
-  return bitmap_miyako_saturation(cBitmap, self, saturation);
+static VALUE screen_update_tick(VALUE self)
+{
+  int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  int tt = NUM2INT(rb_iv_get(mScreen, "@@t"));
+  int interval = t - tt;
+  int fps_cnt = NUM2INT(rb_iv_get(mScreen, "@@fpscnt"));
+
+  while(interval < fps_cnt){
+    t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
+    interval = t - tt;
+  }
+
+  rb_iv_set(mScreen, "@@t", INT2NUM(t));
+  rb_iv_set(mScreen, "@@interval", INT2NUM(interval));
+
+  return Qnil;
 }
 
-/*
-===自分自身の明度を変更する
-_value_:: 明度の変更量。範囲は0.0〜1.0の実数
-返却値:: 変更後の画像インスタンス
-*/
-static VALUE surface_miyako_value(VALUE self, VALUE value){
-  return bitmap_miyako_value(cBitmap, self, value);
+static VALUE screen_render(VALUE self)
+{
+  VALUE dst = rb_iv_get(mScreen, "@@unit");
+	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
+  VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
+
+  if(fps_view == Qtrue){
+    char str[256];
+    int interval = NUM2INT(rb_iv_get(mScreen, "@@interval"));
+    int fps_max = NUM2INT(rb_const_get(mScreen, rb_intern("FpsMax")));
+    VALUE sans_serif = rb_funcall(cFont, rb_intern("sans_serif"), 0);
+    VALUE fps_sprite = Qnil;
+
+    if(interval == 0){ interval = 1; }
+
+    sprintf(str, "%d fps", fps_max / interval);
+    VALUE fps_str = rb_str_new2((const char *)str);
+		
+    fps_sprite = rb_funcall(fps_str, rb_intern("to_sprite"), 1, sans_serif);
+    rb_funcall(fps_sprite, rb_intern("render"), 0);
+  }
+
+  screen_update_tick(self);
+
+  SDL_Flip(pdst);
+  
+  return Qnil;
 }
 
-/*
-===自分自身画像の色相・彩度・明度を変更する
-_radian_:: 色相の変更量。単位はラジアン。範囲は0.0〜Math::PI*2
-_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
-_value_:: 明度の変更量。範囲は0.0〜1.0の実数
-返却値:: 変更後の画像インスタンス
-*/
-static VALUE surface_miyako_hsv(VALUE self, VALUE radian, VALUE saturation, VALUE value){
-  return bitmap_miyako_hsv(cBitmap, self, radian, saturation, value);
+static VALUE screen_render_screen(VALUE self, VALUE src)
+{
+  VALUE dst = rb_iv_get(mScreen, "@@unit");
+	SDL_Surface *psrc = GetSurface(*(RSTRUCT_PTR(src)))->surface;
+	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
+  SDL_Rect srect;
+  SDL_Rect drect;
+
+  //SpriteUnit:
+  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	srect.x = NUM2INT(*(RSTRUCT_PTR(src) + 1));
+	srect.y = NUM2INT(*(RSTRUCT_PTR(src) + 2));
+	srect.w = NUM2INT(*(RSTRUCT_PTR(src) + 3));
+	srect.h = NUM2INT(*(RSTRUCT_PTR(src) + 4));
+	drect.x = NUM2INT(*(RSTRUCT_PTR(dst) + 1))
+            + NUM2INT(*(RSTRUCT_PTR(src) + 5))
+            + NUM2INT(*(RSTRUCT_PTR(src) + 7));
+	drect.y = NUM2INT(*(RSTRUCT_PTR(dst) + 2))
+	          + NUM2INT(*(RSTRUCT_PTR(src) + 6))
+            + NUM2INT(*(RSTRUCT_PTR(src) + 8));
+
+  SDL_BlitSurface(psrc, &srect, pdst, &drect);
+  
+  return Qtrue;
 }
 
-void Init_miyako_no_katana(){
+static VALUE counter_start(VALUE self)
+{
+  rb_iv_set(self, "@st", rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  rb_iv_set(self, "@counting", Qtrue);
+  return self;
+}
+
+static VALUE counter_stop(VALUE self)
+{
+  rb_iv_set(self, "@st", INT2NUM(0));
+  rb_iv_set(self, "@counting", Qfalse);
+  return self;
+}
+
+static VALUE counter_wait_inner(VALUE self, VALUE f)
+{
+  VALUE counting = rb_iv_set(self, "@counting", Qtrue);
+  if(counting == Qfalse){ return f == Qtrue ? Qfalse : Qtrue; }
+
+  int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  int st = NUM2INT(rb_iv_get(self, "@st"));
+  int wait = NUM2INT(rb_iv_get(self, "@wait"));
+  if((t - st) < wait){ return f; }
+
+  rb_iv_set(cWaitCounter, "@counting", Qfalse);
+
+  return f == Qtrue ? Qfalse : Qtrue;
+}
+
+static VALUE counter_waiting(VALUE self)
+{
+  return counter_wait_inner(self, Qtrue);
+}
+
+static VALUE counter_finish(VALUE self)
+{
+  return counter_wait_inner(self, Qfalse);
+}
+
+static VALUE counter_wait(VALUE self)
+{
+  int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  int st = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  int wait = NUM2INT(rb_iv_get(self, "@wait"));
+  while((t - st) < wait){
+    t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  }
+  return self;
+}
+
+static VALUE maplayer_render(VALUE self)
+{
+  int cw = NUM2INT(rb_iv_get(self, "@cw"));
+  int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  VALUE margin = rb_iv_get(self, "@margin");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0)) + NUM2INT(*(RSTRUCT_PTR(margin) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1)) + NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
+  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE real_size = rb_iv_get(self, "@real_size");
+  int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
+  int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
+
+  VALUE param = rb_iv_get(self, "@mapchip");
+  VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
+  int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
+  int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
+
+  VALUE munits = rb_iv_get(self, "@mapchip_units");
+  VALUE mapdat = rb_iv_get(self, "@mapdat");
+  
+  if(pos_x < 0){ pos_x = real_size_w + (pos_x % real_size_w); }
+  if(pos_y < 0){ pos_y = real_size_h + (pos_y % real_size_h); }
+  if(pos_x >= real_size_w){ pos_x %= real_size_w; }
+  if(pos_y >= real_size_h){ pos_y %= real_size_h; }
+
+  int dx = pos_x / mc_chip_size_w;
+  int mx = pos_x % mc_chip_size_w;
+  int dy = pos_y / mc_chip_size_h;
+  int my = pos_y % mc_chip_size_h;
+
+  int x, y, idx1, idx2;
+  for(y = 0; y < ch; y++){
+    idx1 = (y + dy) % size_h;
+    VALUE mapdat2 = *(RARRAY_PTR(mapdat) + idx1);
+    for(x = 0; x < cw; x++){
+      idx2 = (x + dx) % size_w;
+      int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
+      if(code == -1){ continue; }
+      VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
+      screen_render_screen(Qnil, unit);
+    }
+  }
+  return Qnil;
+}
+
+static VALUE fixedmaplayer_render(VALUE self)
+{
+  int cw = NUM2INT(rb_iv_get(self, "@cw"));
+  int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
+  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE munits = rb_iv_get(self, "@mapchip_units");
+  VALUE mapdat = rb_iv_get(self, "@mapdat");
+
+  int x, y, idx1, idx2;
+  for(y = 0; y < ch; y++){
+    idx1 = y % size_h;
+    VALUE mapdat2 = *(RARRAY_PTR(mapdat) + idx1);
+    for(x = 0; x < cw; x++){
+      idx2 = x % size_w;
+      int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
+      if(code == -1){ continue; }
+      VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      screen_render_screen(Qnil, unit);
+    }
+  }
+
+  return Qnil;
+}
+
+static VALUE map_render(VALUE self)
+{
+  VALUE map_layers = rb_iv_get(self, "@map_layers");
+  int i;
+  for(i=0; i<RARRAY_LEN(map_layers); i++){
+    maplayer_render(*(RARRAY_PTR(map_layers) + i));
+  }
+  
+  return Qnil;
+}
+
+static VALUE fixedmap_render(VALUE self)
+{
+  VALUE map_layers = rb_iv_get(self, "@map_layers");
+  int i;
+  for(i=0; i<RARRAY_LEN(map_layers); i++){
+    fixedmaplayer_render(*(RARRAY_PTR(map_layers) + i));
+  }
+
+  return Qnil;
+}
+
+static VALUE sa_update(VALUE self)
+{
+  VALUE exec = rb_iv_get(self, "@exec");
+  if(exec == Qfalse){ return Qnil; }
+
+  VALUE polist = rb_iv_get(self, "@pos_offset");
+  VALUE dir = rb_iv_get(self, "@dir");
+  
+  VALUE now = rb_iv_get(self, "@now");
+  VALUE num = rb_iv_get(self, "@pnum");
+  VALUE pos_off = *(RARRAY_PTR(polist) + NUM2INT(num));
+  
+  if(rb_to_id(dir) == rb_intern("h")){
+    *(RSTRUCT_PTR(now) +  3) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  3)) - NUM2INT(pos_off));
+  }
+  else{
+    *(RSTRUCT_PTR(now) +  2) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  2)) - NUM2INT(pos_off));
+  }
+
+  VALUE kind = rb_funcall(rb_iv_get(self, "@cnt"), rb_intern("kind_of?"), 1, rb_cInteger);
+  if(kind == Qtrue){
+    rb_funcall(self, rb_intern("update_frame"), 0);
+  }
+  else{
+    rb_funcall(self, rb_intern("update_wait_counter"), 0);
+  }
+  
+  now = rb_iv_get(self, "@now");
+  num = rb_iv_get(self, "@pnum");
+
+  VALUE slist = rb_iv_get(self, "@slist");
+  VALUE plist = rb_iv_get(self, "@plist");
+  VALUE molist = rb_iv_get(self, "@move_offset");
+
+  VALUE s = *(RARRAY_PTR(slist) + NUM2INT(*(RARRAY_PTR(plist) + NUM2INT(num))));
+  VALUE move_off = *(RARRAY_PTR(molist) + NUM2INT(num));
+
+  *(RSTRUCT_PTR(now) + 5) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("x"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
+  *(RSTRUCT_PTR(now) + 6) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("y"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne)));
+
+  pos_off = *(RARRAY_PTR(polist) + NUM2INT(num));
+  
+  if(rb_to_id(dir) == rb_intern("h")){
+    *(RSTRUCT_PTR(now) +  2) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  2)) + NUM2INT(pos_off));
+  }
+  else{
+    *(RSTRUCT_PTR(now) +  1) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  1)) + NUM2INT(pos_off));
+  }
+
+  return Qnil;
+}
+
+static VALUE sa_update_frame(VALUE self)
+{
+  int cnt = NUM2INT(rb_iv_get(self, "@cnt"));
+  if(cnt == 0){
+    VALUE num = rb_iv_get(self, "@pnum");
+    VALUE loop = rb_iv_get(self, "@loop");
+
+    int pnum = NUM2INT(num);
+    int pats = NUM2INT(rb_iv_get(self, "@pats"));
+    pnum = (pnum + 1) % pats;
+
+    rb_iv_set(self, "@pnum", INT2NUM(pnum));
+
+    if(loop == Qfalse && pnum == 0){
+      rb_funcall(self, rb_intern("stop"), 0);
+      return Qnil;
+    }
+
+    rb_funcall(self, rb_intern("set_pat"), 0);
+    VALUE plist = rb_iv_get(self, "@plist");
+    VALUE waits = rb_iv_get(self, "@waits");
+    rb_iv_set(self, "@cnt", *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum))));
+  }
+  else{
+    cnt--;
+    rb_iv_set(self, "@cnt", INT2NUM(cnt));
+  }
+  return Qnil;
+}
+
+static VALUE sa_update_wait_counter(VALUE self)
+{
+  VALUE cnt = rb_iv_get(self, "@cnt");
+  VALUE waiting = rb_funcall(cnt, rb_intern("waiting?"), 0);
+  if(waiting == Qfalse){
+    VALUE num = rb_iv_get(self, "@pnum");
+    VALUE loop = rb_iv_get(self, "@loop");
+
+    int pnum = NUM2INT(num);
+    int pats = NUM2INT(rb_iv_get(self, "@pats"));
+    pnum = (pnum + 1) % pats;
+    
+    rb_iv_set(self, "@pnum", INT2NUM(pnum));
+    
+    if(loop == Qfalse && pnum == 0){
+      rb_funcall(self, rb_intern("stop"), 0);
+      return Qnil;
+    }
+
+    rb_funcall(self, rb_intern("set_pat"), 0);
+    VALUE plist = rb_iv_get(self, "@plist");
+    VALUE waits = rb_iv_get(self, "@waits");
+    cnt = *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum)));
+    rb_iv_set(self, "@cnt", cnt);
+    rb_funcall(cnt, rb_intern("start"), 0);
+  }
+  return Qnil;
+}
+
+static VALUE sa_set_pat(VALUE self)
+{
+  VALUE num = rb_iv_get(self, "@pnum");
+  VALUE plist = rb_iv_get(self, "@plist");
+  VALUE units = rb_iv_get(self, "@units");
+  rb_iv_set(self, "@now", *(RARRAY_PTR(units) + NUM2INT(*(RARRAY_PTR(plist) + NUM2INT(num)))));
+  return self;
+}
+
+static VALUE sa_render(VALUE self)
+{
+  screen_render_screen(Qnil, rb_iv_get(self, "@now"));
+  return Qnil;
+}
+
+static VALUE sprite_render(VALUE self)
+{
+  screen_render_screen(Qnil, rb_iv_get(self, "@unit"));
+  return Qnil;
+}
+
+static VALUE plane_render(VALUE self)
+{
+  VALUE ssize = rb_iv_get(mScreen, "@@size");
+  int ssw = NUM2INT(*(RSTRUCT_PTR(ssize) + 0));
+  int ssh = NUM2INT(*(RSTRUCT_PTR(ssize) + 1));
+  VALUE pos = rb_iv_get(self, "@pos");
+  VALUE size = rb_iv_get(self, "@size");
+  VALUE sprite = rb_iv_get(self, "@sprite");
+  int w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+  VALUE unit = rb_funcall(sprite, rb_intern("to_unit"), 0);
+  int sw = NUM2INT(*(RSTRUCT_PTR(unit) + 3));
+  int sh = NUM2INT(*(RSTRUCT_PTR(unit) + 4));
+
+  int x, y;
+  for(y = 0; y < h; y++){
+    for(x = 0; x < w; x++){
+      int x2 = (x-1) * sw + pos_x;
+      int y2 = (y-1) * sh + pos_y;
+      if(x2 > 0 || y2 > 0
+      || (x2+sw) <= ssw || (y2+sh) <= ssh){
+        *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x2);
+        *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y2);
+        screen_render_screen(Qnil, unit);
+      }
+    }
+  }
+  
+  return Qnil;
+}
+
+static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
+  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
+  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
+  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
+  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero));
+  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne));
+  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2))) - 1;
+  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3))) - 1;
+  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero));
+  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne));
+  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2))) - 1;
+  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3))) - 1;
+
+  int v = 0;
+  if(l1 <= l2 && l2 <= r1) v |= 1;
+  if(l1 <= r2 && r2 <= r1) v |= 1;
+  if(t1 <= t2 && t2 <= b1) v |= 2;
+  if(t1 <= b2 && b2 <= b1) v |= 2;
+
+  if(v == 3) return Qtrue;
+  return Qfalse;
+}
+
+static VALUE collision_c_collision_with_move(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
+  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
+  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
+  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
+  VALUE dir1 = rb_funcall(c1, rb_intern("direction"), 0);
+  VALUE dir2 = rb_funcall(c2, rb_intern("direction"), 0);
+  VALUE amt1 = rb_funcall(c1, rb_intern("amount"), 0);
+  VALUE amt2 = rb_funcall(c2, rb_intern("amount"), 0);
+  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(dir1, id_kakko, 1, nZero))
+    * NUM2INT(rb_funcall(amt1, id_kakko, 1, nZero));
+  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(dir1, id_kakko, 1, nOne))
+    * NUM2INT(rb_funcall(amt1, id_kakko, 1, nOne));
+  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2))) - 1;
+  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3))) - 1;
+  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(dir2, id_kakko, 1, nZero))
+    * NUM2INT(rb_funcall(amt2, id_kakko, 1, nZero));
+  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(dir2, id_kakko, 1, nOne))
+    * NUM2INT(rb_funcall(amt2, id_kakko, 1, nOne));
+  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2))) - 1;
+  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3))) - 1;
+
+  int v = 0;
+  if(l1 <= l2 && l2 <= r1) v |= 1;
+  if(l1 <= r2 && r2 <= r1) v |= 1;
+  if(t1 <= t2 && t2 <= b1) v |= 2;
+  if(t1 <= b2 && b2 <= b1) v |= 2;
+
+  if(v == 3) return Qtrue;
+  return Qfalse;
+}
+
+static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
+  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
+  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
+  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
+  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero));
+  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne));
+  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2)));
+  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3)));
+  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero));
+  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne));
+  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2)));
+  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3)));
+
+  int v = 0;
+  if(r1 == l2) v |= 1;
+  if(b1 == t2) v |= 1;
+  if(l1 == r2) v |= 1;
+  if(t1 == b2) v |= 1;
+
+  if(v == 1) return Qtrue;
+  return Qfalse;
+}
+
+static VALUE collision_c_into(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE f1 = collision_c_collision(self, c1, c2);
+  VALUE f2 = collision_c_collision_with_move(self, c1, c2);
+  if(f1 == Qfalse && f2 == Qtrue) return Qtrue;
+  return Qfalse;
+}
+
+static VALUE collision_c_out(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE f1 = collision_c_collision(self, c1, c2);
+  VALUE f2 = collision_c_collision_with_move(self, c1, c2);
+  if(f1 == Qtrue && f2 == Qfalse) return Qtrue;
+  return Qfalse;
+}
+
+static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
+  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
+  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
+  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
+  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero));
+  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne));
+  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2))) - 1;
+  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3))) - 1;
+  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero));
+  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
+    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne));
+  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2))) - 1;
+  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3))) - 1;
+
+  int v = 0;
+  if(l1 <= l2 && r2 <= r1) v |= 1;
+  if(t1 <= t2 && b2 <= b1) v |= 2;
+  if(l2 <= l1 && r1 <= r2) v |= 4;
+  if(t2 <= t1 && b1 <= b2) v |= 8;
+
+  if(v == 3 || v == 12) return Qtrue;
+  return Qfalse;
+}
+
+static VALUE collision_collision(VALUE self, VALUE c2)
+{
+  return collision_c_collision(cCollision, self, c2);
+}
+
+static VALUE collision_meet(VALUE self, VALUE c2)
+{
+  return collision_c_meet(cCollision, self, c2);
+}
+
+static VALUE collision_into(VALUE self, VALUE c2)
+{
+  return collision_c_into(cCollision, self, c2);
+}
+
+static VALUE collision_out(VALUE self, VALUE c2)
+{
+  return collision_c_out(cCollision, self, c2);
+}
+
+static VALUE collision_cover(VALUE self, VALUE c2)
+{
+  return collision_c_cover(cCollision, self, c2);
+}
+
+static VALUE collisions_collision(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_collision(c, cc) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+static VALUE collisions_meet(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_meet(c, cc) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+static VALUE collisions_into(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_into(c, cc) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+static VALUE collisions_out(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_out(c, cc) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+static VALUE collisions_cover(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_cover(c, cc) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+static VALUE collisions_collision_all(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_collision(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
+static VALUE collisions_meet_all(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_meet(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
+static VALUE collisions_into_all(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_into(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
+static VALUE collisions_out_all(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_out(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
+static VALUE collisions_cover_all(VALUE self, VALUE c)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE cc = *(RARRAY_PTR(cs) + 0);
+    if(collision_cover(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
+static VALUE processor_mainloop(VALUE self)
+{
+  VALUE diagram = rb_iv_get(self, "@diagram");
+  VALUE states = rb_iv_get(self, "@states");
+  VALUE mutex = rb_iv_get(self, "@mutex");
+  VALUE str_execute = rb_str_new2("execute");
+  VALUE sym_execute = rb_funcall(str_execute, rb_intern("to_sym"), 0);
+  VALUE str_pause = rb_str_new2("pause");
+  VALUE sym_pause = rb_funcall(str_pause, rb_intern("to_sym"), 0);
+  rb_funcall(diagram, rb_intern("start"), 0);
+  VALUE executing = rb_funcall(states, id_kakko, 1, sym_execute);
+  while(executing == Qtrue){
+    VALUE pausing = rb_funcall(states, id_kakko, 1, sym_pause);
+    if(pausing == Qfalse){
+        rb_funcall(mutex, rb_intern("lock"), 0);
+        rb_funcall(diagram, id_update, 0);
+        rb_funcall(mutex, rb_intern("unlock"), 0);
+        rb_funcall(cThread, rb_intern("pass"), 0);
+        VALUE is_finish = rb_funcall(diagram, rb_intern("finish?"), 0);
+        if(is_finish == Qtrue){ rb_funcall(states, rb_intern("[]="), 2, sym_execute, Qfalse); }
+    }
+    executing = rb_funcall(states, id_kakko, 1, sym_execute);
+  }
+  rb_funcall(diagram, rb_intern("stop"), 0);
+  return self;
+}
+
+static VALUE yuki_update_plot_thread(VALUE self)
+{
+  VALUE yuki = rb_iv_get(self, "@yuki");
+  VALUE str_exec = rb_str_new2("exec_plot");
+  VALUE sym_exec = rb_funcall(str_exec, rb_intern("to_sym"), 0);
+  VALUE str_pausing = rb_str_new2("pausing");
+  VALUE sym_pausing = rb_funcall(str_pausing, rb_intern("to_sym"), 0);
+  VALUE str_selecting = rb_str_new2("exec_selecting");
+  VALUE sym_selecting = rb_funcall(str_selecting, rb_intern("to_sym"), 0);
+  VALUE str_waiting = rb_str_new2("waiting");
+  VALUE sym_waiting = rb_funcall(str_waiting, rb_intern("to_sym"), 0);
+  VALUE exec = rb_funcall(yuki, id_kakko, 1, sym_exec);
+  while(exec == Qtrue){
+    VALUE pausing   = rb_funcall(yuki, id_kakko, 1, sym_pausing);
+    if(pausing == Qtrue){ rb_funcall(self, rb_intern("pausing"), 0); }
+    VALUE selecting = rb_funcall(yuki, id_kakko, 1, sym_selecting);
+    if(selecting == Qtrue){ rb_funcall(self, rb_intern("selecting"), 0); }
+    VALUE waiting   = rb_funcall(yuki, id_kakko, 1, sym_waiting);
+    if(waiting == Qtrue){ rb_funcall(self, rb_intern("waiting"), 0); }
+    rb_funcall(cThread, rb_intern("pass"), 0);
+    exec = rb_funcall(yuki, id_kakko, 1, sym_exec);
+  }
+  return self;
+}
+
+void Init_miyako_no_katana()
+{
   mSDL = rb_define_module("SDL");
   mMiyako = rb_define_module("Miyako");
   mScreen = rb_define_module_under(mMiyako, "Screen");
+  mInput = rb_define_module_under(mMiyako, "Input");
+  mMapEvent = rb_define_module_under(mMiyako, "MapEvent");
+  mLayout = rb_define_module_under(mMiyako, "Layout");
+  mDiagram = rb_define_module_under(mMiyako, "Diagram");
   eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
   cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
+  cEvent2  = rb_define_class_under(mSDL, "Event2", rb_cObject);
+  cJoystick  = rb_define_class_under(mSDL, "Joystick", rb_cObject);
+  cWaitCounter  = rb_define_class_under(mMiyako, "WaitCounter", rb_cObject);
+  cFont  = rb_define_class_under(mMiyako, "Font", rb_cObject);
+  cColor  = rb_define_class_under(mMiyako, "Color", rb_cObject);
   cBitmap = rb_define_class_under(mMiyako, "Bitmap", rb_cObject);
   cSprite = rb_define_class_under(mMiyako, "Sprite", rb_cObject);
+  cSpriteAnimation = rb_define_class_under(mMiyako, "SpriteAnimation", rb_cObject);
+  cPlane = rb_define_class_under(mMiyako, "Plane", rb_cObject);
+  cTextBox = rb_define_class_under(mMiyako, "TextBox", rb_cObject);
+  cMap = rb_define_class_under(mMiyako, "Map", rb_cObject);
+  cMapLayer = rb_define_class_under(cMap, "MapLayer", rb_cObject);
+  cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
+  cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
+  cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
+  cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
+  cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
+  cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
+  cYuki = rb_define_class_under(mMiyako, "Yuki", rb_cObject);
+  cThread = rb_define_class("Thread", rb_cObject);
+
+  id_update = rb_intern("update");
+  id_kakko  = rb_intern("[]");
 
   zero = 0;
   nZero = INT2NUM(zero);
+  one = 1;
+  nOne = INT2NUM(one);
 
-  rb_define_singleton_method(cBitmap, "miyako_blit_aa", bitmap_miyako_blit_aa, 4);
-  rb_define_singleton_method(cBitmap, "miyako_blit_aa2", bitmap_miyako_blit_aa2, 4);
-  rb_define_singleton_method(cBitmap, "dec_alpha", bitmap_miyako_dec_alpha, 2);
-  rb_define_singleton_method(cBitmap, "additive", bitmap_miyako_additive_synthesis, 4);
-  rb_define_singleton_method(cBitmap, "subtraction", bitmap_miyako_subtraction_synthesis, 4);
-  rb_define_singleton_method(cBitmap, "inverse", bitmap_miyako_inverse, 1);
-  rb_define_singleton_method(cBitmap, "rotate", bitmap_miyako_rotate, -1);
-  rb_define_singleton_method(cBitmap, "scale", bitmap_miyako_scale, 3);
-  rb_define_singleton_method(cBitmap, "transform", bitmap_miyako_transform, -1);
+  rb_define_singleton_method(cBitmap, "blit_aa!", bitmap_miyako_blit_aa, 4);
+  rb_define_singleton_method(cBitmap, "dec_alpha!", bitmap_miyako_dec_alpha, 3);
+  rb_define_singleton_method(cBitmap, "inverse!", bitmap_miyako_inverse, 3);
+  rb_define_singleton_method(cBitmap, "additive!", bitmap_miyako_additive_synthesis, 2);
+  rb_define_singleton_method(cBitmap, "subtraction!", bitmap_miyako_subtraction_synthesis, 2);
 
-  rb_define_singleton_method(cBitmap, "hue", bitmap_miyako_hue, 2);
-  rb_define_singleton_method(cBitmap, "saturation", bitmap_miyako_saturation, 2);
-  rb_define_singleton_method(cBitmap, "value", bitmap_miyako_value, 2);
-  rb_define_singleton_method(cBitmap, "hsv", bitmap_miyako_hsv, 4);
+  rb_define_singleton_method(cBitmap, "hue!", bitmap_miyako_hue, 3);
+  rb_define_singleton_method(cBitmap, "saturation!", bitmap_miyako_saturation, 3);
+  rb_define_singleton_method(cBitmap, "value!", bitmap_miyako_value, 3);
+  rb_define_singleton_method(cBitmap, "hsv!", bitmap_miyako_hsv, 5);
 
-  rb_define_method(cSurface, "miyako_dec_alpha", surface_miyako_dec_alpha, 1);
-  rb_define_method(cSurface, "miyako_additive", surface_miyako_additive_synthesis, 3);
-  rb_define_method(cSurface, "miyako_subtraction", surface_miyako_subtraction_synthesis, 3);
-  rb_define_method(cSurface, "miyako_inverse", surface_miyako_inverse, 0);
-  rb_define_method(cSurface, "miyako_rotate", surface_miyako_rotate, -1);
-  rb_define_method(cSurface, "miyako_scale", surface_miyako_scale, 2);
-  rb_define_method(cSurface, "miyako_transform", surface_miyako_transform, -1);
 
-  rb_define_method(cSurface, "miyako_hue", surface_miyako_hue, 1);
-  rb_define_method(cSurface, "miyako_saturation", surface_miyako_saturation, 1);
-  rb_define_method(cSurface, "miyako_value", surface_miyako_value, 1);
-  rb_define_method(cSurface, "miyako_hsv", surface_miyako_hsv, 3);
+  rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
+  rb_define_module_function(mScreen, "render", screen_render, 0);
+  rb_define_module_function(mScreen, "render_screen", screen_render_screen, 1);
 
+  rb_define_method(cWaitCounter, "start", counter_start, 0);
+  rb_define_method(cWaitCounter, "stop",  counter_stop,  0);
+  rb_define_method(cWaitCounter, "wait_inner", counter_wait_inner, 1);
+  rb_define_method(cWaitCounter, "waiting?", counter_waiting, 0);
+  rb_define_method(cWaitCounter, "finish?", counter_finish, 0);
+  rb_define_method(cWaitCounter, "wait", counter_wait, 0);
+
+  rb_define_method(cSpriteAnimation, "update_animation", sa_update, 0);
+  rb_define_method(cSpriteAnimation, "update_frame", sa_update_frame, 0);
+  rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);
+  rb_define_method(cSpriteAnimation, "set_pat", sa_set_pat, 0);
+  rb_define_method(cSpriteAnimation, "render", sa_render, 0);
+
+  rb_define_method(cSprite, "render", sprite_render, 0);
+
+  rb_define_method(cPlane, "render", plane_render, 0);
+
+  rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 2);
+  rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 2);
+  rb_define_singleton_method(cCollision, "into?", collision_c_into, 2);
+  rb_define_singleton_method(cCollision, "out?", collision_c_out, 2);
+  rb_define_singleton_method(cCollision, "cover?", collision_c_cover, 2);
+  rb_define_method(cCollision, "collision?", collision_collision, 1);
+  rb_define_method(cCollision, "meet?", collision_meet, 1);
+  rb_define_method(cCollision, "into?", collision_into, 1);
+  rb_define_method(cCollision, "out?", collision_out, 1);
+  rb_define_method(cCollision, "cover?", collision_cover, 1);
+
+  rb_define_method(cCollisions, "collision?", collisions_collision, 1);
+  rb_define_method(cCollisions, "meet?", collisions_meet, 1);
+  rb_define_method(cCollisions, "into?", collisions_into, 1);
+  rb_define_method(cCollisions, "out?", collisions_out, 1);
+  rb_define_method(cCollisions, "cover?", collisions_cover, 1);
+  rb_define_method(cCollisions, "collision_all?", collisions_collision_all, 1);
+  rb_define_method(cCollisions, "meet_all?", collisions_meet_all, 1);
+  rb_define_method(cCollisions, "into_all?", collisions_into_all, 1);
+  rb_define_method(cCollisions, "out_all?", collisions_out_all, 1);
+  rb_define_method(cCollisions, "cover_all?", collisions_cover_all, 1);
+
+  rb_define_method(cProcessor, "main_loop", processor_mainloop, 0);
+  rb_define_method(cYuki, "update_plot_thread", yuki_update_plot_thread, 0);
+  
+  rb_define_method(cMapLayer, "render", maplayer_render, 0);
+  rb_define_method(cFixedMapLayer, "render", fixedmaplayer_render, 0);
+  rb_define_method(cMap, "render", map_render, 0);
+  rb_define_method(cFixedMap, "render", fixedmap_render, 0);
 }

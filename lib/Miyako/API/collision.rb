@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -24,7 +25,6 @@ module Miyako
   #コリジョンの範囲は、元データ(スプライト等)の左上端を[0,0]として考案する
   #本クラスに設定できる方向(direction)・移動量(amount)は、コリジョンの範囲・位置に影響しない
   class Collision
-    include MiyakoTap
     extend Forwardable
 
     # コリジョンの範囲([x,y,w,h])
@@ -41,8 +41,8 @@ module Miyako
     #_pos_:: 元データの位置
     #返却値:: 作成されたコリジョン
     def initialize(rect, pos)
-      @rect = rect
-      @pos = pos
+      @rect = Rect.new(*(rect.to_a[0..3]))
+      @pos = Point.new(*(pos.to_a[0..1]))
       @direction = Point.new(0, 0)
       @amount = Size.new(0, 0)
     end
@@ -100,6 +100,24 @@ module Miyako
       return Collision.cover?(self, c2)
     end
 
+    #===コリジョンをの位置を、指定の移動量で移動する
+    #_x_:: 移動量(x方向)。単位はピクセル
+    #_y_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move(x, y)
+      @pos.move(x, y)
+      return self
+    end
+
+    #===コリジョンをの位置を、指定の位置へ移動する
+    #_x_:: 移動先の位置(x方向)。単位はピクセル
+    #_y_:: 移動先の位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to(x, y)
+      @pos.move_to(x, y)
+      return self
+    end
+
     #===当たり判定を行う(領域が重なっている)
     #_c1_:: 判定対象のコリジョンインスタンス(1)
     #_c2_:: 判定対象のコリジョンインスタンス(2)
@@ -147,14 +165,14 @@ module Miyako
     #_c2_:: 判定対象のコリジョンインスタンス(2)
     #返却値:: 領域が当たっていれば true を返す
     def Collision.meet?(c1, c2)
-      l1 = c1.pos[0] + rect1[0]
-      t1 = c1.pos[1] + rect1[1]
-      r1 = l1 + rect1[2]
-      b1 = t1 + rect1[3]
-      l2 = c2.pos[0] + rect2[0]
-      t2 = c2.pos[1] + rect2[1]
-      r2 = l2 + rect2[2]
-      b2 = t2 + rect2[3]
+      l1 = c1.pos[0] + c1.rect[0]
+      t1 = c1.pos[1] + c1.rect[1]
+      r1 = l1 + c1.rect[2]
+      b1 = t1 + c1.rect[3]
+      l2 = c2.pos[0] + c2.rect[0]
+      t2 = c2.pos[1] + c2.rect[1]
+      r2 = l2 + c2.rect[2]
+      b2 = t2 + c2.rect[3]
       v =  0
       v |= 1 if r1 == l2
       v |= 1 if b1 == t2
@@ -188,14 +206,14 @@ module Miyako
     #_c2_:: 判定対象のコリジョンインスタンス(2)
     #返却値:: 領域が覆われていれば true を返す
     def Collision.cover?(c1, c2)
-      l1 = c1.pos[0] + rect1[0]
-      t1 = c1.pos[1] + rect1[1]
-      r1 = l1 + rect1[2]
-      b1 = t1 + rect1[3]
-      l2 = c2.pos[0] + rect2[0]
-      t2 = c2.pos[1] + rect2[1]
-      r2 = l2 + rect2[2]
-      b2 = t2 + rect2[3]
+      l1 = c1.pos[0] + c1.rect[0]
+      t1 = c1.pos[1] + c1.rect[1]
+      r1 = l1 + c1.rect[2]
+      b1 = t1 + c1.rect[3]
+      l2 = c2.pos[0] + c2.rect[0]
+      t2 = c2.pos[1] + c2.rect[1]
+      r2 = l2 + c2.rect[2]
+      b2 = t2 + c2.rect[3]
       v =  0
       v |= 1 if l1 <= l2 && r2 <= r1
       v |= 2 if t1 <= t2 && b2 <= b1
@@ -204,13 +222,17 @@ module Miyako
       return v == 3 || v == 12
     end
 
-    def [](idx) #:nodoc:
-      return @rect[idx]
-    end
-    
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def dispose
+      @pos.clear
+      @pos = nil
+      @rect.clear
+      @rect = nil
+      @amount.clear
+      @amount = nil
+      @direction.clear
+      @direction = nil
     end
   end
 
@@ -415,6 +437,8 @@ module Miyako
     #===あとで書く
     #返却値:: あとで書く
     def dispose
+      @collisions.clear
+      @collisions = nil
     end
   end
 end

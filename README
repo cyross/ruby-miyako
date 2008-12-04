@@ -1,11 +1,11 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　1.5.0a
-【   作成日   】　2008/07/21
+【 バージョン 】　2.0.0
+【   作成日   】　2008/xx/xx
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.8.7-p22
-【 ランタイム 】　Ruby 1.8.6～
+【 ランタイム 】　Ruby 1.8.7～,Ruby/SDL 2.0～,SDL
 【  対応機種  】　Windows 2000/XP/Vista、Linux、MacOSX
 【   再配布   】　GNU LGPL 2.1に基く
 【    転載    】　GNU LGPL 2.1に基く
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、1.5.0公式リリース版です。
+本バージョンは、2.0.0公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -61,7 +61,7 @@ Miyakoのタイトルは、以下の事柄に由来しています
 ・当たり判定を簡単に実装できるCollisionクラス
 ・スプライト以外の画像を表示できるSpriteUnit構造体とScreen.sprite_list
 ・拡張ライブラリを使用した高速な描画
-・Windows/Linux等に対応(他OSへの動作レポートお願いします)
+・Windows/Linux/MacOSX等に対応(他OSへの動作レポートお願いします)
 ・インストーラー付き
 ・ゲーム作成に最低限必要な構成をカプセル化(スプライト、ウィンドウ、サウンド等)
 ・スプライトを通じての文字描画や図形描画が可能（図形描画はブロックを介して行う、takahashiメソッドも追加）
@@ -93,7 +93,7 @@ PAD : BUFFALO BGC-FC802
 OS  : Microsoft WindowsXp SP2
       Microsoft WindowsVista Ultimate(x64) SP1
 DEV : NetBeans 6.1
-      ActiveRuby 1.8.7-p22 + Ruby/SDL 1.3.1
+      ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
       MinGW+MSYS(idaten_miyako,miyako_no_katanaビルド)
 
 ＜サブ開発PC＞
@@ -103,7 +103,7 @@ MEM : 784(256+512)MB
 PAD : SANWA SUPPLY JY-P1W
 OS  : Microsoft WindowsXp SP2
 DEV : RDE 1.1.1
-      ActiveRuby 1.8.7-p22 + Ruby/SDL 1.3.1
+      ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
       Microsoft VisualStudio 2005(拡張ライブラリソース記述)
       MinGW+MSYS(idaten_miyako,miyako_no_katanaビルド)
 
@@ -118,8 +118,8 @@ WindowsXp Home/Pro、WindowsVista、Linux、MacOSX等、Ruby/SDLが動作する�
 ビデオメモリ　：8MB（32bitカラー対応、64MB以上奨励）
 サウンドカード：必須(出来ればSoundBlaster Live!クラス)
 
-Ruby1.8.6以降
-Ruby/SDL 1.0＋対応SDLライブラリ群
+Ruby1.8.7以降
+Ruby/SDL 2.0＋対応SDLライブラリ群
 (SDL、SDL_ttf、SDL_image、SDL_Mixer、SGE、smpeg)
 
 【 ファイル構成  】
@@ -146,7 +146,7 @@ Ruby/SDL 1.0＋対応SDLライブラリ群
 １．Rubyのインストール
 
 Linuxでは標準でRubyがインストールされていいるはずですので説明は割愛します。
-なお、バージョンは最新の1.8系統（出来れば1.8.4以降）でお願いします。
+なお、バージョンは最新の1.8系統（1.8.7以降）でお願いします。
 
 Windowsでは、以下のサイトにあるActiveRubyのインストールをお願いします。
 （詳しい説明は割愛）
@@ -183,6 +183,7 @@ Windowsでは、Ruby/SDL公式サイトにあるバイナリパッケージや�
 http://www.kmc.gr.jp/~ohai/rubysdl.html
 
 Windowsでは、Ruby/SDLバイナリパッケージの使用をお奨めします。
+(Windowsユーザ以外の方は、後述の(注意)の項をお読みください)
 
 なお、RubyやSDL、Ruby/SDLのインストールに関するトラブルは当方では一切責任を負いません。
 また、インストールに関する質問にも受付できません。
@@ -203,6 +204,22 @@ Windowsでは、Ruby/SDLバイナリパッケージの使用をお奨めしま�
 （MS明朝／ゴシック／メイリオはWindows標準添付(メイリオはVistaのみ)ですので、特にインストールの必要がありません）
 
 これでインストールが完了です。
+
+(注意)Miyakoのバイナリファイルをビルドする場合の注意点
+
+バージョン2.0から、miyako_no_katanaから、Ruby/SDLのデータから直接SDLのサーフェスデータを
+直接アクセスするため、Ruby/SDLのヘッダファイルと、SDLの開発ライブラリが必要になりました
+(特に、sdl-configシェルスクリプトが必要です)。
+
+また、sdl-configの場所を正しく指定できる様に、install_miyako.rbの修正が必要ですので、
+修正をよろしくお願いします。
+
+また、Miyakoから使用するRuby/SDLのヘッダファイル(rubysdl.h)も必要ですので、
+rubysdl.hをmiyako_no_katanaフォルダにコピーするか、
+Makefileのインクルードファイルオプションを修正してください。
+
+# お手数とは思いますが、LinuxやMacOSXなどで設定した方法をフィードバックしていただけると大いに助かります。
+# フィードバックは次期バージョンに反映いたします。
 
 【 アンインストール  】
 
@@ -239,6 +256,12 @@ require 'Miyako/miyako_ext'
 同時に収録している、wait_cursor.png、cursor.png、dice.pngはご自身のMiyako Scriptでご自由に使っていただいて構いません。
 
 フォントの再利用につきましては、それぞれのフォントのライセンスに従うよう、ご了承お願いいたします。
+
+本ライブラリでは、一部のコードで、Ruby/SDLのコードを利用しています。
+Ruby/SDLのソースコードは、以下の場所からリンクを辿ってダウンロード可能です。
+(以下のURLは、RUBYFORGE内のRuby/SDLダウンロードURLです）
+
+http://rubyforge.org/frs/?group_id=1006
 
 【   免責    】
 
@@ -811,6 +834,91 @@ v1.5.0a(2008.07.21)
 ・Layout#round_rev_x, round_rev_yメソッドのバグ修正
 ・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
 ・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
+
+v2.0.0(2008.xx.xx)
+・Ruby/SDL2.0準拠に変更
+・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
+・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
+・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
+・SpriteBaseモジュールのrenderメソッドの追加、dp,dp=,show,hideメソッドの廃止
+・SpriteBase.ox,oy,ow,ohメソッドの戻り値仕様を変更(nil→0へ変更)
+・SpriteBase.to_spriteメソッドの戻り値仕様を変更(nil→selfへ変更)
+・SpriteUnit構造体にprocessアクセサを追加
+・SpriteUnit構造体にdx,dyアクセサを追加
+・SpriteUnitFactoryクラスの追加
+・Sprite#effect、effect=メソッドを廃止(Effectクラスの独立化)
+・Sprite#render_transformメソッドの追加
+・Sprite.render_sprite、Sprite.render_sprite_transformメソッドの追加(スプライト同士の転送に対応)
+・Sprite#collisionメソッドの廃止(コリジョンの独立化)
+・Sprite#duplicateメソッドの追加(画像も複製)
+・Sprite.newメソッドに:unitハッシュキーを追加(SpriteUnitから生成)
+・Spriteクラスの各種画像変換メソッド(scale、rotate、hsvなど)を廃止
+・Animation.update_animationメソッドの戻り値仕様を変更(self→falseへ変更)
+・SpriteAnimation#update_animatioメソッドの戻り値仕様を変更(パターンが変更されたときtrueを返す)
+・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
+・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
+・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
+・Yuki#is_scene?、Yuki#is_scenario?メソッドの追加
+・Yuki#resultメソッドの追加(旧Yuki#resultメソッドはYuki#select_resultメソッドに改名)
+・Yuki#renderメソッドの追加、Yuki#show、Yuki#hideメソッドインタフェースの変更
+・Yuki#update、Yuki::Manager#updateメソッドの返却値を変更
+　（引数：デフォルトシーン名→なし
+　　結果インスタンス→返却値無し（Yuki#result、Yuki::Manager#resultの確認で代用））
+・Yuki#update_plotメソッドをYuki#updateメソッドに改名
+・Yuki#plot_executing?メソッドをYuki#executing?に改名
+・Yuki#canseled?メソッドの追加
+・Yuki#resultメソッドをYuki#select_resultメソッドに改名
+・Yuki#scenarioメソッドの廃止
+・Yuki#get_plot_resultメソッドの廃止
+・Yuki#result_is_scene?、Yuki#result_is_scenario?メソッドの廃止
+・Yuki#exec_plotメソッドをYuki#start_plotメソッドに変更
+・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
+・Yuki::Manager#canseled?メソッドの追加
+・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
+・Yuki::Command構造体の使用を変更(選択時画像・文字を指定するbody_selectedを追加)
+・Viewportクラスの追加
+・Bitmap.caceheメソッドの廃止(画像データのキャッシュの廃止)
+・Bitmap.miyako_blit_aaメソッドを廃止
+・Bitmap.miyako_blit_aa2メソッドをBitmap.blit_aa!メソッドに改名・インタフェース変更
+・Bitmapクラスの各種画像変換メソッドの最後に!を追加
+・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
+・Partsクラスのmain_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
+・Partsクラスの[]=メソッドのインタフェース変更(すべてPartsインスタンス本体へのsnapとして設定)
+・Screen.updateメソッドの廃止(Screen.renderに統一)
+・Screen.renderメソッドのインタフェース変更(is_clear引数の廃止)
+・Screen.sizeメソッドの追加
+・Screen.to_unitメソッドの追加
+・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
+・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
+・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
+・Textbox#columns、rows、text_size、update_animationメソッドの追加
+・Diagram::Processor#sync?メソッドの追加
+・SingleEnumerable.sizeメソッドの廃止(弊害が大きいため(Sprite#sizeメソッドのバグなど)。lengthのみ用意)
+・Choice#body_selected, Choice#selectedメソッドの追加(選択時に表示を変える方式を実装)
+・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
+・Collision#move、Collision#move_toメソッドを追加
+・Map#update、FixedMap#updateメソッドの内容変更(MapEventのupdateは行われず、明示的に呼び出すことに注意)
+・Map#render、FixedMap#renderメソッドの追加(MapEventはrenderされず、明示的に呼び出すことに注意)
+・Map#view_posメソッドを廃止、Map#marginメソッドを追加
+・Map#syncメソッドを廃止、Map#sync_marginメソッドを追加(margin変更後、各レイヤへ同期させるために呼び出す)
+・MapEvent.newメソッドのインタフェース変更
+・MapEvent#initメソッドのインタフェース変更(引数として、登録もとMap/FixedMapクラスのインスタンス・マップ上の位置を取得)
+・MapEvent#execメソッドをMapEvent#startメソッドに改名
+・MapEvent#move、MapEvent#move_toメソッドを追加
+・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
+・MiyakoTapモジュールの廃止(tapメソッドが使えるようになったため)
+・rob.rb追加
+・ROPモジュール追加（ラスタオペレーションモジュール）
+・Pixel構造体追加（ピクセル情報構造体）
+・drawing.rb追加
+・Drawingモジュール追加（画像・画面への線形描画用）
+・これにより、Spriteクラスの各種線形描画メソッドを廃止
+・bitmap.rb追加（Bitmapクラスをここに移動）
+・spriteunit.rb追加（SpriteUnit構造体関連をここに移動）
+・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
+・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
+・リファレンス(RDoc)の拡充
+・他、細かいバグの修正
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

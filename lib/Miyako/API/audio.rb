@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v1.5

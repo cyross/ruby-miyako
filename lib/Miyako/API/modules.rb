@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -25,71 +26,44 @@ module Miyako
 スプライトの基本メソッドで構成されるテンプレートモジュール
 =end
   module SpriteBase
-  #===あとで書く
-  #返却値:: あとで書く
-    def show
-      return self
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def hide
-      return self
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def dp
-      return nil
-    end
-
-  #===あとで書く
-  #_v_:: あとで書く
-  #返却値:: あとで書く
-    def dp=(v)
-    end
-
-  #===あとで書く
-  #_data_:: あとで書く
-  #返却値:: あとで書く
+    #===スプライトインスタンスを取得するメソッドのテンプレート
+    #_data_:: あとで書く
+    #返却値:: 自分自身を返す
     def to_sprite(data = nil)
-      return nil
+      return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===SpriteUnit構造体を取得するメソッドのテンプレート
+    #返却値:: nilを返す
     def to_unit
       return nil
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===画像(Bitmapクラスのインスタンス)を取得するメソッドのテンプレート
+    #返却値:: nilを返す
     def bitmap
       return nil
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===画像内での描画開始位置(x座標)を取得するメソッドのテンプレート
+    #返却値:: 0を返す
     def ox
-      return nil
+      return 0
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===画像内での描画開始位置(y座標)を取得するメソッドのテンプレート
+    #返却値:: 0を返す
     def oy
-      return nil
+      return 0
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
-    def ow
-      return nil
-    end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def oh
-      return nil
+    #===画面への描画を指示するメソッドのテンプレート
+    #実際に描画はせず、描画に使用するパラメータを確定するのみ
+    #描画はScreen.renderメソッドで行う
+    #param:: 描画指示に必要なパラメータ群(ハッシュ引数、省略可能）
+    #返却値:: 自分自身を返す
+    def render(params=nil)
+      return self
     end
   end
 
@@ -98,43 +72,28 @@ module Miyako
 アニメーションの基本メソッドで構成されるテンプレートモジュール
 =end
   module Animation
-  #===あとで書く
-  #返却値:: あとで書く
+    #===アニメーションを開始するメソッドのテンプレート
+    #返却値:: 自分自身を返す
     def start
       return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===アニメーションを停止するメソッドのテンプレート
+    #返却値:: 自分自身を返す
     def stop
       return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===アニメーションパターンを先頭に戻すメソッドのテンプレート
+    #返却値:: 自分自身を返す
     def reset
       return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===アニメーションを更新するメソッドのテンプレート
+    #返却値:: falseを返す(アニメーションパターンが更新されたときにtrueを返す)
     def update_animation
-      return nil
-    end
-  end
-  
-=begin rdoc
-==タッピングモジュール
-タッピングを実装するテンプレートモジュール
-=end
-  module MiyakoTap
-    #タッピングを使用したブロックを使ったプロパティ設定(自分自身を引数としたブロック)を行う
-    #返却値:: 自分自身を返す
-    def property
-      if block_given?
-        yield self
-      end
-      return self
+      return false
     end
   end
 end

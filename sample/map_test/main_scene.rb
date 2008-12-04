@@ -1,6 +1,5 @@
 class MainScene
   include Story::Scene
-  include Yuki
 
   def init
     @cnt = 0
@@ -10,99 +9,129 @@ class MainScene
 
     @map = MapManager.new
     @size = @map.size
-    @map.collision.pos = Point.new(@size[0] * 10, @size[1] * 10)
     @map.collision.amount = Size.new(@amt, @amt)
+    @executing_flags = Array.new(@map.events.length){|n| false}
 
     # キャラクタの初期位置を指定([10,10]に位置)
     @chr = PChara.new("./chr1.png", @size)
-    @chr.show
 
     # マップの表示開始位置を移動させる
     # キャラクタのグラフィックを真ん中に表示させるため
-    @map.move(-@chr.x, -@chr.y, :view)
+    @map.margin.resize(*@chr.margin)
+    @map.sync_margin
     # マップの実座標を設定する
-    @map.move_to(*(@map.collision.pos.to_a))
-    @map.show
+    @map.move(@size[0] * 10, @size[1] * 10)
     
     @parts = CommonParts.instance
     #Yukiの初期化
-    init_yuki(@parts.box, @parts.cbox, :box)
+    @yuki = Yuki.new
+    @yuki.select_textbox(@parts.box[:box])
+    @yuki.select_commandbox(@parts.cbox[:box])
+  end
+  
+  def setup
+    @map.start
+    @chr.start
   end
 
   def update
     return nil if Input.quit_or_escape?
+
+    @map.update
+    @chr.update
 
     # 移動量が残っているときは移動を優先
     if @cnt > 0
       # 移動後のマップの実座標を計算
       @map.move(*@a)
       @cnt = @cnt - @amt
-      return @now unless result_is_scene?
-      return get_plot_result || @now
-    end
-    
-    if plot_executing?
-      update_plot_input
-      return @now unless result_is_scene?
-      return get_plot_result || @now
-    end
-    
-    if Input::trigger_any?(:down, :up, :left, :right) # 0:down 1:left 2:right 3:up
-      @d = Input::trigger_amount
-      @d[1] = 0 if @d[0] != 0 && @d[1] != 0 # 移動を横方向優先に
-      # コリジョンの移動量を設定
-      @map.collision.direction = @d
-      #キャラクタの向きを変更
-      @chr.turn(@d)
-      #マップの移動量を求める
-      @a = @map.get_amount(0, @map.size, @map.collision).amount.to_a
-      # 方向ボタンを押したときは、１チップサイズ単位で移動する
-      # @cntはその移動量(幅と高さでサイズが違う場合アリ)
-      @cnt = @a[0] > 0 ? @size[0] : @size[1]
-      return @now unless result_is_scene?
-      return get_plot_result || @now
+    elsif @yuki.executing?
+      @yuki.update
+    elsif @executing_flags.none?
+      if Input.pushed_any?(:btn1)
+        #１ボタンを押したとき、イベントに重なっていればマップイベントを実行、
+        #外れていれば、コマンドウィンドウを開く
+        event_flags = @map.events.map{|e| e.met?(:collision => @map.collision)}
+        if event_flags.none?
+          @yuki.start_plot(self.method(:command_plot))
+        else
+          @map.events.zip(event_flags){|ef| ef[0].start(@parts) if ef[1]}
+        end
+      elsif Input::trigger_any?(:down, :up, :left, :right)
+            # 0:down 1:left 2:right 3:up
+        @d = Input::trigger_amount
+        @d[1] = 0 if @d[0] != 0 && @d[1] != 0 # 移動を横方向優先に
+        # コリジョンの移動量を設定
+        @map.collision.direction = @d
+        #キャラクタの向きを変更
+        @chr.turn(@d)
+        #マップの移動量を求める
+        @a = @map.get_amount(0, @map.size, @map.collision).amount.to_a
+        # 方向ボタンを押したときは、１チップサイズ単位で移動する
+        # @cntはその移動量(幅と高さでサイズが違う場合アリ)
+        @cnt = @a[0] > 0 ? @size[0] : @size[1]
+      end
+    else
     end
 
-    #１ボタンを押したとき、イベントに重なっていればマップイベントを実行、
-    #外れていれば、コマンドウィンドウを開く
-    exec_plot(self.method(:command_plot)) if Input.pushed_any?(:btn1) && !(@map.events.inject(false){|s, e| s |= met_and_exec(e)})
+    @map.events.zip(@executing_flags){|ef|
+      if ef[1]
+        if Input.pushed_any?(:btn2)
+          ef[0].stop
+        else
+          ef[0].update(nil, nil, nil)
+        end
+      end
+    }
+    @executing_flags = @map.events.map{|e| e.executing? }
+   
     #コマンド選択の結果、イベントが実行されたときは、結果として@nowを返す
-    return @now unless result_is_scene?
-    return get_plot_result || @now
+    return @now unless @yuki.is_scene?(@yuki.result)
+    return @yuki.result || @now
   end
 
-  #マップ上のイベントとキャラクターが重なっていればイベントを実行
-  def met_and_exec(event)
-    return false unless event.met?({:collision=>@map.collision})
-    event.execute(@parts)
-    return true
+  def render
+    @map.render
+    @map.render_event
+    @chr.render
+    @map.render_event_box
+    if @yuki.executing?
+      @parts.box.render
+      @parts.cbox.render if @yuki.selecting?
+    end
   end
 
-  def command_plot
-      command([Command.new("話す", nil, scenario(:talk)),
-               Command.new("調べる", nil, scenario(:check))])
-      result.call if result_is_scenario?
+  def command_plot(yuki)
+      yuki.command([Yuki::Command.new("話す", "話す", nil, self.method(:talk)),
+                     Yuki::Command.new("調べる", "調べる", nil, self.method(:check))], @now)
+      yuki.select_result.call(yuki) if yuki.is_scenario?(yuki.select_result)
       return @now
   end
   #コマンドウィンドウの「調べる」を選んだときの処理
-  def check
-    text "あなたは、足下を調べた。\n"
-    pause
-    text "しかし、何も無かった。"
-    pause
-    clear
+  def check(yuki)
+    yuki.text "あなたは、足下を調べた。\n"
+    yuki.pause
+    yuki.text "しかし、何も無かった。"
+    yuki.pause
+    yuki.clear
   end
   
   #コマンドウィンドウの「話す」を選んだときの処理
-  def talk
-    text "話をしようとしたが"
-    cr
-    text "あなたの周りには誰もいない。"
-    pause
-    clear
+  def talk(yuki)
+    yuki.text "話をしようとしたが"
+    yuki.cr
+    yuki.text "あなたの周りには誰もいない。"
+    yuki.pause
+    yuki.clear
   end
   
   def final
+    @map.stop
+    @chr.stop
+  end
+  
+  def dispose
     @map.dispose
+    @chr.dispose
   end
 end

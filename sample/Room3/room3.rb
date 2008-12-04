@@ -4,7 +4,7 @@
 $miyako_debug_mode = true
 
 require 'Miyako/miyako'
-require 'Miyako/idaten_miyako'
+#require 'Miyako/idaten_miyako'
 
 include Miyako
 

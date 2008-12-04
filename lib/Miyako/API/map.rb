@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -26,23 +27,16 @@ module Miyako
 #==Miyako::Map class
 #==Miyako::MapLayer class
 
-=begin rdoc
-=あとで書く
-=end
+  #=マップチップ定義構造体
   MapChip = Struct.new(:chip_image, :chips, :size, :chip_size, :access_types, :collision_table, :access_table)
-=begin rdoc
-=あとで書く
-=end
+  #=Map用コリジョン構造体
   MapMoveAmount = Struct.new(:collisions, :amount)
 
-=begin rdoc
-=マップチップ作成ファクトリクラス
-=end
+  #=マップチップ作成ファクトリクラス
   class MapChipFactory
-  #===あとで書く
-  #_csv_filename_:: あとで書く
-  #_use_alpha_:: あとで書く
-  #返却値:: あとで書く
+    #===マップチップを作成するためのファクトリクラス
+    #_csv_filename_:: マップチップファイル名(CSVファイル)
+    #_use_alpha_:: 画像にαチャネルを使うかどうかのフラグ。trueのときは画像のαチャネルを使用、falseのときはカラーキーを使用。デフォルトはtrue
     def MapChipFactory.load(csv_filename, use_alpha = true)
       lines = CSV.read(csv_filename)
       raise MiyakoError, "This file is not Miyako Map Chip file! : #{csv_filename}" unless lines.shift[0] == "Miyako Mapchip"
@@ -52,44 +46,36 @@ module Miyako
       size = Size.new(spr.w / chip_size.w, spr.h / chip_size.h)
       chips = size.w * size.h
       access_types = lines.shift[0].to_i
-      collision_table = []
-      access_types.times{|at|
-        tmp_list = []
-        chips.times{|n| tmp_list << Collision.new(lines.shift.map{|s| s.to_i}, Point.new(0, 0)) }
-        collision_table << tmp_list
+      collision_table = Array.new(access_types){|at|
+        Array.new(chips){|n| Collision.new(lines.shift.map{|s| s.to_i}, Point.new(0, 0)) }
       }
-      access_table = []
-      access_types.times{|at|
-        tmp_list = []
-        chips.times{|n| tmp_list << (lines.shift.map{|s| s.to_i} << 0 ) }
-        access_table << tmp_list
+      access_table = Array.new(access_types){|at|
+        Array.new(chips){|n| lines.shift.map{|s| s.to_i} << 0 }
       }
       return MapChip.new(spr, chips, size, chip_size, access_types, collision_table, access_table)
     end
   end
 
-=begin rdoc
-==あとで書く
-=end
+  #==マップ定義クラス
   class Map
-    include MiyakoTap
-
-    @@maps = Array.new
     @@idx_ix = [-1, 2, 4]
     @@idx_iy = [-1, 0, 6]
 
-    attr_reader :map_layers, :pos, :view_pos, :size, :w, :h
+    attr_reader :map_layers, :pos, :margin, :size, :w, :h
 
     class MapLayer #:nodoc: all
       extend Forwardable
 
-      attr_reader :mapchip_units, :pos, :view_pos, :size
-      attr_accessor :visible, :dp
+      attr_reader :mapchip_units, :pos, :margin, :size
 
-      def update #:nodoc:
-        return unless @visible
-        x2 = round(@view_pos.x, @real_size.w)
-        y2 = round(@view_pos.y, @real_size.h)
+      #===画面に描画を指示する
+      #現在の画像を、現在の状態で描画するよう指示する
+      #--
+      #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
+      #++
+      def render
+        x2 = round(@pos[0]+@margin[0], @real_size[0])
+        y2 = round(@pos[1]+@margin[1], @real_size[1])
         dx = @divpx[x2]
         mx = @modpx[x2]
         dy = @divpy[y2]
@@ -101,32 +87,11 @@ module Miyako
           @cw.times{|x|
             code = m2[@modpx2[dx + x]]
             next if code == -1 # change!
-            mc = @mapchip_units[code].to_unit
-            @units[pos].bitmap = mc.bitmap
-            @units[pos].ow = mc.ow
-            @units[pos].ox = mc.ox
-            @units[pos].x = x * @baseimg.ow - mx
-            @units[pos].oh = mc.oh
-            @units[pos].oy = mc.oy
-            @units[pos].y = y * @baseimg.oh - my
-            pos += 1
+            unit = @mapchip_units[code].to_unit
+            unit.move_to(x * @ow - mx, y * @oh - my)
+            Screen::render_screen(unit)
           }
         }
-        Screen.sprite_list.concat(@units[0...pos])
-      end
-
-      #===画面に描画を指示する
-      #現在の画像を、現在の状態で描画するよう指示する
-      #--
-      #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-      #++
-      #返却値:: 自分自身を返す
-      def render
-        org_visible = @visible
-        @visible = true # updateメソッド内でvisibleチェックがあるため
-        self.update
-        @visible = org_visible
-        return self
       end
 
       def round(v, max) #:nodoc:
@@ -136,49 +101,40 @@ module Miyako
       end
 
       def resize #:nodoc:
-        @cw = (Screen.w + @mapchip.chip_size.w - 1)/ @mapchip.chip_size.w + 1
-        @ch = (Screen.h + @mapchip.chip_size.h - 1)/ @mapchip.chip_size.h + 1
-        @units.clear if @units
-        @units = Array.new
-        @ch.times{|y|
-          @cw.times{|x|
-            @units.push(SpriteUnit.new(@baseimg.dp, @baseimg.bitmap, 0 , 0, 
-                                       @baseimg.ow, @baseimg.oh, 0, 0, nil, Screen.rect))
-          }
-        }
+        @cw = (Screen.w + @ow - 1)/ @ow + 1
+        @ch = (Screen.h + @oh - 1)/ @oh + 1
       end
 
       def initialize(mapchip, mapdat, layer_size) #:nodoc:
         @mapchip = mapchip
         @pos = Point.new(0, 0)
-        @view_pos = Point.new(0, 0)
+        @margin = Size.new(0, 0)
         @size = layer_size.dup
-        @real_size = Size.new(@size.w * @mapchip.chip_size.w, @size.h * @mapchip.chip_size.h)
+        @ow = @mapchip.chip_size.w
+        @oh = @mapchip.chip_size.h
+        @real_size = Size.new(@size.w * @ow, @size.h * @oh)
         @mapdat = mapdat
         @baseimg = @mapchip.chip_image
-        @baseimg.ow = @mapchip.chip_size.w
-        @baseimg.oh = @mapchip.chip_size.h
-        @units = nil
-        @visible = false
-        @divpx = get_div_array(0, @real_size.w, @mapchip.chip_size.w)
-        @divpy = get_div_array(0, @real_size.h, @mapchip.chip_size.h)
-        @modpx = get_mod_array(0, @real_size.w, @mapchip.chip_size.w)
-        @modpy = get_mod_array(0, @real_size.h, @mapchip.chip_size.h)
+        @divpx = get_div_array(0, @real_size.w, @ow)
+        @divpy = get_div_array(0, @real_size.h, @oh)
+        @modpx = get_mod_array(0, @real_size.w, @ow)
+        @modpy = get_mod_array(0, @real_size.h, @oh)
         @modpx2 = get_mod_array(0, @size.w * 2 + 1, @size.w)
         @modpy2 = get_mod_array(0, @size.h * 2 + 1, @size.h)
         @cdivsx = get_div_array(0, @mapchip.chips, @mapchip.size.w)
         @cmodsx = get_mod_array(0, @mapchip.chips, @mapchip.size.w)
         @cdivsy = get_div_array(0, @mapchip.chips, @mapchip.size.h)
         @cmodsy = get_mod_array(0, @mapchip.chips, @mapchip.size.h)
-        @cdivsx = @cdivsx.map{|v| v * @mapchip.chip_size.w }
-        @cdivsy = @cdivsy.map{|v| v * @mapchip.chip_size.h }
-        @cmodsx = @cmodsx.map{|v| v * @mapchip.chip_size.w }
-        @cmodsy = @cmodsy.map{|v| v * @mapchip.chip_size.h }
+        @cdivsx = @cdivsx.map{|v| v * @ow }
+        @cdivsy = @cdivsy.map{|v| v * @oh }
+        @cmodsx = @cmodsx.map{|v| v * @ow }
+        @cmodsy = @cmodsy.map{|v| v * @oh }
         @mapchip_units = Array.new(@mapchip.chips){|idx|
-          SpriteUnit.new(@baseimg.dp, @baseimg.bitmap,
-                         (idx % @mapchip.size.w) * @mapchip.chip_size.w,
-                         (idx / @mapchip.size.w) * @mapchip.chip_size.h, 
-                         @baseimg.ow, @baseimg.oh, 0, 0, nil, Screen.rect)
+          SpriteUnitFactory.create(:bitmap=>@baseimg.bitmap,
+                                   :ox => (idx % @mapchip.size.w) * @ow,
+                                   :oy => (idx / @mapchip.size.w) * @oh,
+                                   :ow => @ow,
+                                   :oh => @oh)
         }
         resize
       end
@@ -209,31 +165,20 @@ module Miyako
         @mapdat = nil
         @baseimg = nil
       end
-
-      def dp #:nodoc:
-        return @baseimg.dp
-      end
-
-      def dp=(v) #:nodoc:
-        @baseimg.dp = v
-        @units.each{|u| u.dp = v }
-      end
-
-      def viewport=(vp) #:nodoc:
-        @units.each{|u| u.viewport = vp }
-      end
     end
 
-  #===あとで書く
-  #_mapchip_:: あとで書く
-  #_layer_csv_:: あとで書く
-  #返却値:: あとで書く
-    def initialize(mapchip, layer_csv)
+    #===インスタンスを生成する
+    #_mapchip_:: マップチップ構造体群
+    #_layer_csv_:: レイヤーファイル(CSVファイル)
+    #_event_manager_:: MapEventManagerクラスのインスタンス
+    #返却値:: 生成したインスタンス
+    def initialize(mapchip, layer_csv, event_manager)
+      @em = event_manager.dup
+      @em.set(self)
       @mapchip = mapchip
       @visible = false
       @pos = Point.new(0, 0)
-      @view_pos = Point.new(0, 0)
-      @viewport = Screen.rect
+      @margin = Size.new(0, 0)
       @coll = Collision.new(Rect.new(0, 0, 0, 0), Point.new(0, 0))
       layer_data = CSV.readlines(layer_csv)
       raise MiyakoError, "This file is not Miyako Map Layer file! : #{layer_csv}" unless layer_data.shift[0] == "Miyako Maplayer"
@@ -268,8 +213,8 @@ module Miyako
         @event_layer = Array.new
         brlist[:event].each_with_index{|ly, y|
           ly.each_with_index{|code, x|
-            next unless MapEvent.include?(code)
-            @event_layer.push(MapEvent.create(code, x * @mapchip.chip_size.w, y * @mapchip.chip_size.h))
+            next unless @em.include?(code)
+            @event_layer.push(@em.create(code, x * @mapchip.chip_size.w, y * @mapchip.chip_size.h))
           }
         }
         layers -= 1
@@ -280,194 +225,95 @@ module Miyako
         br = brlist[i].map{|b| b.map{|bb| bb >= @mapchip.chips ? -1 : bb } }
         @map_layers.push(MapLayer.new(@mapchip, br, layer_size))
       }
-      @@maps.push(self)
     end
 
-  #===あとで書く
-  #_code_:: あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #返却値:: あとで書く
+    #===インスタンスにイベントを追加する
+    #_code_:: イベントコード(整数)
+    #_x_:: イベントの初期位置(x方向)
+    #_y_:: イベントの初期位置(y方向)
+    #返却値:: あとで書く
     def add_event(code, x, y)
-      return unless MapEvent.include?(code)
-      @event_layer.push(MapEvent.create(code, x, y))
-    end
-
-  #===あとで書く
-  #_dx_:: あとで書く
-  #_dy_:: あとで書く
-  #_type_:: あとで書く
-  #返却値:: あとで書く
-    def move(dx,dy,type=:sync)
-      unless type == :view
-        @pos.x += dx
-        @pos.y += dy
-        @map_layers.each{|l|
-          l.pos.x += dx
-          l.pos.y += dy
-        }
-      end
-      unless type == :position
-        @view_pos.x += dx
-        @view_pos.y += dy
-        @map_layers.each{|l|
-          l.view_pos.x += dx
-          l.view_pos.y += dy
-        }
-      end
+      return self unless @em.include?(code)
+      @event_layer.push(@em.create(code, x, y))
       return self
     end
 
-  #===あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #_type_:: あとで書く
-  #返却値:: あとで書く
-    def move_to(x,y,type=:sync)
-      px, py = @pos.x, @pos.y
-      unless type == :view
-        @pos.x = x
-        @pos.y = y
-        @map_layers.each{|l|
-          l.pos.x = @pos.x
-          l.pos.y = @pos.y
-        }
-      end
-      unless type == :position
-        @view_pos.x += x - px
-        @view_pos.y += y - py
-        @map_layers.each{|l|
-          l.view_pos.x = @view_pos.x
-          l.view_pos.y = @view_pos.y
-        }
-      end
+    #===マップを移動(移動量指定)
+    #_dx_:: 移動量(x方向)
+    #_dy_:: 移動量(y方向)
+    #返却値:: 自分自身を返す
+    def move(dx,dy)
+      @pos.move(dx, dy)
+      @map_layers.each{|l| l.pos.move(dx, dy) }
       return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
-    def sync
-      @view_pos.x += @pos.x
-      @view_pos.y += @pos.y
-      @map_layers.each{|l|
-        l.view_pos.x = @view_pos.x
-        l.view_pos.y = @view_pos.y
-      }
-    end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def dp
-       return @map_layers.collect{|l| l.dp }
-    end
-
-  #===あとで書く
-  #_d_:: あとで書く
-  #返却値:: あとで書く
-    def dp=(d)
-      dp = d
-      @map_layers.each{|l|
-        l.dp = dp
-        dp += 100
-      }
+    #===マップを移動(移動先指定)
+    #_dx_:: 移動先(x方向)
+    #_dy_:: 移動先(y方向)
+    #返却値:: 自分自身を返す
+    def move_to(x,y)
+      @pos.move_to(x, y)
+      @map_layers.each{|l| l.pos.move_to(x, y) }
       return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
-    def max_dp
-      return @map_layers.map{|l| l.dp }.max
-    end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def min_dp
-      return @map_layers.map{|l| l.dp }.min
-    end
-    
-  #===あとで書く
-  #_dl_:: あとで書く
-  #返却値:: あとで書く
-    def set_dps(*dl)
-      l = dl.length
-      l = @map_layers.length if l > @map_layers.length
-      l.length.each_with_index{|l, d| l.dp = dl[d] }
+    #===設定したマージンを各レイヤーに同期させる
+    #マージンを設定した後は必ずこのメソッドを呼び出すこと
+    #返却値:: 自分自身を返す
+    def sync_margin
+      @map_layers.each{|l| l.margin.resize(*@margin) }
       return self
     end
 
-    def layer(idx) #:nodoc:
+    #===設定したマージンを各レイヤーに同期させる
+    #マージンを設定した後は必ずこのメソッドを呼び出すこと
+    #返却値:: 自分自身を返す
+    def [](idx)
       return @map_layers[idx]
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
-    def visible
-      return @visible
-    end
-
-  #===あとで書く
-  #_f_:: あとで書く
-  #返却値:: あとで書く
-    def visible=(f)
-      @visible = f
-      @map_layers.each{|ll| ll.visible = @visible }
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def show
-      self.visible = true
-      return self
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def hide
-      self.visible = false
-      return self
-    end
-
-  #===あとで書く
-  #_idx_:: あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_idx_:: あとで書く
+    #_x_:: あとで書く
+    #_y_:: あとで書く
+    #返却値:: あとで書く
     def get_code_real(idx, x = 0, y = 0)
       code = @map_layers[idx].get_code(x / @mapchip.chip_size[0], y / @mapchip.chip_size[1])
       yield code if block_given?
       return code
     end
 
-  #===あとで書く
-  #_idx_:: あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_idx_:: あとで書く
+    #_x_:: あとで書く
+    #_y_:: あとで書く
+    #返却値:: あとで書く
     def get_code(idx, x = 0, y = 0)
       code = @map_layers[idx].get_code(x, y)
       yield code if block_given?
       return code
     end
     
-  #===あとで書く
-  #_idx_:: あとで書く
-  #_code_:: あとで書く
-  #_base_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_idx_:: あとで書く
+    #_code_:: あとで書く
+    #_base_:: あとで書く
+    #返却値:: あとで書く
     def set_mapchip_base(idx, code, base)
       @map_layers[idx].mapchip_units[code] = base
       return self
     end
 
-  #===あとで書く
-  #_type_:: あとで書く
-  #_size_:: あとで書く
-  #_collision_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_type_:: あとで書く
+    #_size_:: あとで書く
+    #_collision_:: あとで書く
+    #返却値:: あとで書く
     def get_amount(type, size, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
-      collision.pos  = Point.new(@pos[0], @pos[1])
+      collision.pos  = Point.new(*@pos.to_a[0..1])
       dx, dy = collision.direction[0]*collision.amount[0], collision.direction[1]*collision.amount[1]
       px1, px2 = (@pos[0]+dx) / @mapchip.chip_size[0], (@pos[0]+size[0]-1+dx) / @mapchip.chip_size[0]
       py1, py2 = (@pos[1]+dy) / @mapchip.chip_size[1], (@pos[1]+size[1]-1+dy) / @mapchip.chip_size[1]
@@ -478,7 +324,7 @@ module Miyako
           @map_layers.each_with_index{|ml, idx|
             code = ml.get_code(px, py)
             next if code == -1 # not use chip
-            @coll.rect = @mapchip.collision_table[type][code]
+            @coll = @mapchip.collision_table[type][code].dup
             @coll.pos  = Point.new(rpx, rpy)
             atable = @mapchip.access_table[type][code]
             if @coll.into?(collision)
@@ -495,16 +341,16 @@ module Miyako
       return mma
     end
 
-  #===あとで書く
-  #_type_:: あとで書く
-  #_rect_:: あとで書く
-  #_collision_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_type_:: あとで書く
+    #_rect_:: あとで書く
+    #_collision_:: あとで書く
+    #返却値:: あとで書く
     def get_amount_by_rect(type, rect, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
       dx, dy = collision.direction[0]*collision.amount[0], collision.direction[1]*collision.amount[1]
-      x, y = rect[0..1]
+      x, y = rect.to_a[0..1]
       collision.pos  = Point.new(x, y)
       px1, px2 = (x+dx) / @mapchip.chip_size[0], (x+rect[2]-1+dx) / @mapchip.chip_size[0]
       py1, py2 = (y+dy) / @mapchip.chip_size[1], (y+rect[3]-1+dy) / @mapchip.chip_size[1]
@@ -515,7 +361,7 @@ module Miyako
           @map_layers.each_with_index{|ml, idx|
             code = ml.get_code(px, py)
             next if code == -1 # not use chip
-            @coll.rect = @mapchip.collision_table[type][code]
+            @coll = @mapchip.collision_table[type][code].dup
             @coll.pos  = Point.new(rpx, rpy)
             atable = @mapchip.access_table[type][code]
             if @coll.into?(collision)
@@ -532,23 +378,30 @@ module Miyako
       return mma
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def chip_size
       return @mapchip.chip_size
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
+    def final
+      @event_layer.each{|e| e.final } if @event_layer
+    end
+
+    #===あとで書く
+    #返却値:: あとで書く
     def dispose
       @map_layers.each{|l|
         l.dispose
         l = nil
       }
       @map_layers = Array.new
-      @event_layer.each{|e| e.final }
-      @event_layer = nil
-      @@maps.delete(self)
+      if @event_layer
+        @event_layer.each{|e| e.dispose } 
+        @event_layer = nil
+      end
     end
 
     def re_size #:nodoc:
@@ -556,108 +409,52 @@ module Miyako
       return self
     end
 
-    def update(param = nil) #:nodoc:
-      @map_layers.each{|l| l.update }
-      if @visible && @event_layer
-        @event_layer.each{|e|
-          e.update(self, @event_layer, param)
-        }
-      end
+    def render #:nodoc:
+      @map_layers.each{|l| l.render }
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def events
       return @event_layer || []
     end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def viewport
-      return @viewport
-    end
-    
-  #===あとで書く
-  #_vp_:: あとで書く
-  #返却値:: あとで書く
-    def viewport=(vp)
-      @viewport = vp
-      @map_layers.each{|l| l.viewport = @viewport }
-      @event_layer.each{|e| e.viewport = @viewport } if @event_layer
-      return self
-    end
-    
-    def Map::get_list #:nodoc:
-      return @@maps
-    end
-
-    def Map::update #:nodoc:
-      @@maps.each{|m| m.update}
-    end
-
-    def Map::reset_viewport #:nodoc:
-      @@maps.each{|m| m.viewport = Screen.rect }
-    end
   end
 
-=begin rdoc
-==あとで書く
-=end
+  #==スクロールしないマップクラス
   class FixedMap
-    include MiyakoTap
     include Layout
     
-    @@maps = Array.new
     @@idx_ix = [-1, 2, 4]
     @@idx_iy = [-1, 0, 6]
 
     attr_reader :name, :map_layers, :pos, :w, :h
 
-=begin rdoc
-==あとで書く
-=end
+    #==あとで書く
     class FixedMapLayer #:nodoc: all
       extend Forwardable
 
       @@use_chip_list = Hash.new(nil)
       
-      attr_accessor :visible, :dp, :mapchip_units
+      attr_accessor :mapchip_units
       attr_reader :pos
-
-      def update #:nodoc:
-        return unless @visible
-        pos = 0
-        @ch.times{|y|
-          m2 = @mapdat[@modpy2[y]]
-          @cw.times{|x|
-            code = m2[@modpx2[x]]
-            next if code == -1
-            mc = @mapchip_units[code].to_unit
-            @units[pos].bitmap = mc.bitmap
-            @units[pos].ow = mc.ow
-            @units[pos].ox = mc.ox
-            @units[pos].x = @pos.x + x * @baseimg.ow
-            @units[pos].oh = mc.oh
-            @units[pos].oy = mc.oy
-            @units[pos].y = @pos.y + y * @baseimg.ow
-            pos += 1
-          }
-        }
-        Screen.sprite_list.concat(@units[0...pos])
-      end
 
       #===画面に描画を指示する
       #現在の画像を、現在の状態で描画するよう指示する
       #--
       #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
       #++
-      #返却値:: 自分自身を返す
       def render
-        org_visible = @visible
-        @visible = true # updateメソッド内でvisibleチェックがあるため
-        self.update
-        @visible = org_visible
-        return self
+        pos = 0
+        @ch.times{|y|
+          m2 = @mapdat[@modpy2[y]]
+          @cw.times{|x|
+            code = m2[@modpx2[x]]
+            next if code == -1
+            unit = @mapchip_units[code].to_unit
+            unit.move_to(@pos.x + x * @ow, @pos.y + y * @ow)
+            Screen::render_screen(unit)
+          }
+        }
       end
 
       def round(v, max) #:nodoc:
@@ -667,51 +464,40 @@ module Miyako
       end
 
       def reSize #:nodoc:
-        @cw = @real_size.w % @mapchip.chip_size.w == 0 ? @real_size.w / @mapchip.chip_size.w : (@real_size.w + @mapchip.chip_size.w - 1)/ @mapchip.chip_size.w + 1
-        @ch = @real_size.h % @mapchip.chip_size.h == 0 ? @real_size.h / @mapchip.chip_size.h : (@real_size.h + @mapchip.chip_size.h - 1)/ @mapchip.chip_size.h + 1
-        @units.clear if @units
-        @units = Array.new
-        if @baseimg
-          @ch.times{|y|
-            @cw.times{|x|
-              @units.push(SpriteUnit.new(@baseimg.dp, @baseimg.bitmap, 0 , 0, 
-                                         @baseimg.ow, @baseimg.oh, 0, 0, nil, Screen.rect))
-            }
-          }
-        end
+        @cw = @real_size.w % @ow == 0 ? @real_size.w / @ow : (@real_size.w + @ow - 1)/ @ow + 1
+        @ch = @real_size.h % @oh == 0 ? @real_size.h / @oh : (@real_size.h + @oh - 1)/ @oh + 1
       end
 
       def initialize(mapchip, mapdat, layer_size, pos) #:nodoc:
         @mapchip = mapchip
         @pos = pos.dup
         @size = layer_size.dup
-        @real_size = Size.new(@size.w * @mapchip.chip_size.w, @size.h * @mapchip.chip_size.h)
+        @ow = @mapchip.chip_size.w
+        @oh = @mapchip.chip_size.h
+        @real_size = Size.new(@size.w * @ow, @size.h * @oh)
         @mapdat = mapdat
         @baseimg = nil
         @baseimg = @mapchip.chip_image
-        @baseimg.ow = @mapchip.chip_size.w
-        @baseimg.oh = @mapchip.chip_size.h
         @units = nil
         @visible = false
-        @divpx = get_div_array(0, @real_size.w, @mapchip.chip_size.w)
-        @divpy = get_div_array(0, @real_size.h, @mapchip.chip_size.h)
-        @modpx = get_mod_array(0, @real_size.w, @mapchip.chip_size.w)
-        @modpy = get_mod_array(0, @real_size.h, @mapchip.chip_size.h)
+        @divpx = get_div_array(0, @real_size.w, @ow)
+        @divpy = get_div_array(0, @real_size.h, @oh)
+        @modpx = get_mod_array(0, @real_size.w, @ow)
+        @modpy = get_mod_array(0, @real_size.h, @oh)
         @modpx2 = get_mod_array(0, @size.w * 2 + 1, @size.w)
         @modpy2 = get_mod_array(0, @size.h * 2 + 1, @size.h)
         @cdivsx = get_div_array(0, @mapchip.chips, @mapchip.size.w)
         @cmodsx = get_mod_array(0, @mapchip.chips, @mapchip.size.w)
         @cdivsy = get_div_array(0, @mapchip.chips, @mapchip.size.h)
         @cmodsy = get_mod_array(0, @mapchip.chips, @mapchip.size.h)
-        @cdivsx = @cdivsx.map{|v| v * @mapchip.chip_size.w }
-        @cdivsy = @cdivsy.map{|v| v * @mapchip.chip_size.h }
-        @cmodsx = @cmodsx.map{|v| v * @mapchip.chip_size.w }
-        @cmodsy = @cmodsy.map{|v| v * @mapchip.chip_size.h }
+        @cdivsx = @cdivsx.map{|v| v * @ow }
+        @cdivsy = @cdivsy.map{|v| v * @oh }
+        @cmodsx = @cmodsx.map{|v| v * @ow }
+        @cmodsy = @cmodsy.map{|v| v * @oh }
         @mapchip_units = Array.new(@mapchip.chips){|idx|
-          SpriteUnit.new(@baseimg.dp, @baseimg.bitmap,
-                         (idx % @mapchip.size.w) * @mapchip.chip_size.w,
-                         (idx / @mapchip.size.w) * @mapchip.chip_size.h, 
-                         @baseimg.ow, @baseimg.oh, 0, 0, nil, Screen.rect)
+          SpriteUnitFactory.create(:bitmap=>@baseimg.bitmap,
+                                   :ox => (idx % @mapchip.size.w) * @ow, :oy => (idx / @mapchip.size.w) * @oh,
+                                   :ow => @ow, :oh => @oh)
         }
         reSize
       end
@@ -743,33 +529,21 @@ module Miyako
         @baseimg = nil
       end
 
-      def dp #:nodoc:
-        return @baseimg.dp
-      end
-
-      def dp=(v) #:nodoc:
-        @baseimg.dp = v
-        @units.each{|u| u.dp = v}
-      end
-
-      def viewport=(vp) #:nodoc:
-        @units.each{|u| u.viewport = vp }
-      end
-
       def_delegators(:@size, :w, :h)
     end
 
-  #===あとで書く
-  #_mapchip_:: あとで書く
-  #_layer_csv_:: あとで書く
-  #_pos_:: あとで書く
-  #返却値:: あとで書く
-    def initialize(mapchip, layer_csv, pos = Point.new(0, 0))
+    #===あとで書く
+    #_mapchip_:: あとで書く
+    #_layer_csv_:: あとで書く
+    #_event_manager_:: MapEventManagerクラスのインスタンス
+    #_pos_:: あとで書く
+    #返却値:: あとで書く
+    def initialize(mapchip, layer_csv, event_manager, pos = Point.new(0, 0))
       init_layout
+      @em = event_manager.dup
+      @em.set(self)
       @mapchip = mapchip
-      @visible = false
       @pos = Point.new(*(pos.to_a))
-      @viewport = Screen.rect
       @coll = Collision.new(Rect.new(0, 0, 0, 0), Point.new(0, 0))
       layer_data = CSV.readlines(layer_csv)
 
@@ -800,12 +574,13 @@ module Miyako
 
       @map_layers = Array.new
       @event_layer = nil
+
       if brlist.has_key?(:event)
         @event_layer = Array.new
         brlist[:event].each_with_index{|ly, y|
           ly.each_with_index{|code, x|
-            next unless MapEvent.include?(code)
-            @event_layer.push(MapEvent.create(code, x * @mapchip.chip_size.w, y * @mapchip.chip_size.h))
+            next unless @em.include?(code)
+            @event_layer.push(@em.create(code, x * @mapchip.chip_size.w, y * @mapchip.chip_size.h))
           }
         }
         layers -= 1
@@ -816,139 +591,68 @@ module Miyako
         @map_layers.push(FixedMapLayer.new(@mapchip, br, layer_size, pos))
       }
       set_layout_size(@w, @h)
-      @@maps.push(self)
     end
 
-  #===あとで書く
-  #_code_:: あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_code_:: あとで書く
+    #_x_:: あとで書く
+    #_y_:: あとで書く
+    #返却値:: あとで書く
     def add_event(code, x, y)
-      return unless MapEvent.include?(code)
-      @event_layer.push(MapEvent.create(code, x, y))
+      return self unless @em.include?(code)
+      @event_layer.push(@em.create(code, x, y))
       return self
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def update_layout_position
       d = Point.new(@layout.pos[0]-@pos.x, @layout.pos[1]-@pos.y)
-      @pos.x = @layout.pos[0]
-      @pos.y = @layout.pos[1]
-      @map_layers.each{|ml| ml.pos.x, ml.pos.y = @pos.x, @pos.y }
-      @event_layer.each{|e| e.update_position(d) }
-    end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def dp
-       return @map_layers.collect{|l| l.dp }
+      @pos.move_to(*@layout.pos)
+      @map_layers.each{|ml| ml.pos.move_to(*@pos) }
     end
 
-  #===あとで書く
-  #_d_:: あとで書く
-  #返却値:: あとで書く
-    def dp=(d)
-      dp = d
-      @map_layers.each{|l|
-        l.dp = dp
-        dp += 100
-      }
-      return self
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def max_dp
-      return @map_layers.map{|l| l.dp }.max
-    end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def min_dp
-      return @map_layers.map{|l| l.dp }.min
-    end
-    
-  #===あとで書く
-  #_dl_:: あとで書く
-  #返却値:: あとで書く
-    def setDPs(*dl)
-      l = dl.length
-      l = @map_layers.length if l > @map_layers.length
-      l.length.each_with_index{|l, d| l.dp = dl[d]}
-      return self
-    end
-
-    def layer(idx) #:nodoc:
+    def [](idx) #:nodoc:
       return @map_layers[idx]
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
-    def visible
-      return @visible
-    end
-
-  #===あとで書く
-  #_f_:: あとで書く
-  #返却値:: あとで書く
-    def visible=(f)
-      @visible = f
-      @map_layers.each{|ll| ll.visible = @visible }
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def show
-      self.visible = true
-      return self
-    end
-
-  #===あとで書く
-  #返却値:: あとで書く
-    def hide
-      self.visible = false
-      return self
-    end
-
-  #===あとで書く
-  #_idx_:: あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_idx_:: あとで書く
+    #_x_:: あとで書く
+    #_y_:: あとで書く
+    #返却値:: あとで書く
     def get_code_real(idx, x, y)
       code = @map_layers[idx].get_code((x-@pos[0]) / @mapchip.chip_size[0], (y-@pos[1]) / @mapchip.chip_size[1])
       yield code if block_given?
       return code
     end
 
-  #===あとで書く
-  #_idx_:: あとで書く
-  #_x_:: あとで書く
-  #_y_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_idx_:: あとで書く
+    #_x_:: あとで書く
+    #_y_:: あとで書く
+    #返却値:: あとで書く
     def get_code(idx, x, y)
       code = @map_layers[idx].get_code(x, y)
       yield code if block_given?
       return code
     end
 
-  #===あとで書く
-  #_idx_:: あとで書く
-  #_code_:: あとで書く
-  #_base_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_idx_:: あとで書く
+    #_code_:: あとで書く
+    #_base_:: あとで書く
+    #返却値:: あとで書く
     def set_mapchip_base(idx, code, base)
       @map_layers[idx].mapchip_units[code] = base
       return self
     end
 
-  #===あとで書く
-  #_type_:: あとで書く
-  #_rect_:: あとで書く
-  #_collision_:: あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #_type_:: あとで書く
+    #_rect_:: あとで書く
+    #_collision_:: あとで書く
+    #返却値:: あとで書く
     def get_amount_by_rect(type, rect, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
@@ -964,7 +668,7 @@ module Miyako
           @map_layers.each_with_index{|ml, idx|
             code = ml.get_code(px, py)
             next if code == -1 # not use chip
-            @coll.rect = @mapchip.collision_table[type][code]
+            @coll = @mapchip.collision_table[type][code].dup
             @coll.pos  = Point.new(rpx, rpy)
             atable = @mapchip.access_table[type][code]
             if @coll.into?(collision)
@@ -981,30 +685,29 @@ module Miyako
       return mma
     end
     
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def chipSize
       return @mapchip.chip_size
     end
 
-  #===あとで書く
-  #_pos_:: あとで書く
-  #返却値:: あとで書く
-    def get_view_position(pos)
-      return Point.new(pos[0] + @pos.x, pos[1] + @pos.y)
+    #===あとで書く
+    #返却値:: あとで書く
+    def final
+      @event_layer.each{|e| e.final } if @event_layer
     end
-
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def dispose
       @map_layers.each{|l|
         l.dispose
         l = nil
       }
       @map_layers = Array.new
-      @event_layer.each{|e| e.final }
-      @event_layer = nil
-      @@maps.delete(self)
+      if @event_layer
+        @event_layer.each{|e| e.dispose }
+        @event_layer = nil
+      end
     end
 
     def re_size #:nodoc:
@@ -1012,124 +715,114 @@ module Miyako
       return self
     end
 
-    def update(param = nil) #:nodoc:
-      @map_layers.each{|l| l.update }
-      if @visible && @event_layer
-        @event_layer.each{|e|
-          e.update(self, @event_layer, param)
-        }
-      end
+    def render #:nodoc:
+      @map_layers.each{|l| l.render }
     end
 
-  #===あとで書く
-  #返却値:: あとで書く
+    #===あとで書く
+    #返却値:: あとで書く
     def events
       return @event_layer || []
     end
-    
-  #===あとで書く
-  #返却値:: あとで書く
-    def viewport
-      return @viewport
-    end
-    
-  #===あとで書く
-  #_vp_:: あとで書く
-  #返却値:: あとで書く
-    def viewport=(vp)
-      @layout.viewport = vp
-      @viewport = vp
-      @map_layers.each{|l| l.viewport = @viewport }
-      @event_layer.each{|e| e.viewport = @viewport } if @event_layer
-      return self
-    end
-    
-    def FixedMap::get_list #:nodoc:
-      return @@maps
-    end
-
-    def FixedMap::update #:nodoc:
-      @@maps.each{|m| m.update}
-    end
-
-    def FixedMap::reset_viewport #:nodoc:
-      @@maps.each{|m| m.viewport = Screen.rect }
-    end
   end
 
-=begin
-==マップ上のイベントを管理するクラス
-=end
-  module MapEvent
-    
-    @@id2event = Hash.new
-
-    # イベントインスタンスに固有の名前
-    attr_accessor :name
-
-    #===イベントのインスタンスを作成する
-    #引数として渡せるX,Y座標の値は、表示上ではなく理論上の座標位置
-    #_x_:: マップ上のX座標の値。デフォルトは0
-    #_y_:: マップ上のY座標の値。デフォルトは0
-    #_name_:: インスタンス固有の名称。nameメソッドで参照・更新可能。
-    #デフォルトはnil(自動的に、__id__.to_sが挿入される)
+  #==マップ上のイベント全体を管理するクラス
+  #Map/FixedMapクラス内で使用する
+  #使い方：
+  #
+  #(1)インスタンスを生成する
+  #
+  #em = MapEventManager.new
+  #
+  #(2)MapEventクラスとIDを登録する
+  #
+  #(例)MapEventモジュールをmixinしたクラスXを、ID=0のイベントとして登録
+  #
+  #em.add(0, X)
+  #
+  #(3)Map/FixedMapクラスインスタンス生成時に引数として渡す
+  #
+  #@map = Map.new(...,em)
+  #
+  #(注)登録するIDは、イベントレイヤー上の番号と対応しておくこと
+  class MapEventManager
+    #===インスタンスを生成する
+    #_map_obj_:: Managerが属するMap/FixedMapクラスのインスタンス
     #返却値:: 生成されたインスタンス
-    def initialize(x = 0, y = 0, name = nil)
-      @event_pos = Point.new(x, y)
-      @delta = Point.new(0, 0)
-      init
+    def initialize
+      @map = nil
+      @id2event = Hash.new
+    end
+
+    def set(map) #:nodoc:
+      @map = map
     end
 
     #===イベントクラスをマップに追加登録する
     #_id_:: マップ(イベントレイヤ)上の番号。
     #イベントレイヤ上に存在しない番号を渡してもエラーや警告は発しない
     #_event_:: イベントクラス。クラスのインスタンスではないことに注意！
-    def MapEvent.add(id, event)
-      @@id2event[id] = event
+    #返却値:: 自分自身を返す
+    def add(id, event)
+      @id2event[id] = event
+      return self
     end
 
     #===イベントが登録されているかを確認する
     #引数で渡した番号に対応するイベントクラスが登録されているかどうかを確認する
     #_id_:: イベントクラスに対応した番号
     #返却値:: イベントクラスが登録されている時はtrueを返す
-    def MapEvent.include?(id)
-      return @@id2event.has_key?(id)
+    def include?(id)
+      raise MiyakoError, "This MapEventManager instance is not set Map/FixedMap instance!" unless @map
+      return @id2event.has_key?(id)
     end
 
     #===イベントのインスタンスを生成する(番号指定)
     #インスタンス生成と同時に、マップ上の座標を渡して初期位置を設定する
+    #登録していないIDを指定するとエラーになる
     #
     #設置は、マップ上の座標に設置する。表示上の座標ではない事に注意。
     #_id_:: イベントクラスと登録した際の番号
     #_x_:: イベントを設置する位置(X座標)
     #_y_:: イベントを設置する位置(Y座標)
     #返却値:: 生成したインスタンス
-    def MapEvent.create(id, x, y)
-      return @@id2event[id].new(x, y)
+    def create(id, x = 0, y = 0)
+      raise MiyakoError, "This MapEventManager instance is not set Map/FixedMap instance!" unless @map
+      raise MiyakoError, "Unknown Map Event ID! : #{id}" unless include?(id)
+      return @id2event[id].new(@map, x, y)
     end
 
     #===すべての登録済みイベントクラスの登録を解除する
-    def MapEvent.clear
-      @@id2event.keys.each{|k|
-        @@id2event[k] = nil
-      }
+    def clear
+      @id2event.keys.each{|k| @id2event[k] = nil }
+    end
+
+    def dispose
+      @map = nil
+      @id2event.clear
+      @id2event = nil
+    end
+  end
+
+  #==マップ上のイベントを管理するモジュール
+  #実際に使う際にはmix-inして使う
+  module MapEvent
+    #===イベントのインスタンスを作成する
+    #引数として渡せるX,Y座標の値は、表示上ではなく理論上の座標位置
+    #_map_obj_:: 関連づけられたMap/FixedMapクラスのインスタンス
+    #_x_:: マップ上のX座標の値。デフォルトは0
+    #_y_:: マップ上のY座標の値。デフォルトは0
+    #返却値:: 生成されたインスタンス
+    def initialize(map_obj, x = 0, y = 0)
+      init(map_obj, x, y)
     end
 
     #===イベント生成時のテンプレートメソッド
-    #イベントクラスからインスタンスが生成された時の初期化処理を記述する
-    def init
-    end
-
-    def update_position(new_pos) #:nodoc:
-      @delta.x = new_pos.x
-      @delta.y = new_pos.y
-      update_pos
-    end
-    
-    #===位置移動時の処理のテンプレートメソッド
-    #指定のインスタンスの位置を移動した時に呼ばれる。
-    # @delta(Point構造体)に移動量が設定されている
-    def update_pos
+    #イベントクラスからインスタンスが生成された時の初期化処理を実装する
+    #_map_obj_:: 関連づけられたMap/FixedMapクラスのインスタンス
+    #_x_:: マップ上のX座標の値
+    #_y_:: マップ上のY座標の値
+    def init(map_obj, x, y)
     end
     
     #===インスタンス内の表示やデータを更新するテンプレートメソッド
@@ -1140,52 +833,68 @@ module Miyako
     def update(map_obj, events, params)
     end
 
-    #===あとで書く
-    #_param_:: あとで書く
-    #返却値:: あとで書く
-    def met?(param)
-    end
-    
-    #===画面に描画を指示する(テンプレートメソッド)
-    #現在の画像を、現在の状態で描画するよう指示する
-    #(イベント内部で用意している画像の描画指示するためのテンプレートメソッド)
-    #--
-    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-    #++
+    #===イベントを指定の分量で移動させる(テンプレートメソッド)
+    #_dx_:: 移動量(x座標)。単位はピクセル
+    #_dy_:: 移動量(y座標)。単位はピクセル
     #返却値:: 自分自身を返す
-    def render
+    def move(dx,dy)
       return self
     end
 
-    #===あとで書く
-    #_param_:: あとで書く
-    #返却値:: あとで書く
-    def execute(param)
+    #===イベントを指定の位置へ移動させる(テンプレートメソッド)
+    #_x_:: 移動先の位置(x座標)。単位はピクセル
+    #_y_:: 移動先の位置(y座標)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to(x,y)
+      return self
+    end
+
+    #===イベント発生可否問い合わせ(テンプレートメソッド)
+    #イベント発生が可能なときはtrueを返す(その後、startメソッドを呼び出す)処理を実装する
+    #_param_:: 問い合わせに使用するパラメータ群。デフォルトはnil
+    #返却値:: イベント発生可能ならばtrue
+    def met?(params = nil)
+      return false
     end
     
-    #===あとで書く
-    #返却値:: あとで書く
+    #===画面に画像を描画する(テンプレートメソッド)
+    #イベントで所持している画像を描画するメソッドを実装する
+    #(イベント内部で用意している画像の描画用テンプレートメソッド)
+    def render
+    end
+
+    #===イベントを発生させる(テンプレートメソッド)
+    #ここに、イベント発生イベントを実装する。更新はupdateメソッドに実装する
+    #_param_:: イベント発生に必要なパラメータ群。デフォルトはnil
+    #返却値:: 自分自身を返す
+    def start(params = nil)
+      return self
+    end
+    
+    #===イベントを停止・終了させる(テンプレートメソッド)
+    #ここに、イベント停止・終了イベントを実装する。更新はupdateメソッドに実装する
+    #_param_:: イベント発生に必要なパラメータ群。デフォルトはnil
+    #返却値:: 自分自身を返す
+    def stop(params = nil)
+      return self
+    end
+    
+    #===イベント発生中問い合わせ(テンプレートメソッド)
+    #ここに、イベント発生中の問い合わせ処理を実装する。
+    #_param_:: あとで書く
+    #返却値:: イベント発生中の時はtrue
+    def executing?
+      return false
+    end
+    
+    #===イベント終了後の後処理(テンプレートメソッド)
+    #ここに、イベント終了後の後処理を実装する。
     def final
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===イベントに使用しているインスタンスを解放する(テンプレートメソッド)
+    #ここに、インスタンス解放処理を実装する。
     def dispose
-    end
-
-    #===あとで書く
-    #返却値:: あとで書く
-    def viewport
-      return Screen.rect
-    end
-    
-    #===あとで書く
-    #_vp_:: あとで書く
-    #返却値:: あとで書く
-    def viewport=(vp)
-      @viewport = vp
-      @map_layers.each{|l| l.viewport = @viewport }
-      @event_layer.each{|e| e.viewport = @viewport } if @event_layer
     end
   end
 end

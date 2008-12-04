@@ -1,6 +1,7 @@
+# -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.0
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -22,561 +23,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 require 'thread'
 
 #=シナリオ言語Yuki実装モジュール
-module Yuki
-  #===Yukiのバージョン番号を返す
-  #返却値:: Yukiのバージョン番号(文字列)
-  def Yuki::version
-    return "1.5"
-  end
-
-  #==Yuki例外クラス
-  class YukiError < Exception
-  end
-
-  #==Yuki実行管理クラス(外部クラスからの管理用)
-  #実行中のYukiの管理を行うためのクラス
-  #インスタンスは、Yuki#getmanager メソッドを呼ぶことで取得する
-  class YukiManager
-    #===インスタンスの作成
-    #--
-    #実際にインスタンスを生成するときは、Yuki#manager メソッドを呼ぶこと
-    #_yuki_:: 管理対象の Yuki モジュールを mixin したクラスのインスタンス
-    #_now_scene_:: 実行中のシーンクラスのインスタンス
-    #_plot_proc_:: プロットメソッド・プロシージャインスタンス。デフォルトは nil
-    #++
-    def initialize(yuki, now_scene, plot_proc) #:nodoc:
-      @yuki_instance = yuki
-      @now_scene = now_scene
-      @yuki_plot = plot_proc
-    end
-    
-    #===プロット処理を開始する
-    def start
-      @yuki_instance.exec_plot(@yuki_plot)
-    end
-    
-    #===入力更新処理を呼び出す
-    def update_input
-      @yuki_instance.update_plot_input
-    end
-
-    #===プロットの実行結果を返す
-    #返却値:: 実行結果を示すインスタンス。デフォルトは、現在実行しているシーンのインスタンス
-    def result
-      @yuki_instance.get_plot_result(@now_scene)
-    end
-
-    #===プロット処理が実行中かの問い合わせメソッド
-    #返却値:: 実行中の時は true を返す
-    def executing?
-      return @yuki_instance.plot_executing?
-    end
-  end
-  
-  #==コマンド構造体
-  Command = Struct.new(:body, :condition, :result)
-
-  @@yuki = {}
-  @@yuki[:pre_plot] = true
-  @@yuki[:exec_plot] = false
-
-  @@yuki[:pausing] = false
-  @@yuki[:selecting] = false
-  @@yuki[:waiting] = false
-  
-  @@yuki[:pause_release] = false
-  @@yuki[:select_ok] = false
-  @@yuki[:select_cansel] = false
-  @@yuki[:select_amount] = [0, 0]
-
-  @@yuki[:result] = nil
-  @@yuki[:plot_result] = nil
-
-  #===Yukiを初期化する
-  #Yukiの実装部に、メッセージボックスとコマンドボックスを登録する
-  #
-  #各ボックスはともに、TextBoxクラスのインスタンス(もしくはそれを含むPartsクラスのインスタンス)
-  #
-  #メッセージボックスは、コマンドボックスとの兼用が可能
-  #
-  #(注)Yukiを使う際は、クラス変数@@yuki、インスタンス変数@yukiはすでに予約されているため、使用しないこと
-  #
-  #_box_:: テキストボックスを示すTextBoxクラスのインスタンスもしくはそのインスタンスを含むPartsクラスのインスタンス
-  #_cbox_:: コマンドボックスを示すTextBoxクラスのインスタンスもしくはそのインスタンスを含むPartsクラスのインスタンス。デフォルトはnil(テキストボックスと共通)
-  #_parts_name:: ボックスがPartsクラスインスタンスのときは、ボックスを示す部品名(シンボル)。デフォルトはnil(TextBoxクラスインスタンスを直接渡し)
-  #
-  #(注)parts_nameを使用する際は、box,cboxともにPartsクラスのインスタンスで、また、TextBoxクラスのインスタンスを同じシンボルで参照可能にする必要がある。
-  #
-  #(例1)boxとcboxともに別のテキストボックス、TextBoxクラスのインスタンス・・・　init_yuki(box, cbox)
-  #(例2)boxがコマンドボックスと兼用、TextBoxクラスのインスタンス・・・　init_yuki(box)
-  #(例3)boxとcboxともに別のテキストボックス、Partsクラスのインスタンス(シンボル：:box)・・・　init_yuki(box, cbox, :box)
-  #(例4)boxがコマンドボックスと兼用、Partsクラスのインスタンス(シンボル：:box)・・・　init_yuki(box, nil, :box)
-  def init_yuki(box, cbox = nil, parts_name = nil)
-    @yuki = { }
-    @yuki[:text_box] = parts_name ? box[parts_name] : box
-    @yuki[:command_box] = parts_name ? (cbox[parts_name] || box[parts_name]) : (cbox || box)
-
-    @yuki[:text_box_part] = box
-    @yuki[:command_box_part] = cbox || box
-    
-    @yuki[:text_box].clear
-    @yuki[:command_box].clear
-
-    @yuki[:btn] = {:ok => :btn1, :cansel => :btn2, :release => :btn1 }
-    
-    @yuki[:mutex] = Mutex.new
-    @yuki[:plot_thread] = nil
-  end
-
-  #===各ボタンの設定リストを出力する
-  #コマンド決定・キャンセル時に使用するボタンの一覧をシンボルのハッシュとして返す。ハッシュの内容は以下の通り
-  #ハッシュキー:: 説明:: デフォルト
-  #:release:: メッセージ待ちを終了するときに押すボタン:: :btn1
-  #:ok:: コマンド選択で「決定」するときに押すボタン:: btn1
-  #:cansel:: コマンド選択で「キャンセル」するときに押すボタン:: btn2
-  #
-  #返却値:: ボタンの設定リスト
-  def button
-    return @yuki[:btn]
-  end
-  
-  #===シーンのセットアップ時に実行する処理
-  #
-  #シーンのsetupメソッド内で必ず呼ぶこと
-  #返却値:: あとで書く
-  def setup_yuki
-    @yuki[:plot_result] = nil
-
-    @@yuki[:pre_plot] = true
-
-    @@yuki[:exec_plot] = false
-
-    @@yuki[:pausing] = false
-    @@yuki[:selecting] = false
-    @@yuki[:waiting] = false
-
-    @@yuki[:pause_release] = false
-    @@yuki[:select_ok] = false
-    @@yuki[:select_cansel] = false
-    @@yuki[:select_amount] = [0, 0]
-
-    @@yuki[:result] = nil
-    @@yuki[:plot_result] = nil
-  end
-  
-  def update #:nodoc:
-    if @@yuki[:pre_plot]
-      @yuki[:text_box].exec{ plot_facade }
-      until @@yuki[:exec_plot] do; end
-      @@yuki[:pre_plot] = false
-      return @now
-    end
-    return update_plot(@now)
-  end
-
-  #===プロット処理を実行する(明示的に呼び出す必要がある場合)
-  #引数もしくはブロックで指定したプロット処理を非同期に実行する。
-  #呼び出し可能なプロットは以下の3種類。(上から優先度が高い順）
-  #
-  #1)引数prot_proc(Procクラスのインスタンス)
-  #
-  #2)ブロック引数
-  #
-  #3)Yuki#plotメソッド
-  #
-  #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
-  #返却値:: あとで書く
-  def exec_plot(plot_proc = nil, &plot_block)
-    @yuki[:text_box].exec{ plot_facade(plot_proc, &plot_block) }
-    until @@yuki[:exec_plot] do; end
-    @yuki[:plot_thread] = Thread.new{ update_plot_thread }
-    return self
-  end
-  
-  #===プロット処理を更新する
-  #ポーズ中、コマンド選択中、 Yuki#wait メソッドによるウェイトの
-  #状態確認を行う。プロット処理が終了していれば、返却値として移動先インスタンスを取得する
-  #(処理中の時は、引数 default_return インスタンスを取得する)
-  #_default_return_:: 更新時に移動先が指定されなかったときの移動先インスタンス(規定値はnil)
-  #返却値:: あとで書く
-  def update_plot(default_return = nil)
-    ret = default_return
-    if @@yuki[:exec_plot]
-      update_plot_input
-      pausing   if @@yuki[:pausing]
-      selecting if @@yuki[:selecting]
-      waiting   if @@yuki[:waiting]
-      @yuki[:mutex].lock
-      @@yuki[:pause_release] = false
-      @@yuki[:select_ok] = false
-      @@yuki[:select_cansel] = false
-      @@yuki[:select_amount] = [0, 0]
-      @yuki[:mutex].unlock
-    else
-      r = @@yuki[:plot_result]
-      ret = (r.class == Class && r.include?(Story::Scene)) ? r : nil
-    end
-    return ret
-  end
-  
-  def update_plot_thread #:nodoc:
-    while @@yuki[:exec_plot]
-      pausing if @@yuki[:pausing]
-      selecting if @@yuki[:selecting]
-      waiting   if @@yuki[:waiting]
-      Thread.pass
-    end
-  end
-  
-  #===プロット処理の結果を得る
-  #プロットが実行されたときの結果を得る
-  #(処理中の時は、引数 default_return を取得する)
-  #_default_return_:: 更新時に移動先が指定されなかったときの移動先インスタンス(規定値はnil)
-  #返却値:: プロットの実行が終了している場合はその値、実行中の時は default_return の値をそのまま返す
-  def get_plot_result(default_return = nil)
-    r = @@yuki[:plot_result]
-#    return (r.class == Class && r.include?(Story::Scene)) ? r : default_return
-    return plot_executing? ? default_return : r
-  end
-  
-  #===プロット処理に使用する入力情報を更新する
-  #ポーズ中、コマンド選択中に使用する入力デバイスの押下状態を更新する
-  #Yuki#update メソッドをそのまま使う場合は呼び出す必要がないが、 Yuki#exec_plot メソッドを呼び出す
-  #プロット処理の場合は、メインスレッドから明示的に呼び出す必要がある
-  #返却値:: nil を返す
-  def update_plot_input
-    if @@yuki[:pausing] && Miyako::Input.pushed_all?(@yuki[:btn][:ok])
-      @@yuki[:pause_release] = true
-    elsif @@yuki[:selecting]
-      @@yuki[:select_ok] = true if Miyako::Input.pushed_all?(@yuki[:btn][:ok])
-      @@yuki[:select_cansel] = true if @yuki[:cansel] && Miyako::Input.pushed_all?(@yuki[:btn][:cansel])
-      @@yuki[:select_amount] = Input.pushed_amount
-    end
-    return nil
-  end
-  
-  #===プロット処理が実行中かどうかを確認する
-  #返却値:: プロット処理実行中の時はtrueを返す
-  def plot_executing?
-    return @@yuki[:exec_plot]
-  end
-  
-  #===プロット処理を外部クラスから管理するインスタンスを取得する
-  #
-  #1)引数prot_proc(Procクラスのインスタンス)
-  #
-  #2)ブロック引数
-  #
-  #3)Yuki#plotメソッド
-  #
-  #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
-  #返却値:: YukiManager クラスのインスタンス
-  def manager(plot_proc = nil, &plot_block)
-    return Yuki::YukiManager.new(self, @now, plot_proc || plot_block)
-  end
-  
-  #=== Yuki#update メソッドを実行している時に実行させたいコードを入れる
-  #Yuki#update メソッド内部で呼び出すテンプレートメソッド
-  #返却値:: なし
-  def update_inner
-  end
-
-  #=== Yuki#text メソッドによる文字表示時に実行させたいコードを入れる
-  #Yuki#text メソッド内部で呼び出すテンプレートメソッド
-  #返却値:: なし
-  def update_text
-  end
-  
-  def plot_facade(plot_proc = nil, &plot_block) #:nodoc:
-    @yuki[:mutex].lock
-    @@yuki[:plot_result] = nil
-    @@yuki[:exec_plot] = true
-    @yuki[:mutex].unlock
-    @yuki[:text_box_part].show
-    @@yuki[:plot_result] = plot_proc ? plot_proc.call : (plot_block ? plot_block.call : plot)
-    @yuki[:text_box_part].hide
-    @yuki[:mutex].lock
-    @@yuki[:exec_plot] = false
-    @yuki[:plot_thread].join
-    @yuki[:plot_thread] = nil
-    @yuki[:mutex].unlock
-  end
-
-  #===プロットを示すテンプレートメソッド
-  #このメソッド内にYukiのコードを記述すると、Yuki#update メソッドか Yuki#exec_plot
-  #メソッドでプロット処理が始まる
-  #返却値:: あとで書く
-  def plot
-  end
-
-  #===メソッドをシナリオインスタンスに変換する
-  #メソッドをMethodクラスのインスタンスに変換する
-  #_method_:: シナリオインスタンスに変換したいメソッド名(シンボル)
-  #返却値:: シナリオインスタンスに変換したメソッド
-  def scenario(method)
-    return self.method(method)
-  end
-  
-  #===メソッドをシナリオインスタンスに変換する
-  #メソッドをMethodクラスのインスタンスに変換する
-  #_block_:: シナリオインスタンスに変換したいメソッド名(シンボル)
-  #返却値:: シナリオインスタンスに変換したメソッド
-  def condition(&block)
-    return block
-  end
-  
-  #===あとで書く
-  #_cond_:: あとで書く
-  #返却値:: あとで書く
-  def wait_by_cond(cond)
-    return cond ? pause_and_clear : cr
-  end
-  
-  #===あとで書く
-  #_txt_:: あとで書く
-  #返却値:: あとで書く
-  def text(txt)
-    return self if txt.eql?(self)
-    txt.split(//).each{|ch|
-      if /[\n\r]/.match(ch)
-        next wait_by_cond(@yuki[:text_box].locate.y + @yuki[:text_box].max_height >= @yuki[:text_box].textarea.h)
-      elsif @yuki[:text_box].locate.x + @yuki[:text_box].font.text_size(ch)[0] >= @yuki[:text_box].textarea.w
-        wait_by_cond(@yuki[:text_box].locate.y + @yuki[:text_box].max_height >= @yuki[:text_box].textarea.h)
-      elsif /[\t\f]/.match(ch)
-        next nil
-      end
-      @yuki[:text_box].draw_text(ch)
-      update_text
-    }
-    return self
-  end
-  
-  #===あとで書く
-  #_color_:: あとで書く
-  #返却値:: あとで書く
-  def color(color, &block)
-    tcolor = @yuki[:text_box].font.color
-    @yuki[:text_box].font.color = Color.to_rgb(color)
-    text block.call
-    @yuki[:text_box].font.color = tcolor
-    return self
-  end
-
-  #===あとで書く
-  #_size_:: あとで書く
-  #返却値:: あとで書く
-  def size(size, &block)
-    tsize = @yuki[:text_box].font.size
-    @yuki[:text_box].font.size = size
-    text block.call
-    @yuki[:text_box].font.size = tsize
-    return self
-  end
-  
-  #===あとで書く
-  #返却値:: あとで書く
-  def bold(&block)
-    tbold = @yuki[:text_box].font.bold?
-    @yuki[:text_box].font.bold = true
-    text block.call
-    @yuki[:text_box].font.bold = tbold
-    return self
-  end
-  
-  #===あとで書く
-  #返却値:: あとで書く
-  def italic(&block)
-    titalic = @yuki[:text_box].font.bold?
-    @yuki[:text_box].font.italic = true
-    text block.call
-    @yuki[:text_box].font.italic = titalic
-    return self
-  end
-  
-  #===あとで書く
-  #返却値:: あとで書く
-  def under_line(&block)
-    tunder_line = @yuki[:text_box].font.under_line?
-    @yuki[:text_box].font.under_line = true
-    text block.call
-    @yuki[:text_box].font.under_line = tunder_line
-    return self
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def cr
-    return @yuki[:text_box].cr
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def clear 
-    @yuki[:text_box].clear
-    return self
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def pause
-    @yuki[:text_box].pause
-    @yuki[:mutex].lock
-    @@yuki[:pausing] = true
-    @yuki[:mutex].unlock
-    while @@yuki[:pausing]
-      update_inner
-      Thread.pass unless Thread.current.eql?(Thread.main)
-    end
-    return self
-  end
-
-  def pausing
-    return unless @@yuki[:pause_release]
-    @yuki[:text_box].release
-    @yuki[:mutex].lock
-    @@yuki[:pausing] = false
-    @@yuki[:pause_release] = false
-    @yuki[:mutex].unlock
-  end
-  
-  #===あとで書く
-  #返却値:: あとで書く
-  def pause_and_clear
-    return pause.clear
-  end
-
-  #===あとで書く
-  #_command_list_:: あとで書く
-  #_cansel_to_:: あとで書く
-  #返却値:: あとで書く
-  def command(command_list, cansel_to = nil, &chain_block)
-    @yuki[:cansel] = cansel_to
-
-    choices = []
-    command_list.each{|cm| choices.push([cm[:body], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
-    return self if choices.length == 0
-
-    @yuki[:command_box].command(@yuki[:command_box].create_choices_chain(choices, &chain_block))
-    @yuki[:command_box_part].show
-    @yuki[:mutex].lock
-    @@yuki[:result] = nil
-    @@yuki[:selecting] = true
-    @yuki[:mutex].unlock
-    while @@yuki[:selecting]
-      update_inner
-      Thread.pass unless Thread.current.eql?(Thread.main)
-    end
-    return self
-  end
-
-  def selecting #:nodoc:
-    return unless @@yuki[:selecting]
-    exit if $miyako_debug_mode && Input.quit_or_escape?
-    if @yuki[:command_box].selecting?
-      if @@yuki[:select_ok]
-        @yuki[:mutex].lock
-        @@yuki[:result] = @yuki[:command_box].result
-        @yuki[:mutex].unlock
-        @yuki[:command_box].finish_command
-        @yuki[:command_box_part].hide unless @yuki[:command_box].equal?(@yuki[:text_box])
-        @yuki[:text_box].release
-        @yuki[:mutex].lock
-        @@yuki[:selecting] = false
-        @yuki[:mutex].unlock
-        reset_selecting
-      elsif @@yuki[:select_cansel]
-        @yuki[:mutex].lock
-        @@yuki[:result] = @yuki[:cansel]
-        @yuki[:mutex].unlock
-        @yuki[:command_box].finish_command
-        @yuki[:text_box].release
-        @yuki[:mutex].lock
-        @@yuki[:selecting] = false
-        @yuki[:mutex].unlock
-        reset_selecting
-      elsif @@yuki[:select_amount] != [0,0]
-        @yuki[:command_box].move_cursor(*@@yuki[:select_amount])
-        reset_selecting
-      end
-    end
-  end
-  
-  def reset_selecting #:nodoc:
-    @yuki[:mutex].lock
-    @@yuki[:select_ok] = false
-    @@yuki[:select_cansel] = false
-    @@yuki[:select_amount] = [0, 0]
-    @yuki[:mutex].unlock
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def result
-    return @@yuki[:result]
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def result_is_scene?
-    return (@@yuki[:result].class == Class && @@yuki[:result].include?(Miyako::Story::Scene))
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def result_is_scenario?
-    return (@@yuki[:result].kind_of?(Proc) || @@yuki[:result].kind_of?(Method))
-  end
-
-  #===あとで書く
-  #返却値:: あとで書く
-  def wait(length)
-    @waiting_timer = Miyako::WaitCounter.new(length)
-    @waiting_timer.start
-    @yuki[:mutex].lock
-    @@yuki[:waiting] = true
-    @yuki[:mutex].unlock
-    while @@yuki[:waiting]
-      update_inner
-      Thread.pass unless Thread.current.eql?(Thread.main)
-    end
-    return self
-  end
-
-  def waiting #:nodoc:
-    return if @waiting_timer.waiting?
-    @yuki[:mutex].lock
-    @@yuki[:waiting] = false
-    @yuki[:mutex].unlock
-  end
-  
-  private :init_yuki, :setup_yuki, :button, :update_inner, :update_text, :plot, :scenario, :condition, :wait_by_cond
-  
+module Miyako
   #==Yuki本体クラス
   #Yukiの内容をオブジェクト化したクラス
   #Yukiのプロット処理を外部メソッドで管理可能
   #プロットは、引数を一つ（Yuki2クラスのインスタンス）を取ったメソッドもしくはブロック
   #として記述する。
-  class Yuki2
+  class Yuki
+    #==キャンセルを示す構造体
+    #コマンド選択がキャンセルされたときに生成される構造体
+    Canseled = Struct.new(:dummy)
+
     #==Yuki実行管理クラス(外部クラスからの管理用)
     #実行中のYukiの管理を行うためのクラス
     #インスタンスは、Yuki#getmanager メソッドを呼ぶことで取得する
     class Manager
       #===インスタンスの作成
-      #--
       #実際にインスタンスを生成するときは、Yuki#manager メソッドを呼ぶこと
       #_yuki_:: 管理対象の Yuki モジュールを mixin したクラスのインスタンス
       #_plot_proc_:: プロットメソッド・プロシージャインスタンス。デフォルトは nil
-      #++
-      def initialize(yuki, plot_proc) #:nodoc:
+      #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
+      #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
+      def initialize(yuki, plot_proc, with_update_input = true, use_thread = false)
+        @with_update_input = with_update_input
+        @use_thread = use_thread
         @yuki_instance = yuki
         @yuki_plot = plot_proc
       end
-    
+
       #===プロット処理を開始する
       def start
-        @yuki_instance.exec_plot(@yuki_plot)
+        @yuki_instance.start_plot(@yuki_plot, @with_update_input, @use_thread)
       end
-    
+
       #===入力更新処理を呼び出す
       def update_input
         @yuki_instance.update_plot_input
@@ -587,68 +66,81 @@ module Yuki
         @yuki_instance.update
       end
 
+      #===描画処理を呼び出す
+      def render
+        @yuki_instance.render
+      end
+
       #===プロットの実行結果を返す
       #返却値:: 実行結果を示すインスタンス。デフォルトは、現在実行しているシーンのインスタンス
       def result
-        @yuki_instance.get_plot_result
+        @yuki_instance.result
       end
 
+      #===コマンド選択がキャンセルされたときの結果を返す
+      #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
+      def canseled?
+        return @yuki_instance.canseled?
+      end
+      
       #===プロット処理が実行中かの問い合わせメソッド
       #返却値:: 実行中の時は true を返す
       def executing?
-        return @yuki_instance.plot_executing?
+        return @yuki_instance.executing?
+      end
+
+      #===コマンド選択中の問い合わせメソッド
+      #返却値:: コマンド選択中の時はtrueを返す
+      def selecting?
+        return @yuki_instance.selecting?
+      end
+
+      #===Yuki#waitメソッドによる処理待ちの問い合わせメソッド
+      #返却値:: 処理待ちの時はtrueを返す
+      def waiting?
+        return @yuki_instance.waiting?
+      end
+
+      #===メッセージ送り待ちの問い合わせメソッド
+      #返却値:: メッセージ送り待ちの時はtrueを返す
+      def pausing?
+        return @yuki_instance.pausing?
+      end
+  
+      #===Yukiオブジェクトが使用しているオブジェクトを解放する
+      def dispose
+        @yuki_instance.dispose
+        @yuki_instance = nil
       end
     end
   
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
+    #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
-    Command = Struct.new(:body, :condition, :result)
+    Command = Struct.new(:body, :body_selected, :condition, :result)
 
     attr_accessor :update_inner, :update_text
-    attr_reader :parts, :vars
+    attr_reader :parts, :diagrams, :vars
     
     #===Yukiを初期化する
-    #Yukiの実装部に、メッセージボックスとコマンドボックスを登録する
-    #
-    #各ボックスはともに、TextBoxクラスのインスタンス(もしくはそれを含むPartsクラスのインスタンス)
-    #
-    #メッセージボックスは、コマンドボックスとの兼用が可能
-    #
-    #(注)Yukiを使う際は、クラス変数@@yuki、インスタンス変数@yukiはすでに予約されているため、使用しないこと
-    #
-    #_box_:: テキストボックスを示すTextBoxクラスのインスタンスもしくはそのインスタンスを含むPartsクラスのインスタンス
-    #_cbox_:: コマンドボックスを示すTextBoxクラスのインスタンスもしくはそのインスタンスを含むPartsクラスのインスタンス。デフォルトはnil(テキストボックスと共通)
-    #_parts_name_:: ボックスがPartsクラスインスタンスのときは、ボックスを示す部品名(シンボル)。デフォルトはnil(TextBoxクラスインスタンスを直接渡し)
-    #
-    #(注)parts_nameを使用する際は、box,cboxともにPartsクラスのインスタンスで、また、TextBoxクラスのインスタンスを同じシンボルで参照可能にする必要がある。
-    #
-    #(例1)boxとcboxともに別のテキストボックス、TextBoxクラスのインスタンス・・・　init_yuki(box, cbox)
-    #(例2)boxがコマンドボックスと兼用、TextBoxクラスのインスタンス・・・　init_yuki(box)
-    #(例3)boxとcboxともに別のテキストボックス、Partsクラスのインスタンス(シンボル：:box)・・・　init_yuki(box, cbox, :box)
-    #(例4)boxがコマンドボックスと兼用、Partsクラスのインスタンス(シンボル：:box)・・・　init_yuki(box, nil, :box)
-    def initialize(box, cbox = nil, parts_name = nil)
+    def initialize
       @yuki = { }
-      @yuki[:text_box] = parts_name ? box[parts_name] : box
-      @yuki[:command_box] = parts_name ? (cbox[parts_name] || box[parts_name]) : (cbox || box)
-
-      @yuki[:text_box_part] = box
-      @yuki[:command_box_part] = cbox || box
-    
-      @yuki[:text_box].clear
-      @yuki[:command_box].clear
+      @yuki[:text_box] = nil
+      @yuki[:command_box] = nil
 
       @yuki[:btn] = {:ok => :btn1, :cansel => :btn2, :release => :btn1 }
-    
+
       @yuki[:plot_thread] = nil
 
       @yuki[:exec_plot] = false
+      @yuki[:with_update_input] = true
 
       @yuki[:pausing] = false
       @yuki[:selecting] = false
       @yuki[:waiting] = false
-  
+
       @yuki[:pause_release] = false
       @yuki[:select_ok] = false
       @yuki[:select_cansel] = false
@@ -662,155 +154,185 @@ module Yuki
       @mutex = Mutex.new
       
       @parts = {}
-      @diagrams = []
+      @visible = []
+      @diagrams = {}
       @vars = {}
 
       @is_outer_height = self.method(:is_outer_height)
     end
 
-  #===オブジェクトを登録する
-  #オブジェクトをパーツnameとして登録する。
-  #Yuki2::parts[name]で参照可能
-  #:name:: パーツ名（シンボル）
-  #:parts:: 登録対象のインスタンス
-  #
-  #返却値:: 自分自身を返す
-  def regist_parts(name, parts)
-    @parts[name] = parts
-    return self
-  end
-  
-  #===遷移図を登録する
-  #遷移図をパーツnameとして登録する。
-  #Yuki2::parts[name]で参照可能（registerメソッドで登録する名称と重複しない様に注意！）
-  #registerメソッドでも登録できるが、このときはupdate_input,renderメソッドが機能しない
-  #遷移図を登録すると、update_input,renderの各メソッドがYuki2::update_plotメソッドを呼び出した時に
-  #自動的に呼び出される。
-  #:name:: パーツ名（シンボル）
-  #:diagram:: 登録対象の遷移図インスタンス
-  #
-  #返却値:: 自分自身を返す
-  def regist_diagram(name, diagram)
-    @parts[name] = diagram
-    @diagrams << diagram
-    return self
-  end
-  
-  #===オブジェクトの登録を解除する
-  #パーツnameとして登録されているオブジェクトを登録から解除する。
-  #:name:: パーツ名（シンボル）
-  #
-  #返却値:: 自分自身を返す
-  def remove_parts(name)
-    @parts.delete(name)
-    return self
-  end
-  
-  #===遷移図の登録を解除する
-  #パーツnameとして登録されている遷移図を登録から解除する。
-  #:name:: パーツ名（シンボル）
-  #
-  #返却値:: 自分自身を返す
-  def remove_diagram(name)
-    @diagrams.delete(@parts[name])
-    @parts.delete(name)
-    return self
-  end
-  
-  #===パーツで指定したオブジェクトを表示する
-  #nameで指定したパーツを表示する。
-  #（但し、パーツで指定したオブジェクトがshowメソッドを持つことが条件）
-  #:name:: パーツ名（シンボル）
-  #返却値:: 自分自身を返す
-  def show(name)
-    @parts[name].show
-    return self
-  end
-  
-  #===パーツで指定したオブジェクトを隠蔽する
-  #nameで指定したパーツを隠蔽する。
-  #（但し、パーツで指定したオブジェクトがhideメソッドを持つことが条件）
-  #:name:: パーツ名（シンボル）
-  #返却値:: 自分自身を返す
-  def hide(name)
-    @parts[name].hide
-    return self
-  end
-  
-  #===パーツで指定したオブジェクトの処理を開始する
-  #nameで指定したパーツが持つ処理を隠蔽する。
-  #（但し、パーツで指定したオブジェクトがstartメソッドを持つことが条件）
-  #:name:: パーツ名（シンボル）
-  #返却値:: 自分自身を返す
-  def start(name)
-    @parts[name].start
-    return self
-  end
-  
-  #===パーツで指定したオブジェクトを再生する
-  #nameで指定したパーツを再生する。
-  #（但し、パーツで指定したオブジェクトがplayメソッドを持つことが条件）
-  #:name:: パーツ名（シンボル）
-  #返却値:: 自分自身を返す
-  def play(name)
-    @parts[name].play
-    return self
-  end
-  
-  #===パーツで指定したオブジェクトの処理を停止する
-  #nameで指定したパーツが持つ処理を停止する。
-  #（但し、パーツで指定したオブジェクトがstopメソッドを持つことが条件）
-  #:name:: パーツ名（シンボル）
-  #返却値:: 自分自身を返す
-  def stop(name)
-    @parts[name].stop
-    return self
-  end
-  
-  #===遷移図の処理が終了するまで待つ
-  #nameで指定した遷移図の処理が終了するまで、プロットを停止する
-  #:name:: 遷移図名（シンボル）
-  #返却値:: 自分自身を返す
-  def wait_by_finish(name)
-    until @parts[name].finish?
-      @update_inner.call(self)
-      Thread.pass unless Thread.current.eql?(Thread.main)
+    #===Yuki#showで表示指定した画像を描画する
+    #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
+    #:params:: 描画オプション。Sprite#renderメソッド参照
+    #返却値:: 自分自身を返す
+    def render
+      @visible.each{|name|
+        @parts[name].render if @parts.has_key?(name)
+        @diagrams[name].render if @diagrams.has_key?(name)
+      }
+      return self
     end
-    return self
-  end
+
+    #===オブジェクトを登録する
+    #オブジェクトをパーツnameとして登録する。
+    #Yuki::parts[name]で参照可能
+    #:name:: パーツ名（シンボル）
+    #:parts:: 登録対象のインスタンス
+    #
+    #返却値:: 自分自身を返す
+    def regist_parts(name, parts)
+      @parts[name] = parts
+      return self
+    end
   
-  #===各ボタンの設定リストを出力する
-  #コマンド決定・キャンセル時に使用するボタンの一覧をシンボルのハッシュとして返す。ハッシュの内容は以下の通り
-  #ハッシュキー:: 説明:: デフォルト
-  #:release:: メッセージ待ちを終了するときに押すボタン:: :btn1
-  #:ok:: コマンド選択で「決定」するときに押すボタン:: btn1
-  #:cansel:: コマンド選択で「キャンセル」するときに押すボタン:: btn2
-  #
-  #返却値:: ボタンの設定リスト
-  def button
-    return @yuki[:btn]
-  end
+    #===表示・描画対象のテキストボックスを選択する
+    #:box:: テキストボックスのインスタンス
+    #
+    #返却値:: 自分自身を返す
+    def select_textbox(box)
+      @yuki[:text_box] = box
+      return self
+    end
   
-  #===シーンのセットアップ時に実行する処理
-  #
-  #返却値:: あとで書く
-  def setup
-    @yuki[:plot_result] = nil
+    #===表示・描画対象のコマンドボックスを選択する
+    #:box:: テキストボックスのインスタンス
+    #
+    #返却値:: 自分自身を返す
+    def select_commandbox(box)
+      @yuki[:command_box] = box
+      return self
+    end
+  
+    #===遷移図を登録する
+    #遷移図をパーツnameとして登録する。
+    #遷移図を登録すると、update_inputメソッドがYuki2::update_plotメソッドを呼び出した時に
+    #自動的に呼び出される(renderメソッドは呼ばれないことに注意！)。
+    #Yuki::diagrams[name]で参照可能
+    #:name:: パーツ名（シンボル）
+    #:diagram:: 登録対象の遷移図インスタンス
+    #
+    #返却値:: 自分自身を返す
+    def regist_diagram(name, diagram)
+      @diagrams[name] = diagram
+      return self
+    end
+  
+    #===オブジェクトの登録を解除する
+    #パーツnameとして登録されているオブジェクトを登録から解除する。
+    #:name:: パーツ名（シンボル）
+    #
+    #返却値:: 自分自身を返す
+    def remove_parts(name)
+      @parts.delete(name)
+      return self
+    end
+  
+    #===遷移図の登録を解除する
+    #パーツnameとして登録されている遷移図を登録から解除する。
+    #:name:: パーツ名（シンボル）
+    #
+    #返却値:: 自分自身を返す
+    def remove_diagram(name)
+      @diagrams.delete(@parts[name])
+      return self
+    end
+  
+    #===パーツで指定したオブジェクトを先頭に表示する
+    #描画時に、指定したパーツを描画する
+    #すでにshowメソッドで表示指定している場合は、先頭に表示させる
+    #:names:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
+    #返却値:: 自分自身を返す
+    def show(*names)
+      names.each{|name|
+        @visible.delete(name)
+        @visible << name
+      }
+      return self
+    end
+  
+    #===パーツで指定したオブジェクトを隠蔽する
+    #描画時に、指定したパーツを描画させないよう指定する
+    #:names:: パーツ名（シンボル）、複数指定可能
+    #返却値:: 自分自身を返す
+    def hide(*names)
+      names.each{|name| @visible.delete(name) }
+      return self
+    end
+  
+    #===パーツで指定したオブジェクトの処理を開始する
+    #nameで指定したパーツが持つ処理を隠蔽する。
+    #（但し、パーツで指定したオブジェクトがstartメソッドを持つことが条件）
+    #:name:: パーツ名（シンボル）
+    #返却値:: 自分自身を返す
+    def start(name)
+      @parts[name].start
+      return self
+    end
+  
+    #===パーツで指定したオブジェクトを再生する
+    #nameで指定したパーツを再生する。
+    #（但し、パーツで指定したオブジェクトがplayメソッドを持つことが条件）
+    #:name:: パーツ名（シンボル）
+    #返却値:: 自分自身を返す
+    def play(name)
+      @parts[name].play
+      return self
+    end
+  
+    #===パーツで指定したオブジェクトの処理を停止する
+    #nameで指定したパーツが持つ処理を停止する。
+    #（但し、パーツで指定したオブジェクトがstopメソッドを持つことが条件）
+    #:name:: パーツ名（シンボル）
+    #返却値:: 自分自身を返す
+    def stop(name)
+      @parts[name].stop
+      return self
+    end
+  
+    #===遷移図の処理が終了するまで待つ
+    #nameで指定した遷移図の処理が終了するまで、プロットを停止する
+    #:name:: 遷移図名（シンボル）
+    #返却値:: 自分自身を返す
+    def wait_by_finish(name)
+      until @parts[name].finish?
+        @update_inner.call(self)
+        Thread.pass unless Thread.current.eql?(Thread.main)
+      end
+      return self
+    end
+  
+    #===各ボタンの設定リストを出力する
+    #コマンド決定・キャンセル時に使用するボタンの一覧をシンボルのハッシュとして返す。ハッシュの内容は以下の通り
+    #ハッシュキー:: 説明:: デフォルト
+    #:release:: メッセージ待ちを終了するときに押すボタン:: :btn1
+    #:ok:: コマンド選択で「決定」するときに押すボタン:: btn1
+    #:cansel:: コマンド選択で「キャンセル」するときに押すボタン:: btn2
+    #
+    #返却値:: ボタンの設定リスト
+    def button
+      return @yuki[:btn]
+    end
+  
+    #===シーンのセットアップ時に実行する処理
+    #
+    #返却値:: あとで書く
+    def setup
+      @yuki[:plot_result] = nil
 
-    @yuki[:exec_plot] = false
+      @yuki[:exec_plot] = false
 
-    @yuki[:pausing] = false
-    @yuki[:selecting] = false
-    @yuki[:waiting] = false
+      @yuki[:pausing] = false
+      @yuki[:selecting] = false
+      @yuki[:waiting] = false
 
-    @yuki[:pause_release] = false
-    @yuki[:select_ok] = false
-    @yuki[:select_cansel] = false
-    @yuki[:select_amount] = [0, 0]
+      @yuki[:pause_release] = false
+      @yuki[:select_ok] = false
+      @yuki[:select_cansel] = false
+      @yuki[:select_amount] = [0, 0]
 
-    @yuki[:result] = nil
-    @yuki[:plot_result] = nil
-  end
+      @yuki[:result] = nil
+      @yuki[:plot_result] = nil
+    end
   
     #===プロット処理を実行する(明示的に呼び出す必要がある場合)
     #引数もしくはブロックで指定したプロット処理を非同期に実行する。
@@ -823,40 +345,41 @@ module Yuki
     #3)Yuki#plotメソッド
     #
     #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
+    #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
+    #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
     #返却値:: あとで書く
-    def exec_plot(plot_proc = nil, &plot_block)
+    def start_plot(plot_proc = nil, with_update_input = true, use_thread = false, &plot_block)
+      raise MiyakoError, "Yuki Error! Textbox is not selected!" unless @yuki[:text_box]
+      raise MiyakoError, "Yuki Error! Plot must have one parameter!" if plot_proc && plot_proc.arity != 1
+      raise MiyakoError, "Yuki Error! Plot must have one parameter!" if plot_block && plot_block.arity != 1
       @yuki[:text_box].exec{ plot_facade(plot_proc, &plot_block) }
       until @yuki[:exec_plot] do; end
-      @yuki[:plot_thread] = Thread.new{ update_plot_thread }
+      @yuki[:plot_thread] = Thread.new{ update_plot_thread } if use_thread
+      @yuki[:with_update_input] = with_update_input
       return self
     end
   
     #===プロット処理を更新する
-    #ポーズ中、コマンド選択中、 Yuki#wait メソッドによるウェイトの
-    #状態確認を行う。プロット処理が終了していれば、返却値として移動先インスタンスを取得する
-    #(処理中の時は、引数 default_return インスタンスを取得する)
-    #_default_return_:: 更新時に移動先が指定されなかったときの移動先インスタンス(規定値はnil)
-    #返却値:: あとで書く
-    def update_plot(default_return = nil)
-      ret = default_return
-      if @yuki[:exec_plot]
-        update_plot_input
-        pausing   if @yuki[:pausing]
+    #ポーズ中、コマンド選択中、 Yuki#wait メソッドによるウェイトの状態確認を行う。
+    #プロット処理の実行確認は出来ない
+    def update
+      return unless @yuki[:exec_plot]
+      update_plot_input if @yuki[:with_update_input]
+      unless @yuki[:plot_thread]
+        pausing if @yuki[:pausing]
         selecting if @yuki[:selecting]
         waiting   if @yuki[:waiting]
-        @diagrams.each{|dia| dia.update_input }
-        @mutex.lock
-        @yuki[:pause_release] = false
-        @yuki[:select_ok] = false
-        @yuki[:select_cansel] = false
-        @yuki[:select_amount] = [0, 0]
-        @mutex.unlock
-        @diagrams.each{|dia| dia.render }
-      else
-        r = @yuki[:plot_result]
-        ret = (r.class == Class && r.include?(Story::Scene)) ? r : nil
       end
-      return ret
+      @diagrams.each_value{|dia|
+        dia.update_input
+        dia.update if dia.sync?
+      }
+      @mutex.lock
+      @yuki[:pause_release] = false
+      @yuki[:select_ok] = false
+      @yuki[:select_cansel] = false
+      @yuki[:select_amount] = [0, 0]
+      @mutex.unlock
     end
   
     def update_plot_thread #:nodoc:
@@ -868,44 +391,22 @@ module Yuki
       end
     end
   
-    #===プロット処理の結果を得る
-    #プロットが実行されたときの結果を得る
-    #(処理中の時は、引数 default_return を取得する)
-    #_default_return_:: 更新時に移動先が指定されなかったときの移動先インスタンス(規定値はnil)
-    #返却値:: プロットの実行が終了している場合はその値、実行中の時は default_return の値をそのまま返す
-    def get_plot_result(default_return = nil)
-      r = @yuki[:plot_result]
-      return plot_executing? ? default_return : r
-    end
-  
-    #===プロット処理の結果を設定する
-    #_ret_:: 設定する結果。デフォルトはnil
-    #返却値:: 自分自身を返す
-    def result=(ret = nil)
-      @yuki[:plot_result] = ret
-      return self
-    end
-  
     #===プロット処理に使用する入力情報を更新する
     #ポーズ中、コマンド選択中に使用する入力デバイスの押下状態を更新する
+    #(但し、プロット処理の実行中にのみ更新する)
     #Yuki#update メソッドをそのまま使う場合は呼び出す必要がないが、 Yuki#exec_plot メソッドを呼び出す
     #プロット処理の場合は、メインスレッドから明示的に呼び出す必要がある
     #返却値:: nil を返す
     def update_plot_input
-      if @yuki[:pausing] && Miyako::Input.pushed_all?(@yuki[:btn][:ok])
+      return nil unless @yuki[:exec_plot]
+      if @yuki[:pausing] && Input.pushed_all?(@yuki[:btn][:ok])
         @yuki[:pause_release] = true
       elsif @yuki[:selecting]
-        @yuki[:select_ok] = true if Miyako::Input.pushed_all?(@yuki[:btn][:ok])
-        @yuki[:select_cansel] = true if @yuki[:cansel] && Miyako::Input.pushed_all?(@yuki[:btn][:cansel])
+        @yuki[:select_ok] = true if Input.pushed_all?(@yuki[:btn][:ok])
+        @yuki[:select_cansel] = true if Input.pushed_all?(@yuki[:btn][:cansel])
         @yuki[:select_amount] = Input.pushed_amount
       end
       return nil
-    end
-  
-    #===プロット処理が実行中かどうかを確認する
-    #返却値:: プロット処理実行中の時はtrueを返す
-    def plot_executing?
-      return @yuki[:exec_plot]
     end
   
     #===プロット処理を外部クラスから管理するインスタンスを取得する
@@ -917,41 +418,98 @@ module Yuki
     #3)Yuki#plotメソッド
     #
     #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
+    #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
+    #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
     #返却値:: YukiManager クラスのインスタンス
-    def manager(plot_proc = nil, &plot_block)
-      return Manager.new(self, plot_proc || plot_block)
+    def manager(plot_proc = nil, with_update_input = true, use_thread = false, &plot_block)
+      return Manager.new(self, plot_proc || plot_block, with_update_input, use_thread)
     end
   
-  def plot_facade(plot_proc = nil, &plot_block) #:nodoc:
-    @mutex.lock
-    @yuki[:plot_result] = nil
-    @yuki[:exec_plot] = true
-    @mutex.unlock
-    @yuki[:text_box_part].show
-    @yuki[:plot_result] = plot_proc ? plot_proc.call(self) : plot_block.call(self)
-    @diagrams.each{|dia| dia.stop }
-    @yuki[:text_box_part].hide
-    @mutex.lock
-    @yuki[:exec_plot] = false
-    @yuki[:plot_thread].join
-    @yuki[:plot_thread] = nil
-    @mutex.unlock
-  end
+    def plot_facade(plot_proc = nil, &plot_block) #:nodoc:
+      @mutex.lock
+      @yuki[:plot_result] = nil
+      @yuki[:exec_plot] = true
+      @mutex.unlock
+      @yuki[:plot_result] = plot_proc ? plot_proc.call(self) : plot_block.call(self)
+      @diagrams.each_value{|dia| dia.stop }
+      @mutex.lock
+      @yuki[:exec_plot] = false
+      if @yuki[:plot_thread]
+        @yuki[:plot_thread].join
+        @yuki[:plot_thread] = nil
+      end
+      @mutex.unlock
+    end
+  
+    #===プロット処理が実行中かどうかを確認する
+    #返却値:: プロット処理実行中の時はtrueを返す
+    def executing?
+      return @yuki[:exec_plot]
+    end
 
-    #===メソッドをシナリオインスタンスに変換する
-    #メソッドをシナリオのインスタンス（Methodクラスのインスタンス）に変換する
-    #_method_:: メソッド名(シンボル)
-    #返却値:: シナリオインスタンスに変換したメソッド
-    def scenario(method)
-      return self.method(method)
+    #===プロットの処理結果を返す
+    #プロット処理の結果を返す。
+    #まだ結果が得られていない場合はnilを得る
+    #プロット処理が終了していないのに結果を得られるので注意！
+    #返却値:: プロットの処理結果
+    def result
+      return @yuki[:plot_result]
     end
   
+    #===プロット処理の結果を設定する
+    #_ret_:: 設定する結果。デフォルトはnil
+    #返却値:: 自分自身を返す
+    def result=(ret = nil)
+      @yuki[:plot_result] = ret
+      return self
+    end
+
+    #===結果がシーンかどうかを問い合わせる
+    #結果がシーン（シーンクラス名）のときはtrueを返す
+    #対象の結果は、選択結果、プロット処理結果ともに有効
+    #返却値:: 結果がシーンかどうか（true/false）
+    def is_scene?(result)
+      return (result.class == Class && result.include?(Story::Scene))
+    end
+
+    #===結果がシナリオかどうかを問い合わせる
+    #結果がシナリオ（メソッド）のときはtrueを返す
+    #対象の結果は、選択結果、プロット処理結果ともに有効
+    #返却値:: 結果がシナリオかどうか（true/false）
+    def is_scenario?(result)
+      return (result.kind_of?(Proc) || result.kind_of?(Method))
+    end
+
+    #===コマンド選択がキャンセルされたときの結果を返す
+    #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
+    def canseled?
+      return result == @yuki[:cansel]
+    end
+      
     #===ブロックを条件として設定する
     #メソッドをMethodクラスのインスタンスに変換する
     #_block_:: シナリオインスタンスに変換したいメソッド名(シンボル)
     #返却値:: シナリオインスタンスに変換したメソッド
     def condition(&block)
       return block
+    end
+    
+    #===コマンド選択中の問い合わせメソッド
+    #返却値:: コマンド選択中の時はtrueを返す
+    def selecting?
+      return @yuki[:selecting]
+    end
+    
+    #===Yuki#waitメソッドによる処理待ちの問い合わせメソッド
+    #返却値:: 処理待ちの時はtrueを返す
+    def waiting?
+      return @yuki[:waiting]
+    end
+    
+    #===メッセージ送り待ちの問い合わせメソッド
+    #返却値:: メッセージ送り待ちの時はtrueを返す
+    def pausing?
+      return @yuki[:pausing]
     end
   
     #===条件に合っていればポーズをかける
@@ -1098,19 +656,21 @@ module Yuki
     #===コマンドを表示する
     #表示対象のコマンド群をCommand構造体の配列で示す。
     #キャンセルのときの結果も指定可能（既定ではキャンセル不可状態）
+    #body_selectedをnilにした場合は、bodyと同一となる
+    #body_selectedを文字列を指定した場合は、文字色が赤色になることに注意
     #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
     #_cansel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。あとで書く
     #返却値:: 自分自身を返す
-    def command(command_list, cansel_to = nil, &chain_block)
+    def command(command_list, cansel_to = Canseled, &chain_block)
+      raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @yuki[:command_box]
       @yuki[:cansel] = cansel_to
 
       choices = []
-      command_list.each{|cm| choices.push([cm[:body], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
+      command_list.each{|cm| choices.push([cm[:body], cm[:body_selected], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
       return self if choices.length == 0
 
       @yuki[:command_box].command(@yuki[:command_box].create_choices_chain(choices, &chain_block))
-      @yuki[:command_box_part].show
       @mutex.lock
       @yuki[:result] = nil
       @yuki[:selecting] = true
@@ -1131,7 +691,6 @@ module Yuki
           @yuki[:result] = @yuki[:command_box].result
           @mutex.unlock
           @yuki[:command_box].finish_command
-          @yuki[:command_box_part].hide unless @yuki[:command_box].equal?(@yuki[:text_box])
           @yuki[:text_box].release
           @mutex.lock
           @yuki[:selecting] = false
@@ -1162,27 +721,13 @@ module Yuki
       @mutex.unlock
     end
 
-    #===結果を返す
-    #コマンド選択など、プロット処理の結果を返す。
+    #===コマンドの選択結果を返す
+    #コマンド選択の結果を返す。
     #まだ結果が得られていない場合はnilを得る
-    #プロット処理が終了していないのに結果を得られるので注意！
-    #返却値:: プロットの処理結果
-    def result
+    #プロット処理・コマンド選択が終了していないのに結果を得られるので注意！
+    #返却値:: コマンドの選択結果
+    def select_result
       return @yuki[:result]
-    end
-
-    #===結果がシーンかどうかを問い合わせる
-    #プロット処理の結果がシーン（シーンクラス名）のときはtrueを返す
-    #返却値:: 結果がシーンかどうか（true/false）
-    def result_is_scene?
-      return (@yuki[:result].class == Class && @yuki[:result].include?(Miyako::Story::Scene))
-    end
-
-    #===結果がシナリオかどうかを問い合わせる
-    #プロット処理の結果がシナリオ（メソッド）のときはtrueを返す
-    #返却値:: 結果がシナリオかどうか（true/false）
-    def result_is_scenario?
-      return (@yuki[:result].kind_of?(Proc) || @yuki[:result].kind_of?(Method))
     end
 
     #===プロットの処理を待機する
@@ -1190,7 +735,7 @@ module Yuki
     #_length_:: 待機する長さ。単位は秒。少数可。
     #返却値:: 自分自身を返す
     def wait(length)
-      @waiting_timer = Miyako::WaitCounter.new(length)
+      @waiting_timer = WaitCounter.new(length)
       @waiting_timer.start
       @mutex.lock
       @yuki[:waiting] = true
@@ -1207,6 +752,27 @@ module Yuki
       @mutex.lock
       @yuki[:waiting] = false
       @mutex.unlock
+    end
+
+    #===インスタンスで使用しているオブジェクトを解放する
+    def dispose
+      @yuki.clear
+      @yuki = nil
+
+      @update_inner = nil
+      @update_text   = nil
+      @mutex = nil
+      
+      @parts.clear
+      @parts = nil
+      @visible.clear
+      @visible = nil
+      @diagrams.clear
+      @diagrams = nil
+      @vars.clear
+      @vars = nil
+
+      @is_outer_height = nil
     end
   
     private :button

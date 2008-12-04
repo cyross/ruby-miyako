@@ -1,165 +1,185 @@
 class Green
   include Story::Scene
-  include Yuki
   include MainComponent
 
   def init
-    init_yuki(message_box, command_box, :box)
+    @yuki = Yuki.new
+    @yuki.select_textbox(message_box[:box])
+    @yuki.select_commandbox(command_box[:box])
     @midori = Sprite.new(:file => "image/midori.png", :type => :ck)
     @midori.center.bottom
-    @midori.dp = 100
+    @yuki.regist_parts(:midori, @midori)
 
     @room = Sprite.new(:file => "image/room_green.png", :type => :as)
     @room.center.bottom
-    @room.dp = 0
 
     var[:midori_aisatsu]      = false if var[:midori_aisatsu]      == nil
     var[:release_aoyama_book] = false if var[:release_aoyama_book] == nil
     var[:midori_talk]         = 0     if var[:midori_talk]         == nil
 
-    @talks = Array.new(6){|i| scenario("talk#{i}".to_sym)}
+    @talks = Array.new(6){|i| self.method("talk#{i}".to_sym)}
   end
 
   def setup
-    setup_yuki
-    @room.show
+    @yuki.setup
+    @yuki.exec_plot(self.method(:plot))
   end
 
+  def update
+    return nil if Input.quit_or_escape?
+    message_box.update_animation
+    command_box.update_animation
+    @yuki.update
+    r = @yuki.executing? ? @now : @yuki.result
+    if @yuki.is_scenario?(r)
+      @yuki.exec_plot(r)
+      r = @now
+    end
+    return r
+  end
+  
+  def render
+    @room.render
+    @yuki.render
+    message_box.render
+    command_box.render if @yuki.selecting?
+  end
+  
   def get_command
-    return [Command.new("挨拶する",   lambda{var[:midori_aisatsu]==false}, scenario(:green2)),
-            Command.new("辺りを見る", lambda{var[:midori_aisatsu]==true},  scenario(:look_green)),
-            Command.new("話す",       lambda{var[:midori_aisatsu]==true},  scenario(:talk)),
-            Command.new("戻る",       lambda{var[:midori_aisatsu]==true},  MainScene)]
+    return [Yuki::Command.new("挨拶する",   lambda{var[:midori_aisatsu]==false}, self.method(:green2)),
+             Yuki::Command.new("辺りを見る", lambda{var[:midori_aisatsu]==true},  self.method(:look_green)),
+             Yuki::Command.new("話す",       lambda{var[:midori_aisatsu]==true},  self.method(:talk)),
+             Yuki::Command.new("戻る",       lambda{var[:midori_aisatsu]==true},  MainScene)]
   end
   
-  def plot 
-    text "緑の扉から中に入った。"
-    pause.clear
-    @midori.show
-    text "目の前には"
-    color(:green){var[:midori_aisatsu]==true ? "みどりさん" : "女の人"}
-    text "が居る。"
-    cr
-    main_command
+  def plot(yuki) 
+    yuki.text "緑の扉から中に入った。"
+    yuki.pause.clear
+    yuki.show :midori
+    yuki.text "目の前には"
+    yuki.color(:green){var[:midori_aisatsu]==true ? "みどりさん" : "女の人"}
+    yuki.text "が居る。"
+    yuki.cr
+    return self.method(:main_command)
   end
   
-  def main_command
+  def main_command(yuki)
     loop do
-      text "どうする？"
-      command get_command
-      clear
-      return result if result_is_scene?
-      result.call if result_is_scenario?
+      yuki.text "どうする？"
+      yuki.command get_command
+      yuki.clear
+      return yuki.select_result if yuki.is_scene?(yuki.select_result)
+      yuki.select_result.call(yuki) if yuki.is_scenario?(yuki.select_result)
     end
   end
 
-  def green2
-    text "「私の名前はみどり。よろしくぅ」"
-    pause.clear
+  def green2(yuki)
+    yuki.text "「私の名前はみどり。よろしくぅ」"
+    yuki.pause.clear
     var[:midori_aisatsu]=true
   end
 
-  def look_green
-    text "部屋の中は、いたってシンプルだ。"
-    pause.cr
-    text "女の子らしく、鏡台がある。"
-    pause.clear
+  def look_green(yuki)
+    yuki.text "部屋の中は、いたってシンプルだ。"
+    yuki.pause.cr
+    yuki.text "女の子らしく、鏡台がある。"
+    yuki.pause.clear
   end
 
-  def talk
-    @talks[var[:midori_talk]].call
+  def talk(yuki)
+    @talks[var[:midori_talk]].call(yuki)
   end
 
-  def talk0
-    text "「普通の大学生よぉ。」"
-    pause.clear
+  def talk0(yuki)
+    yuki.text "「普通の大学生よぉ。」"
+    yuki.pause.clear
     var[:midori_talk] += 1
   end
 
-  def talk1
-    text "「最近はぁ、"
-    wait 0.3
-    cr
-    text "　お菓子作りにぃ、"
-    wait 0.3
-    cr
-    text "　凝ってる、"
-    wait 0.3
-    text "みたいな？」"
-    pause.clear
+  def talk1(yuki)
+    yuki.text "「最近はぁ、"
+    yuki.wait 0.3
+    yuki.cr
+    yuki.text "　お菓子作りにぃ、"
+    yuki.wait 0.3
+    yuki.cr
+    yuki.text "　凝ってる、"
+    yuki.wait 0.3
+    yuki.text "みたいな？」"
+    yuki.pause.clear
     var[:midori_talk] += 1
   end
 
-  def talk2
-    text "「・・・え、"
-    wait 0.3
-    text "流行らないってぇ？"
-    wait 0.3
-    cr
-    text "　駄目よぉ。流行に流されてちゃ。」"
-    pause.clear
+  def talk2(yuki)
+    yuki.text "「・・・え、"
+    yuki.wait 0.3
+    yuki.text "流行らないってぇ？"
+    yuki.wait 0.3
+    yuki.cr
+    yuki.text "　駄目よぉ。流行に流されてちゃ。」"
+    yuki.pause.clear
     var[:midori_talk] += 1
   end
 
-  def talk3
-    text "「何事もぉ、"
-    wait 0.3
-    cr
-    text "　ゴーイングマイウェイってやっていかないとぉ、"
-    wait 0.3
-    cr
-    text "　体持たないよっ！？」"
-    pause.clear
+  def talk3(yuki)
+    yuki.text "「何事もぉ、"
+    yuki.wait 0.3
+    yuki.cr
+    yuki.text "　ゴーイングマイウェイってやっていかないとぉ、"
+    yuki.wait 0.3
+    yuki.cr
+    yuki.text "　体持たないよっ！？」"
+    yuki.pause.clear
     var[:midori_talk] += 1
   end
 
-  def talk4
-    text "「・・・ああ、そうそう！"
-    wait 0.3
-    cr
-    text "　この本、"
-    wait 0.3
-    text "隣の青山くんのところから"
-    cr
-    text "　借りてきてたんだけどぉ、"
-    cr
-    text "　返しといてくれないかなぁ？"
-    wait 1.0
-    text "・"
-    wait 0.5
-    text "・"
-    wait 0.5
-    text "・"
-    wait 1.0
-    clear
-    size(32){
-      color(:red){
-        text "　さっさと"
-        wait 0.5
-        cr
-        text "　持って行け"
-        wait 0.5
-        cr
-        text "　っつてんだろぉ！"
+  def talk4(yuki)
+    yuki.text "「・・・ああ、そうそう！"
+    yuki.wait 0.3
+    yuki.cr
+    yuki.text "　この本、"
+    yuki.wait 0.3
+    yuki.text "隣の青山くんのところから"
+    yuki.cr
+    yuki.text "　借りてきてたんだけどぉ、"
+    yuki.cr
+    yuki.text "　返しといてくれないかなぁ？"
+    yuki.wait 1.0
+    yuki.text "・"
+    yuki.wait 0.5
+    yuki.text "・"
+    yuki.wait 0.5
+    yuki.text "・"
+    yuki.wait 1.0
+    yuki.clear
+    yuki.size(32){
+      yuki.color(:red){
+        yuki.text "　さっさと"
+        yuki.wait 0.5
+        yuki.cr
+        yuki.text "　持って行け"
+        yuki.wait 0.5
+        yuki.cr
+        yuki.text "　っつてんだろぉ！"
       }
     }
-    text "」"
-    pause.clear
-    text "ひゃあ。"
-    wait 0.5
-    text "　結局、本を無理矢理渡された。"
-    pause.clear
+    yuki.text "」"
+    yuki.pause.clear
+    yuki.text "ひゃあ。"
+    yuki.wait 0.5
+    yuki.text "　結局、本を無理矢理渡された。"
+    yuki.pause.clear
     var[:release_aoyama_book] = true
     var[:midori_talk] += 1
   end
 
-  def talk5
-    text "「ちゃんと本渡してくれたぁ？」"
-    pause.clear
+  def talk5(yuki)
+    yuki.text "「ちゃんと本渡してくれたぁ？」"
+    yuki.pause.clear
   end
 
-  def final
-    @midori.hide
-    @room.hide
+  def dispose
+    @midori.dispose
+    @room.dispose
   end
 end

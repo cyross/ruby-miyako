@@ -1,3 +1,15 @@
+if RUBY_VERSION < '1.8.7'
+  puts 'Sorry. Miyako needs Ruby 1.8.7 or above...'
+  exit
+end
+
+require 'sdl'
+
+if SDL::VERSION < '2.0.0'
+  puts 'Sorry. Miyako needs Ruby/SDL 2.0.0 or above...'
+  exit
+end
+
 require 'rbconfig'
 require 'fileutils'
 require 'optparse'
@@ -18,11 +30,9 @@ osn = Config::CONFIG["target_os"].downcase
 if osn =~ /mswin|mingw|cygwin|bccwin/
   ext_dir = "win/"
 elsif osn =~ /darwin/ # Mac OS X
-  system("cd idaten_miyako/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb ; make ; cp idaten_miyako.bundle ../")
-  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb ; make ; cp miyako_no_katana.bundle ../")
+  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sh sdl-config'; make ; cp miyako_no_katana.bundle ../")
 else # linux, U*IX...
-  system("cd idaten_miyako/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb ; make ; cp idaten_miyako.so ../")
-  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb ; make ; cp miyako_no_katana.so ../")
+  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sh sdl-config'; make ; cp miyako_no_katana.so ../")
 end
 
 sitelibdir = Config::CONFIG["sitelibdir"] + "/Miyako"
