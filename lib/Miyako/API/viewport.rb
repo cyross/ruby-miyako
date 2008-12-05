@@ -20,12 +20,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-# ラスタオペレーション関連クラス群
 module Miyako
-  #==ラスタオペレーションモジュール
-  module ROP
-  end
+  #==ビューポートクラス
+  #描画時の表示範囲を変更する
+  #画面全体を基準(640x480の画面のときは(0,0)-(639,479)の範囲)として、範囲を設定する
+  #範囲の設定はいつでも行えるが、描画にはrenderメソッドを呼び出した時の値が反映される
+  class Viewport
+    def initialize(x, y, w, h)
+      @rect = Rect.new(x, y, w, h)
+    end
 
-  #==ピクセル情報構造体
-  Pixel = Struct.new(:r, :g, :b, :a)
+    def render(params = nil)
+      Screen.screen.set_clip_rect(@rect)
+    end
+
+    def move(dx,dy)
+      @rect.move(dx,dy)
+    end
+
+    def move_to(x,y)
+      @rect.move(x,y)
+    end
+    
+    def dispose
+      @rect = nil
+      @unit = nil
+    end
+    
+    def viewport
+      return @rect
+    end
+  end
 end

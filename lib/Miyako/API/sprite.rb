@@ -107,22 +107,23 @@ module Miyako
         else
           @tr_color = Color.to_rgb(param[:tr_color])
         end
-        @tr_color[3] = 0 unless param[:alpha]
-        bitmap.setColorKey(SDL::SRCCOLORKEY|SDL::SRCALPHA|SDL::RLEACCEL, @tr_color)
-        bitmap.setAlpha(SDL::SRCALPHA|SDL::RLEACCEL, param[:alpha])
-        self.bitmap = bitmap.display_format
-        self.alpha  = param[:alpha]
+        # カラーキーのα値を0にしたビットマップを作成
+        tbitmap = bitmap.display_format
+        tunit   = SpriteUnitFactory.create(:bitmap => tbitmap)
+        bitmap  = Bitmap.create(bitmap.w, bitmap.h, SDL::HWSURFACE)
+        bitmap  = bitmap.display_format_alpha
+        nunit = SpriteUnitFactory.create(:bitmap => bitmap)
+        Bitmap.ck_to_ac!(tunit, nunit, @tr_color)
+        self.bitmap = bitmap
         @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
+        tbitmap = nil
       when :alpha_surface
         bitmap.setAlpha(SDL::SRCALPHA|SDL::RLEACCEL, param[:alpha]) 
         self.bitmap = bitmap.display_format
-        self.alpha  = param[:alpha]
       when :alpha_channel
-        self.alpha  = nil
         self.bitmap = bitmap.display_format_alpha
         @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
       when :movie
-        self.alpha  = nil
         self.bitmap = bitmap.display_format
       end
       @type = param[:type]

@@ -22,7 +22,6 @@ end
 bk = Sprite.new({:file=>"m1ku_back.jpg", :type=>:ac})
 back = bk.duplicate
 back.fill([0,0,0])
-Bitmap.hue!(bk.to_unit, back.to_unit, 30, 0, 0)
 
 body = Sprite.new({:file=>"m1ku_body.png", :type=>:ck})
 body.move_to(200, 64)
@@ -70,12 +69,6 @@ Miyako.main_loop do
   eye_anim.render
   hair_f.render
   back.fill([0,0,0])
-  Bitmap.hue!(bk.to_unit, back.to_unit, degree, 0, 0)
+  Bitmap.hue!(bk.to_unit, back.to_unit, degree)
   degree = (degree + damt) % 360
-#  Bitmap.dec_alpha!(bk.to_unit, back.to_unit, rate, 0, 0)
-#  rate += amt
-#  rate = 0.0 if rate < 0.01
-#  amt = 0.1 if rate == 0.0
-#  rate = 1.0 if rate > 0.99
-#  amt = -0.1 if rate == 1.0
 end

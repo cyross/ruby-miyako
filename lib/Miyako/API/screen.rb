@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 require 'singleton'
 
 module Miyako
-
   #プログラムで使用する色深度を示す。デフォルトは現在システムが使用している色深度
   $miyako_bpp ||= SDL.video_info.bpp
   #色深度が32ビット以外の時はエラーを返す
@@ -50,7 +49,7 @@ module Miyako
     ScreenFlag = Array.new
     ScreenFlag.push(SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT)
     ScreenFlag.push(SDL::ANYFORMAT | SDL::FULLSCREEN)
-
+    
     def Screen::get_fps_count
       return @@fps == 0 ? 0 : FpsMax / @@fps
     end
@@ -65,39 +64,15 @@ module Miyako
     @@freezing  = false
     @@mode      = WINDOW_MODE
     @@unit      = SpriteUnitFactory.create
+    @@bunit      = SpriteUnitFactory.create
 
     @@size      = Size.new(DefaultWidth, DefaultHeight)
     @@in_the_scene = false
 
     @@screen = nil
-
-    def Screen::set_screen(f) #:nodoc:
-      return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << f))
-      @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << f))
-      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
-      return true
-    end
-
-    #===画面の大きさを変更する
-    #単位はピクセル単位
-    #_w_:: 画面の幅
-    #_h_:: 画面の高さ
-    #返却値:: 変更に成功したときは trueを返す
-    def Screen::set_size(w, h)
-      return false unless SDL.checkVideoMode(w, h, BPP, ScreenFlag[@@mode])
-      @@size = Size.new(w, h)
-      @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
-      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
-      return true
-    end
-
-    def Screen::check_mode_error #:nodoc:
-      unless Screen::set_screen(ScreenFlag[@@mode])
-        print "Sorry, this system not supported display...\n";
-        exit(1)
-      end
-    end
-
+    @@buffer = nil
+    @@viewport = nil
+    
     #===画面の状態(ウインドウモードとフルスクリーンモード)を設定する
     #_v_:: ウィンドウモードのときは、Screen::WINDOW_MODE、 フルスクリーンモードのときはScreen::FULLSCREEN_MODE
     def Screen::set_mode(v)
@@ -112,8 +87,6 @@ module Miyako
       @@mode = (@@mode + 1) % WINMODES
       Screen::check_mode_error
     end
-
-    Screen::check_mode_error
 
     def Screen::fps # :nodoc:
       return @@fps
@@ -136,6 +109,13 @@ module Miyako
     #返却値:: 画面インスタンス(SDL::Screenクラスのインスタンス)
     def Screen::screen
       return @@screen
+    end
+
+    #===描画バッファを取得する
+    #描画バッファは、回転/拡大/縮小に用いる
+    #返却値:: バッファインスタンス(Miyako::Spriteクラスのインスタンス)
+    def Screen::buffer
+      return @@buffer
     end
 
     #===画面の幅を取得する
@@ -162,11 +142,53 @@ module Miyako
       return Rect.new(*([0, 0]+@@size.to_a))
     end
 
+    #===現在のビューポート(表示区画)を取得する
+    #ビューポートの設定は、Viewport#renderで行う
+    #返却値:: ビューポート(Viewportクラスのインスタンス)
+    def Screen::viewport
+      return @@viewport
+    end
+
     #===現在の画面の大きさを取得する
     #返却値:: 画像の大きさ(Size構造体のインスタンス)
     def Screen::size
       return @@size.dup
     end
+
+    def Screen::set_screen(f) #:nodoc:
+      return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << f))
+      @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << f))
+      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
+      @@buffer = Sprite.new(:size => @@size.to_a, :type => :ac)
+      SpriteUnitFactory.apply(@@bunit, {:bitmap=>@@buffer.bitmap, :ow=>@@buffer.w, :oh=>@@buffer.h})
+      @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
+      return true
+    end
+
+    #===画面の大きさを変更する
+    #単位はピクセル単位
+    #_w_:: 画面の幅
+    #_h_:: 画面の高さ
+    #返却値:: 変更に成功したときは trueを返す
+    def Screen::set_size(w, h)
+      return false unless SDL.checkVideoMode(w, h, BPP, ScreenFlag[@@mode])
+      @@size = Size.new(w, h)
+      @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
+      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
+      @@buffer = Sprite.new(:size => @@size.to_a, :type => :ac)
+      SpriteUnitFactory.apply(@@bunit, {:bitmap=>@@buffer.bitmap, :ow=>@@buffer.w, :oh=>@@buffer.h})
+      @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
+      return true
+    end
+
+    def Screen::check_mode_error #:nodoc:
+      unless Screen::set_screen(ScreenFlag[@@mode])
+        print "Sorry, this system not supported display...\n";
+        exit(1)
+      end
+    end
+
+    Screen::check_mode_error
 
     #===現在表示されている画面を画像(Spriteクラスのインスタンス)として取り込む
     #_param_:: Spriteインスタンスを生成するときに渡すパラメータ(但し、:sizeと:typeのみ使用する)
@@ -224,37 +246,6 @@ module Miyako
         rescue 
         end
       end
-    end
-  end
-  
-  #==ビューポートクラス
-  #描画時の表示範囲を変更する
-  #画面全体を基準(640x480の画面のときは(0,0)-(639,479)の範囲)として、範囲を設定する
-  #範囲の設定はいつでも行えるが、描画にはrenderメソッドを呼び出した時の値が反映される
-  class Viewport
-    def initialize(x, y, w, h)
-      @rect = Rect.new(x, y, w, h)
-    end
-
-    def render(params = nil)
-      @@screen.set_clip_rect(@rect)
-    end
-
-    def move(dx,dy)
-      @rect.move(dx,dy)
-    end
-
-    def move_to(x,y)
-      @rect.move(x,y)
-    end
-    
-    def dispose
-      @rect = nil
-      @unit = nil
-    end
-    
-    def viewport
-      return @rect
     end
   end
 end

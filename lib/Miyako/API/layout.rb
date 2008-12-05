@@ -103,7 +103,6 @@ module Miyako
       @layout.upper.outside = lambda{|pos, base_size| @layout.base[pos] + base_size                           + @layout.margin[pos][base_size].to_i}
 
       @layout.loc     = [@layout.lower.inside,   @layout.lower.inside]
-      @layout.viewport = Screen.rect
     end
 
     #===mixinしたインスタンスの位置を左端(x軸)に移動させる
@@ -427,100 +426,94 @@ module Miyako
       return self
     end
 
-    #===画面上での表示範囲を取得する
-    #画面上での表示範囲（ビューポート）をRect構造体で取得する
-    #返却値:: ビューポートのオブジェクト
-    def viewport
-      return @layout.viewport
-    end
-    
-    #===画面上での表示範囲を設定する
-    #画面上での表示範囲（ビューポート）をRect構造体で設定する
-    #_vp_:: 設定するビューポート
-    #返却値:: ビューポートのオブジェクト
-    def viewport=(vp)
-      @layout.viewport = vp
-    end
-    
     #===移動先が表示範囲内かどうかを判別する
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲外に引っかかっているかをtrue/falseの配列[x,y]で取得する
     #_dx_:: x座標の移動量
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果（[x,y]の配列）
-    def in_bounds?(dx, dy, flag = true)
-      bx, by = in_bounds_x?(dx, flag), in_bounds_y?(dy, flag)
+    def in_bounds?(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = in_bounds_x?(dx, viewport, flag), in_bounds_y?(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲内かどうかを判別する（ｘ座標のみ）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲外に引っかかっているかをtrue/falseで取得する
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: あとで書く
-    def in_bounds_x?(dx, flag = true)
+    def in_bounds_x?(dx, viewport = nil, flag = true)
+      vp = viewport or Screen.viewport
       nx = @layout.pos[0] + dx
-      vp = @layout.viewport
       return flag ? (nx <= vp[0] || ((nx + @layout.size[0]) >= (vp[0] + vp[2]))) : (nx > vp[0] && (nx + @layout.size[0]) < (vp[0] + vp[2]))
     end
 
     #===移動先が表示範囲内かどうかを判別する（ｙ座標のみ）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲外に引っかかっているかをtrue/falseで取得する
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: あとで書く
-    def in_bounds_y?(dy, flag = true)
+    def in_bounds_y?(dy, viewport = nil, flag = true)
+      vp = viewport or Screen.viewport
       ny = @layout.pos[1] + dy
-      vp = @layout.viewport
       return flag ? (ny >= vp[1] || ((ny + @layout.size[1]) <= (vp[1] + vp[3]))) : (ny > vp[2] && (ny + @layout.size[1]) < (vp[0] + vp[3]))
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは-1、プラス方向で出るときは1を返す
     #
     #返却値は上記値を[x,y]の配列で生成される。
     #_dx_:: x座標の移動量
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果([x,y]の配列)
-    def in_bounds_ex?(dx, dy, flag = true)
-      bx, by = in_bounds_ex_x?(dx, flag), in_bounds_ex_y?(dy, flag)
+    def in_bounds_ex?(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = in_bounds_ex_x?(dx, viewport, flag), in_bounds_ex_y?(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す(ｘ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは-1、プラス方向で出るときは1を返す
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def in_bounds_ex_x?(dx, flag = true)
+    def in_bounds_ex_x?(dx, viewport = nil, flag = true)
+      vp = viewport or Screen.viewport
       nx = @layout.pos[0] + dx
-      vp = @layout.viewport
       return -1 if (nx < vp[0]) || (flag && (nx == vp[0]))
       r = vp[0] + vp[2]
       return ((nx + @layout.size[0]) > r) || (flag && ((nx + @layout.size[0]) == r)) ? 1 : 0
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す（ｙ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは-1、プラス方向で出るときは1を返す
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def in_bounds_ex_y?(dy, flag = true)
+    def in_bounds_ex_y?(dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
       ny = @layout.pos[1] + dy
       vp = @layout.viewport
       return -1 if (ny < vp[1]) || (flag && (ny == vp[1]))
@@ -529,182 +522,201 @@ module Miyako
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_ex?の値と同じ
     #_dx_:: x座標の移動量
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果の配列([x,y])
-    def round(dx, dy, flag = true)
-      bx, by = round_x(dx, flag), round_y(dy, flag)
+    def round(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = round_x(dx, viewport, flag), round_y(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める（ｘ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_ex_x?の値と同じ
     #_dx_:: x座標の移動量
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def round_x(dx, flag = true)
+    def round_x(dx, viewport = nil, flag = true)
       return 0 if dx == 0
-      fx = in_bounds_ex_x?(dx, flag)
-      @layout.r_exec.x[fx][@layout.viewport, dx]
+      viewport ||= Screen.viewport
+      fx = in_bounds_ex_x?(dx, viewport, flag)
+      @layout.r_exec.x[fx][viewport, dx]
       return fx
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める（ｙ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_ex_y?の値と同じ
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def round_y(dy, flag = true)
+    def round_y(dy, viewport = nil, flag = true)
       return 0 if dy == 0
-      fy = in_bounds_ex_y?(dy, flag)
-      @layout.r_exec.y[fy][@layout.viewport, dy]
+      viewport ||= Screen.viewport
+      fy = in_bounds_ex_y?(dy, viewport, flag)
+      @layout.r_exec.y[fy][viewport, dy]
       return fy
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは1、プラス方向で出るときは-1を返す
     #
     #返却値は上記値を[x,y]の配列で生成される。
     #_dx_:: x座標の移動量
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果([x,y]の配列)
-    def in_bounds_rev?(dx, dy, flag = true)
-      bx, by = in_bounds_rev_x?(dx, flag), in_bounds_rev_y?(dy, flag)
+    def in_bounds_rev?(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = in_bounds_rev_x?(dx, viewport, flag), in_bounds_rev_y?(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す（ｘ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは1、プラス方向で出るときは-1を返す
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def in_bounds_rev_x?(dx, flag = true)
+    def in_bounds_rev_x?(dx, viewport = nil, flag = true)
+      vp = viewport or Screen.viewport
       nx = @layout.pos[0] + dx
-      vp = @layout.viewport
       return 1 if (nx < vp[0]) || (flag && (nx == vp[0]))
       r = vp[0] + vp[2]
       return ((nx + @layout.size[0]) > r) || (flag && ((nx + @layout.size[0]) == r)) ? -1 : 0
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す（ｙ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは1、プラス方向で出るときは-1を返す
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def in_bounds_rev_y?(dy, flag = true)
+    def in_bounds_rev_y?(dy, viewport = nil, flag = true)
       ny = @layout.pos[1] + dy
-      vp = @layout.viewport
+      vp = viewport or Screen.viewport
       return 1 if (ny < vp[1]) || (flag && (ny == vp[1]))
       b = vp[1] + vp[3]
       return ((ny + @layout.size[1]) > b) || (flag && ((ny + @layout.size[1]) == b)) ? -1 : 0
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_rev?の値と同じ
     #_dx_:: x座標の移動量
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果の配列([x,y])
-    def round_rev(dx, dy, flag = true)
-      bx, by = round_rev_x(dx, flag), round_rev_y(dy, flag)
+    def round_rev(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = round_rev_x(dx, viewport, flag), round_rev_y(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める（ｘ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_rev_x?の値と同じ
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def round_rev_x(dx, flag = true)
+    def round_rev_x(dx, viewport = nil, flag = true)
       return 0 if dx == 0
-      fx = in_bounds_rev_x?(dx, flag)
-      @layout.r_exec.x[-fx][@layout.viewport, dx]
+      viewport ||= Screen.viewport
+      fx = in_bounds_rev_x?(dx, viewport, flag)
+      @layout.r_exec.x[-fx][viewport, dx]
       return fx
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める（ｙ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_rev_y?の値と同じ
     #_dy_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def round_rev_y(dy, flag = true)
+    def round_rev_y(dy, viewport = nil, flag = true)
       return 0 if dy == 0
-      fy = in_bounds_rev_y?(dy, flag)
-      @layout.r_exec.y[-fy][@layout.viewport, dy]
+      viewport ||= Screen.viewport
+      fy = in_bounds_rev_y?(dy, viewport, flag)
+      @layout.r_exec.y[-fy][viewport, dy]
       return fy
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは1、プラス方向で出るときは-1を返す
     #
     #返却値は上記値を[x,y]の配列で生成される。
     #_dx_:: x座標の移動量
     #_dy_:: y座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果([x,y]の配列)
-    def in_bounds_rev2?(dx, dy, flag = true)
-      bx, by = in_bounds_rev2_x?(dx, flag), in_bounds_rev2_y?(dy, flag)
+    def in_bounds_rev2?(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = in_bounds_rev2_x?(dx, viewport, flag), in_bounds_rev2_y?(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す（ｘ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後の座標が表示範囲内のときは0、マイナス方向で表示範囲外に出るときは1、プラス方向で出るときは-1を返す
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def in_bounds_rev2_x?(dx, flag = true)
+    def in_bounds_rev2_x?(dx, viewport = nil, flag = true)
       return 0 if dx == 0
+      vp = viewport or Screen.viewport
       dir = (dx <=> 0)
       nx = @layout.pos[0] + dx
-      vp = @layout.viewport
       return -dir if (nx < vp[0]) || (flag && (nx == vp[0]))
       r = vp[0] + vp[2]
       return ((nx + @layout.size[0]) > r) || (flag && ((nx + @layout.size[0]) == r)) ? -dir : dir
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す（ｙ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #移動後に表示範囲外に出るときは符号を反転、範囲内の時は移動量をそのまま返す
     #移動後に表示範囲外に出るときは符号を反転、範囲内の時は移動量をそのまま返す
     #移動量が0のときは、0を返す
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def in_bounds_rev2_y?(dy, flag = true)
+    def in_bounds_rev2_y?(dy, viewport = nil, flag = true)
       return 0 if dy == 0
+      vp = viewport or Screen.viewport
       dir = (dy <=> 0)
       ny = @layout.pos[1] + dy
-      vp = @layout.viewport
       return -dir if (ny < vp[1]) || (flag && (ny == vp[1]))
       b = vp[1] + vp[3]
       return ((ny + @layout.size[1]) > b) || (flag && ((ny + @layout.size[1]) == b)) ? -dir : dir
@@ -718,41 +730,46 @@ module Miyako
     #_dy_:: y座標の移動量
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果の配列([x,y])
-    def round_rev2(dx, dy, flag = true)
-      bx, by = round_rev2_x(dx, flag), round_rev2_y(dy, flag)
+    def round_rev2(dx, dy, viewport = nil, flag = true)
+      viewport ||= Screen.viewport
+      bx, by = round_rev2_x(dx, viewport, flag), round_rev2_y(dy, viewport, flag)
       yield bx, by if block_given?
       return [bx, by]
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める（ｘ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_rev_x?の値と同じ
     #_dx_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
     def round_rev2_x(dx, flag = true)
       return 0 if dx == 0
+      viewport ||= Screen.viewport
       fxx = (dx <=> 0)
-      fx = in_bounds_rev2_x?(dx, flag)
+      fx = in_bounds_rev2_x?(dx, viewport, flag)
       fx2 = (fxx == 0 || fx * fxx > 0 ? 0 : -fx)
-      @layout.r_exec.x[fx2][@layout.viewport, dx]
+      @layout.r_exec.x[fx2][viewport, dx]
       return fx
     end
 
     #===移動先が表示範囲外に引っかかるときは、移動範囲内に丸める（ｙ座標）
-    #表示範囲はビューポート(Layout#viewport メソッドで取得可能)の範囲。デフォルトは画面の範囲内と同じ
+    #表示範囲はビューポートの範囲。デフォルトは画面の範囲内と同じ
     #
     #返却値はLayout#in_bounds_rev_y?の値と同じ
     #_dy_:: x座標の移動量
+    #_viewport_:: 移動範囲。デフォルトはnil(Screen.viewportが設定される)
     #_flag_:: 画面の端いっぱいも表示範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
-    def round_rev2_y(dy, flag = true)
+    def round_rev2_y(dy, viewport = nil, flag = true)
       return 0 if dy == 0
+      viewport ||= Screen.viewport
       fyy = (dy <=> 0)
-      fy = in_bounds_rev2_y?(dy, flag)
+      fy = in_bounds_rev2_y?(dy, viewport, flag)
       fy2 = (fyy == 0 || fy * fyy > 0 ? 0 : -fy)
-      @layout.r_exec.y[fy2][@layout.viewport, dy]
+      @layout.r_exec.y[fy2][viewport, dy]
       return fy
     end
   end

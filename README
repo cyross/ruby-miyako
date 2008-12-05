@@ -876,12 +876,14 @@ v2.0.0(2008.xx.xx)
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
 ・Yuki::Command構造体の使用を変更(選択時画像・文字を指定するbody_selectedを追加)
-・Viewportクラスの追加
+・Viewportクラスの追加(viewport.rbの追加)
 ・Bitmap.caceheメソッドの廃止(画像データのキャッシュの廃止)
 ・Bitmap.miyako_blit_aaメソッドを廃止
 ・Bitmap.miyako_blit_aa2メソッドをBitmap.blit_aa!メソッドに改名・インタフェース変更
 ・Bitmapクラスの各種画像変換メソッドの最後に!を追加
 ・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
+・Bitmap.ck_to_acメソッドの追加(特定カラーのα値をゼロにした、αチャネル付き画像を生成する。Sprite.newのカラーキー透明画像はこれに置き換えられる)
+・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
 ・Partsクラスのmain_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
 ・Partsクラスの[]=メソッドのインタフェース変更(すべてPartsインスタンス本体へのsnapとして設定)
 ・Screen.updateメソッドの廃止(Screen.renderに統一)
@@ -889,6 +891,7 @@ v2.0.0(2008.xx.xx)
 ・Screen.sizeメソッドの追加
 ・Screen.to_unitメソッドの追加
 ・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
+・Screen.buffer/bunitメソッドの追加(回転/拡大/縮小用)
 ・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
 ・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
 ・Textbox#columns、rows、text_size、update_animationメソッドの追加
