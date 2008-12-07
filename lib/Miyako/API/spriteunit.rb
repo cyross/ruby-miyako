@@ -58,19 +58,33 @@ module Miyako
   end
 
   #==スプライト出力情報構造体
+  #基本的なことは、Sprite.renderで行うことが出来るが、凝った処理を行う場合は、SpriteUnitを使う
   #--
-  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, :dx, :dy, [:effect], [:viewport], :angle, :xscale, :yscale, :px, :py, :qx, :qy)
+  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, [:effect], [:viewport], :angle, :xscale, :yscale, :cx, :cy)
   #++
-  SpriteUnit = SpriteUnitBase.new(:bitmap, :ox, :oy, :ow, :oh, :x, :y, :dx, :dy, :angle, :xscale, :yscale, :px, :py, :qx, :qy)
+  #([数字])は、配列として認識したときのインデックス番号に対応(Struct#[]メソッドを呼び出した時のインデックス)
+  #:bitmap([0]) -> 画像データ(SDL::Surfaceクラスのインスタンス)
+  #:ox([1])     -> 描画開始位置(x方向)
+  #:oy([2])     -> 描画開始位置(y方向)
+  #:ow([3])     -> 描画幅
+  #:oh([4])     -> 描画高さ
+  #:x([5])     -> 描画幅
+  #:y([6])     -> 描画高さ
+  #:angle([7])  -> 回転角度(ラジアン単位)
+  #:xscale([8]) -> X方向拡大・縮小・鏡像の割合(実数。変換後の幅が32768を切る様にすること)
+  #:yscale([9]) -> Y方向拡大・縮小・鏡像の割合(実数。変換後の幅が32768を切る様にすること)
+  #:cx([10])     -> 回転・拡大・縮小・鏡像の中心座標(x方向)
+  #:cy([11])     -> 回転・拡大・縮小・鏡像の中心座標(y方向)
+  SpriteUnit = SpriteUnitBase.new(:bitmap, :ox, :oy, :ow, :oh, :x, :y, :angle, :xscale, :yscale, :cx, :cy)
 
   #==SpriteUnit生成ファクトリクラス
   #SpriteUnit構造体のインスタンスを生成するためのクラス
   class SpriteUnitFactory
-    PARAMS = [:bitmap, :ox, :oy, :ow, :oh, :x, :y, :dx, :dy, :angle, :xscale, :yscale, :px, :py, :qx, :qy]
+    PARAMS = [:bitmap, :ox, :oy, :ow, :oh, :x, :y, :angle, :xscale, :yscale, :cx, :cy]
     #==SpriteUnitのインスタンスを生成する
     #params: 初期化するSpriteUnit構造体の値。ハッシュ引数。引数のキーは、SpriteUnitのアクセサ名と同一。省略可能
     def SpriteUnitFactory.create(params = nil)
-      unit = SpriteUnit.new(nil, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.0, 1.0, 0, 0, 0, 0)
+      unit = SpriteUnit.new(nil, 0, 0, 0, 0, 0, 0, 0, 1.0, 1.0, 0, 0)
       return SpriteUnitFactory.apply(unit, params)
     end
 

@@ -249,25 +249,17 @@ module Miyako
     end
 
     def _draw_text_mild(dst, str, x, y) #:nodoc:
-      #αチャネルを持たないときは、直接描画
-      #αチャネルを持つときは、いったん中間画像に描画する
-      if dst.alpha
-        @font.drawBlendedUTF8(dst.bitmap, str, x + @shadow_margin[0], y + @shadow_margin[1],
-                              @shadow_color[0], @shadow_color[1], @shadow_color[2]) if @use_shadow
-        @font.drawBlendedUTF8(dst.bitmap, str, x, y, @color[0], @color[1], @color[2])
-      else
-        src = @font.renderBlendedUTF8(str, @color[0], @color[1], @color[2])
-        if src
-          if @use_shadow
-            src2 = @font.renderBlendedUTF8(str, @shadow_color[0], @shadow_color[1], @shadow_color[2])
-            SpriteUnitFactory.apply(@unit, {:bitmap=>src2, :ow=>src2.w, :oh=>src2.h})
-            Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
-          end
-          SpriteUnitFactory.apply(@unit, {:bitmap=>src, :ow=>src.w, :oh=>src.h})
-          Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x, y)
-        else
-          return x
+      src = @font.renderBlendedUTF8(str, @color[0], @color[1], @color[2])
+      if src
+        if @use_shadow
+          src2 = @font.renderBlendedUTF8(str, @shadow_color[0], @shadow_color[1], @shadow_color[2])
+          SpriteUnitFactory.apply(@unit, {:bitmap=>src2, :ow=>src2.w, :oh=>src2.h})
+          Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
         end
+        SpriteUnitFactory.apply(@unit, {:bitmap=>src, :ow=>src.w, :oh=>src.h})
+        Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x, y)
+      else
+        return x
       end
       return x + @font.textSize(str)[0]
     end

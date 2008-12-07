@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 =拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+Authors:: sairosu誠
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -115,10 +115,16 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 	tmp <<= fmt->Ashift; \
 	pixel |= tmp; \
 
+#define MIYAKO_SET_RECT(RECT, BASE) \
+  RECT.x = NUM2INT(*(RSTRUCT_PTR(BASE) + 1)); \
+  RECT.y = NUM2INT(*(RSTRUCT_PTR(BASE) + 2)); \
+  RECT.w = NUM2INT(*(RSTRUCT_PTR(BASE) + 3)); \
+  RECT.h = NUM2INT(*(RSTRUCT_PTR(BASE) + 4));
+
 /*
 ===画像をαチャネル付き画像へ転送する
-本メソッドは、転送先ビットマップを破壊的に変更することに注意！
-範囲は、srcの(ow,oh)の範囲で転送する。
+範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。
+src==dstの場合、何も行わない
 _src_:: 転送元ビットマップ(SpriteUnit構造体)
 _dst_:: 転送先ビットマップ(SpriteUnit構造体)
 _x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
@@ -135,60 +141,70 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 	MiyakoColor scolor, dcolor;
 	Uint32 tmp;
 	Uint32 pixel;
+	SDL_Rect srect, drect;
+	Uint32 src_a = 0;
+	Uint32 dst_a = 0;
 
-  //SpriteUnit:
-  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
-  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
-  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
-  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
-	int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-	int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-	int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-	int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
-	int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-	int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-	int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-	int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
+	if(psrc == pdst){ return Qnil; }
+	
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	//SpriteUnit:
+	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+	//[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+	//[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+	//[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	MIYAKO_SET_RECT(srect, vsrc);
+	MIYAKO_SET_RECT(drect, vdst);
+
 	int x =  NUM2INT(vx);
 	int y =  NUM2INT(vy);
-	int dlx = dox + x;
-	int dly = doy + y;
-	int dmx = dlx + sow;
-	int dmy = dly + soh;
-  int rx = dst->clip_rect.x + dst->clip_rect.w;
-  int ry = dst->clip_rect.y + dst->clip_rect.h;
+	int dlx = drect.x + x;
+	int dly = drect.y + y;
+	int dmx = dlx + srect.w;
+	int dmy = dly + srect.h;
+	int rx = dst->clip_rect.x + dst->clip_rect.w;
+	int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-	if(dmx > dow) dmx = dow;
-	if(dmy > doh) dmy = doh;
+	if(dmx > drect.w) dmx = drect.w;
+	if(dmy > drect.h) dmy = drect.h;
 
-  if(dlx < dst->clip_rect.x)
-  {
-    sox += (dst->clip_rect.x - dlx);
-    dlx = dst->clip_rect.x;
-  }
-  if(dly < dst->clip_rect.y)
-  {
-    soy += (dst->clip_rect.y - dly);
-    dly = dst->clip_rect.y;
-  }
-  if(dmx > rx){ dmx = rx; }
-  if(dly > ry){ dmy = ry; }
-  
+	if(dlx < dst->clip_rect.x)
+	{
+		srect.x += (dst->clip_rect.x - dlx);
+		dlx = dst->clip_rect.x;
+	}
+	if(dly < dst->clip_rect.y)
+	{
+		srect.y += (dst->clip_rect.y - dly);
+		dly = dst->clip_rect.y;
+	}
+	if(dmx > rx){ dmx = rx; }
+	if(dly > ry){ dmy = ry; }
+
 	SDL_LockSurface(src);
 	SDL_LockSurface(dst);
   
-	int px, py, sx, sy;
-  for(sy = soy, py = dly; py < dmy; sy++, py++)
-  {
-    for(sx = sox, px = dlx; px < dmx; sx++, px++)
-    {
-      pixel = *(psrc + sy * src->w + sx);
-      MIYAKO_GETCOLOR(scolor);
-      pixel = *(pdst + py * dst->w + px);
+	int px, py, sy;
+	for(py = dly, sy = srect.y; py < dmy; py++, sy++)
+	{
+    Uint32 *ppsrc = psrc + sy * src->w + srect.x;
+    Uint32 *ppdst = pdst + py * dst->w + dlx;
+		for(px = dlx; px < dmx; px++)
+		{
+			pixel = *ppsrc;
+			MIYAKO_GETCOLOR(scolor);
+			scolor.a |= src_a;
+      pixel = *ppdst;
       MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
       if(dcolor.a == 0){
         MIYAKO_SETCOLOR(scolor);
-        *(pdst + py * dst->w + px) = pixel;
+        *ppdst = pixel;
+        ppsrc++;
+        ppdst++;
         continue;
       }
       if(scolor.a > 0)
@@ -201,8 +217,10 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
         if(dcolor.b > 255){ dcolor.b = 255; }
         dcolor.a = scolor.a;
         MIYAKO_SETCOLOR(dcolor);
-        *(pdst + py * dst->w + px) = pixel;
+        *ppdst = pixel;
       }
+      ppsrc++;
+      ppdst++;
     }
   }
 
@@ -215,8 +233,8 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 /*
 ===画像をαチャネル付き画像へ転送する
 引数で渡ってきた特定の色に対して、α値をゼロにする画像を生成する
-本メソッドは、転送先ビットマップを破壊的に変更することに注意！
-範囲は、srcの(w,h)の範囲で転送する。
+src==dstの場合、何も行わずすぐに呼びだし元に戻る
+範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
 _src_:: 転送元ビットマップ(SpriteUnit構造体)
 _dst_:: 転送先ビットマップ(SpriteUnit構造体)
 _color_key_:: 透明にしたい色(各要素がr,g,bに対応している整数の配列(0～255))
@@ -233,6 +251,8 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 	Uint32 tmp;
 	Uint32 pixel;
 
+	if(psrc == pdst){ return Qnil; }
+	
 	color_key.r = NUM2INT(*(RARRAY_PTR(vcolor_key) + 0));
 	color_key.g = NUM2INT(*(RARRAY_PTR(vcolor_key) + 1));
 	color_key.b = NUM2INT(*(RARRAY_PTR(vcolor_key) + 2));
@@ -254,13 +274,15 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 	int sx, sy;
   for(sy = 0; sy < h; sy++)
   {
+    Uint32 *ppsrc = psrc + sy * w;
+    Uint32 *ppdst = pdst + sy * dst->w;
     for(sx = 0; sx < w; sx++)
     {
-      pixel = *(psrc + sy * w + sx);
+      pixel = *ppsrc++;
       MIYAKO_GETCOLOR(color);
       if(color.r == color_key.r && color.g == color_key.g &&  color.b == color_key.b) pixel = 0;
       else pixel |= (0xff >> fmt->Aloss) << fmt->Ashift;
-      *(pdst + sy * dst->w + sx) = pixel;
+      *ppdst++ = pixel;
     }
   }
 
@@ -272,7 +294,8 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 
 /*
 ===画像のαチャネルの値を一定の割合で減少させて転送する
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
+但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
 _src_:: 転送元ビットマップ(SpriteUnit構造体)
@@ -292,34 +315,36 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 	Uint32 pixel;
 
   if(src == dst){
-    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+		Uint32 src_a = 0;
+		Uint32 dst_a = 0;
+
+		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+		if(src == scr){ src_a = 255; }
+		if(dst == scr){ dst_a = 255; }
+
+		SDL_Rect srect, drect;
+		MIYAKO_SET_RECT(srect, vsrc);
+		MIYAKO_SET_RECT(drect, vdst);
     int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
     int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-    int dlx = dox + x;
-    int dly = doy + y;
-    int dmx = dlx + sow;
-    int dmy = dly + soh;
+    int dlx = drect.x + x;
+    int dly = drect.y + y;
+    int dmx = dlx + srect.w;
+    int dmy = dly + srect.h;
     int rx = dst->clip_rect.x + dst->clip_rect.w;
     int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-    if(dmx > dow) dmx = dow;
-    if(dmy > doh) dmy = doh;
+    if(dmx > drect.w) dmx = drect.w;
+    if(dmy > drect.h) dmy = drect.h;
 
     if(dlx < dst->clip_rect.x)
     {
-      sox += (dst->clip_rect.x - dlx);
+      srect.x += (dst->clip_rect.x - dlx);
       dlx = dst->clip_rect.x;
     }
     if(dly < dst->clip_rect.y)
     {
-      soy += (dst->clip_rect.y - dly);
+      srect.y += (dst->clip_rect.y - dly);
       dly = dst->clip_rect.y;
     }
     if(dmx > rx){ dmx = rx; }
@@ -329,14 +354,16 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
-    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
     {
-      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
         pixel = *(psrc + sy * src->w + sx);
         MIYAKO_GETCOLOR(scolor);
+				scolor.a |= src_a;
         pixel = *(pdst + py * dst->w + px);
         MIYAKO_GETCOLOR(dcolor);
+				dcolor.a |= dst_a;
         scolor.a = (Uint32)((double)scolor.a * deg);
         if(scolor.a < 0){ scolor.a = 0; }
         if(scolor.a > 255){ scolor.a = 255; }
@@ -396,7 +423,8 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 /*
 ===画像のRGB値を反転させる
 αチャネルの値は変更しない
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
+範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
+但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
 _src_:: 転送元ビットマップ(SpriteUnit構造体)
@@ -414,34 +442,36 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 	Uint32 pixel;
 
   if(src == dst){
-    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+		Uint32 src_a = 0;
+		Uint32 dst_a = 0;
+
+		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+		if(src == scr){ src_a = 255; }
+		if(dst == scr){ dst_a = 255; }
+
+		SDL_Rect srect, drect;
+		MIYAKO_SET_RECT(srect, vsrc);
+		MIYAKO_SET_RECT(drect, vdst);
     int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
     int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-    int dlx = dox + x;
-    int dly = doy + y;
-    int dmx = dlx + sow;
-    int dmy = dly + soh;
+    int dlx = drect.x + x;
+    int dly = drect.y + y;
+    int dmx = dlx + srect.w;
+    int dmy = dly + srect.h;
     int rx = dst->clip_rect.x + dst->clip_rect.w;
     int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-    if(dmx > dow) dmx = dow;
-    if(dmy > doh) dmy = doh;
+    if(dmx > drect.w) dmx = drect.w;
+    if(dmy > drect.h) dmy = drect.h;
 
     if(dlx < dst->clip_rect.x)
     {
-      sox += (dst->clip_rect.x - dlx);
+      srect.x += (dst->clip_rect.x - dlx);
       dlx = dst->clip_rect.x;
     }
     if(dly < dst->clip_rect.y)
     {
-      soy += (dst->clip_rect.y - dly);
+      srect.y += (dst->clip_rect.y - dly);
       dly = dst->clip_rect.y;
     }
     if(dmx > rx){ dmx = rx; }
@@ -451,14 +481,16 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
-    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
     {
-      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
         pixel = *(psrc + sy * src->w + sx);
         MIYAKO_GETCOLOR(scolor);
+				scolor.a |= src_a;
         pixel = *(pdst + py * dst->w + px);
         MIYAKO_GETCOLOR(dcolor);
+				dcolor.a |= dst_a;
         scolor.r ^= 0xff;
         scolor.g ^= 0xff;
         scolor.b ^= 0xff;
@@ -517,7 +549,7 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 
 /*
 ===2枚の画像の加算合成を行う
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。
+範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
 _src_:: 転送元ビットマップ(SpriteUnit構造体)
 _dst_:: 転送先ビットマップ(SpriteUnit構造体)
 */
@@ -531,35 +563,38 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 	MiyakoColor scolor, dcolor;
 	Uint32 tmp;
 	Uint32 pixel;
+	SDL_Rect srect, drect;
+	Uint32 src_a = 0;
+	Uint32 dst_a = 0;
 
-  int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-  int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-  int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-  int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+	if(psrc == pdst){ return Qnil; }
+	
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	MIYAKO_SET_RECT(srect, vsrc);
+	MIYAKO_SET_RECT(drect, vdst);
   int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
   int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-  int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-  int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-  int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-  int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-  int dlx = dox + x;
-  int dly = doy + y;
-  int dmx = dlx + sow;
-  int dmy = dly + soh;
+  int dlx = drect.x + x;
+  int dly = drect.y + y;
+  int dmx = dlx + srect.w;
+  int dmy = dly + srect.h;
   int rx = dst->clip_rect.x + dst->clip_rect.w;
   int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-  if(dmx > dow) dmx = dow;
-  if(dmy > doh) dmy = doh;
+  if(dmx > drect.w) dmx = drect.w;
+  if(dmy > drect.h) dmy = drect.h;
 
   if(dlx < dst->clip_rect.x)
   {
-    sox += (dst->clip_rect.x - dlx);
+    srect.x += (dst->clip_rect.x - dlx);
     dlx = dst->clip_rect.x;
   }
   if(dly < dst->clip_rect.y)
   {
-    soy += (dst->clip_rect.y - dly);
+    srect.y += (dst->clip_rect.y - dly);
     dly = dst->clip_rect.y;
   }
   if(dmx > rx){ dmx = rx; }
@@ -569,15 +604,17 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
   SDL_LockSurface(dst);
   
   int px, py, sx, sy;
-  for(sy = soy, py = dly; py < dmy; sy++, py++)
+  for(sy = srect.y, py = dly; py < dmy; sy++, py++)
   {
-    for(sx = sox, px = dlx; px < dmx; sx++, px++)
+    for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
     {
       pixel = *(psrc + sy * src->w + sx);
       MIYAKO_GETCOLOR(scolor);
+			scolor.a |= src_a;
 			if(scolor.a > 0){
         pixel = *(pdst + py * dst->w + px);
         MIYAKO_GETCOLOR(dcolor);
+				dcolor.a |= dst_a;
 				dcolor.r += scolor.r;
 				if(dcolor.r > 255){ dcolor.r = 255; }
 				dcolor.g += scolor.g;
@@ -599,7 +636,7 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 
 /*
 ===2枚の画像の減算合成を行う
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。
+範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
 _src_:: 転送元ビットマップ(SpriteUnit構造体)
 _dst_:: 転送先ビットマップ(SpriteUnit構造体)
 */
@@ -608,6 +645,299 @@ static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE ds
   bitmap_miyako_inverse(self, dst, dst);
   bitmap_miyako_additive_synthesis(self, src, dst);
   bitmap_miyako_inverse(self, dst, dst);
+  return Qnil;
+}
+
+/*
+===画像を回転させて貼り付ける
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
+転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
+回転角度は、src側SpriteUnitのangleを使用する
+回転角度が正だと右回り、負だと左回りに回転する
+src==dstの場合、何も行わない
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+*/
+static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	Uint32 src_a = 0;
+	Uint32 dst_a = 0;
+
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect srect, drect;
+	SDL_Rect screct, dcrect;
+	
+	if(psrc == pdst){ return Qnil; }
+	
+	MIYAKO_SET_RECT(srect, vsrc);
+	MIYAKO_SET_RECT(drect, vdst);
+
+  if(drect.w >= 32768 || drect.h >= 32768){ return Qnil; }
+
+  double rad = NUM2DBL(*(RSTRUCT_PTR(vsrc)+7)) * -1.0;
+  long isin = (long)(sin(rad)*4096.0);
+  long icos = (long)(cos(rad)*4096.0);
+
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(vsrc)+10));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(vsrc)+11));
+	int qx = NUM2INT(*(RSTRUCT_PTR(vsrc)+5)) + NUM2INT(*(RSTRUCT_PTR(vdst)+10));
+	int qy = NUM2INT(*(RSTRUCT_PTR(vsrc)+6)) + NUM2INT(*(RSTRUCT_PTR(vdst)+11));
+
+  SDL_LockSurface(src);
+  SDL_LockSurface(dst);
+  
+  int x, y;
+  for(y = drect.y; y < (drect.y + drect.h); y++)
+  {
+    for(x = drect.x; x < (drect.x + drect.w); x++)
+    {
+      int nx = (((x-qx)*icos-(y-qy)*isin) >> 12) + px;
+      int ny = (((x-qx)*isin+(y-qy)*icos) >> 12) + py;
+      if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
+			pixel = *(psrc + ny * src->w + nx);
+			MIYAKO_GETCOLOR(scolor);
+			scolor.a |= src_a;
+      pixel = *(pdst + y * dst->w + x);
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(scolor);
+        *(pdst + y * dst->w + x) = pixel;
+        continue;
+      }
+      if(scolor.a > 0)
+      {
+        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = scolor.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+  }
+
+  SDL_UnlockSurface(src);
+  SDL_UnlockSurface(dst);
+	
+  return Qnil;
+}
+
+/*
+===画像を拡大・縮小・鏡像(ミラー反転)させて貼り付ける
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
+転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
+変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
+度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+src==dstの場合、何も行わない
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+*/
+static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	Uint32 src_a = 0;
+	Uint32 dst_a = 0;
+
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect srect, drect;
+	SDL_Rect screct, dcrect;
+	
+	if(psrc == pdst){ return Qnil; }
+	
+	MIYAKO_SET_RECT(srect, vsrc);
+	MIYAKO_SET_RECT(drect, vdst);
+
+  if(drect.w >= 32768 || drect.h >= 32768){ return Qnil; }
+
+  double scx = NUM2DBL(*(RSTRUCT_PTR(vsrc)+8));
+  double scy = NUM2DBL(*(RSTRUCT_PTR(vsrc)+9));
+  double ascx = scx < 0.0 ? -scx : scx;
+  double ascy = scy < 0.0 ? -scy : scy;
+
+  if(scx == 0.0 || scy == 0.0){ return Qnil; }
+
+  scx = 1.0 / scx;
+  scy = 1.0 / scy;
+
+  int off_x = scx < 0 ? 1 : 0;
+  int off_y = scy < 0 ? 1 : 0;
+
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(vsrc)+10));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(vsrc)+11));
+	int qx = NUM2INT(*(RSTRUCT_PTR(vsrc)+5)) + NUM2INT(*(RSTRUCT_PTR(vdst)+10));
+	int qy = NUM2INT(*(RSTRUCT_PTR(vsrc)+6)) + NUM2INT(*(RSTRUCT_PTR(vdst)+11));
+
+  SDL_LockSurface(src);
+  SDL_LockSurface(dst);
+  
+  int x, y;
+  for(y = drect.y; y < (drect.y + drect.h); y++)
+  {
+    for(x = drect.x; x < (drect.x + drect.w); x++)
+    {
+      int nx = (int)((double)(x-qx) * scx) + px - off_x;
+      int ny = (int)((double)(y-qy) * scy) + py - off_y;
+      if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
+			pixel = *(psrc + ny * src->w + nx);
+			MIYAKO_GETCOLOR(scolor);
+			scolor.a |= src_a;
+      pixel = *(pdst + y * dst->w + x);
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(scolor);
+        *(pdst + y * dst->w + x) = pixel;
+        continue;
+      }
+      if(scolor.a > 0)
+      {
+        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = scolor.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+  }
+
+  SDL_UnlockSurface(src);
+  SDL_UnlockSurface(dst);
+	
+  return Qnil;
+}
+
+/*
+===画像を変形(回転・拡大・縮小・鏡像)させて貼り付ける
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
+転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
+回転角度は、src側SpriteUnitのangleを使用する
+回転角度が正だと右回り、負だと左回りに回転する
+変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
+度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+src==dstの場合、何も行わない
+_src_:: 転送元ビットマップ(SpriteUnit構造体)
+_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+*/
+static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	Uint32 src_a = 0;
+	Uint32 dst_a = 0;
+
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+	
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect srect, drect;
+	SDL_Rect screct, dcrect;
+	
+	if(psrc == pdst){ return Qnil; }
+	
+	MIYAKO_SET_RECT(srect, vsrc);
+	MIYAKO_SET_RECT(drect, vdst);
+
+  if(drect.w >= 32768 || drect.h >= 32768){ return Qnil; }
+
+  double rad = NUM2DBL(*(RSTRUCT_PTR(vsrc)+7)) * -1.0;
+  long isin = (long)(sin(rad)*4096.0);
+  long icos = (long)(cos(rad)*4096.0);
+
+  double scx = NUM2DBL(*(RSTRUCT_PTR(vsrc)+8));
+  double scy = NUM2DBL(*(RSTRUCT_PTR(vsrc)+9));
+  double ascx = scx < 0.0 ? -scx : scx;
+  double ascy = scy < 0.0 ? -scy : scy;
+
+  if(scx == 0.0 || scy == 0.0){ return Qnil; }
+
+  scx = 1.0 / scx;
+  scy = 1.0 / scy;
+
+  int off_x = scx < 0 ? 1 : 0;
+  int off_y = scy < 0 ? 1 : 0;
+
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(vsrc)+10));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(vsrc)+11));
+	int qx = NUM2INT(*(RSTRUCT_PTR(vsrc)+5)) + NUM2INT(*(RSTRUCT_PTR(vdst)+10));
+	int qy = NUM2INT(*(RSTRUCT_PTR(vsrc)+6)) + NUM2INT(*(RSTRUCT_PTR(vdst)+11));
+
+  SDL_LockSurface(src);
+  SDL_LockSurface(dst);
+  
+	int flag = 1;
+	
+  int x, y;
+  for(y = drect.y; y < (drect.y + drect.h); y++)
+  {
+    for(x = drect.x; x < (drect.x + drect.w); x++)
+    {
+      int nx = (int)((double)(((x-qx)*icos-(y-qy)*isin) >> 12) * scx) + px - off_x;
+      int ny = (int)((double)(((x-qx)*isin+(y-qy)*icos) >> 12) * scy) + py - off_y;
+      if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
+			pixel = *(psrc + ny * src->w + nx);
+			MIYAKO_GETCOLOR(scolor);
+			scolor.a |= src_a;
+      pixel = *(pdst + y * dst->w + x);
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(scolor);
+        *(pdst + y * dst->w + x) = pixel;
+        continue;
+      }
+      if(scolor.a > 0)
+      {
+        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = scolor.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *(pdst + y * dst->w + x) = pixel;
+      }
+    }
+  }
+
+  SDL_UnlockSurface(src);
+  SDL_UnlockSurface(dst);
+	
   return Qnil;
 }
 
@@ -686,45 +1016,47 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
   if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
   
   if(src != dst){
-    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+		SDL_Rect srect, drect;
+		MIYAKO_SET_RECT(srect, vsrc);
+		MIYAKO_SET_RECT(drect, vdst);
     int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
     int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-    int dlx = dox + x;
-    int dly = doy + y;
-    int dmx = dlx + sow;
-    int dmy = dly + soh;
+    int dlx = drect.x + x;
+    int dly = drect.y + y;
+    int dmx = dlx + srect.w;
+    int dmy = dly + srect.h;
     int rx = dst->clip_rect.x + dst->clip_rect.w;
     int ry = dst->clip_rect.y + dst->clip_rect.h;
-    rx = rx < dow ? rx : dow;
-    ry = ry < doh ? ry : doh;
+    rx = rx < drect.w ? rx : drect.w;
+    ry = ry < drect.h ? ry : drect.h;
 
     if(dlx < dst->clip_rect.x)
     {
-      sox += (dst->clip_rect.x - dlx);
+      srect.x += (dst->clip_rect.x - dlx);
       dlx = dst->clip_rect.x;
     }
     if(dly < dst->clip_rect.y)
     {
-      soy += (dst->clip_rect.y - dly);
+      srect.y += (dst->clip_rect.y - dly);
       dly = dst->clip_rect.y;
     }
     if(dmx > rx){ dmx = rx; }
     if(dly > ry){ dmy = ry; }
   
+		Uint32 src_a = 0;
+		Uint32 dst_a = 0;
+
+		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+		if(src == scr){ src_a = 255; }
+		if(dst == scr){ dst_a = 255; }
+
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
-    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
     {
-      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
         pixel = *(psrc + sy * src->w + sx);
         MIYAKO_GETCOLOR(scolor);
@@ -815,46 +1147,48 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
   double i, f, m, n, k;
 
   if(src != dst){
-    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+		SDL_Rect srect, drect;
+		MIYAKO_SET_RECT(srect, vsrc);
+		MIYAKO_SET_RECT(drect, vdst);
     int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
     int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-    int dlx = dox + x;
-    int dly = doy + y;
-    int dmx = dlx + sow;
-    int dmy = dly + soh;
+    int dlx = drect.x + x;
+    int dly = drect.y + y;
+    int dmx = dlx + srect.w;
+    int dmy = dly + srect.h;
     int rx = dst->clip_rect.x + dst->clip_rect.w;
     int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-    if(dmx > dow) dmx = dow;
-    if(dmy > doh) dmy = doh;
+    if(dmx > drect.w) dmx = drect.w;
+    if(dmy > drect.h) dmy = drect.h;
 
     if(dlx < dst->clip_rect.x)
     {
-      sox += (dst->clip_rect.x - dlx);
+      srect.x += (dst->clip_rect.x - dlx);
       dlx = dst->clip_rect.x;
     }
     if(dly < dst->clip_rect.y)
     {
-      soy += (dst->clip_rect.y - dly);
+      srect.y += (dst->clip_rect.y - dly);
       dly = dst->clip_rect.y;
     }
     if(dmx > rx){ dmx = rx; }
     if(dly > ry){ dmy = ry; }
   
+		Uint32 src_a = 0;
+		Uint32 dst_a = 0;
+
+		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+		if(src == scr){ src_a = 255; }
+		if(dst == scr){ dst_a = 255; }
+
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
-    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
     {
-      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
         pixel = *(psrc + sy * src->w + sx);
         MIYAKO_GETCOLOR(scolor);
@@ -946,46 +1280,48 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
   double i, f, m, n, k;
 
   if(src != dst){
-    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+		SDL_Rect srect, drect;
+		MIYAKO_SET_RECT(srect, vsrc);
+		MIYAKO_SET_RECT(drect, vdst);
     int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
     int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-    int dlx = dox + x;
-    int dly = doy + y;
-    int dmx = dlx + sow;
-    int dmy = dly + soh;
+    int dlx = drect.x + x;
+    int dly = drect.y + y;
+    int dmx = dlx + srect.w;
+    int dmy = dly + srect.h;
     int rx = dst->clip_rect.x + dst->clip_rect.w;
     int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-    if(dmx > dow) dmx = dow;
-    if(dmy > doh) dmy = doh;
+    if(dmx > drect.w) dmx = drect.w;
+    if(dmy > drect.h) dmy = drect.h;
 
     if(dlx < dst->clip_rect.x)
     {
-      sox += (dst->clip_rect.x - dlx);
+      srect.x += (dst->clip_rect.x - dlx);
       dlx = dst->clip_rect.x;
     }
     if(dly < dst->clip_rect.y)
     {
-      soy += (dst->clip_rect.y - dly);
+      srect.y += (dst->clip_rect.y - dly);
       dly = dst->clip_rect.y;
     }
     if(dmx > rx){ dmx = rx; }
     if(dly > ry){ dmy = ry; }
   
-    SDL_LockSurface(src);
+		Uint32 src_a = 0;
+		Uint32 dst_a = 0;
+
+		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+		if(src == scr){ src_a = 255; }
+		if(dst == scr){ dst_a = 255; }
+
+		SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
-    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
     {
-      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
         pixel = *(psrc + sy * src->w + sx);
         MIYAKO_GETCOLOR(scolor);
@@ -1084,46 +1420,48 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
   if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
   
   if(src != dst){
-    int sox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int soy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int sow = NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int soh = NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
-    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
+		SDL_Rect srect, drect;
+		MIYAKO_SET_RECT(srect, vsrc);
+		MIYAKO_SET_RECT(drect, vdst);
+		int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
     int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
-    int dox = NUM2INT(*(RSTRUCT_PTR(vdst) + 1));
-    int doy = NUM2INT(*(RSTRUCT_PTR(vdst) + 2));
-    int dow = NUM2INT(*(RSTRUCT_PTR(vdst) + 3));
-    int doh = NUM2INT(*(RSTRUCT_PTR(vdst) + 4));
-    int dlx = dox + x;
-    int dly = doy + y;
-    int dmx = dlx + sow;
-    int dmy = dly + soh;
+    int dlx = drect.x + x;
+    int dly = drect.y + y;
+    int dmx = dlx + srect.w;
+    int dmy = dly + srect.h;
     int rx = dst->clip_rect.x + dst->clip_rect.w;
     int ry = dst->clip_rect.y + dst->clip_rect.h;
   
-    if(dmx > dow) dmx = dow;
-    if(dmy > doh) dmy = doh;
+    if(dmx > drect.w) dmx = drect.w;
+    if(dmy > drect.h) dmy = drect.h;
 
     if(dlx < dst->clip_rect.x)
     {
-      sox += (dst->clip_rect.x - dlx);
+      srect.x += (dst->clip_rect.x - dlx);
       dlx = dst->clip_rect.x;
     }
     if(dly < dst->clip_rect.y)
     {
-      soy += (dst->clip_rect.y - dly);
+      srect.y += (dst->clip_rect.y - dly);
       dly = dst->clip_rect.y;
     }
     if(dmx > rx){ dmx = rx; }
     if(dly > ry){ dmy = ry; }
   
+		Uint32 src_a = 0;
+		Uint32 dst_a = 0;
+
+		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+		if(src == scr){ src_a = 255; }
+		if(dst == scr){ dst_a = 255; }
+		
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
-    for(sy = soy, py = dly; py < dmy; sy++, py++)
+    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
     {
-      for(sx = sox, px = dlx; px < dmx; sx++, px++)
+      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
         pixel = *(psrc + sy * src->w + sx);
         MIYAKO_GETCOLOR(scolor);
@@ -1211,6 +1549,91 @@ static VALUE sprite_update(VALUE self)
   return self;
 }
 
+static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
+{
+	VALUE usrc = rb_funcall(vsrc, rb_intern("to_unit"), 0);
+	VALUE udst = rb_funcall(vdst, rb_intern("to_unit"), 0);
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(usrc)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(udst)))->surface;
+  SDL_Rect srect;
+  SDL_Rect drect;
+
+	srect.x = NUM2INT(*(RSTRUCT_PTR(usrc) + 1));
+	srect.y = NUM2INT(*(RSTRUCT_PTR(usrc) + 2));
+	srect.w = NUM2INT(*(RSTRUCT_PTR(usrc) + 3));
+	srect.h = NUM2INT(*(RSTRUCT_PTR(usrc) + 4));
+	drect.x = NUM2INT(*(RSTRUCT_PTR(udst) + 1))
+            + NUM2INT(*(RSTRUCT_PTR(usrc) + 5));
+	drect.y = NUM2INT(*(RSTRUCT_PTR(udst) + 2))
+	          + NUM2INT(*(RSTRUCT_PTR(usrc) + 6));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
+  
+  return self;
+}
+
+/*
+===画面に描画を指示する
+現在の画像を、現在の状態で描画するよう指示する
+但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
+返却値:: 自分自身を返す
+*/
+static VALUE sprite_render(VALUE self)
+{
+  sprite_c_render_to_sprite(Qnil, self, mScreen);
+  return self;
+}
+
+/*
+===スプライトに画像を転送して貼り付ける
+srcのスプライトの内容を、dstのスプライトに貼り付ける
+このメソッドは、画面へのrenderと違い、メソッドを呼び出した時点で描画が行われる
+描画範囲は、転送元は(src.ox,src.oy)-(src.ox+src.ow-1,src.oy+src.oh-1)の範囲のみ有効。転送先は(dst.ox+x,dst.oy+y)-(dst.ox+x+src.ow-1,dst.oy+y+src.oh-1)の範囲で描画される
+なお、転送後のαチャネルは、転送先のαチャネルの値がそのまま残ること、転送先のow,ohを考慮していない(転送先ow,ohの範囲を超えて転送する)ことに注意する
+そのため、転送元・転送先スプライトは、αチャネルを使わない画像の方が、想定外の結果にならず好ましい
+_src_:: 転送元スプライト
+_dst_:: 転送先スプライト
+*/
+static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
+{
+  sprite_c_render_to_sprite(Qnil, self, vdst);
+  return Qnil;
+}
+
+/*
+===画面に描画を指示する(回転/拡大/縮小付き)
+現在の画像を、回転/拡大/縮小を付けながら描画するよう指示する
+描画時、スプライトのow,ohを無視することに注意する(ow=w,oh=hのときのみ想定通りの結果が出る)
+但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
+params:: 描画パラメータ。省略時はnil
+返却値:: 自分自身を返す
+*/
+static VALUE sprite_render_transform(VALUE self)
+{
+  bitmap_miyako_transform(Qnil, rb_funcall(self, rb_intern("to_unit"), 0),
+                                rb_funcall(mScreen, rb_intern("to_unit"), 0));
+  return self;
+}
+
+/*
+===スプライトに画像を転送して貼り付ける
+srcのスプライトの内容を、dstのスプライトに貼り付ける
+転送元画像の指定矩形の中心を軸にして変形した画像を、転送先画像の指定位置を中心として貼り付ける
+このメソッドは、画面へのrenderと違い、メソッドを呼び出した時点で描画が行われる
+描画時、双方のスプライトのow,ohを無視することに注意する(双方、ow=w,oh=hのときのみ想定通りの結果が出る)
+なお、転送後のαチャネルは、転送先のαチャネルの値がそのまま残ることに注意する
+そのため、転送元・転送先スプライトは、αチャネルを使わない画像の方が、想定外の結果にならず好ましい
+また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
+_src_:: 転送元スプライト
+_dst_:: 転送先スプライト
+*/
+static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst)
+{
+  bitmap_miyako_transform(Qnil, rb_funcall(self, rb_intern("to_unit"), 0),
+                                rb_funcall(vdst, rb_intern("to_unit"), 0));
+  return Qnil;
+}
+
 static VALUE screen_update_tick(VALUE self)
 {
   int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
@@ -1258,33 +1681,9 @@ static VALUE screen_render(VALUE self)
   return Qnil;
 }
 
-static VALUE screen_render_screen(VALUE self, VALUE src)
+static VALUE screen_render_screen(VALUE self, VALUE vsrc)
 {
-  VALUE dst = rb_iv_get(mScreen, "@@unit");
-	SDL_Surface *psrc = GetSurface(*(RSTRUCT_PTR(src)))->surface;
-	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
-  SDL_Rect srect;
-  SDL_Rect drect;
-
-  //SpriteUnit:
-  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
-  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
-  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
-  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
-	srect.x = NUM2INT(*(RSTRUCT_PTR(src) + 1));
-	srect.y = NUM2INT(*(RSTRUCT_PTR(src) + 2));
-	srect.w = NUM2INT(*(RSTRUCT_PTR(src) + 3));
-	srect.h = NUM2INT(*(RSTRUCT_PTR(src) + 4));
-	drect.x = NUM2INT(*(RSTRUCT_PTR(dst) + 1))
-            + NUM2INT(*(RSTRUCT_PTR(src) + 5))
-            + NUM2INT(*(RSTRUCT_PTR(src) + 7));
-	drect.y = NUM2INT(*(RSTRUCT_PTR(dst) + 2))
-	          + NUM2INT(*(RSTRUCT_PTR(src) + 6))
-            + NUM2INT(*(RSTRUCT_PTR(src) + 8));
-
-  SDL_BlitSurface(psrc, &srect, pdst, &drect);
-  
-  return Qtrue;
+  return sprite_c_render_to_sprite(Qnil, vsrc, mScreen);
 }
 
 static VALUE counter_start(VALUE self)
@@ -1428,6 +1827,101 @@ static VALUE fixedmaplayer_render(VALUE self)
   return Qnil;
 }
 
+static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
+{
+  int cw = NUM2INT(rb_iv_get(self, "@cw"));
+  int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  VALUE margin = rb_iv_get(self, "@margin");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0)) + NUM2INT(*(RSTRUCT_PTR(margin) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1)) + NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
+  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE real_size = rb_iv_get(self, "@real_size");
+  int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
+  int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
+
+  VALUE param = rb_iv_get(self, "@mapchip");
+  VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
+  int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
+  int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
+
+  VALUE munits = rb_iv_get(self, "@mapchip_units");
+  VALUE mapdat = rb_iv_get(self, "@mapdat");
+  
+  if(pos_x < 0){ pos_x = real_size_w + (pos_x % real_size_w); }
+  if(pos_y < 0){ pos_y = real_size_h + (pos_y % real_size_h); }
+  if(pos_x >= real_size_w){ pos_x %= real_size_w; }
+  if(pos_y >= real_size_h){ pos_y %= real_size_h; }
+
+  int dx = pos_x / mc_chip_size_w;
+  int mx = pos_x % mc_chip_size_w;
+  int dy = pos_y / mc_chip_size_h;
+  int my = pos_y % mc_chip_size_h;
+
+  VALUE dst = rb_funcall(vdst, rb_intern("to_unit"), 0);
+
+  int x, y, idx1, idx2;
+  for(y = 0; y < ch; y++){
+    idx1 = (y + dy) % size_h;
+    VALUE mapdat2 = *(RARRAY_PTR(mapdat) + idx1);
+    for(x = 0; x < cw; x++){
+      idx2 = (x + dx) % size_w;
+      int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
+      if(code == -1){ continue; }
+      VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
+      sprite_c_render_to_sprite(Qnil, unit, dst);
+    }
+  }
+  return Qnil;
+}
+
+static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
+{
+  int cw = NUM2INT(rb_iv_get(self, "@cw"));
+  int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
+  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE munits = rb_iv_get(self, "@mapchip_units");
+  VALUE mapdat = rb_iv_get(self, "@mapdat");
+
+  VALUE dst = rb_funcall(vdst, rb_intern("to_unit"), 0);
+
+  int x, y, idx1, idx2;
+  for(y = 0; y < ch; y++){
+    idx1 = y % size_h;
+    VALUE mapdat2 = *(RARRAY_PTR(mapdat) + idx1);
+    for(x = 0; x < cw; x++){
+      idx2 = x % size_w;
+      int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
+      if(code == -1){ continue; }
+      VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      sprite_c_render_to_sprite(Qnil, unit, dst);
+    }
+  }
+
+  return Qnil;
+}
+
 static VALUE map_render(VALUE self)
 {
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -1445,6 +1939,28 @@ static VALUE fixedmap_render(VALUE self)
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
     fixedmaplayer_render(*(RARRAY_PTR(map_layers) + i));
+  }
+
+  return Qnil;
+}
+
+static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
+{
+  VALUE map_layers = rb_iv_get(self, "@map_layers");
+  int i;
+  for(i=0; i<RARRAY_LEN(map_layers); i++){
+    maplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), vdst);
+  }
+  
+  return Qnil;
+}
+
+static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
+{
+  VALUE map_layers = rb_iv_get(self, "@map_layers");
+  int i;
+  for(i=0; i<RARRAY_LEN(map_layers); i++){
+    fixedmaplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), vdst);
   }
 
   return Qnil;
@@ -1576,9 +2092,9 @@ static VALUE sa_render(VALUE self)
   return Qnil;
 }
 
-static VALUE sprite_render(VALUE self)
+static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
-  screen_render_screen(Qnil, rb_iv_get(self, "@unit"));
+  sprite_c_render_to_sprite(Qnil, rb_iv_get(self, "@now"), vdst);
   return Qnil;
 }
 
@@ -1608,6 +2124,39 @@ static VALUE plane_render(VALUE self)
         *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x2);
         *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y2);
         screen_render_screen(Qnil, unit);
+      }
+    }
+  }
+  
+  return Qnil;
+}
+
+static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
+{
+  VALUE ssize = rb_iv_get(mScreen, "@@size");
+  int ssw = NUM2INT(*(RSTRUCT_PTR(ssize) + 0));
+  int ssh = NUM2INT(*(RSTRUCT_PTR(ssize) + 1));
+  VALUE pos = rb_iv_get(self, "@pos");
+  VALUE size = rb_iv_get(self, "@size");
+  VALUE sprite = rb_iv_get(self, "@sprite");
+  int w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+  VALUE unit = rb_funcall(sprite, rb_intern("to_unit"), 0);
+  int sw = NUM2INT(*(RSTRUCT_PTR(unit) + 3));
+  int sh = NUM2INT(*(RSTRUCT_PTR(unit) + 4));
+
+  int x, y;
+  for(y = 0; y < h; y++){
+    for(x = 0; x < w; x++){
+      int x2 = (x-1) * sw + pos_x;
+      int y2 = (y-1) * sh + pos_y;
+      if(x2 > 0 || y2 > 0
+      || (x2+sw) <= ssw || (y2+sh) <= ssh){
+        *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x2);
+        *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y2);
+        sprite_c_render_to_sprite(Qnil, unit, vdst);
       }
     }
   }
@@ -2013,11 +2562,14 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(cBitmap, "additive!", bitmap_miyako_additive_synthesis, 2);
   rb_define_singleton_method(cBitmap, "subtraction!", bitmap_miyako_subtraction_synthesis, 2);
 
+	rb_define_singleton_method(cBitmap, "rotate", bitmap_miyako_rotate, 2);
+	rb_define_singleton_method(cBitmap, "scale", bitmap_miyako_scale, 2);
+	rb_define_singleton_method(cBitmap, "transform", bitmap_miyako_transform, 2);
+
   rb_define_singleton_method(cBitmap, "hue!", bitmap_miyako_hue, 3);
   rb_define_singleton_method(cBitmap, "saturation!", bitmap_miyako_saturation, 3);
   rb_define_singleton_method(cBitmap, "value!", bitmap_miyako_value, 3);
   rb_define_singleton_method(cBitmap, "hsv!", bitmap_miyako_hsv, 5);
-
 
   rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
   rb_define_module_function(mScreen, "render", screen_render, 0);
@@ -2035,10 +2587,16 @@ void Init_miyako_no_katana()
   rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);
   rb_define_method(cSpriteAnimation, "set_pat", sa_set_pat, 0);
   rb_define_method(cSpriteAnimation, "render", sa_render, 0);
+  rb_define_method(cSpriteAnimation, "render_to_sprite", sa_render_to_sprite, 1);
 
+  rb_define_singleton_method(cSprite, "render_to_sprite", sprite_c_render_to_sprite, 2);
   rb_define_method(cSprite, "render", sprite_render, 0);
+  rb_define_method(cSprite, "render_to_sprite", sprite_render_to_sprite, 1);
+  rb_define_method(cSprite, "render_transform", sprite_render_transform, 0);
+  rb_define_method(cSprite, "render_to_sprite_transform", sprite_render_to_sprite_transform, 1);
 
   rb_define_method(cPlane, "render", plane_render, 0);
+  rb_define_method(cPlane, "render_to_sprite", plane_render_to_sprite, 1);
 
   rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 2);
   rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 2);
@@ -2069,4 +2627,8 @@ void Init_miyako_no_katana()
   rb_define_method(cFixedMapLayer, "render", fixedmaplayer_render, 0);
   rb_define_method(cMap, "render", map_render, 0);
   rb_define_method(cFixedMap, "render", fixedmap_render, 0);
+  rb_define_method(cMap, "render_to_sprite", map_render_to_sprite, 1);
+  rb_define_method(cFixedMap, "render_to_sprite", fixedmap_render_to_sprite, 1);
+  rb_define_method(cMapLayer, "render_to_sprite", maplayer_render_to_sprite, 1);
+  rb_define_method(cFixedMapLayer, "render_to_sprite", fixedmaplayer_render_to_sprite, 1);
 }

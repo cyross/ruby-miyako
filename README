@@ -90,22 +90,22 @@ VID : GeForce 8800GT
 S/B : Creative SoundBlaster X-Fi
 PAD : BUFFALO BGC-FC802
       Logicool G-UF13
-OS  : Microsoft WindowsXp SP2
+OS  : Microsoft WindowsXp SP3
       Microsoft WindowsVista Ultimate(x64) SP1
-DEV : NetBeans 6.1
+DEV : Notepad++ v5.1.5 +EUC-JP
       ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
-      MinGW+MSYS(idaten_miyako,miyako_no_katanaビルド)
+      MinGW+MSYS(miyako_no_katanaビルド)
 
 ＜サブ開発PC＞
 Panasonic Let'sNOTE Light R3
 CPU : PentiumM 1.1GHz
 MEM : 784(256+512)MB
 PAD : SANWA SUPPLY JY-P1W
-OS  : Microsoft WindowsXp SP2
-DEV : RDE 1.1.1
+OS  : Microsoft WindowsXp SP3
+DEV : Notepad++ v5.1.5 +EUC-JP
       ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
       Microsoft VisualStudio 2005(拡張ライブラリソース記述)
-      MinGW+MSYS(idaten_miyako,miyako_no_katanaビルド)
+      MinGW+MSYS(miyako_no_katanaビルド)
 
 【 動作環境  】
 
@@ -131,8 +131,6 @@ Ruby/SDL 2.0＋対応SDLライブラリ群
 ・Miyako/win/idaten_miyako.so(Windows用idaten_miyako)
 ・Miyako/win/miyako_no_katana.so(Windows用miyako_no_katana)
 ・Miyako/libディレクトリ（ライブラリ本体）
-・idaten_miyako/idaten_miyako.c(idaten_miyakoソース)
-・idaten_miyako/extconf.rb(idaten_miyakoコンパイル用configureファイル)
 ・miyako_no_katana/miyako_no_katana.c(miyako_no_katanaソース)
 ・miyako_no_katana/extconf.rb(miyako_no_katanaコンパイル用configureファイル)
 ・install_miyako.rb(Miyakoインストール実行ファイル)
@@ -232,12 +230,6 @@ Makefileのインクルードファイルオプションを修正してくださ
 require 'Miyako/miyako'
 
 これで、Miyakoの機能を利用できます。
-
-Miyakoを高速化させたい場合は、次の行に
-
-require 'Miyako/idaten_miyako'
-
-と入力します。
 
 更に、拡張機能を使いたいときは、次の行に
 
@@ -880,7 +872,7 @@ v2.0.0(2008.xx.xx)
 ・Bitmap.caceheメソッドの廃止(画像データのキャッシュの廃止)
 ・Bitmap.miyako_blit_aaメソッドを廃止
 ・Bitmap.miyako_blit_aa2メソッドをBitmap.blit_aa!メソッドに改名・インタフェース変更
-・Bitmapクラスの各種画像変換メソッドの最後に!を追加
+・Bitmapクラスの各種画像変換メソッドの最後に!を追加(rotate, scale, transformは除く)
 ・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
 ・Bitmap.ck_to_acメソッドの追加(特定カラーのα値をゼロにした、αチャネル付き画像を生成する。Sprite.newのカラーキー透明画像はこれに置き換えられる)
 ・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
@@ -891,7 +883,7 @@ v2.0.0(2008.xx.xx)
 ・Screen.sizeメソッドの追加
 ・Screen.to_unitメソッドの追加
 ・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
-・Screen.buffer/bunitメソッドの追加(回転/拡大/縮小用)
+・Layout#in_boundsなどのメソッドの引数にviewportを追加(Layout内のviewportを廃止)
 ・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
 ・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
 ・Textbox#columns、rows、text_size、update_animationメソッドの追加
@@ -910,9 +902,6 @@ v2.0.0(2008.xx.xx)
 ・MapEvent#move、MapEvent#move_toメソッドを追加
 ・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
 ・MiyakoTapモジュールの廃止(tapメソッドが使えるようになったため)
-・rob.rb追加
-・ROPモジュール追加（ラスタオペレーションモジュール）
-・Pixel構造体追加（ピクセル情報構造体）
 ・drawing.rb追加
 ・Drawingモジュール追加（画像・画面への線形描画用）
 ・これにより、Spriteクラスの各種線形描画メソッドを廃止

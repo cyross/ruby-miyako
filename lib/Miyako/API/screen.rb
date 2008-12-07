@@ -64,13 +64,11 @@ module Miyako
     @@freezing  = false
     @@mode      = WINDOW_MODE
     @@unit      = SpriteUnitFactory.create
-    @@bunit      = SpriteUnitFactory.create
 
     @@size      = Size.new(DefaultWidth, DefaultHeight)
     @@in_the_scene = false
 
     @@screen = nil
-    @@buffer = nil
     @@viewport = nil
     
     #===画面の状態(ウインドウモードとフルスクリーンモード)を設定する
@@ -109,13 +107,6 @@ module Miyako
     #返却値:: 画面インスタンス(SDL::Screenクラスのインスタンス)
     def Screen::screen
       return @@screen
-    end
-
-    #===描画バッファを取得する
-    #描画バッファは、回転/拡大/縮小に用いる
-    #返却値:: バッファインスタンス(Miyako::Spriteクラスのインスタンス)
-    def Screen::buffer
-      return @@buffer
     end
 
     #===画面の幅を取得する
@@ -159,8 +150,6 @@ module Miyako
       return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << f))
       @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << f))
       SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
-      @@buffer = Sprite.new(:size => @@size.to_a, :type => :ac)
-      SpriteUnitFactory.apply(@@bunit, {:bitmap=>@@buffer.bitmap, :ow=>@@buffer.w, :oh=>@@buffer.h})
       @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
       return true
     end
@@ -175,8 +164,6 @@ module Miyako
       @@size = Size.new(w, h)
       @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
       SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
-      @@buffer = Sprite.new(:size => @@size.to_a, :type => :ac)
-      SpriteUnitFactory.apply(@@bunit, {:bitmap=>@@buffer.bitmap, :ow=>@@buffer.w, :oh=>@@buffer.h})
       @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
       return true
     end
@@ -226,26 +213,6 @@ module Miyako
       Shape.text({:text => (FpsMax/(@@interval == 0 ? 1 : @@interval)).to_s() + " fps", :font => Font.sans_serif}).render  if @@fpsView
       Screen::update_tick
       @@screen.flip
-    end
-
-    def Screen::render_screen(unit) #:nodoc:
-      loop do
-        begin
-          SDL::Surface.blit(unit.bitmap, unit.ox, unit.oy, unit.ow, unit.oh, @@screen, unit.x + unit.dx, unit.y + unit.dy)
-          break
-        rescue 
-        end
-      end
-    end
-    
-    def Screen::transform_screen(unit) #:nodoc:
-      loop do
-        begin
-          SDL::Surface.transform_blit(unit.bitmap, @@screen, unit.angle, unit.xscale, unit.yscale, unit.px, unit.py, unit.x + unit.qx + unit.dx, unit.y + unit.qy + unit.dy, 0)
-          break
-        rescue 
-        end
-      end
     end
   end
 end

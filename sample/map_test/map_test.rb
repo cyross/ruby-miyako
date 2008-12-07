@@ -4,7 +4,6 @@
 require 'singleton'
 
 require 'Miyako/miyako'
-require 'Miyako/idaten_miyako'
 
 include Miyako
 

@@ -71,4 +71,10 @@ Miyako.main_loop do
   back.fill([0,0,0])
   Bitmap.hue!(bk.to_unit, back.to_unit, degree)
   degree = (degree + damt) % 360
+#  Bitmap.dec_alpha!(bk.to_unit, back.to_unit, rate, 0, 0)
+#  rate += amt
+#  rate = 0.0 if rate < 0.01
+#  amt = 0.1 if rate == 0.0
+#  rate = 1.0 if rate > 0.99
+#  amt = -0.1 if rate == 1.0
 end

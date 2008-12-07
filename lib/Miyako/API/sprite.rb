@@ -30,7 +30,6 @@ module Miyako
     include SingleEnumerable
     extend Forwardable
 
-    attr_reader :alpha     #スプライト全体のα値(非αチャネル)を取得する。値は0～255の整数
     attr_reader :tr_color  #カラーキーが有向になっている場合のRGB値。[R,G,B]の配列(各要素は0～255の整数)
     attr_reader :type      #画像の透明度・透過タイプを取得する(詳細はSprite.newメソッドを参照)
 
@@ -38,7 +37,6 @@ module Miyako
 
     def setup #:nodoc:
       @unit = SpriteUnitFactory.create
-      @alpha = 255
       @aa = false
       @tr_color = Color[:black]
       @update = nil
@@ -66,7 +64,7 @@ module Miyako
     #  * SpriteUnit構造体のインスタンスから生成(ビットマップ以外のUnitの値は引き継がれる。しかし、snapの親子関係は引き継がれない)。
     #　(書式):unit=>SpriteUnit構造体のインスタンス((例):unit=>@spr.to_unit)
     #* 2.透過設定(括弧内は省略形)。以下の３種類のどれかを必ず指定する。
-    #  * 画像全体の透明度のみ設定可能。カラーキー・αチャネルの透過は行わない　(書式):type=>:alpha_surface(:as)
+    #  * カラーキーによる透過は行わない方式(デフォルトの方式)　(書式):type=>:alpha_surface(:as)
     #  * カラーキーの指定。　(書式):type=>:color_key(:ck)　カラーキー指定の方法は以下のとおり
     #    * 透明色にするピクセルの位置(2要素の整数の配列、Point構造体)　(書式1):point=>２要素の配列((例):type=>:ck, :point=>[20,20])　(書式2):point=>Point構造体((例):type=>:ck, :point=>Point.new(20,20))
     #    * 色を直接指定　(書式):tr_color=>色情報(Color.to_rgbメソッドで生成できるパラメータ)((例1):type=>:ck, :tr_color=>[255,0,255] # 紫色を透明色に　(例2):type=>:ck, :tr_color=>:red # 赤色を透明色に)
@@ -84,7 +82,6 @@ module Miyako
       param[:type] = @@abb[param[:type]] if @@abb.has_key?(param[:type])
       param[:point]  ||= Point.new(0, 0)
       param[:tr_color]  ||= Color[:black]
-      param[:alpha] ||= 255
       param[:is_fill] ||= false
       
       if param.has_key?(:bitmap) || param.has_key?(:bmp)
@@ -118,7 +115,6 @@ module Miyako
         @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
         tbitmap = nil
       when :alpha_surface
-        bitmap.setAlpha(SDL::SRCALPHA|SDL::RLEACCEL, param[:alpha]) 
         self.bitmap = bitmap.display_format
       when :alpha_channel
         self.bitmap = bitmap.display_format_alpha
@@ -129,16 +125,11 @@ module Miyako
       @type = param[:type]
 
       if param.has_key?(:unit)
-        @unit.ow = param[:unit].ow
-        @unit.oh = param[:unit].oh
+        SpriteUnitFactory.apply(@unit, :ow=>param[:unit].ow, :oh=>param[:unit].oh,
+                                       :angle => param[:unit].angle,
+                                       :xscale => param[:unit].xscale, :yscale => param[:unit].yscale,
+                                       :cx => param[:unit].cx, :cy => param[:unit].cy)
         self.move_to(param[:unit].x, param[:unit].y)
-        @unit.dx = param[:unit].dx
-        @unit.dy = param[:unit].dy
-        @unit.angle = param[:unit].angle
-        @unit.px = param[:unit].px
-        @unit.py = param[:unit].py
-        @unit.qx = param[:unit].qx
-        @unit.qy = param[:unit].qy
       end
     end
 
@@ -179,20 +170,6 @@ module Miyako
     def fill(color)
       @unit.bitmap.fill_rect(0,0,self.w,self.h,Color.to_rgb(color))
       return self
-    end
-
-    #===スプライトの透明度(画像全体)を設定する
-    #画像全体の透明度を設定する。0で透明、255で完全不透明になる。
-    #
-    #但し、スプライトがαチャネルを持つ場合(Sprite.newの引数で:type=>:acを指定している場合)は、何も行われない
-    #_val_:: 透明度。0?255までの整数
-    def alpha=(val)
-      return unless @alpha
-      @alpha = val
-      if @alpha
-        @unit.bitmap.setAlpha(SDL::SRCALPHA|SDL::RLEACCEL, @alpha)
-        @unit.bitmap = @unit.bitmap.display_format
-      end
     end
 
     #===画像の表示開始位置(X座標)を指定する
@@ -250,7 +227,7 @@ module Miyako
       @unit = nil
     end
 
-    #===インスタンスをSpriteUnit構造体化する
+    #===インスタンスをSpriteUnit構造体に変換して取得する
     #返却値:: SpriteUnit化したスプライト
     def to_unit
       return @unit.dup
@@ -269,72 +246,6 @@ module Miyako
       unit.bitmap = Bitmap.create(unit.bitmap.w, unit.bitmap.h)
       Bitmap.blit_aa!(@unit, unit, 0, 0)
       return Sprite.new(:unit=>unit, :type=>:ac)
-    end
-
-    #===画面に描画を指示する
-    #現在の画像を、現在の状態で描画するよう指示する
-    #但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
-    #返却値:: 自分自身を返す
-    def render
-      Screen.render_screen(@unit.dup)
-      return self
-    end
-    
-    #===画面に描画を指示する(回転/拡大/縮小付き)
-    #現在の画像を、回転/拡大/縮小を付けながら描画するよう指示する
-    #描画時、スプライトのow,ohを無視することに注意する(ow=w,oh=hのときのみ想定通りの結果が出る)
-    #但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
-    #params:: 描画パラメータ。省略時はnil
-    #返却値:: 自分自身を返す
-    def render_transform
-      unit = @unit.dup
-      Bitmap.transform!(unit.bitmap, Screen.screen, 
-                        unit.ox, unit.oy, unit.ow, unit.oh, unit.px, unit.py,
-                        unit.angle, unit.xscale, unit.yscale)
-      return self
-    end
-
-    #===スプライトに画像を転送して貼り付ける
-    #srcのスプライトの内容を、dstのスプライトに貼り付ける
-    #このメソッドは、画面へのrenderと違い、メソッドを呼び出した時点で描画が行われる
-    #描画範囲は、転送元は(src.ox,src.oy)-(src.ox+src.ow-1,src.oy+src.oh-1)の範囲のみ有効。転送先は(dst.ox+x,dst.oy+y)-(dst.ox+x+src.ow-1,dst.oy+y+src.oh-1)の範囲で描画される
-    #なお、転送後のαチャネルは、転送先のαチャネルの値がそのまま残ること、転送先のow,ohを考慮していない(転送先ow,ohの範囲を超えて転送する)ことに注意する
-    #そのため、転送元・転送先スプライトは、αチャネルを使わない画像の方が、想定外の結果にならず好ましい
-    #_src_:: 転送元スプライト
-    #_dst_:: 転送先スプライト
-    #_sx_:: 転送元スプライトの左上位置(src.ox+sxが転送開始位置)
-    #_sy_:: 転送元スプライトの左上位置(src.oy+dyが転送開始位置)
-    #_w_:: 転送元スプライトの転送幅(src.oxが転送開始位置)
-    #_h_:: 転送元スプライトの転送高さ(src.oyが転送開始位置)
-    #_dx_:: 転送元スプライトの左上座標にあたる転送先位置(dst.ox+dxが転送開始位置)
-    #_dy_:: 転送元スプライトの左上座標にあたる転送先位置(dst.oy+dyが転送開始位置)
-    def Sprite::render_sprite(src, dst, sx, sy, w, h, dx, dy)
-      loop do 
-        begin
-          SDL::Surface.blit(src.bitmap, src.ox + sx, src.oy + sy, w, h, dst.bitmap, dst.ox + dx, dst.oy + dy)
-          break
-        rescue 
-        end
-      end
-    end
-    
-    #===スプライトに画像を転送して貼り付ける
-    #srcのスプライトの内容を、dstのスプライトに貼り付ける
-    #転送元画像の指定矩形の中心を軸にして変形した画像を、転送先画像の指定位置を中心として貼り付ける
-    #このメソッドは、画面へのrenderと違い、メソッドを呼び出した時点で描画が行われる
-    #描画時、双方のスプライトのow,ohを無視することに注意する(双方、ow=w,oh=hのときのみ想定通りの結果が出る)
-    #なお、転送後のαチャネルは、転送先のαチャネルの値がそのまま残ることに注意する
-    #そのため、転送元・転送先スプライトは、αチャネルを使わない画像の方が、想定外の結果にならず好ましい
-    #また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
-    #_src_:: 転送元スプライト
-    #_dst_:: 転送先スプライト
-    #_x_:: 転送先の位置(中心位置、x方向)
-    #_y_:: 転送先の位置(中心位置、y方向)
-    #_angle_:: 回転する角度。単位は度(ラジアンではないことに注意。実数)
-    #_xscale_:: x軸方向拡大率。実数。-1を指定すると、x軸方向のミラー反転となる
-    #_yscale_:: y軸方向拡大率。実数。-1を指定すると、y軸方向のミラー反転となる
-    def Sprite::render_sprite_transform(src, dst, angle, xscale, yscale)
-      Bitmap.transform!(src.to_unit, dst.to_unit, angle, xscale, yscale)
     end
   end
 end
