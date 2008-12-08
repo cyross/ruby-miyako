@@ -58,11 +58,9 @@ module Miyako
     end
     
     #===画面への描画を指示するメソッドのテンプレート
-    #実際に描画はせず、描画に使用するパラメータを確定するのみ
-    #描画はScreen.renderメソッドで行う
-    #param:: 描画指示に必要なパラメータ群(ハッシュ引数、省略可能）
+    #_block_:: 呼び出し時にブロック付き呼び出しが行われたときのブロック本体。呼び先に渡すことが出来る。ブロックがなければnilが入る
     #返却値:: 自分自身を返す
-    def render(params=nil)
+    def render(&block)
       return self
     end
   end

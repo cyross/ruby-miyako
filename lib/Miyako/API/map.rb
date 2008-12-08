@@ -68,32 +68,6 @@ module Miyako
 
       attr_reader :mapchip_units, :pos, :margin, :size
 
-      #===画面に描画を指示する
-      #現在の画像を、現在の状態で描画するよう指示する
-      #--
-      #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-      #++
-      def render
-        x2 = round(@pos[0]+@margin[0], @real_size[0])
-        y2 = round(@pos[1]+@margin[1], @real_size[1])
-        dx = @divpx[x2]
-        mx = @modpx[x2]
-        dy = @divpy[y2]
-        my = @modpy[y2]
-
-        pos = 0
-        @ch.times{|y|
-          m2 = @mapdat[@modpy2[dy + y]]
-          @cw.times{|x|
-            code = m2[@modpx2[dx + x]]
-            next if code == -1 # change!
-            unit = @mapchip_units[code].to_unit
-            unit.move_to(x * @ow - mx, y * @oh - my)
-            Screen::render_screen(unit)
-          }
-        }
-      end
-
       def round(v, max) #:nodoc:
         v = max + (v % max) if v < 0
         v %= max if v >= max
@@ -227,11 +201,11 @@ module Miyako
       }
     end
 
-    #===インスタンスにイベントを追加する
-    #_code_:: イベントコード(整数)
-    #_x_:: イベントの初期位置(x方向)
-    #_y_:: イベントの初期位置(y方向)
-    #返却値:: あとで書く
+    #===マップにイベントを追加する
+    #_code_:: イベント番号(Map.newメソッドで渡したイベント番号に対応)
+    #_x_:: マップ上の位置(x方向)
+    #_y_:: マップ常温位置(y方向)
+    #返却値:: 自分自身を返す
     def add_event(code, x, y)
       return self unless @em.include?(code)
       @event_layer.push(@em.create(code, x, y))
@@ -409,12 +383,8 @@ module Miyako
       return self
     end
 
-    def render #:nodoc:
-      @map_layers.each{|l| l.render }
-    end
-
-    #===あとで書く
-    #返却値:: あとで書く
+    #===マップに登録しているイベントインスタンス(マップイベント)を取得する
+    #返却値:: マップイベントの配列
     def events
       return @event_layer || []
     end
@@ -437,25 +407,6 @@ module Miyako
       
       attr_accessor :mapchip_units
       attr_reader :pos
-
-      #===画面に描画を指示する
-      #現在の画像を、現在の状態で描画するよう指示する
-      #--
-      #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-      #++
-      def render
-        pos = 0
-        @ch.times{|y|
-          m2 = @mapdat[@modpy2[y]]
-          @cw.times{|x|
-            code = m2[@modpx2[x]]
-            next if code == -1
-            unit = @mapchip_units[code].to_unit
-            unit.move_to(@pos.x + x * @ow, @pos.y + y * @ow)
-            Screen::render_screen(unit)
-          }
-        }
-      end
 
       def round(v, max) #:nodoc:
         v = max + (v % max) if v < 0
@@ -593,20 +544,18 @@ module Miyako
       set_layout_size(@w, @h)
     end
 
-    #===あとで書く
-    #_code_:: あとで書く
-    #_x_:: あとで書く
-    #_y_:: あとで書く
-    #返却値:: あとで書く
+    #===マップにイベントを追加する
+    #_code_:: イベント番号(FixedMap.newメソッドで渡したイベント番号に対応)
+    #_x_:: マップ上の位置(x方向)
+    #_y_:: マップ常温位置(y方向)
+    #返却値:: 自分自身を返す
     def add_event(code, x, y)
       return self unless @em.include?(code)
       @event_layer.push(@em.create(code, x, y))
       return self
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
-    def update_layout_position
+    def update_layout_position #:nodoc:
       d = Point.new(@layout.pos[0]-@pos.x, @layout.pos[1]-@pos.y)
       @pos.move_to(*@layout.pos)
       @map_layers.each{|ml| ml.pos.move_to(*@pos) }
@@ -696,6 +645,7 @@ module Miyako
     def final
       @event_layer.each{|e| e.final } if @event_layer
     end
+
     #===あとで書く
     #返却値:: あとで書く
     def dispose
@@ -715,12 +665,8 @@ module Miyako
       return self
     end
 
-    def render #:nodoc:
-      @map_layers.each{|l| l.render }
-    end
-
-    #===あとで書く
-    #返却値:: あとで書く
+    #===マップに登録しているイベントインスタンス(マップイベント)を取得する
+    #返却値:: マップイベントの配列
     def events
       return @event_layer || []
     end

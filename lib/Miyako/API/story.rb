@@ -116,16 +116,6 @@ module Miyako
       @scene_cache.clear
       @scene_cache_list.clear
     end
-
-    def auto_render(scene)
-      Screen.clear
-      scene.render
-      Screen.render
-    end
-    
-    def manual_render(scene)
-      scene.render
-    end
     
     #===あとで書く
     def dispose

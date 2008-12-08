@@ -56,11 +56,20 @@ rate = 1.0
 amt = -0.1
 degree = 0
 damt = 10
+pos  = 0
+rate = 10
+
 
 # Main Routine
 Miyako.main_loop do
   break if Input.quit_or_escape?
   back.render
+#  back.render{|src|
+#    src.x = pos
+#    pos += rate
+#    rate = -10 if pos == 50
+#    rate = 10 if pos == 0
+#  }
   hair_r.render
   arm_anim.update_animation
   arm_anim.render

@@ -202,6 +202,79 @@ module Miyako
       set_layout_size(@unit.ow, v)
     end
 
+    #===画像の回転角度を取得する
+    #値はラジアン。範囲は0<=angle<PI*2
+    #値が正の時は右回りに回転する。
+    #返却値:: 回転角度。ラジアン(実数)
+    def angle
+      return @unit.angle
+    end
+
+    #===画像の回転角度を設定する
+    #値はラジアン。範囲は0<=angle<PI*2
+    #値が正の時は右回りに回転する。
+    #_radian_:: 回転角度。ラジアン(実数)を指定
+    def angle=(radian)
+      raise MiyakoError, "Illegal radian! : #{radian}" if (radian < 0.0 || radian > Math::PI * 2)
+      @unit.angle = radian
+    end
+
+    #===画像の拡大縮小度を取得する
+    #x方向の拡大縮小度を取得する
+    #返却値:: 拡大縮小度。1.0で等倍。-1.0でミラー反転
+    def xscale
+      return @unit.xscale
+    end
+
+    #===画像の拡大縮小度を設定する
+    #x方向の拡大縮小度を設定する
+    #_scale_:: 拡大縮小度。1.0で等倍。-1.0でミラー反転
+    def xscale=(scale)
+      @unit.xscale = scale
+    end
+
+    #===画像の拡大縮小度を取得する
+    #y方向の拡大縮小度を取得する
+    #返却値:: 拡大縮小度。1.0で等倍。-1.0でミラー反転
+    def yscale
+      return @unit.yscale
+    end
+
+    #===画像の拡大縮小度を設定する
+    #y方向の拡大縮小度を設定する
+    #_scale_:: 拡大縮小度。1.0で等倍。-1.0でミラー反転
+    def yscale=(scale)
+      @unit.yscale = scale
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #x方向の中心座標を取得する
+    #返却値:: 中心座標。
+    def center_x
+      return @unit.cx
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #x方向の中心座標を取得する
+    #_pos_:: 中心座標
+    def center_x=(pos)
+      @unit.cx = pos
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #y方向の中心座標を取得する
+    #返却値:: 中心座標。
+    def center_y
+      return @unit.cy
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #y方向の中心座標を取得する
+    #_pos_:: 中心座標
+    def center_y=(pos)
+      @unit.cy = pos
+    end
+
     #===画像の表示矩形を取得する
     #画像が表示されているときの矩形を取得する。矩形は、[x,y,ow,oh]で取得する。
     #返却値:: 生成された矩形

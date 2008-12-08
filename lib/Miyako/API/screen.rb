@@ -127,6 +127,34 @@ module Miyako
       return @@unit.dup
     end
 
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #x方向の中心座標を取得する
+    #返却値:: 中心座標。
+    def Screen::center_x
+      return @@unit.cx
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #x方向の中心座標を取得する
+    #_pos_:: 中心座標
+    def Screen::center_x=(pos)
+      @@unit.cx = pos
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #y方向の中心座標を取得する
+    #返却値:: 中心座標。
+    def Screen::center_y
+      return @@unit.cy
+    end
+
+    #===画像の回転・拡大・縮小の中心座標を取得する
+    #y方向の中心座標を取得する
+    #_pos_:: 中心座標
+    def Screen::center_y=(pos)
+      @@unit.cy = pos
+    end
+
     #===現在の画面の大きさを矩形で取得する
     #返却値:: 画像の大きさ(Rect構造体のインスタンス)
     def Screen::rect
@@ -188,16 +216,6 @@ module Miyako
       dst = Sprite.new(param)
       SDL.blit_surface(*([@@screen] + rect.to_a << dst.bitmap << 0 << 0))
       return dst
-    end
-
-    def Screen::update_tick #:nodoc:
-      t = SDL.getTicks
-      @@interval = t - @@t
-      while @@interval < @@fpscnt do
-        t = SDL.getTicks
-        @@interval = t - @@t
-      end
-      @@t = t
     end
 
     #===画像を消去する

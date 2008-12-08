@@ -69,6 +69,7 @@ static volatile ID id_update = Qnil;
 static volatile ID id_kakko = Qnil;
 static volatile int zero;
 static volatile int one = Qnil;
+static Uint32 yield_depth = 0; // 関数を直接呼ぶと、ずっとrb_block_given_p()==Qtrueのターン！のため
 
 typedef struct
 {
@@ -121,20 +122,48 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
   RECT.w = NUM2INT(*(RSTRUCT_PTR(BASE) + 3)); \
   RECT.h = NUM2INT(*(RSTRUCT_PTR(BASE) + 4));
 
+#define MIYAKO_GET_UNIT_1(SRC, SRCUNIT, SRCSURFACE) \
+	VALUE SRCUNIT = rb_funcall(SRC, rb_intern("to_unit"), 0); \
+  if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Instance has not SpriteUnit!"); }\
+  if(yield_depth == 0 && rb_block_given_p() == Qtrue){ yield_depth++; rb_yield(SRCUNIT); } \
+	SDL_Surface *SRCSURFACE = GetSurface(*(RSTRUCT_PTR(SRCUNIT)))->surface;
+
+#define MIYAKO_GET_UNIT_2(SRC, DST, SRCUNIT, DSTUNIT, SRCSURFACE, DSTSURFACE) \
+	VALUE SRCUNIT = rb_funcall(SRC, rb_intern("to_unit"), 0); \
+	VALUE DSTUNIT = rb_funcall(DST, rb_intern("to_unit"), 0); \
+  if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }\
+  if(DSTUNIT == Qnil){ rb_raise(eMiyakoError, "Destination instance has not SpriteUnit!"); }\
+  if(yield_depth == 0 && rb_block_given_p() == Qtrue){ yield_depth++; rb_yield_values(2, SRCUNIT, DSTUNIT); } \
+	SDL_Surface *SRCSURFACE = GetSurface(*(RSTRUCT_PTR(SRCUNIT)))->surface; \
+	SDL_Surface *DSTSURFACE = GetSurface(*(RSTRUCT_PTR(DSTUNIT)))->surface;
+
+#define MIYAKO_GET_UNIT_NO_SURFACE_1(SRC, SRCUNIT) \
+	VALUE SRCUNIT = rb_funcall(SRC, rb_intern("to_unit"), 0); \
+  if(SRCUNIT == Qnil){rb_raise(eMiyakoError, "Instance has not SpriteUnit!"); }\
+  if(yield_depth == 0 && rb_block_given_p() == Qtrue){ yield_depth++; rb_yield(SRCUNIT); }
+
+#define MIYAKO_GET_UNIT_NO_SURFACE_2(SRC, DST, SRCUNIT, DSTUNIT) \
+	VALUE SRCUNIT = rb_funcall(SRC, rb_intern("to_unit"), 0); \
+	VALUE DSTUNIT = rb_funcall(DST, rb_intern("to_unit"), 0); \
+  if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }\
+  if(DSTUNIT == Qnil){ rb_raise(eMiyakoError, "Destination instance has not SpriteUnit!"); }\
+  if(yield_depth == 0 && rb_block_given_p() == Qtrue){ yield_depth++; rb_yield_values(2, SRCUNIT, DSTUNIT); }
+
 /*
 ===画像をαチャネル付き画像へ転送する
 範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。
 src==dstの場合、何も行わない
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
 _y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
 返却値:: なし
 */
 static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx, VALUE vy)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -156,8 +185,8 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 	//[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
 	//[9] -> :angle, [10] -> :xscale, [11] -> :yscale
 	//[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
-	MIYAKO_SET_RECT(srect, vsrc);
-	MIYAKO_SET_RECT(drect, vdst);
+	MIYAKO_SET_RECT(srect, sunit);
+	MIYAKO_SET_RECT(drect, dunit);
 
 	int x =  NUM2INT(vx);
 	int y =  NUM2INT(vy);
@@ -227,6 +256,7 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -235,15 +265,16 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 引数で渡ってきた特定の色に対して、α値をゼロにする画像を生成する
 src==dstの場合、何も行わずすぐに呼びだし元に戻る
 範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _color_key_:: 透明にしたい色(各要素がr,g,bに対応している整数の配列(0～255))
 返却値:: なし
 */
 static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst, VALUE vcolor_key)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = dst->format;
@@ -289,6 +320,7 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -298,14 +330,15 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _degree_:: 減少率。0.0<degree<1.0までの実数
 */
 static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -323,10 +356,10 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 		if(dst == scr){ dst_a = 255; }
 
 		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, vsrc);
-		MIYAKO_SET_RECT(drect, vdst);
-    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+		MIYAKO_SET_RECT(srect, sunit);
+		MIYAKO_SET_RECT(drect, dunit);
+    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
     int dlx = drect.x + x;
     int dly = drect.y + y;
     int dmx = dlx + srect.w;
@@ -392,10 +425,10 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
   }
   else
   {
-    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
 
     SDL_LockSurface(src);
 
@@ -417,6 +450,7 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     SDL_UnlockSurface(src);
   }
 
+  yield_depth = 0;
 	return Qnil;
 }
 
@@ -427,13 +461,14 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 */
 static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -450,10 +485,10 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 		if(dst == scr){ dst_a = 255; }
 
 		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, vsrc);
-		MIYAKO_SET_RECT(drect, vdst);
-    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+		MIYAKO_SET_RECT(srect, sunit);
+		MIYAKO_SET_RECT(drect, dunit);
+    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
     int dlx = drect.x + x;
     int dly = drect.y + y;
     int dmx = dlx + srect.w;
@@ -519,10 +554,10 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
   }
   else
   {
-    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
 
     SDL_LockSurface(src);
 
@@ -544,19 +579,21 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
     SDL_UnlockSurface(src);
   }
 
+  yield_depth = 0;
 	return Qnil;
 }
 
 /*
 ===2枚の画像の加算合成を行う
 範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 */
 static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -631,14 +668,17 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 	
+  yield_depth = 0;
 	return Qnil;
 }
 
 /*
 ===2枚の画像の減算合成を行う
 範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 */
 static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE dst)
 {
@@ -655,13 +695,14 @@ static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE ds
 回転角度は、src側SpriteUnitのangleを使用する
 回転角度が正だと右回り、負だと左回りに回転する
 src==dstの場合、何も行わない
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 */
 static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	Uint32 src_a = 0;
@@ -680,19 +721,19 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 	
 	if(psrc == pdst){ return Qnil; }
 	
-	MIYAKO_SET_RECT(srect, vsrc);
-	MIYAKO_SET_RECT(drect, vdst);
+	MIYAKO_SET_RECT(srect, sunit);
+	MIYAKO_SET_RECT(drect, dunit);
 
   if(drect.w >= 32768 || drect.h >= 32768){ return Qnil; }
 
-  double rad = NUM2DBL(*(RSTRUCT_PTR(vsrc)+7)) * -1.0;
+  double rad = NUM2DBL(*(RSTRUCT_PTR(sunit)+7)) * -1.0;
   long isin = (long)(sin(rad)*4096.0);
   long icos = (long)(cos(rad)*4096.0);
 
-	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(vsrc)+10));
-	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(vsrc)+11));
-	int qx = NUM2INT(*(RSTRUCT_PTR(vsrc)+5)) + NUM2INT(*(RSTRUCT_PTR(vdst)+10));
-	int qy = NUM2INT(*(RSTRUCT_PTR(vsrc)+6)) + NUM2INT(*(RSTRUCT_PTR(vdst)+11));
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
+	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(dunit)+10));
+	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(dunit)+11));
 
   SDL_LockSurface(src);
   SDL_LockSurface(dst);
@@ -734,6 +775,7 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 	
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -744,13 +786,14 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
 src==dstの場合、何も行わない
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 */
 static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	Uint32 src_a = 0;
@@ -769,13 +812,13 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
 	
 	if(psrc == pdst){ return Qnil; }
 	
-	MIYAKO_SET_RECT(srect, vsrc);
-	MIYAKO_SET_RECT(drect, vdst);
+	MIYAKO_SET_RECT(srect, sunit);
+	MIYAKO_SET_RECT(drect, dunit);
 
   if(drect.w >= 32768 || drect.h >= 32768){ return Qnil; }
 
-  double scx = NUM2DBL(*(RSTRUCT_PTR(vsrc)+8));
-  double scy = NUM2DBL(*(RSTRUCT_PTR(vsrc)+9));
+  double scx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
+  double scy = NUM2DBL(*(RSTRUCT_PTR(dunit)+9));
   double ascx = scx < 0.0 ? -scx : scx;
   double ascy = scy < 0.0 ? -scy : scy;
 
@@ -787,10 +830,10 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
   int off_x = scx < 0 ? 1 : 0;
   int off_y = scy < 0 ? 1 : 0;
 
-	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(vsrc)+10));
-	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(vsrc)+11));
-	int qx = NUM2INT(*(RSTRUCT_PTR(vsrc)+5)) + NUM2INT(*(RSTRUCT_PTR(vdst)+10));
-	int qy = NUM2INT(*(RSTRUCT_PTR(vsrc)+6)) + NUM2INT(*(RSTRUCT_PTR(vdst)+11));
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
+	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
+	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
 
   SDL_LockSurface(src);
   SDL_LockSurface(dst);
@@ -832,25 +875,27 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 	
+  yield_depth = 0;
   return Qnil;
 }
 
 /*
 ===画像を変形(回転・拡大・縮小・鏡像)させて貼り付ける
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
 転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
 回転角度は、src側SpriteUnitのangleを使用する
 回転角度が正だと右回り、負だと左回りに回転する
 変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
 src==dstの場合、何も行わない
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 */
 static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	Uint32 src_a = 0;
@@ -869,17 +914,17 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
 	
 	if(psrc == pdst){ return Qnil; }
 	
-	MIYAKO_SET_RECT(srect, vsrc);
-	MIYAKO_SET_RECT(drect, vdst);
+	MIYAKO_SET_RECT(srect, sunit);
+	MIYAKO_SET_RECT(drect, dunit);
 
   if(drect.w >= 32768 || drect.h >= 32768){ return Qnil; }
 
-  double rad = NUM2DBL(*(RSTRUCT_PTR(vsrc)+7)) * -1.0;
+  double rad = NUM2DBL(*(RSTRUCT_PTR(sunit)+7)) * -1.0;
   long isin = (long)(sin(rad)*4096.0);
   long icos = (long)(cos(rad)*4096.0);
 
-  double scx = NUM2DBL(*(RSTRUCT_PTR(vsrc)+8));
-  double scy = NUM2DBL(*(RSTRUCT_PTR(vsrc)+9));
+  double scx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
+  double scy = NUM2DBL(*(RSTRUCT_PTR(sunit)+9));
   double ascx = scx < 0.0 ? -scx : scx;
   double ascy = scy < 0.0 ? -scy : scy;
 
@@ -891,16 +936,14 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
   int off_x = scx < 0 ? 1 : 0;
   int off_y = scy < 0 ? 1 : 0;
 
-	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(vsrc)+10));
-	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(vsrc)+11));
-	int qx = NUM2INT(*(RSTRUCT_PTR(vsrc)+5)) + NUM2INT(*(RSTRUCT_PTR(vdst)+10));
-	int qy = NUM2INT(*(RSTRUCT_PTR(vsrc)+6)) + NUM2INT(*(RSTRUCT_PTR(vdst)+11));
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
+	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
+	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
 
   SDL_LockSurface(src);
   SDL_LockSurface(dst);
   
-	int flag = 1;
-	
   int x, y;
   for(y = drect.y; y < (drect.y + drect.h); y++)
   {
@@ -938,6 +981,7 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 	
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -992,15 +1036,16 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
 範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
 返却値:: 変更後の画像インスタンス
 */
 static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -1017,10 +1062,10 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
   
   if(src != dst){
 		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, vsrc);
-		MIYAKO_SET_RECT(drect, vdst);
-    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+		MIYAKO_SET_RECT(srect, sunit);
+		MIYAKO_SET_RECT(drect, dunit);
+    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
     int dlx = drect.x + x;
     int dly = drect.y + y;
     int dmx = dlx + srect.w;
@@ -1092,10 +1137,10 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
   }
   else
   {
-    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
 
     SDL_LockSurface(src);
 
@@ -1119,6 +1164,7 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
     SDL_UnlockSurface(src);
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -1127,14 +1173,15 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
 */
 static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE saturation)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -1148,10 +1195,10 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
 
   if(src != dst){
 		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, vsrc);
-		MIYAKO_SET_RECT(drect, vdst);
-    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+		MIYAKO_SET_RECT(srect, sunit);
+		MIYAKO_SET_RECT(drect, dunit);
+    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
     int dlx = drect.x + x;
     int dly = drect.y + y;
     int dmx = dlx + srect.w;
@@ -1224,10 +1271,10 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
   }
   else
   {
-    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
 
     SDL_LockSurface(src);
 
@@ -1251,6 +1298,7 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
     SDL_UnlockSurface(src);
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -1259,15 +1307,16 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
 範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _value_:: 明度の変更量。範囲は0.0〜1.0の実数
 返却値:: 変更後の画像インスタンス
 */
 static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -1281,10 +1330,10 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
 
   if(src != dst){
 		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, vsrc);
-		MIYAKO_SET_RECT(drect, vdst);
-    int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+		MIYAKO_SET_RECT(srect, sunit);
+		MIYAKO_SET_RECT(drect, dunit);
+    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
     int dlx = drect.x + x;
     int dly = drect.y + y;
     int dmx = dlx + srect.w;
@@ -1357,10 +1406,10 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
   }
   else
   {
-    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
 
     SDL_LockSurface(src);
 
@@ -1384,6 +1433,7 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
     SDL_UnlockSurface(src);
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -1392,8 +1442,10 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
 範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
 src == dst : 元の画像を変換した画像に置き換える
 src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-_src_:: 転送元ビットマップ(SpriteUnit構造体)
-_dst_:: 転送先ビットマップ(SpriteUnit構造体)
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
 _saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
 _value_:: 明度の変更量。範囲は0.0〜1.0の実数
@@ -1401,8 +1453,7 @@ _value_:: 明度の変更量。範囲は0.0〜1.0の実数
 */
 static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree, VALUE saturation, VALUE value)
 {
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(vsrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(vdst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
@@ -1421,10 +1472,10 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
   
   if(src != dst){
 		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, vsrc);
-		MIYAKO_SET_RECT(drect, vdst);
-		int x   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(vsrc) + 6));
+		MIYAKO_SET_RECT(srect, sunit);
+		MIYAKO_SET_RECT(drect, dunit);
+		int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
     int dlx = drect.x + x;
     int dly = drect.y + y;
     int dmx = dlx + srect.w;
@@ -1503,10 +1554,10 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
   }
   else
   {
-    int ox = NUM2INT(*(RSTRUCT_PTR(vsrc) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(vsrc) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(vsrc) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(vsrc) + 4));
+    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
+    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
+    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
+    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
 
     SDL_LockSurface(src);
 
@@ -1536,6 +1587,7 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
     SDL_UnlockSurface(src);
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -1549,88 +1601,106 @@ static VALUE sprite_update(VALUE self)
   return self;
 }
 
+/*
+===インスタンスの内容を別のインスタンスに描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|転送元のSpriteUnit,転送先のSpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
+*/
 static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 {
-	VALUE usrc = rb_funcall(vsrc, rb_intern("to_unit"), 0);
-	VALUE udst = rb_funcall(vdst, rb_intern("to_unit"), 0);
-	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(usrc)))->surface;
-	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(udst)))->surface;
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
   SDL_Rect srect;
   SDL_Rect drect;
 
-	srect.x = NUM2INT(*(RSTRUCT_PTR(usrc) + 1));
-	srect.y = NUM2INT(*(RSTRUCT_PTR(usrc) + 2));
-	srect.w = NUM2INT(*(RSTRUCT_PTR(usrc) + 3));
-	srect.h = NUM2INT(*(RSTRUCT_PTR(usrc) + 4));
-	drect.x = NUM2INT(*(RSTRUCT_PTR(udst) + 1))
-            + NUM2INT(*(RSTRUCT_PTR(usrc) + 5));
-	drect.y = NUM2INT(*(RSTRUCT_PTR(udst) + 2))
-	          + NUM2INT(*(RSTRUCT_PTR(usrc) + 6));
+  MIYAKO_SET_RECT(srect, sunit);
+	drect.x = NUM2INT(*(RSTRUCT_PTR(dunit) + 1))
+            + NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+	drect.y = NUM2INT(*(RSTRUCT_PTR(dunit) + 2))
+	          + NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   
+  yield_depth = 0;
   return self;
 }
 
 /*
-===画面に描画を指示する
+===インスタンスの内容を画面に描画する
 現在の画像を、現在の状態で描画するよう指示する
-但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit|となる。
 返却値:: 自分自身を返す
 */
 static VALUE sprite_render(VALUE self)
 {
-  sprite_c_render_to_sprite(Qnil, self, mScreen);
+  MIYAKO_GET_UNIT_NO_SURFACE_1(self, sunit);
+  sprite_c_render_to_sprite(Qnil, sunit, mScreen);
+  yield_depth = 0;
   return self;
 }
 
 /*
-===スプライトに画像を転送して貼り付ける
-srcのスプライトの内容を、dstのスプライトに貼り付ける
-このメソッドは、画面へのrenderと違い、メソッドを呼び出した時点で描画が行われる
-描画範囲は、転送元は(src.ox,src.oy)-(src.ox+src.ow-1,src.oy+src.oh-1)の範囲のみ有効。転送先は(dst.ox+x,dst.oy+y)-(dst.ox+x+src.ow-1,dst.oy+y+src.oh-1)の範囲で描画される
-なお、転送後のαチャネルは、転送先のαチャネルの値がそのまま残ること、転送先のow,ohを考慮していない(転送先ow,ohの範囲を超えて転送する)ことに注意する
-そのため、転送元・転送先スプライトは、αチャネルを使わない画像の方が、想定外の結果にならず好ましい
-_src_:: 転送元スプライト
-_dst_:: 転送先スプライト
+===インスタンスの内容を別のインスタンスに描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
 */
 static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 {
-  sprite_c_render_to_sprite(Qnil, self, vdst);
+  MIYAKO_GET_UNIT_NO_SURFACE_2(self, vdst, sunit, dunit);
+  sprite_c_render_to_sprite(Qnil, sunit, dunit);
+  yield_depth = 0;
   return Qnil;
 }
 
 /*
-===画面に描画を指示する(回転/拡大/縮小付き)
-現在の画像を、回転/拡大/縮小を付けながら描画するよう指示する
-描画時、スプライトのow,ohを無視することに注意する(ow=w,oh=hのときのみ想定通りの結果が出る)
-但し、実際に描画されるのはScreen.renderメソッドが呼び出された時
-params:: 描画パラメータ。省略時はnil
+===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
+回転角度は、src側SpriteUnitのangleを使用する
+回転角度が正だと右回り、負だと左回りに回転する
+変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
+度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
 返却値:: 自分自身を返す
 */
 static VALUE sprite_render_transform(VALUE self)
 {
-  bitmap_miyako_transform(Qnil, rb_funcall(self, rb_intern("to_unit"), 0),
-                                rb_funcall(mScreen, rb_intern("to_unit"), 0));
+  MIYAKO_GET_UNIT_NO_SURFACE_2(self, mScreen, sunit, dunit);
+  bitmap_miyako_transform(Qnil, sunit, dunit);
+  yield_depth = 0;
   return self;
 }
 
 /*
-===スプライトに画像を転送して貼り付ける
-srcのスプライトの内容を、dstのスプライトに貼り付ける
-転送元画像の指定矩形の中心を軸にして変形した画像を、転送先画像の指定位置を中心として貼り付ける
-このメソッドは、画面へのrenderと違い、メソッドを呼び出した時点で描画が行われる
-描画時、双方のスプライトのow,ohを無視することに注意する(双方、ow=w,oh=hのときのみ想定通りの結果が出る)
-なお、転送後のαチャネルは、転送先のαチャネルの値がそのまま残ることに注意する
-そのため、転送元・転送先スプライトは、αチャネルを使わない画像の方が、想定外の結果にならず好ましい
+===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
+回転角度は、src側SpriteUnitのangleを使用する
+回転角度が正だと右回り、負だと左回りに回転する
+変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
+度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
 また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
-_src_:: 転送元スプライト
-_dst_:: 転送先スプライト
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
 */
 static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst)
 {
-  bitmap_miyako_transform(Qnil, rb_funcall(self, rb_intern("to_unit"), 0),
-                                rb_funcall(vdst, rb_intern("to_unit"), 0));
+  MIYAKO_GET_UNIT_NO_SURFACE_2(self, vdst, sunit, dunit);
+  bitmap_miyako_transform(Qnil, sunit, dunit);
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -1652,6 +1722,10 @@ static VALUE screen_update_tick(VALUE self)
   return Qnil;
 }
 
+/*
+===画面を更新する
+画面に画像を貼り付けた時は、実際の描画領域は隠れているため、このメソッドを呼び出して、実際の画面表示に反映させる。
+*/
 static VALUE screen_render(VALUE self)
 {
   VALUE dst = rb_iv_get(mScreen, "@@unit");
@@ -1681,9 +1755,21 @@ static VALUE screen_render(VALUE self)
   return Qnil;
 }
 
+/*
+===インスタンスの内容を画面に描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
+*/
 static VALUE screen_render_screen(VALUE self, VALUE vsrc)
 {
-  return sprite_c_render_to_sprite(Qnil, vsrc, mScreen);
+  MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, mScreen, sunit, dunit);
+  VALUE ret = sprite_c_render_to_sprite(Qnil, sunit, dunit);
+  yield_depth = 0;
+  return ret;
 }
 
 static VALUE counter_start(VALUE self)
@@ -1736,6 +1822,13 @@ static VALUE counter_wait(VALUE self)
   return self;
 }
 
+/*
+===マップレイヤーを画面に描画する
+転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|画面のSpriteUnit|となる。
+返却値:: 自分自身を返す
+*/
 static VALUE maplayer_render(VALUE self)
 {
   int cw = NUM2INT(rb_iv_get(self, "@cw"));
@@ -1788,9 +1881,17 @@ static VALUE maplayer_render(VALUE self)
       screen_render_screen(Qnil, unit);
     }
   }
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===マップレイヤーを画面に描画する
+すべてのマップチップを画面に描画する
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|画面のSpriteUnit|となる。
+返却値:: 自分自身を返す
+*/
 static VALUE fixedmaplayer_render(VALUE self)
 {
   int cw = NUM2INT(rb_iv_get(self, "@cw"));
@@ -1824,9 +1925,18 @@ static VALUE fixedmaplayer_render(VALUE self)
     }
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===マップレイヤーを画像に転送する
+転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
+*/
 static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
   int cw = NUM2INT(rb_iv_get(self, "@cw"));
@@ -1865,7 +1975,7 @@ static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
   int dy = pos_y / mc_chip_size_h;
   int my = pos_y % mc_chip_size_h;
 
-  VALUE dst = rb_funcall(vdst, rb_intern("to_unit"), 0);
+  MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
 
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
@@ -1878,12 +1988,22 @@ static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
       VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
       *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
       *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
-      sprite_c_render_to_sprite(Qnil, unit, dst);
+      sprite_c_render_to_sprite(Qnil, unit, dunit);
     }
   }
+
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===マップレイヤーを画像に転送する
+すべてのマップチップを画像に描画する
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
+*/
 static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
   int cw = NUM2INT(rb_iv_get(self, "@cw"));
@@ -1902,7 +2022,7 @@ static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
 
-  VALUE dst = rb_funcall(vdst, rb_intern("to_unit"), 0);
+  MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
 
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
@@ -1915,13 +2035,23 @@ static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
       VALUE unit = rb_funcall(*(RARRAY_PTR(munits) + code), rb_intern("to_unit"), 0);
       *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
       *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
-      sprite_c_render_to_sprite(Qnil, unit, dst);
+      sprite_c_render_to_sprite(Qnil, unit, dunit);
     }
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===マップを画面に描画する
+転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+各レイヤ－を、レイヤーインデックス番号の若い順に描画する
+但し、マップイベントは描画しない
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|画面のSpriteUnit|となる。
+返却値:: 自分自身を返す
+*/
 static VALUE map_render(VALUE self)
 {
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -1933,6 +2063,15 @@ static VALUE map_render(VALUE self)
   return Qnil;
 }
 
+/*
+===マップを画面に描画する
+すべてのマップチップを画面に描画する
+各レイヤ－を、レイヤーインデックス番号の若い順に描画する
+但し、マップイベントは描画しない
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|画面のSpriteUnit|となる。
+返却値:: 自分自身を返す
+*/
 static VALUE fixedmap_render(VALUE self)
 {
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -1944,25 +2083,51 @@ static VALUE fixedmap_render(VALUE self)
   return Qnil;
 }
 
+/*
+===マップを画像に描画する
+転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+各レイヤ－を、レイヤーインデックス番号の若い順に描画する
+但し、マップイベントは描画しない
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
+*/
 static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 {
+  MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
+
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
-    maplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), vdst);
+    maplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), dunit);
   }
   
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===マップを画像に描画する
+すべてのマップチップを画像に描画する
+各レイヤ－を、レイヤーインデックス番号の若い順に描画する
+但し、マップイベントは描画しない
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: 自分自身を返す
+*/
 static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
 {
+  MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
+
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
-    fixedmaplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), vdst);
+    fixedmaplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), dunit);
   }
 
+  yield_depth = 0;
   return Qnil;
 }
 
@@ -2086,18 +2251,45 @@ static VALUE sa_set_pat(VALUE self)
   return self;
 }
 
+/*
+===アニメーションの現在の画像を画面に描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit|となる。
+*/
 static VALUE sa_render(VALUE self)
 {
-  screen_render_screen(Qnil, rb_iv_get(self, "@now"));
+	VALUE sunit = rb_funcall(rb_iv_get(self, "@now"), rb_intern("to_unit"), 0);
+  if(yield_depth == 0 && rb_block_given_p() == Qtrue){ yield_depth++; rb_yield(sunit); }
+  screen_render_screen(Qnil, sunit);
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===アニメーションの現在の画像を画像に描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+*/
 static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
-  sprite_c_render_to_sprite(Qnil, rb_iv_get(self, "@now"), vdst);
+  VALUE vsrc = rb_iv_get(self, "@now");
+  MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, vdst, sunit, dunit);
+
+  sprite_c_render_to_sprite(Qnil, sunit, dunit);
+  yield_depth = 0;
   return Qnil;
 }
 
+/*
+===プレーンを画面に描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+*/
 static VALUE plane_render(VALUE self)
 {
   VALUE ssize = rb_iv_get(mScreen, "@@size");
@@ -2110,6 +2302,7 @@ static VALUE plane_render(VALUE self)
   int h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+
   VALUE unit = rb_funcall(sprite, rb_intern("to_unit"), 0);
   int sw = NUM2INT(*(RSTRUCT_PTR(unit) + 3));
   int sh = NUM2INT(*(RSTRUCT_PTR(unit) + 4));
@@ -2131,8 +2324,17 @@ static VALUE plane_render(VALUE self)
   return Qnil;
 }
 
+/*
+===プレーンを画像に描画する
+転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
+転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+*/
 static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 {
+	VALUE dunit = rb_funcall(vdst, rb_intern("to_unit"), 0);
+  if(dunit == Qnil){ rb_raise(eMiyakoError, "Instance has not SpriteUnit!"); }
+
   VALUE ssize = rb_iv_get(mScreen, "@@size");
   int ssw = NUM2INT(*(RSTRUCT_PTR(ssize) + 0));
   int ssh = NUM2INT(*(RSTRUCT_PTR(ssize) + 1));
@@ -2144,6 +2346,7 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
   VALUE unit = rb_funcall(sprite, rb_intern("to_unit"), 0);
+
   int sw = NUM2INT(*(RSTRUCT_PTR(unit) + 3));
   int sh = NUM2INT(*(RSTRUCT_PTR(unit) + 4));
 
@@ -2156,7 +2359,7 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
       || (x2+sw) <= ssw || (y2+sh) <= ssh){
         *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x2);
         *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y2);
-        sprite_c_render_to_sprite(Qnil, unit, vdst);
+        sprite_c_render_to_sprite(Qnil, unit, dunit);
       }
     }
   }
@@ -2587,16 +2790,16 @@ void Init_miyako_no_katana()
   rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);
   rb_define_method(cSpriteAnimation, "set_pat", sa_set_pat, 0);
   rb_define_method(cSpriteAnimation, "render", sa_render, 0);
-  rb_define_method(cSpriteAnimation, "render_to_sprite", sa_render_to_sprite, 1);
+  rb_define_method(cSpriteAnimation, "render_to", sa_render_to_sprite, 1);
 
-  rb_define_singleton_method(cSprite, "render_to_sprite", sprite_c_render_to_sprite, 2);
+  rb_define_singleton_method(cSprite, "render_to", sprite_c_render_to_sprite, 2);
   rb_define_method(cSprite, "render", sprite_render, 0);
-  rb_define_method(cSprite, "render_to_sprite", sprite_render_to_sprite, 1);
+  rb_define_method(cSprite, "render_to", sprite_render_to_sprite, 1);
   rb_define_method(cSprite, "render_transform", sprite_render_transform, 0);
-  rb_define_method(cSprite, "render_to_sprite_transform", sprite_render_to_sprite_transform, 1);
+  rb_define_method(cSprite, "render_to_transform", sprite_render_to_sprite_transform, 1);
 
   rb_define_method(cPlane, "render", plane_render, 0);
-  rb_define_method(cPlane, "render_to_sprite", plane_render_to_sprite, 1);
+  rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);
 
   rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 2);
   rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 2);
@@ -2627,8 +2830,8 @@ void Init_miyako_no_katana()
   rb_define_method(cFixedMapLayer, "render", fixedmaplayer_render, 0);
   rb_define_method(cMap, "render", map_render, 0);
   rb_define_method(cFixedMap, "render", fixedmap_render, 0);
-  rb_define_method(cMap, "render_to_sprite", map_render_to_sprite, 1);
-  rb_define_method(cFixedMap, "render_to_sprite", fixedmap_render_to_sprite, 1);
-  rb_define_method(cMapLayer, "render_to_sprite", maplayer_render_to_sprite, 1);
-  rb_define_method(cFixedMapLayer, "render_to_sprite", fixedmaplayer_render_to_sprite, 1);
+  rb_define_method(cMap, "render_to", map_render_to_sprite, 1);
+  rb_define_method(cFixedMap, "render_to", fixedmap_render_to_sprite, 1);
+  rb_define_method(cMapLayer, "render_to", maplayer_render_to_sprite, 1);
+  rb_define_method(cFixedMapLayer, "render_to", fixedmaplayer_render_to_sprite, 1);
 }

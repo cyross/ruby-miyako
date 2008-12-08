@@ -30,8 +30,18 @@ module Miyako
       @rect = Rect.new(x, y, w, h)
     end
 
-    def render(params = nil)
-      Screen.screen.set_clip_rect(@rect)
+    #===ビューポートの内容を画面に反映する
+    #ブロックが渡ってきたときは、範囲を変更して指定することが出来る(この変更は、本メソッドを呼ぶ時だけ有効)
+    #ブロックの引数は、|Rect構造体|が渡される。
+    #_block_:: 呼び出し時にブロック付き呼び出しが行われたときのブロック本体。呼び先に渡すことが出来る。ブロックがなければnilが入る
+    def render(&block)
+      if block_given?
+        rect = @rect.dup
+        yield rect
+        Screen.screen.set_clip_rect(rect)
+      else
+        Screen.screen.set_clip_rect(@rect)
+      end
     end
 
     def move(dx,dy)

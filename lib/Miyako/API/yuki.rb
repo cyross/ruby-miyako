@@ -163,7 +163,6 @@ module Miyako
 
     #===Yuki#showで表示指定した画像を描画する
     #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
-    #:params:: 描画オプション。Sprite#renderメソッド参照
     #返却値:: 自分自身を返す
     def render
       @visible.each{|name|
