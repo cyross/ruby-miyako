@@ -877,6 +877,8 @@ v2.0.0(2008.xx.xx)
 ・Bitmap.miyako_blit_aaメソッドを廃止
 ・Bitmap.miyako_blit_aa2メソッドをBitmap.blit_aa!メソッドに改名・インタフェース変更
 ・Bitmapクラスの各種画像変換メソッドの最後に!を追加(rotate, scale, transformは除く)
+・Bitmap.dec_alpha!メソッドの変化率の仕様を変更(1.0・・・完全な透明、-1.0・・・完全な不透明)
+・Bitmap.black_out!、Bitmap.white_out!メソッドの追加
 ・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
 ・Bitmap.ck_to_acメソッドの追加(特定カラーのα値をゼロにした、αチャネル付き画像を生成する。Sprite.newのカラーキー透明画像はこれに置き換えられる)
 ・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
