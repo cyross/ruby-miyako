@@ -85,6 +85,20 @@ module Miyako
       return self
     end
 
+    #===画像の表示矩形を取得する
+    #Planeの大きさを矩形で取得する。値は、Screen.rectメソッドの値と同じ。
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def rect
+      return Screen.rect
+    end
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、Planeの場合は最大の大きさ=画面の大きさなので、rectと同じ値が得られる
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
+    end
+
     #===プレーンのデータを解放する
     def dispose
       @sprite.dispose

@@ -55,6 +55,20 @@ module Miyako
     def to_unit
       return self.dup
     end
+
+    #===画像の表示矩形を取得する
+    #画像が表示されているときの矩形を取得する。矩形は、[x,y,ow,oh]で取得する。
+    #返却値:: 生成された矩形
+    def rect
+      return Rect.new(self.x, self.y, self.ow, self.oh)
+    end
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、SpriteUnitの場合は最大の大きさ=画像の大きさなので、rectと同じ値が得られる
+    #返却値:: 画像の大きさ(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
+    end
   end
 
   #==スプライト出力情報構造体

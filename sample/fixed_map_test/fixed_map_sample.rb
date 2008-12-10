@@ -36,8 +36,8 @@ class Monster
     @anim.update_animation
   end
 
-  def render(param = nil)
-    @anim.render(param)
+  def render
+    @anim.render
   end
 
   def finish
@@ -116,8 +116,8 @@ class SlimeEvent
     @slime.dispose
   end
   
-  def render(param = nil)
-    @slime.render(param)
+  def render
+    @slime.render
   end
 end
 

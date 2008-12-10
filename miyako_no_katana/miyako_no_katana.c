@@ -52,6 +52,7 @@ static VALUE cSprite = Qnil;
 static VALUE cSpriteAnimation = Qnil;
 static VALUE sSpriteUnit = Qnil;
 static VALUE cPlane = Qnil;
+static VALUE cParts = Qnil;
 static VALUE cTextBox = Qnil;
 static VALUE cMap = Qnil;
 static VALUE cMapLayer = Qnil;
@@ -369,6 +370,63 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
       MIYAKO_GETCOLOR(color);
       if(color.r == color_key.r && color.g == color_key.g &&  color.b == color_key.b) pixel = 0;
       else pixel |= (0xff >> fmt->Aloss) << fmt->Ashift;
+      *ppdst++ = pixel;
+    }
+  }
+
+	SDL_UnlockSurface(src);
+	SDL_UnlockSurface(dst);
+
+  return Qnil;
+}
+
+/*
+===画面(αチャネル無し32bit画像)をαチャネル付き画像へ転送する
+α値がゼロの画像から、α値を255にする画像を生成する
+src==dstの場合、何も行わずすぐに呼びだし元に戻る
+範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_color_key_:: 透明にしたい色(各要素がr,g,bに対応している整数の配列(0～255))
+返却値:: なし
+*/
+static VALUE bitmap_miyako_screen_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
+{
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = dst->format;
+	MiyakoColor color_key, color;
+	Uint32 tmp;
+	Uint32 pixel;
+
+	if(psrc == pdst){ return Qnil; }
+	
+  //SpriteUnit:
+  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	int w = src->w;
+	int h = src->h;
+  
+	if(w > dst->w) w = dst->w;
+	if(h > dst->h) h = dst->h;
+
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+  
+	int sx, sy;
+  for(sy = 0; sy < h; sy++)
+  {
+    Uint32 *ppsrc = psrc + sy * w;
+    Uint32 *ppdst = pdst + sy * dst->w;
+    for(sx = 0; sx < w; sx++)
+    {
+      pixel = *ppsrc++;
+      pixel |= (0xff >> fmt->Aloss) << fmt->Ashift;
       *ppdst++ = pixel;
     }
   }
@@ -956,6 +1014,7 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
 変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
 src==dstの場合、何も行わない
 ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
 ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -990,15 +1049,13 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
 
   MIYAKO_INIT_RECT2;
 
-  double scx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
-  double scy = NUM2DBL(*(RSTRUCT_PTR(dunit)+9));
-  double ascx = scx < 0.0 ? -scx : scx;
-  double ascy = scy < 0.0 ? -scy : scy;
+  double tscx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
+  double tscy = NUM2DBL(*(RSTRUCT_PTR(sunit)+9));
 
-  if(scx == 0.0 || scy == 0.0){ return Qnil; }
+  if(tscx == 0.0 || tscy == 0.0){ return; }
 
-  scx = 1.0 / scx;
-  scy = 1.0 / scy;
+  int scx = (int)(4096.0 / tscx);
+  int scy = (int)(4096.0 / tscy);
 
   int off_x = scx < 0 ? 1 : 0;
   int off_y = scy < 0 ? 1 : 0;
@@ -1016,8 +1073,8 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
   {
     for(x = dlx; x < dmx; x++)
     {
-      int nx = (int)((double)(x-qx) * scx) + px - off_x;
-      int ny = (int)((double)(y-qy) * scy) + py - off_y;
+      int nx = (((x-qx) * scx) >> 12) + px - off_x;
+      int ny = (((y-qy) * scy) >> 12) + py - off_y;
       if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
 			pixel = *(psrc + ny * src->w + nx);
 			MIYAKO_GETCOLOR(scolor);
@@ -1071,15 +1128,13 @@ static void transform_inner(VALUE sunit, VALUE dunit)
   long isin = (long)(sin(rad)*4096.0);
   long icos = (long)(cos(rad)*4096.0);
 
-  double scx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
-  double scy = NUM2DBL(*(RSTRUCT_PTR(sunit)+9));
-  double ascx = scx < 0.0 ? -scx : scx;
-  double ascy = scy < 0.0 ? -scy : scy;
+  double tscx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
+  double tscy = NUM2DBL(*(RSTRUCT_PTR(sunit)+9));
 
-  if(scx == 0.0 || scy == 0.0){ return; }
+  if(tscx == 0.0 || tscy == 0.0){ return; }
 
-  scx = 1.0 / scx;
-  scy = 1.0 / scy;
+  int scx = (int)(4096.0 / tscx);
+  int scy = (int)(4096.0 / tscy);
 
   int off_x = scx < 0 ? 1 : 0;
   int off_y = scy < 0 ? 1 : 0;
@@ -1097,8 +1152,8 @@ static void transform_inner(VALUE sunit, VALUE dunit)
   {
     for(x = dlx; x < dmx; x++)
     {
-      int nx = (int)((double)(((x-qx)*icos-(y-qy)*isin) >> 12) * scx) + px - off_x;
-      int ny = (int)((double)(((x-qx)*isin+(y-qy)*icos) >> 12) * scy) + py - off_y;
+      int nx = (((((x-qx)*icos-(y-qy)*isin) >> 12) * scx) >> 12) + px - off_x;
+      int ny = (((((x-qx)*isin+(y-qy)*icos) >> 12) * scy) >> 12) + py - off_y;
       if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
 			pixel = *(psrc + ny * src->w + nx);
 			MIYAKO_GETCOLOR(scolor);
@@ -1122,6 +1177,7 @@ static void transform_inner(VALUE sunit, VALUE dunit)
 回転角度が正だと右回り、負だと左回りに回転する
 変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
 src==dstの場合、何も行わない
 ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
 ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -1667,6 +1723,86 @@ static VALUE sprite_update(VALUE self)
 /*
 ===内部用レンダメソッド
 */
+static void render_to_inner(VALUE sunit, VALUE dunit)
+{
+	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(sunit)))->surface;
+	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(dunit)))->surface;
+
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src->format;
+	MiyakoColor scolor, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect srect, drect;
+	Uint32 src_a = 0;
+	Uint32 dst_a = 0;
+
+	if(psrc == pdst){ return; }
+	
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	//SpriteUnit:
+	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+	//[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+	//[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+	//[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+  MIYAKO_SET_RECT(srect, sunit);
+	MIYAKO_SET_RECT(drect, dunit);
+
+	int x = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
+	int y = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
+  MIYAKO_INIT_RECT1;
+
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+  
+	int px, py, sy;
+	for(py = dly, sy = srect.y; py < dmy; py++, sy++)
+	{
+    Uint32 *ppsrc = psrc + sy * src->w + srect.x;
+    Uint32 *ppdst = pdst + py * dst->w + dlx;
+		for(px = dlx; px < dmx; px++)
+		{
+			pixel = *ppsrc;
+			MIYAKO_GETCOLOR(scolor);
+			scolor.a |= src_a;
+      pixel = *ppdst;
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(scolor);
+        *ppdst = pixel;
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      if(scolor.a > 0)
+      {
+        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = scolor.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *ppdst = pixel;
+      }
+      ppsrc++;
+      ppdst++;
+    }
+  }
+
+	SDL_UnlockSurface(src);
+	SDL_UnlockSurface(dst);
+}
+
+/*
+===内部用レンダメソッド
+*/
 static void render_inner(VALUE sunit, VALUE dunit)
 {
 	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(sunit)))->surface;
@@ -1696,7 +1832,7 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, vdst, sunit, dunit);
-  render_inner(sunit, dunit);
+  render_to_inner(sunit, dunit);
   return self;
 }
 
@@ -1704,7 +1840,7 @@ static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 ===インスタンスの内容を画面に描画する
 現在の画像を、現在の状態で描画するよう指示する
 ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
-ブロックの引数は、|インスタンスのSpriteUnit|となる。
+ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
 返却値:: 自分自身を返す
 */
 static VALUE sprite_render(VALUE self)
@@ -1726,8 +1862,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, vdst, sunit, dunit);
-  render_inner(sunit, dunit);
-  return Qnil;
+  render_to_inner(sunit, dunit);
+  return self;
 }
 
 /*
@@ -1888,6 +2024,7 @@ static VALUE counter_wait(VALUE self)
   return self;
 }
 
+
 /*
 ===マップレイヤー転送インナーメソッド
 */
@@ -1977,7 +2114,105 @@ static void fixedmaplayer_render_inner(VALUE self, VALUE dunit)
       if(code == -1){ continue; }
       VALUE unit = *(RARRAY_PTR(munits) + code);
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
       render_inner(unit, dunit);
+    }
+  }
+}
+
+/*
+===マップレイヤー転送インナーメソッド
+*/
+static void maplayer_render_to_inner(VALUE self, VALUE dunit)
+{
+  int cw = NUM2INT(rb_iv_get(self, "@cw"));
+  int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  VALUE margin = rb_iv_get(self, "@margin");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0)) + NUM2INT(*(RSTRUCT_PTR(margin) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1)) + NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
+  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE real_size = rb_iv_get(self, "@real_size");
+  int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
+  int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
+
+  VALUE param = rb_iv_get(self, "@mapchip");
+  VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
+  int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
+  int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
+
+  VALUE munits = rb_iv_get(self, "@mapchip_units");
+  VALUE mapdat = rb_iv_get(self, "@mapdat");
+  
+  if(pos_x < 0){ pos_x = real_size_w + (pos_x % real_size_w); }
+  if(pos_y < 0){ pos_y = real_size_h + (pos_y % real_size_h); }
+  if(pos_x >= real_size_w){ pos_x %= real_size_w; }
+  if(pos_y >= real_size_h){ pos_y %= real_size_h; }
+
+  int dx = pos_x / mc_chip_size_w;
+  int mx = pos_x % mc_chip_size_w;
+  int dy = pos_y / mc_chip_size_h;
+  int my = pos_y % mc_chip_size_h;
+
+  int x, y, idx1, idx2;
+  for(y = 0; y < ch; y++){
+    idx1 = (y + dy) % size_h;
+    VALUE mapdat2 = *(RARRAY_PTR(mapdat) + idx1);
+    for(x = 0; x < cw; x++){
+      idx2 = (x + dx) % size_w;
+      int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
+      if(code == -1){ continue; }
+      VALUE unit = *(RARRAY_PTR(munits) + code);
+      unit = rb_funcall(unit, rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
+      render_to_inner(unit, dunit);
+    }
+  }
+}
+
+/*
+===固定マップレイヤー転送インナーメソッド
+*/
+static void fixedmaplayer_render_to_inner(VALUE self, VALUE dunit)
+{
+  int cw = NUM2INT(rb_iv_get(self, "@cw"));
+  int ch = NUM2INT(rb_iv_get(self, "@ch"));
+  int ow = NUM2INT(rb_iv_get(self, "@ow"));
+  int oh = NUM2INT(rb_iv_get(self, "@oh"));
+
+  VALUE pos = rb_iv_get(self, "@pos");
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+
+  VALUE size = rb_iv_get(self, "@size");
+  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
+  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+
+  VALUE munits = rb_iv_get(self, "@mapchip_units");
+  VALUE mapdat = rb_iv_get(self, "@mapdat");
+
+  int x, y, idx1, idx2;
+  for(y = 0; y < ch; y++){
+    idx1 = y % size_h;
+    VALUE mapdat2 = *(RARRAY_PTR(mapdat) + idx1);
+    for(x = 0; x < cw; x++){
+      idx2 = x % size_w;
+      int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
+      if(code == -1){ continue; }
+      VALUE unit = *(RARRAY_PTR(munits) + code);
+      unit = rb_funcall(unit, rb_intern("to_unit"), 0);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      render_to_inner(unit, dunit);
     }
   }
 }
@@ -2021,7 +2256,7 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
-  maplayer_render_inner(self, dunit);
+  maplayer_render_to_inner(self, dunit);
   return Qnil;
 }
 
@@ -2036,7 +2271,7 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
-  fixedmaplayer_render_inner(self, dunit);
+  fixedmaplayer_render_to_inner(self, dunit);
   return Qnil;
 }
 
@@ -2265,7 +2500,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE vsrc = rb_iv_get(self, "@now");
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, vdst, sunit, dunit);
-  render_inner(sunit, dunit);
+  render_to_inner(sunit, dunit);
   return Qnil;
 }
 
@@ -2342,9 +2577,68 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
       || (x2+sw) <= ssw || (y2+sh) <= ssh){
         *(RSTRUCT_PTR(sunit) + 5) = INT2NUM(x2);
         *(RSTRUCT_PTR(sunit) + 6) = INT2NUM(y2);
-        render_inner(sunit, dunit);
+        render_to_inner(sunit, dunit);
       }
     }
+  }
+  
+  return Qnil;
+}
+
+/*
+===パーツを画面に描画する
+各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
+画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、各パーツを貼り付ける。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|パーツのSpriteUnit|となる。
+デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
+*/
+static VALUE parts_render(VALUE self)
+{
+  VALUE parts_list = rb_iv_get(self, "@parts_list");
+  VALUE parts_hash = rb_iv_get(self, "@parts");
+  VALUE dunit = rb_funcall(mScreen, rb_intern("to_unit"), 0);
+
+  int i;
+  for(i=0; i<RARRAY_LEN(parts_list); i++)
+  {
+    VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
+#if 0
+    MIYAKO_GET_UNIT_NO_SURFACE_1(parts, sunit);
+    render_inner(sunit, dunit);
+#else
+    rb_funcall(parts, rb_intern("render"), 0);
+#endif
+  }
+  
+  return Qnil;
+}
+
+/*
+===パーツを画面に描画する
+各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
+転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+ブロックの引数は、|パーツのSpriteUnit|となる。
+デフォルトでは、描画順は登録順となる。順番を変更したいときは、render_toメソッドをオーバーライドする必要がある
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+*/
+static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
+{
+  VALUE parts_list = rb_iv_get(self, "@parts_list");
+  VALUE parts_hash = rb_iv_get(self, "@parts");
+  VALUE dunit = rb_funcall(vdst, rb_intern("to_unit"), 0);
+
+  int i;
+  for(i=0; i<RARRAY_LEN(parts_list); i++)
+  {
+    VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
+#if 0
+    MIYAKO_GET_UNIT_NO_SURFACE_1(parts, sunit);
+    render_to_inner(sunit, dunit);
+#else
+    rb_funcall(parts, rb_intern("render_to"), 1, vdst);
+#endif
   }
   
   return Qnil;
@@ -2722,6 +3016,7 @@ void Init_miyako_no_katana()
   cSpriteAnimation = rb_define_class_under(mMiyako, "SpriteAnimation", rb_cObject);
   sSpriteUnit = rb_define_class_under(mMiyako, "SpriteUnitBase", rb_cStruct);
   cPlane = rb_define_class_under(mMiyako, "Plane", rb_cObject);
+  cParts = rb_define_class_under(mMiyako, "Parts", rb_cObject);
   cTextBox = rb_define_class_under(mMiyako, "TextBox", rb_cObject);
   cMap = rb_define_class_under(mMiyako, "Map", rb_cObject);
   cMapLayer = rb_define_class_under(cMap, "MapLayer", rb_cObject);
@@ -2744,6 +3039,7 @@ void Init_miyako_no_katana()
 
   rb_define_singleton_method(cBitmap, "blit_aa!", bitmap_miyako_blit_aa, 4);
   rb_define_singleton_method(cBitmap, "ck_to_ac!", bitmap_miyako_colorkey_to_alphachannel, 3);
+  rb_define_singleton_method(cBitmap, "screen_to_ac!", bitmap_miyako_screen_to_alphachannel, 2);
   rb_define_singleton_method(cBitmap, "dec_alpha!", bitmap_miyako_dec_alpha, 3);
   rb_define_singleton_method(cBitmap, "black_out!", bitmap_miyako_black_out, 3);
   rb_define_singleton_method(cBitmap, "white_out!", bitmap_miyako_white_out, 3);
@@ -2787,6 +3083,9 @@ void Init_miyako_no_katana()
 
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);
+
+  rb_define_method(cParts, "render", parts_render, 0);
+  rb_define_method(cParts, "render_to", parts_render_to_sprite, 1);
 
   rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 2);
   rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 2);

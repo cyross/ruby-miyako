@@ -232,6 +232,20 @@ module Miyako
       return self
     end
 
+    #===画像の表示矩形を取得する
+    #Mapの大きさを矩形で取得する。値は、Screen.rectメソッドの値と同じ。
+    #返却値:: 生成された矩形
+    def rect
+      return Screen.rect
+    end
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、Mapの場合は最大の大きさ=画面の大きさなので、rectと同じ値が得られる
+    #返却値:: 画像の大きさ(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
+    end
+
     #===設定したマージンを各レイヤーに同期させる
     #マージンを設定した後は必ずこのメソッドを呼び出すこと
     #返却値:: 自分自身を返す
@@ -633,7 +647,14 @@ module Miyako
       yield mma if block_given?
       return mma
     end
-    
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、FixedMapの場合は最大の大きさ=画面の大きさなので、rectと同じ値が得られる
+    #返却値:: 画像の大きさ(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
+    end
+
     #===あとで書く
     #返却値:: あとで書く
     def chipSize

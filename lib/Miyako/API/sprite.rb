@@ -282,6 +282,13 @@ module Miyako
       return Rect.new(@unit.x, @unit.y, @unit.ow, @unit.oh)
     end
 
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、Spriteの場合は最大の大きさ=スプライトの大きさなので、rectと同じ値が得られる
+    #返却値:: 画像の大きさ(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
+    end
+
     def update  #:nodoc:
       @update.call(self) if @update
       yield self if block_given?
@@ -307,14 +314,12 @@ module Miyako
     end
 
     #===インスタンスをスプライト化して返す
+    #インスタンスの複製を行う(画像インスタンスも複製)
+    #注意事項：
+    #１．複製のため、呼び出していくとメモリ使用量が著しく上がる
+    #２．レイアウト情報がリセットされる(snapの親子関係が解消される)
     #返却値:: 自分自身を返す
     def to_sprite
-      return self
-    end
-
-    #===インスタンスの複製を行う(画像インスタンスも複製)
-    #返却値:: 自分自身の複製を返す
-    def duplicate
       unit = @unit.dup
       unit.bitmap = Bitmap.create(unit.bitmap.w, unit.bitmap.h)
       Bitmap.blit_aa!(@unit, unit, 0, 0)

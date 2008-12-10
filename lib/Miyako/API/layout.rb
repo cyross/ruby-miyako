@@ -778,9 +778,9 @@ module Miyako
   #画像を持たず、レイアウト空間のみを持つインスタンス
   #画像同士が離れているレイアウト構成を構築する際に用いる
   class LayoutSpace
-    include Layout
     include SpriteBase
     include Animation
+    include Layout
     include SingleEnumerable
     extend Forwardable
 
@@ -792,6 +792,13 @@ module Miyako
     def initialize(size)
       init_layout
       set_layout_size(*(size.to_a))
+    end
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、LayoutSpaceの場合は最大の大きさ=スプライトの大きさなので、rectと同じ値が得られる
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
     end
 
     #===インスタンスを解放させる

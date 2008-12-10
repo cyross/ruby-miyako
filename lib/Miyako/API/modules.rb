@@ -39,6 +39,18 @@ module Miyako
       return nil
     end
     
+    #===領域の矩形を取得するメソッドのテンプレート
+    #返却値:: nilを返す
+    def rect
+      return nil
+    end
+    
+    #===領域の最大矩形を取得するメソッドのテンプレート
+    #返却値:: nilを返す
+    def broad_rect
+      return nil
+    end
+    
     #===画像(Bitmapクラスのインスタンス)を取得するメソッドのテンプレート
     #返却値:: nilを返す
     def bitmap

@@ -432,19 +432,18 @@ module Miyako
       return @now.bitmap
     end
     
-    # 現在実行中のパターンの元になったスプライトを返す
+    #===現在実行中のパターンの元になったインスタンスを返す
+    #取得するパターンは、元になったインスタンスのto_spriteメソッドを呼び出した時の値となる
     # 返却値:: 現在表示しているスプライト
     def to_sprite
-      return @slist[@plist[@pnum]]
+      return @slist[@plist[@pnum]].to_sprite
     end
-    
-    #===画面に描画示する
-    #現在の画像を、現在の状態で描画するよう指示する
-    #但し、描画が実際の画面に反映されるのはScreen.renderメソッドが呼び出された時
-    #返却値:: 自分自身を返す
-    def render
-      Screen.render_screen(@now)
-      return self
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #現在のパターンの大きさと同じため、rectメソッドの値と同一となる
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      return self.rect
     end
 
     #===インスタンスに束縛されているオブジェクトを解放する

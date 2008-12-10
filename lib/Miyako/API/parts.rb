@@ -117,25 +117,32 @@ module Miyako
       return self
     end
 
-    #===スプライトに変換した画像を表示する(ただし、このオブジェクトでは自分自身を帰す)
-    #返却値:: 自分自身
+    #===スプライトに変換した画像を表示する
+    #すべてのパーツを貼り付けた、１枚のスプライトを返す
+    #返却値:: 描画したスプライト
     def to_sprite
-      return self
+      rect = self.broad_rect
+      sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
+      self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
+      return sprite
     end
-    
-    #===画面に描画を指示する
-    #現在表示できる選択肢を、現在の状態で描画するよう指示する
-    #
-    #デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
-    #--
-    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-    #++
-    #返却値:: 自分自身を返す
-    def render
-      self.each{|parts| parts.render }
-      return self
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #各パーツの位置により、取得できる矩形の大きさが変わる
+    #但し、パーツ未登録の時は、インスタンス生成時の大きさから矩形を生成する
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      rect = self.rect.to_a
+      return self.rect if @parts_list.length == 0
+      rect_list = rect.zip(*(self.map{|parts| parts.broad_rect.to_a}))
+      # width -> right
+      rect_list[2] = rect_list[2].zip(rect_list[0]).map{|xw| xw[0] + xw[1]}
+      # height -> bottom
+      rect_list[3] = rect_list[3].zip(rect_list[1]).map{|xw| xw[0] + xw[1]}
+      x, y = rect_list[0].min, rect_list[1].min
+      return Rect.new(x, y, rect_list[2].max - x, rect_list[3].max - y)
     end
-    
+
     #===パーツに登録しているインスタンスを解放する
     def dispose
       @parts_list.clear
@@ -177,6 +184,8 @@ module Miyako
     def initialize
       @choices = []
       @now = nil
+      @non_select = false
+      @last_selected = nil
     end
 
     # 選択肢を作成する
@@ -201,6 +210,7 @@ module Miyako
     def create_choices(choices)
       choices.each{|v| v.base = choices}
       @choices.push(choices)
+      @last_selected = @choices[0][0] if (@choices.length == 1 && @last_selcted == nil)
       return self
     end
 
@@ -219,11 +229,14 @@ module Miyako
 
     #===選択を開始する
     #選択肢の初期位置を指定することができる
-    #_x_:: 初期位置(x 座標)。規定値は 0
+    #_x_:: 初期位置(x 座標)。規定値は 0。nilを渡すと、最後に選択した選択肢が選ばれる。
     #_y_:: 初期位置(y 座標)。規定値は 0
     def start_choice(x = 0, y = 0)
-      @now = @choices[x][y]
+      raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x != nil && x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
+      @now = x ? @choices[x][y] : @last_selected
       @now.selected = true
+      @last_selected = @now
+      @non_select = false
     end
 
     #===選択肢本体を取得する
@@ -257,24 +270,96 @@ module Miyako
 
     private :update_choices
 
+    #===選択肢を非選択状態に変更する
+    #現在の選択状態を、全部選択していない状態にする
+    #返却値:: 自分自身を返す
+    def non_select
+      @now.base.each{|c| c.selected = false }
+      @non_select = true
+      return self
+    end
+
+    #===選択肢を変更する
+    #現在の選択状態を、全部選択していない状態にする
+    #_x_:: x方向位置
+    #_y_:: y方向位置
+    #返却値:: 自分自身を返す
+    def select(x, y)
+      raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
+      @now = @choices[x][y]
+      return self
+    end
+
+    #===選択肢を非選択状態に変更する
+    #現在の選択状態を、全部選択していない状態にする
+    #返却値:: 自分自身を返す
+    def non_select
+      @now.base.each{|c| c.selected = false }
+      @non_select = true
+      return self
+    end
+
     #===画面に描画を指示する
     #現在表示できる選択肢を、現在の状態で描画するよう指示する
-    #--
-    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-    #++
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+    #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
     #返却値:: 自分自身を返す
-    def render
+    def render(&block)
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
-          c.body_selected.render :
-          c.body.render) if c.condition.call
+          c.body_selected.render(&block) :
+          c.body.render(&block)) if c.condition.call
       }
       return self
     end
-    
+
+    #===画像に描画を指示する
+    #現在表示できる選択肢を、現在の状態で描画するよう指示する
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+    #ブロックの引数は、|インスタンスのSpriteUnit, 画像のSpriteUnit|となる。
+    #_dst_:: 描画対象の画像インスタンス
+    #返却値:: 自分自身を返す
+    def render_to(dst, &block)
+      @now.base.each{|c|
+        ((c.body_selected && c.selected) ?
+          c.body_selected.render_to(dst, &block) :
+          c.body.render_to(dst, &block)) if c.condition.call
+      }
+      return self
+    end
+
+    #===スプライトに変換した画像を表示する
+    #すべてのパーツを貼り付けた、１枚のスプライトを返す
+    #返却値:: 生成したスプライト
+    def to_sprite
+      rect = self.broad_rect
+      sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
+      self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
+      return sprite
+    end
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #選択肢の状態により、取得できる矩形の大きさが変わる
+    #但し、選択肢が一つも見つからなかったときはnilを返す
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      choice_list = @now.base.find_all{|c| c.condition.call }.map{|c| (c.body_selected && c.selected) ? c.body_selected : c.body}
+      return nil if choice_list.length == 0
+      return Rect.new(*(choice_list[0].rect.to_a)) if choice_list.length == 1
+      rect = choice_list.shift.to_a
+      rect_list = rect.zip(*(choice_list.map{|c| c.broad_rect.to_a}))
+      # width -> right
+      rect_list[2] = rect_list[2].zip(rect_list[0]).map{|xw| xw[0] + xw[1]}
+      # height -> bottom
+      rect_list[3] = rect_list[3].zip(rect_list[1]).map{|xw| xw[0] + xw[1]}
+      x, y = rect_list[0].min, rect_list[1].min
+      return Rect.new(x, y, rect_list[2].max - x, rect_list[3].max - y)
+    end
+
     # 選択肢を左移動させる
     # 返却値:: 自分自身を返す
     def left
+      @last_selected = @now
       @now.selected = false
       obj = @now.left
       update_choices(@now, obj)
@@ -286,6 +371,7 @@ module Miyako
     # 選択肢を右移動させる
     # 返却値:: 自分自身を返す
     def right
+      @last_selected = @now
       @now.selected = false
       obj = @now.right
       update_choices(@now, obj)
@@ -297,6 +383,7 @@ module Miyako
     # 選択肢を上移動させる
     # 返却値:: 自分自身を返す
     def up
+      @last_selected = @now
       @now.selected = false
       obj = @now.up
       update_choices(@now, obj)
@@ -308,6 +395,7 @@ module Miyako
     # 選択肢を下移動させる
     # 返却値:: 自分自身を返す
     def down
+      @last_selected = @now
       @now.selected = false
       obj = @now.down
       update_choices(@now, obj)

@@ -24,9 +24,9 @@ module Miyako
   #==テキストボックスを構成するクラス
   #テキスト表示部、ウェイトカーソル、選択カーソルで構成される
   class TextBox
-    include Layout
     include SpriteBase
     include Animation
+    include Layout
     extend Forwardable
 
     @@windows = Array.new
@@ -60,6 +60,8 @@ module Miyako
                         (@font.use_shadow ? @font.shadow_margin[0] : 0),
                        @font.line_height *
                         @base[1] - @font.vspace)
+      @pos = Point.new(0, 0)
+      set_layout_size(*@size)
 
       @textarea = Sprite.new({:size => @size, :type => :ac, :is_fill => true})
 
@@ -75,10 +77,6 @@ module Miyako
       @waiting = false
       @select_type = :left
       @selecting = false
-
-      @pos = Point.new(0, 0)
-
-      set_layout_size(*@size)
 
       @textarea.snap(self)
       @textarea.centering
@@ -134,15 +132,63 @@ module Miyako
       return false
     end
 
+    #===スプライトに変換した画像を表示する
+    #すべてのパーツを貼り付けた、１枚のスプライトを返す
+    #返却値:: 描画したスプライト
+    def to_sprite
+      rect = self.broad_rect
+      sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
+      self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
+      return sprite
+    end
+
+    #===現在の画面の最大の大きさを矩形で取得する
+    #テキストボックスの状態により、取得できる矩形の大きさが変わる
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      rect = self.rect.to_a
+      rect_list = []
+      rect_list << @wait_cursor.broad_rect if (@wait_cursor && @waiting)
+      if @selecting 
+        rect_list << @choices.broad_rect
+        rect_list << @select_cursor.broad_rect if @select_cursor
+      end
+      return self.rect if rect_list.length == 0
+      rect_list = rect.zip(*rect_list)
+      # width -> right
+      rect_list[2] = rect_list[2].zip(rect_list[0]).map{|xw| xw[0] + xw[1]}
+      # height -> bottom
+      rect_list[3] = rect_list[3].zip(rect_list[1]).map{|xw| xw[0] + xw[1]}
+      x, y = rect_list[0].min, rect_list[1].min
+      return Rect.new(x, y, rect_list[2].max - x, rect_list[3].max - y)
+    end
+
     #===画面に描画する
     #現在のテキストエリア・カーソルを、現在の状態で描画する
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+    #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
     #返却値:: 自分自身を返す
-    def render
-      @textarea.render
-      @wait_cursor.render if (@wait_cursor && @waiting)
+    def render(&block)
+      @textarea.render(&block)
+      @wait_cursor.render(&block) if (@wait_cursor && @waiting)
       if @selecting 
-        @choices.render
-        @select_cursor.render if @select_cursor
+        @choices.render(&block)
+        @select_cursor.render(&block) if @select_cursor
+      end
+      return self
+    end
+
+    #===画面に描画する
+    #現在のテキストエリア・カーソルを、現在の状態で描画する
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
+    #ブロックの引数は、|インスタンスのSpriteUnit, 転送先のSpriteUnit|となる。
+    #返却値:: 自分自身を返す
+    def render_to(dst, &block)
+      @textarea.render_to(dst, &block)
+      @wait_cursor.render(dst, &block) if (@wait_cursor && @waiting)
+      if @selecting 
+        @choices.render(dst, &block)
+        @select_cursor.render(dst, &block) if @select_cursor
       end
       return self
     end

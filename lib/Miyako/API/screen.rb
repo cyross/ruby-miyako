@@ -161,6 +161,13 @@ module Miyako
       return Rect.new(*([0, 0]+@@size.to_a))
     end
 
+    #===現在の画面の最大の大きさを矩形で取得する
+    #但し、Screenの場合は最大の大きさ=画面の大きさなので、rectと同じ値が得られる
+    #返却値:: 画像の大きさ(Rect構造体のインスタンス)
+    def Screen::broad_rect
+      return Screen.rect
+    end
+
     #===現在のビューポート(表示区画)を取得する
     #ビューポートの設定は、Viewport#renderで行う
     #返却値:: ビューポート(Viewportクラスのインスタンス)
@@ -215,6 +222,20 @@ module Miyako
       param[:size] = Size.new(*(rect[2..3]))
       dst = Sprite.new(param)
       SDL.blit_surface(*([@@screen] + rect.to_a << dst.bitmap << 0 << 0))
+      return dst
+    end
+
+    #===現在表示されている画面を複製し、Spriteクラスのインスタンスとして取得
+    #Screen.captureとの違いは、パラメータ・サイズは不変(画面の大きさで複製)で取り扱う。
+    #
+    #_param_:: Spriteインスタンスを生成するときに渡すパラメータ(但し、:sizeと:typeのみ使用する)
+    #_rect_:: 取り込む画像の矩形(4要素の配列もしくはRect構造体のインスタンス)
+    #デフォルトは画面の大きさ
+    #返却値:: 取り込んだ画像を含むSpriteクラスのインスタンス
+    def Screen::to_sprite
+      param[:size] = Size.new(*(rect[2..3]))
+      dst = Sprite.new(param)
+      Bitmap.screen_to_ac!(Screen, dst)
       return dst
     end
 

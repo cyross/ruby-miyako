@@ -24,6 +24,7 @@ module Miyako
   #==動画管理クラス
   #動画ファイル(MPEGファイル限定)をロード・再生するクラス
   class Movie
+    include SpriteBase
     include Layout
     extend Forwardable
 
@@ -139,12 +140,12 @@ module Miyako
       return self
     end
     
-    
     #===一時停止中の動画の再生を再開する
     #Miyako::Movie#pause メソッドを実行した後に呼び出す
     def_delegators(:@movie, :rewind)
     #===指定時間ぶん、スキップ再生を行う
     #size:: スキップ長(秒単位)
     def_delegators(:@movie, :skip)
+    def_delegators(:@sprite, :rect, :broad_rect, :ox, :oy)
   end
 end
