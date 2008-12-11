@@ -381,6 +381,61 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 }
 
 /*
+===画像をαチャネル付き画像へ転送する
+２４ビット画像(αチャネルがゼロの画像)に対して、すべてのα値を255にする画像を生成する
+src==dstの場合、何も行わずすぐに呼びだし元に戻る
+範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: なし
+*/
+static VALUE bitmap_miyako_normal_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
+{
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = dst->format;
+	Uint32 tmp;
+	Uint32 pixel;
+
+	if(psrc == pdst){ return Qnil; }
+	
+  //SpriteUnit:
+  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	int w = src->w;
+	int h = src->h;
+  
+	if(w > dst->w) w = dst->w;
+	if(h > dst->h) h = dst->h;
+
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+  
+	int sx, sy;
+  for(sy = 0; sy < h; sy++)
+  {
+    Uint32 *ppsrc = psrc + sy * w;
+    Uint32 *ppdst = pdst + sy * dst->w;
+    for(sx = 0; sx < w; sx++)
+    {
+      pixel = *ppsrc++;
+      pixel |= (0xff >> fmt->Aloss) << fmt->Ashift;
+      *ppdst++ = pixel;
+    }
+  }
+
+	SDL_UnlockSurface(src);
+	SDL_UnlockSurface(dst);
+
+  return Qnil;
+}
+
+/*
 ===画面(αチャネル無し32bit画像)をαチャネル付き画像へ転送する
 α値がゼロの画像から、α値を255にする画像を生成する
 src==dstの場合、何も行わずすぐに呼びだし元に戻る
@@ -3039,6 +3094,7 @@ void Init_miyako_no_katana()
 
   rb_define_singleton_method(cBitmap, "blit_aa!", bitmap_miyako_blit_aa, 4);
   rb_define_singleton_method(cBitmap, "ck_to_ac!", bitmap_miyako_colorkey_to_alphachannel, 3);
+  rb_define_singleton_method(cBitmap, "normal_to_ac!", bitmap_miyako_normal_to_alphachannel, 2);
   rb_define_singleton_method(cBitmap, "screen_to_ac!", bitmap_miyako_screen_to_alphachannel, 2);
   rb_define_singleton_method(cBitmap, "dec_alpha!", bitmap_miyako_dec_alpha, 3);
   rb_define_singleton_method(cBitmap, "black_out!", bitmap_miyako_black_out, 3);

@@ -139,7 +139,9 @@ mp = MapChipFactory.load("./mapchip.csv")
 Miyako.main_loop do
   break if Input.quit_or_escape?
 #  @a.update_animation
-  dx, dy = Input.trigger_amount
+  dx, dy = Input.trigger_amount.map{|v| v * 4 }
+  dx = 0 unless Screen.viewport.in_bounds_x?(@fmap.rect, dx)
+  dy = 0 unless Screen.viewport.in_bounds_y?(@fmap.rect, dy)
   @fmap.move(dx, dy)
   @fmap.events.each{|e| e.update(@fmap, @fmap.events, nil)}
   @fmap.render

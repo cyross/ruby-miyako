@@ -19,8 +19,8 @@ def create_eye(num)
   return spr
 end
 
-bk = Sprite.new({:file=>"m1ku_back.jpg", :type=>:ac})
-back = bk.duplicate
+bk = Sprite.new({:file=>"m1ku_back.jpg", :type=>:as})
+back = bk.to_sprite
 back.fill([0,0,0])
 
 body = Sprite.new({:file=>"m1ku_body.png", :type=>:ck})

@@ -53,7 +53,7 @@ class MainScene
         #外れていれば、コマンドウィンドウを開く
         event_flags = @map.events.map{|e| e.met?(:collision => @map.collision)}
         if event_flags.none?
-          @yuki.start_plot(self.method(:command_plot))
+          @yuki.start_plot(@yuki.to_plot(self, :command_plot))
         else
           @map.events.zip(event_flags){|ef| ef[0].start(@parts) if ef[1]}
         end
@@ -102,8 +102,8 @@ class MainScene
   end
 
   def command_plot(yuki)
-      yuki.command([Yuki::Command.new("話す", "話す", nil, self.method(:talk)),
-                     Yuki::Command.new("調べる", "調べる", nil, self.method(:check))], @now)
+      yuki.command([Yuki::Command.new("話す", "話す", nil, yuki.to_plot(self, :talk)),
+                     Yuki::Command.new("調べる", "調べる", nil, yuki.to_plot(self, :check))], @now)
       yuki.select_result.call(yuki) if yuki.is_scenario?(yuki.select_result)
       return @now
   end

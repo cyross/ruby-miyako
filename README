@@ -866,6 +866,7 @@ v2.0.0(2008.xx.xx)
 ・Yuki#update_plotメソッドをYuki#updateメソッドに改名
 ・Yuki#plot_executing?メソッドをYuki#executing?に改名
 ・Yuki#canseled?メソッドの追加
+・Yuki#to_plotメソッドの追加
 ・Yuki#resultメソッドをYuki#select_resultメソッドに改名
 ・Yuki#scenarioメソッドの廃止
 ・Yuki#get_plot_resultメソッドの廃止
@@ -876,6 +877,10 @@ v2.0.0(2008.xx.xx)
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
 ・Yuki::Command構造体の使用を変更(選択時画像・文字を指定するbody_selectedを追加)
 ・Viewportクラスの追加(viewport.rbの追加)
+・Viewport#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
+　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
+　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?
+　round_rev2、round_rev2_x、round_rev2_yの各メソッドを追加(Layoutモジュールから移動)
 ・Bitmap.caceheメソッドの廃止(画像データのキャッシュの廃止)
 ・Bitmap.miyako_blit_aaメソッドを廃止
 ・Bitmap.miyako_blit_aa2メソッドをBitmap.blit_aa!メソッドに改名・インタフェース変更
@@ -884,6 +889,7 @@ v2.0.0(2008.xx.xx)
 ・Bitmap.black_out!、Bitmap.white_out!メソッドの追加
 ・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
 ・Bitmap.ck_to_acメソッドの追加(特定カラーのα値をゼロにした、αチャネル付き画像を生成する。Sprite.newのカラーキー透明画像はこれに置き換えられる)
+・Bitmap.normal_to_acメソッドの追加(すべての画素のα値を２５５にした、αチャネル付き画像を生成する。Sprite.newの未設定画像はこれに置き換えられる)
 ・Bitmap.scale、Bitmap.transformメソッドの高速化(拡大/縮小の係数を4096分割した整数計算(近似計算)に変更)
 ・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
 ・Parts#main_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
@@ -896,10 +902,13 @@ v2.0.0(2008.xx.xx)
 ・Screen.center_x,center_x=,center_y,center_y=メソッドの追加
 ・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
 ・Screen.broad_rectメソッドの追加
-・Layout#in_boundsなどのメソッドの引数にviewportを追加(Layout内のviewportを廃止)
+・Layout#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
+　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
+　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?
+　round_rev2、round_rev2_x、round_rev2_yの各メソッドを廃止(Viewportクラスのインスタンスメソッドに変更)
+・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
 ・LayoutSpace#broad_rectメソッドを追加
 ・LayoutSpace#rectメソッドがnilを返すバグを修正
-・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
 ・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
 ・Textbox#columns、rows、text_size、update_animationメソッドの追加
 ・Textbox#broad_rect、to_spriteメソッドの追加
@@ -933,6 +942,10 @@ v2.0.0(2008.xx.xx)
 ・これにより、Spriteクラスの各種線形描画メソッドを廃止
 ・bitmap.rb追加（Bitmapクラスをここに移動）
 ・spriteunit.rb追加（SpriteUnit構造体関連をここに移動）
+・choices.rb追加
+・fixedmap.rb追加
+・map_event.rb追加
+・viewport.rb追加
 ・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
 ・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
 ・リファレンス(RDoc)の拡充
@@ -940,4 +953,3 @@ v2.0.0(2008.xx.xx)
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。
-

@@ -197,7 +197,7 @@ class MainScene
 
     @yuki = Yuki.new
     @yuki.update_text = self.method(:update_text)
-    @y_manager = @yuki.manager(self.method(:plot), false, true)
+    @y_manager = @yuki.manager(@yuki.to_plot(self, :plot), false, true)
     
     @c1 = Sprite.new(:file=>"chr01.png", :type=>:ac).bottom
     @c2 = Sprite.new(:file=>"chr02.png", :type=>:ac).bottom

@@ -115,7 +115,16 @@ module Miyako
         @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
         tbitmap = nil
       when :alpha_surface
-        self.bitmap = bitmap.display_format
+        # カラーキーのα値を0にしたビットマップを作成
+        tbitmap = bitmap.display_format
+        tunit   = SpriteUnitFactory.create(:bitmap => tbitmap)
+        bitmap  = Bitmap.create(bitmap.w, bitmap.h, SDL::HWSURFACE)
+        bitmap  = bitmap.display_format_alpha
+        nunit = SpriteUnitFactory.create(:bitmap => bitmap)
+        Bitmap.normal_to_ac!(tunit, nunit)
+        self.bitmap = bitmap
+        @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
+        tbitmap = nil
       when :alpha_channel
         self.bitmap = bitmap.display_format_alpha
         @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]

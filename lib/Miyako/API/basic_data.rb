@@ -121,6 +121,17 @@ module Miyako
       self[3]=y+h
       return self
     end
+
+    #===サイズを変更する(変化量を指定)
+    #_w_:: 幅変更。単位はピクセル
+    #_h_:: 高さ変更。単位はピクセル
+    #返却値:: 自分自身を返す
+    def resize(w, h)
+      raise MiyakoError, "Illegal size! w:#{w} h:#{h}" if (w < 0 || h < 0)
+      self[2]=self[0] + w - 1
+      self[3]=self[1] + h - 1
+      return self
+    end
   end
 
   #==座標などを構成するために使用する構造体
