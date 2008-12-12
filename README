@@ -235,9 +235,16 @@ require 'Miyako/miyako'
 
 更に、拡張機能を使いたいときは、次の行に
 
-require 'Miyako/miyako_ext'
+require 'Miyako/EXT/利用したいライブラリ名'
 
 と入力します。
+たとえば、Slideクラスを利用したいときは、「require 'Miyako/EXT/slides'」と入力します。
+
+利用できる拡張機能は以下の３種類です。
+
+1.RasterScrollクラス(ラスタスクロールを管理するクラス) : EXT/raster_scroll
+2.Slideモジュール(スライド生成・管理を行えるモジュール) : EXT/slides
+3.MiyakoCairoモジュール(MiyakoのスプライトとCairoのImageSurfaceを簡単に相互変換できるモジュール) : EXT/miyako_cairo
 
 各種機能につきましては、リファレンスマニュアルをご参照ください。
 
@@ -953,6 +960,10 @@ v2.0.0(2008.xx.xx)
 ・EXT/miyako_cairo.rb追加
 ・MiyakoCairoモジュールを追加
 ・MiyakoCairo.to_cairo_surface、MiyakoCairo.to_spriteメソッドの追加
+・RasterScrollクラスの修正(render/render_toメソッド追加など)
+・Slideの初期化方法の変更(スライド本体(背景)は、slide[:___base___]で参照可能に)
+・Slide#render、render_to、update、update_animationメソッド追加
+・Slide[]で利用できるテンプレートに"white","black","half-white"を追加
 ・miyako_ext.rb削除
 ・リファレンス(RDoc)の拡充
 ・他、細かいバグの修正
