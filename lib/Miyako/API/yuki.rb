@@ -539,7 +539,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def text(txt)
       return self if txt.eql?(self)
-      txt.split(//).each{|ch|
+      txt.chars{|ch|
         if /[\n\r]/.match(ch)
           next wait_by_cond(@is_outer_height)
         elsif @yuki[:text_box].locate.x + @yuki[:text_box].font.text_size(ch)[0] >= @yuki[:text_box].textarea.w

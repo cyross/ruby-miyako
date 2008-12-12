@@ -40,13 +40,11 @@ end
 
 require 'forwardable'
 require 'iconv'
-if RUBY_VERSION < '1.9.0'
-  require 'kconv'
-end
-require 'jcode'
+require 'kconv'
+require 'jcode' if RUBY_VERSION < '1.9.0'
 require 'rbconfig'
 
-$KCODE = 'u'
+$KCODE = 'u' if RUBY_VERSION < '1.9.0'
 
 
 #デバッグモードの設定

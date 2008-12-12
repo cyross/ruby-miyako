@@ -59,7 +59,9 @@ Miyakoのタイトルは、以下の事柄に由来しています
 ・アニメーションを管理するAnimationSpriteクラス
 ・スプライトへの効果を楽に記述できるEffectクラス
 ・当たり判定を簡単に実装できるCollisionクラス
-・スプライト以外の画像を表示できるSpriteUnit構造体とScreen.sprite_list
+・スプライト以外の画像を表示できるSpriteUnit構造体
+・
+・2次元グラフィックライブラリCairoとの画像変換を容易にしたMiyakoCairoモジュール(EXT扱い、v2.0～)
 ・拡張ライブラリを使用した高速な描画
 ・Windows/Linux/MacOSX等に対応(他OSへの動作レポートお願いします)
 ・インストーラー付き
@@ -95,6 +97,7 @@ OS  : Microsoft WindowsXp SP3
 DEV : Notepad++ v5.1.5 +EUC-JP
       ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
       MinGW+MSYS(miyako_no_katanaビルド)
+      rcairo-1.8.0(miyako-cairo検証用)
 
 ＜サブ開発PC＞
 Panasonic Let'sNOTE Light R3
@@ -104,7 +107,6 @@ PAD : SANWA SUPPLY JY-P1W
 OS  : Microsoft WindowsXp SP3
 DEV : Notepad++ v5.1.5 +EUC-JP
       ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
-      Microsoft VisualStudio 2005(拡張ライブラリソース記述)
       MinGW+MSYS(miyako_no_katanaビルド)
 
 【 動作環境  】
@@ -121,13 +123,13 @@ WindowsXp Home/Pro、WindowsVista、Linux、MacOSX等、Ruby/SDLが動作する�
 Ruby1.8.7以降
 Ruby/SDL 2.0＋対応SDLライブラリ群
 (SDL、SDL_ttf、SDL_image、SDL_Mixer、SGE、smpeg)
+rcairo 1.8.0以降(miyako-cairo使用時)
 
 【 ファイル構成  】
 
 アーカイブファイルを展開すると以下のファイルが展開されます。
 
 ・Miyako/miyako.rb（Miyakoライブラリ）
-・Miyako/miyako_ext.rb（Miyako拡張ライブラリ）
 ・Miyako/win/idaten_miyako.so(Windows用idaten_miyako)
 ・Miyako/win/miyako_no_katana.so(Windows用miyako_no_katana)
 ・Miyako/libディレクトリ（ライブラリ本体）
@@ -948,6 +950,10 @@ v2.0.0(2008.xx.xx)
 ・viewport.rb追加
 ・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
 ・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
+・EXT/miyako_cairo.rb追加
+・MiyakoCairoモジュールを追加
+・MiyakoCairo.to_cairo_surface、MiyakoCairo.to_spriteメソッドの追加
+・miyako_ext.rb削除
 ・リファレンス(RDoc)の拡充
 ・他、細かいバグの修正
 
