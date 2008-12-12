@@ -68,15 +68,17 @@ module Miyako
     def update
       return self unless @effecting
       if @wait.finish?
+        @sangle = (@sangle + @dangle) % 360
+        @wait.start
         if @fade_out
-          @fo_cnt -= 1
-          return unless @fo_wait.finish?
+          return self unless @fo_wait.finish?
           @size = @size - @fo_size
           @fo_wait.start
-          @effecting = false if @size <= 0
+          if @size <= 0
+            @effecting = false
+            @fade_out = false
+          end
         end
-        @sangle = (@sangle + 1) % 360
-        @wait.start
       end
       return self
     end
@@ -87,20 +89,26 @@ module Miyako
       return @effecting
     end
 
+    #===ラスタスクロールの実行状態を問い合わせる
+    #返却値:: ラスタスクロール中の時はtrueを返す
+    def fade_out?
+      return @fade_out
+    end
+
     #===ラスタスクロールを停止する
     def stop
       @wait.stop
       @fo_size.stop if @fo_size
       @effecting = false
+      @fade_out = false
     end
 
     #===ラスタスクロールを画面に描画する
     def render
-      return unless @effecting
       angle = @sangle
       @h.times{|y|
         rsx = @size * Math.sin(angle)
-        @src.render{|src, dst| src.x += rsx; src.y += y; src.oy += y * @lines; src.oh = @lines }
+        @src.render{|src, dst| src.x += rsx; src.y += y * @lines; src.oy += y * @lines; src.oh = @lines }
         angle = angle + @dangle
       }
     end
@@ -108,11 +116,10 @@ module Miyako
     #===ラスタスクロールを画像に描画する
     #_dst_:: 描画先画像
     def render_to(dst)
-      return unless @effecting
       @angle = @sangle
       @h.times{|y|
         rsx = @size * Math.sin(@angle)
-        @src.render_to(dst){|src, dst| src.x += rsx; src.y += y; src.oy += y * @lines; src.oh = @lines }
+        @src.render_to(dst){|src, dst| src.x += rsx; src.y += y * @lines; src.oy += y * @lines; src.oh = @lines }
         @angle = @angle + @dangle
       }
     end
