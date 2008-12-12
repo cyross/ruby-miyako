@@ -8,7 +8,6 @@ Gem::Specification.new do |s|
   s.description = "Miyako is Ruby library for programming game or rich client"
   s.has_rdoc = true
   s.authors = ["Cyross Makoto"]
-  s.add_runtime_dependency('rubysdl', '>= 2.0.0')
   s.files = ["img/cursor.png", "img/cursors.png", "img/dice.png", "img/wait_cursor.png",
 "img/window.png", "img/win_base.png", "lib/Miyako", "lib/Miyako/API", "lib/Miyako/API/audio.rb",
 "lib/Miyako/API/basic_data.rb", "lib/Miyako/API/bitmap.rb", "lib/Miyako/API/choices.rb",
