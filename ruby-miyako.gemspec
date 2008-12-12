@@ -41,5 +41,5 @@ Gem::Specification.new do |s|
 "sample/Room3/image/mittsu_no_oheya.png", "sample/Room3/image/mittsu_no_oheya_logo.png", "sample/Room3/image/room_blue.png",
 "sample/Room3/image/room_green.png", "sample/Room3/image/room_red.png", "sample/Room3/image/start.png", "sample/Room3/image/three_doors.png",
 "sample/Room3/image/wait_cursor.png", "sample/Room3/main.rb", "sample/Room3/main_component.rb", "sample/Room3/readme.txt", "sample/Room3/red.rb",
-"sample/Room3/room3.rb", "sample/Room3/title.rb", "win/miyako_no_katana.so", "install_miyako.rb", "README", "miyako.png", "miyako_banner.png"]
+"sample/Room3/room3.rb", "sample/Room3/title.rb", "win/miyako_no_katana.so", "install_miyako.rb", "README", "miyako.png", "miyako_banner.png", "Rakefile"]
 end
