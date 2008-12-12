@@ -57,10 +57,8 @@ Miyakoのタイトルは、以下の事柄に由来しています
 　対象の図形のレイアウトに準じたレイアウト設定が出来るスナップ機能を搭載
 ・図形を描いたスプライトを作成するShapeクラス
 ・アニメーションを管理するAnimationSpriteクラス
-・スプライトへの効果を楽に記述できるEffectクラス
 ・当たり判定を簡単に実装できるCollisionクラス
 ・スプライト以外の画像を表示できるSpriteUnit構造体
-・
 ・2次元グラフィックライブラリCairoとの画像変換を容易にしたMiyakoCairoモジュール(EXT扱い、v2.0～)
 ・拡張ライブラリを使用した高速な描画
 ・Windows/Linux/MacOSX等に対応(他OSへの動作レポートお願いします)
@@ -930,6 +928,7 @@ v2.0.0(2008.xx.xx)
 ・Choices#rect、broad_rect、to_spriteメソッドの追加
 ・Collision#move、Collision#move_toメソッドを追加
 ・Plane#rect、Plane#broad_rectメソッドの追加
+・Effectクラスを廃止
 ・Map#update、FixedMap#updateメソッドの内容変更(MapEventのupdateは行われず、明示的に呼び出すことに注意)
 ・Map#render、FixedMap#renderメソッドの追加(MapEventはrenderされず、明示的に呼び出すことに注意)
 ・Map#view_posメソッドを廃止、Map#marginメソッドを追加

@@ -20,15 +20,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
-  #==あとで書く
-  #返却値:: あとで書く
-  class RasterScroll < Effect
-    #===あとで書く
-    #_sspr_:: あとで書く
-    #_dspr_:: あとで書く
-    #返却値:: あとで書く
-    def initialize(sspr, dspr = nil)
-      super
+  #==ラスタスクロール実行クラス
+  #波の様に揺れる(疑似)ラスタスクロールを行うクラス
+  #波はサイン波で構成される
+  class RasterScroll
+    #===インスタンスを作成する
+    #ラスタスクロール対象のスプライトを登録する
+    #_sspr_:: ラスタスクロール対象スプライト
+    #返却値:: 作成したインスタンス
+    def initialize(sspr)
+      @src = sspr
       @lines = 0
       @h = @src.h
       @size = 0
@@ -39,69 +40,91 @@ module Miyako
       @effecting = false
     end
     
-    #===あとで書く
-    #_param_:: あとで書く
-    #返却値:: あとで書く
-    def start(param)
-      super
-      @lines = param[0]
-      @size = param[1]
-      @sangle = param[2]
-      @dangle = param[3]
+    #===ラスタスクロールを開始する
+    #ラスタスクロール実行用に設定する引数は以下の通り
+    #:lines -> ライン数(:lines=>3を指定すると、3ラインずつラスタスクロールを行う)。デフォルトは1（ライン）
+    #:size  -> 最大振幅数(:size=>20を指定すると、最大20ピクセルの高さの波となる)。デフォルトは4(ピクセル)
+    #:start_angle -> 開始角度(一番上のラインでの振幅角度(ラジアンではなく角度なのに注意!))。デフォルトは0(度)
+    #:distance -> 角度の変化量(ラインごとの角度の変化量。:distance=>1のときは、1度ずつ変化させる)。デフォルトは1(度)
+    #:wait -> 変化させる間隔(WaitCounterクラスのインスタンス)。デフォルトは0.1秒間隔
+    #_params_:: ラスタスクロール情報引数
+    #返却値:: 自分自身を返す
+    def start(params)
+      @lines = params[:lines] || 1
+      @size = params[:size] || 4
+      @sangle = params[:start_angle] || 0
+      @dangle = params[:distance] || 1
+      @wait = params[:wait] || WaitCounter.new(0.1)
       @h = @h / @lines
       @fade_out = false
       @fo_size = 0
       @effecting = true
+      @wait.start
+      return self
     end
   
-    #===あとで書く
-    #_screen_:: あとで書く
-    #返却値:: あとで書く
-    def update(screen)
-      return unless @effecting
-      if @cnt == 0
+    #===ラスタスクロール処理を更新する
+    #返却値:: 自分自身を返す
+    def update
+      return self unless @effecting
+      if @wait.finish?
         if @fade_out
           @fo_cnt -= 1
-          return if @fo_cnt != 0
+          return unless @fo_wait.finish?
           @size = @size - @fo_size
-          @fo_cnt = @fo_wait
+          @fo_wait.start
           @effecting = false if @size <= 0
         end
         @sangle = (@sangle + 1) % 360
-        @cnt = @wait
-      else
-        @cnt = @cnt - 1
+        @wait.start
       end
+      return self
     end
 
+    #===ラスタスクロールの実行状態を問い合わせる
+    #返却値:: ラスタスクロール中の時はtrueを返す
+    def effecting?
+      return @effecting
+    end
+
+    #===ラスタスクロールを停止する
+    def stop
+      @wait.stop
+      @fo_size.stop if @fo_size
+      @effecting = false
+    end
+
+    #===ラスタスクロールを画面に描画する
     def render
       return unless @effecting
       angle = @sangle
       @h.times{|y|
         rsx = @size * Math.sin(angle)
-        @src.render{|src, dst| src.x += rsx; src.oy += y * @lines; src.oh = @lines }
+        @src.render{|src, dst| src.x += rsx; src.y += y; src.oy += y * @lines; src.oh = @lines }
         angle = angle + @dangle
       }
     end
     
+    #===ラスタスクロールを画像に描画する
+    #_dst_:: 描画先画像
     def render_to(dst)
       return unless @effecting
       @angle = @sangle
       @h.times{|y|
         rsx = @size * Math.sin(@angle)
-        @src.render_to(dst){|src, dst| src.x += rsx; src.oy += y * @lines; src.oh = @lines }
+        @src.render_to(dst){|src, dst| src.x += rsx; src.y += y; src.oy += y * @lines; src.oh = @lines }
         @angle = @angle + @dangle
       }
     end
 
-    #===あとで書く
-    #_fs_:: あとで書く
-    #_fw_:: あとで書く
-    #返却値:: あとで書く
+    #===ラスタスクロールをフェードアウトさせる
+    #引数fwに与えられた間隔で振幅が減っていき(減る量は引数fsで与えられた値)、振幅がゼロになると終了する
+    #_fs_:: フェードアウトの変化量
+    #_fw_:: フェードアウトの変化を待つカウント(WaitCounterクラスインスタンス)
     def fade_out(fs, fw)
       @fo_size = fs
       @fo_wait = fw
-      @fo_cnt = @fo_wait
+      @fo_wait.start
       @fade_out = true
     end
   end
