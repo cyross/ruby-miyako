@@ -209,12 +209,10 @@ Windowsでは、Ruby/SDLバイナリパッケージの使用をお奨めしま�
 直接アクセスするため、Ruby/SDLのヘッダファイルと、SDLの開発ライブラリが必要になりました
 (特に、sdl-configシェルスクリプトが必要です)。
 
-また、sdl-configの場所を正しく指定できる様に、install_miyako.rbの修正が必要ですので、
-修正をよろしくお願いします。
+また、sdl-configの場所を正しく指定できる様に、環境変数SDL_CONFIG_PATH(sdl-configの実行パス)のを参照しています。
+ビルド前に必ず設定をお願いいたします。
 
-また、Miyakoから使用するRuby/SDLのヘッダファイル(rubysdl.h)も必要ですので、
-rubysdl.hをmiyako_no_katanaフォルダにコピーするか、
-Makefileのインクルードファイルオプションを修正してください。
+(例)SDL_CONFIG_PATH='/bin/sh /usr/bin/sdl-config'
 
 # お手数とは思いますが、LinuxやMacOSXなどで設定した方法をフィードバックしていただけると大いに助かります。
 # フィードバックは次期バージョンに反映いたします。
@@ -964,6 +962,7 @@ v2.0.0(2008.xx.xx)
 ・Slide#render、render_to、update、update_animationメソッド追加
 ・Slide[]で利用できるテンプレートに"white","black","half-white"を追加
 ・miyako_ext.rb削除
+・install_miyaok.rbの修正(旧バージョンのディレクトリを削除、miyako_no_katanaビルド時に環境変数SDL_CONFIG_PATHを参照する様にした)
 ・リファレンス(RDoc)の拡充
 ・他、細かいバグの修正
 

@@ -3,7 +3,12 @@ if RUBY_VERSION < '1.8.7'
   exit
 end
 
+begin
 require 'sdl'
+rescue
+  puts 'Sorry. Miyako needs Ruby/SDL...'
+  exit
+end
 
 if SDL::VERSION < '2.0.0'
   puts 'Sorry. Miyako needs Ruby/SDL 2.0.0 or above...'
@@ -30,9 +35,19 @@ osn = Config::CONFIG["target_os"].downcase
 if osn =~ /mswin|mingw|cygwin|bccwin/
   ext_dir = "win/"
 elsif osn =~ /darwin/ # Mac OS X
-  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sh sdl-config'; make ; cp miyako_no_katana.bundle ../")
+  unless ENV['SDL_CONFIG_PATH'] 
+    puts 'Please set SDL_CONFIG_PATH environment variable...'
+    puts "USAGE: SDL_CONFIG_PATH='/bin/sh /hoge/foo/sdl-config"
+    exit
+  end
+  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make ; cp miyako_no_katana.bundle ../")
 else # linux, U*IX...
-  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sh sdl-config'; make ; cp miyako_no_katana.so ../")
+  unless ENV['SDL_CONFIG_PATH'] 
+    puts 'Please set SDL_CONFIG_PATH environment variable...'
+    puts "USAGE: SDL_CONFIG_PATH='/bin/sh /hoge/foo/sdl-config"
+    exit
+  end
+  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make ; cp miyako_no_katana.so ../")
 end
 
 sitelibdir = Config::CONFIG["sitelibdir"] + "/Miyako"
@@ -45,6 +60,7 @@ if FileTest.exist?(sitelibdir) && not_force
   exit unless $stdin.gets.split(//)[0].upcase == 'Y'
 end
 
+FileUtils.remove_dir(sitelibdir, true)
 FileUtils.mkpath(sitelibdir, option)
 FileUtils.mkpath(apidir, option)
 FileUtils.mkpath(extdir, option)

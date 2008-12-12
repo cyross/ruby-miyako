@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 =拡張ライブラリmiyako_no_katana
-Authors:: sairosu誠
+Authors:: サイロス誠
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -30,7 +30,6 @@ License:: LGPL2.1
 #include <stdlib.h>
 #include <math.h>
 #include "ruby.h"
-#include "rubysdl.h"
 
 static VALUE mSDL = Qnil;
 static VALUE mMiyako = Qnil;
@@ -84,6 +83,24 @@ typedef struct
 	Uint32 a;
 } MiyakoColor;
 
+// from rubysdl.h
+#define GLOBAL_DEFINE_GET_STRUCT(struct_name, fun, klass, klassstr) \
+struct_name* fun(VALUE obj) \
+{ \
+  struct_name* st; \
+  \
+  if(!rb_obj_is_kind_of(obj, klass)){ \
+    rb_raise(rb_eTypeError, "wrong argument type %s (expected " klassstr ")", \
+             rb_obj_classname(obj)); \
+  } \
+  Data_Get_Struct(obj, struct_name, st); \
+  return st; \
+} 
+
+#define DEFINE_GET_STRUCT(struct_name, fun, klass, klassstr) \
+static GLOBAL_DEFINE_GET_STRUCT(struct_name, fun, klass, klassstr)
+
+// from rubysdl-video.c
 DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFormat");
 
