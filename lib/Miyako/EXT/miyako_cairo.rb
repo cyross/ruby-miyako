@@ -26,7 +26,7 @@ rescue
     require 'rubygems'
     require 'cairo'
   rescue
-    raise MiyakoError, "Sorry, Cairo-Miyako Interface has rcairo."
+    raise Miyako::MiyakoError, "Sorry, Cairo-Miyako Interface has rcairo."
   end
 end
 

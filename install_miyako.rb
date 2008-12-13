@@ -10,7 +10,7 @@ rescue
   exit
 end
 
-if SDL::VERSION < '2.0.0'
+if SDL::VERSION < '2.0'
   puts 'Sorry. Miyako needs Ruby/SDL 2.0.0 or above...'
   exit
 end

@@ -33,7 +33,7 @@ end
 
 require 'sdl'
 
-if SDL::VERSION < '2.0.0'
+if SDL::VERSION < '2.0'
   puts 'Sorry. Miyako needs Ruby/SDL 2.0.0 or above...'
   exit
 end
@@ -135,7 +135,6 @@ require 'Miyako/API/drawing'
 require 'Miyako/API/spriteunit'
 require 'Miyako/API/sprite_animation'
 require 'Miyako/API/sprite'
-require 'Miyako/API/effect'
 require 'Miyako/API/collision'
 require 'Miyako/API/screen'
 require 'Miyako/API/shape'
