@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.date = "2008-12-13"
   s.summary = "Game programming library for Ruby"
   s.email = "cyross@po.twin.ne.jp"
-  s.homepage = "http://www.twin.ne.jp/~cyross/"
+  s.homepage = "http://www.twin.ne.jp/~cyross/Miyako/"
   s.description = "Miyako is Ruby library for programming game or rich client"
   s.has_rdoc = true
   s.authors = ["Cyross Makoto"]

@@ -1,7 +1,7 @@
 #! /usr/bin/env rake
 
-task :default => :ruby-miyako
+task :default => :ruby_miyako
 
-task :ruby-miyako do
+task :ruby_miyako do
   system 'ruby install_miyako.rb'
 end
