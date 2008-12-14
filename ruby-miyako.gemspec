@@ -7,6 +7,8 @@ Gem::Specification.new do |s|
   s.homepage = "http://www.twin.ne.jp/~cyross/Miyako/"
   s.description = "Miyako is Ruby library for programming game or rich client"
   s.has_rdoc = true
+  s.rdoc_options = "-c utf-8"
+  s.extra_rdoc_files = ["miyako_no_katana/miyako_no_katana.c"]
   s.authors = ["Cyross Makoto"]
   s.files = ["img/cursor.png", "img/cursors.png", "img/dice.png", "img/wait_cursor.png",
 "img/window.png", "img/win_base.png", "lib/Miyako", "lib/Miyako/API", "lib/Miyako/API/audio.rb",
@@ -42,4 +44,6 @@ Gem::Specification.new do |s|
 "sample/Room3/image/room_green.png", "sample/Room3/image/room_red.png", "sample/Room3/image/start.png", "sample/Room3/image/three_doors.png",
 "sample/Room3/image/wait_cursor.png", "sample/Room3/main.rb", "sample/Room3/main_component.rb", "sample/Room3/readme.txt", "sample/Room3/red.rb",
 "sample/Room3/room3.rb", "sample/Room3/title.rb", "win/miyako_no_katana.so", "install_miyako.rb", "README", "miyako.png", "miyako_banner.png", "Rakefile"]
+  s.require_paths = ["lib"]
+  s.post_install_message="\n[[IMPORTANT]]\nplease enter 'ruby install_miyako.rb' at installed path to complete installation of ruby-miyako.\n\n"
 end

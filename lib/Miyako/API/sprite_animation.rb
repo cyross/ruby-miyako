@@ -226,14 +226,11 @@ module Miyako
       @pnum  = 0
       @cnt   = 0
       @exec  = false
-      @visible = false
 
       @now = @units[0]
       @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
                    @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
-
-    attr_accessor :visible
 
     def update_layout_position #:nodoc:
       @now.move_to(*@layout.pos) if @now

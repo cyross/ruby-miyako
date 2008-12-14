@@ -1782,6 +1782,9 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE sprite_update(VALUE self)
 {
   VALUE update = rb_iv_get(self, "@update");
@@ -1979,6 +1982,9 @@ static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE screen_update_tick(VALUE self)
 {
   int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
@@ -2046,6 +2052,9 @@ static VALUE screen_render_screen(VALUE self, VALUE vsrc)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE counter_start(VALUE self)
 {
   rb_iv_set(self, "@st", rb_funcall(mSDL, rb_intern("getTicks"), 0));
@@ -2053,6 +2062,9 @@ static VALUE counter_start(VALUE self)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE counter_stop(VALUE self)
 {
   rb_iv_set(self, "@st", INT2NUM(0));
@@ -2060,6 +2072,9 @@ static VALUE counter_stop(VALUE self)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE counter_wait_inner(VALUE self, VALUE f)
 {
   VALUE counting = rb_iv_set(self, "@counting", Qtrue);
@@ -2075,16 +2090,25 @@ static VALUE counter_wait_inner(VALUE self, VALUE f)
   return f == Qtrue ? Qfalse : Qtrue;
 }
 
+/*
+:nodoc:
+*/
 static VALUE counter_waiting(VALUE self)
 {
   return counter_wait_inner(self, Qtrue);
 }
 
+/*
+:nodoc:
+*/
 static VALUE counter_finish(VALUE self)
 {
   return counter_wait_inner(self, Qfalse);
 }
 
+/*
+:nodoc:
+*/
 static VALUE counter_wait(VALUE self)
 {
   int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
@@ -2435,6 +2459,9 @@ static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE sa_set_pat(VALUE self)
 {
   VALUE num = rb_iv_get(self, "@pnum");
@@ -2444,6 +2471,9 @@ static VALUE sa_set_pat(VALUE self)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE sa_update_frame(VALUE self)
 {
   int cnt = NUM2INT(rb_iv_get(self, "@cnt"));
@@ -2474,6 +2504,9 @@ static VALUE sa_update_frame(VALUE self)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE sa_update_wait_counter(VALUE self)
 {
   VALUE cnt = rb_iv_get(self, "@cnt");
@@ -2503,6 +2536,9 @@ static VALUE sa_update_wait_counter(VALUE self)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE sa_update(VALUE self)
 {
   VALUE exec = rb_iv_get(self, "@exec");
@@ -2716,6 +2752,9 @@ static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE c2)
 {
   VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
@@ -2745,6 +2784,9 @@ static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE c2)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_c_collision_with_move(VALUE self, VALUE c1, VALUE c2)
 {
   VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
@@ -2786,6 +2828,9 @@ static VALUE collision_c_collision_with_move(VALUE self, VALUE c1, VALUE c2)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE c2)
 {
   VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
@@ -2815,6 +2860,9 @@ static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE c2)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_c_into(VALUE self, VALUE c1, VALUE c2)
 {
   VALUE f1 = collision_c_collision(self, c1, c2);
@@ -2823,6 +2871,9 @@ static VALUE collision_c_into(VALUE self, VALUE c1, VALUE c2)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_c_out(VALUE self, VALUE c1, VALUE c2)
 {
   VALUE f1 = collision_c_collision(self, c1, c2);
@@ -2831,6 +2882,9 @@ static VALUE collision_c_out(VALUE self, VALUE c1, VALUE c2)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE c2)
 {
   VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
@@ -2860,31 +2914,49 @@ static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE c2)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_collision(VALUE self, VALUE c2)
 {
   return collision_c_collision(cCollision, self, c2);
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_meet(VALUE self, VALUE c2)
 {
   return collision_c_meet(cCollision, self, c2);
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_into(VALUE self, VALUE c2)
 {
   return collision_c_into(cCollision, self, c2);
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_out(VALUE self, VALUE c2)
 {
   return collision_c_out(cCollision, self, c2);
 }
 
+/*
+:nodoc:
+*/
 static VALUE collision_cover(VALUE self, VALUE c2)
 {
   return collision_c_cover(cCollision, self, c2);
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_collision(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2897,6 +2969,9 @@ static VALUE collisions_collision(VALUE self, VALUE c)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_meet(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2909,6 +2984,9 @@ static VALUE collisions_meet(VALUE self, VALUE c)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_into(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2921,6 +2999,9 @@ static VALUE collisions_into(VALUE self, VALUE c)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_out(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2933,6 +3014,9 @@ static VALUE collisions_out(VALUE self, VALUE c)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_cover(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2945,6 +3029,9 @@ static VALUE collisions_cover(VALUE self, VALUE c)
   return Qnil;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_collision_all(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2959,6 +3046,9 @@ static VALUE collisions_collision_all(VALUE self, VALUE c)
   return ret;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_meet_all(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2973,6 +3063,9 @@ static VALUE collisions_meet_all(VALUE self, VALUE c)
   return ret;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_into_all(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -2987,6 +3080,9 @@ static VALUE collisions_into_all(VALUE self, VALUE c)
   return ret;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_out_all(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -3001,6 +3097,9 @@ static VALUE collisions_out_all(VALUE self, VALUE c)
   return ret;
 }
 
+/*
+:nodoc:
+*/
 static VALUE collisions_cover_all(VALUE self, VALUE c)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
@@ -3015,6 +3114,9 @@ static VALUE collisions_cover_all(VALUE self, VALUE c)
   return ret;
 }
 
+/*
+:nodoc:
+*/
 static VALUE processor_mainloop(VALUE self)
 {
   VALUE diagram = rb_iv_get(self, "@diagram");
@@ -3042,6 +3144,9 @@ static VALUE processor_mainloop(VALUE self)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE yuki_update_plot_thread(VALUE self)
 {
   VALUE yuki = rb_iv_get(self, "@yuki");
