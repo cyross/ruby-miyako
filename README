@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.0
-【   作成日   】　2008/xx/xx
+【   作成日   】　2008/12/14
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.8.7-p22
 【 ランタイム 】　Ruby 1.8.7～,Ruby/SDL 2.0～,SDL
@@ -832,7 +832,7 @@ v1.5.0a(2008.07.21)
 ・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
 ・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
 
-v2.0.0(2008.xx.xx)
+v2.0.0(2008.12.14)
 ・Ruby/SDL2.0準拠に変更
 ・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
@@ -951,7 +951,7 @@ v2.0.0(2008.xx.xx)
 ・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
 ・MiyakoTapモジュールの廃止(tapメソッドが使えるようになったため)
 ・drawing.rb追加
-・Drawingモジュール追加（画像・画面への線形描画用）
+・Drawingモジュール追加（画像・画面への線形描画用、引数をSDL::Surfaceからスプライトに変更）
 ・これにより、Spriteクラスの各種線形描画メソッドを廃止
 ・bitmap.rb追加（Bitmapクラスをここに移動）
 ・spriteunit.rb追加（SpriteUnit構造体関連をここに移動）
