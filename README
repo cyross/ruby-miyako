@@ -837,6 +837,9 @@ v2.0.0(2008.xx.xx)
 ・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
 ・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
+・Font#text_sizeメソッドの内容の変更(2バイト以上の文字の幅が実際の文字の幅よりも大きくなっているため)
+・Font#bold、italic、under_lineメソッドの内容の変更(ブロックを渡すと、ブロック評価中のみ効果がある仕様を追加)
+・Font#margin_height、size_during、color_during、shadow_duringメソッドの追加
 ・SpriteBase#render、rect、broad_rectメソッドの追加、dp,dp=,show,hideメソッドの廃止
 ・SpriteBase.ox,oy,ow,ohメソッドの戻り値仕様を変更(nil→0へ変更)
 ・SpriteBase.to_spriteメソッドの戻り値仕様を変更(nil→selfへ変更)
@@ -859,6 +862,9 @@ v2.0.0(2008.xx.xx)
 ・SpriteAnimation#render、SpriteAnimation#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
 ・SpriteAnimation#rect、broad_rectメソッドの追加
 ・SpriteAnimation#to_spriteメソッドの処理を変更（元になったインスタンスのto_spriteメソッドを呼び出した時の値となる）
+・TextBox#marginアクセサ、TextBox#margin_duringメソッドを追加（set_marginメソッドは、ブロックを渡すと、そのブロックが評価されている間だけマージンが有効）
+・TextBox#font_size_during、font_bold、font_italic、font_under_line、color_during、margin_heightメソッドを追加
+　（ブロックを渡すと、そのブロックが評価されている間だけフォントの属性が変更）
 ・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
 ・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
 ・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
@@ -897,6 +903,7 @@ v2.0.0(2008.xx.xx)
 ・Bitmap.normal_to_acメソッドの追加(すべての画素のα値を２５５にした、αチャネル付き画像を生成する。Sprite.newの未設定画像はこれに置き換えられる)
 ・Bitmap.scale、Bitmap.transformメソッドの高速化(拡大/縮小の係数を4096分割した整数計算(近似計算)に変更)
 ・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
+・Shape#takahashiメソッドのインタフェース・仕様を変更(:linesの追加、指定の行数を基準に文字サイズを計算。但し、１行の文字数が多ければそちらを優先)
 ・Parts#main_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
 ・Parts#[]=メソッドのインタフェース変更(すべてPartsインスタンス本体へのsnapとして設定)
 ・Parts#broad_rect、to_spriteメソッドの追加

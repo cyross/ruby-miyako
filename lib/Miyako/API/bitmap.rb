@@ -25,26 +25,11 @@ module Miyako
   #==ビットマップ(画像)管理クラス
   #SDLのSurfaceクラスインスタンスを管理するクラス
   class Bitmap
-    #==ビットマップを生成する
-    #_filename_:: 読み込むファイル名
     def Bitmap.create(w, h, flag=SDL::HWSURFACE | SDL::SRCCOLORKEY | SDL::SRCALPHA) #:nodoc:
-      begin
-        bitmap = SDL::Surface.new(flag, w, h, $miyako_bpp, Screen.screen.Rmask, Screen.screen.Gmask, Screen.screen.Bmask, Screen.screen.Amask)
-      rescue
-        raise MiyakoError, "Illegal bitmap parameter! : w:#{w} h:#{h} flag:#{flag}"
-      end
-      return bitmap
+      return SDL::Surface.new(flag, w, h, $miyako_bpp, Screen.screen.Rmask, Screen.screen.Gmask, Screen.screen.Bmask, Screen.screen.Amask)
     end
-    #===ビットマップをファイルから読み込む
-    #対応しているファイル形式はRuby/SDL2.0に準拠(.bmp, .png, .jpg, .gif等)
-    #_filename_:: 読み込むファイル名
-    def Bitmap.load(filename)
-      begin 
-        bitmap = SDL::Surface.load(filename)
-      rescue
-        raise MiyakoError, "I cannot find bitmap filename! : #{filename}"
-      end
-      return bitmap
+    def Bitmap.load(filename) #:nodoc:
+      return SDL::Surface.load(filename)
     end
   end
 end

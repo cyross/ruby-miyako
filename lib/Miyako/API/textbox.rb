@@ -34,7 +34,7 @@ module Miyako
 
     attr_accessor :textarea
     attr_accessor :pause_type, :select_type, :waiting, :selecting
-    attr_accessor :font
+    attr_accessor :font, :margin
     attr_reader :wait_cursor, :select_cursor, :choices
     attr_reader :draw_type, :locate, :size, :max_height
 
@@ -62,6 +62,8 @@ module Miyako
                         @base[1] - @font.vspace)
       @pos = Point.new(0, 0)
       set_layout_size(*@size)
+
+      @margin = 0
 
       @textarea = Sprite.new({:size => @size, :type => :ac, :is_fill => true})
 
@@ -193,11 +195,82 @@ module Miyako
       return self
     end
 
+    #===文字の描画位置にマージンを設定する
+    #marginで指定したピクセルぶん、下に描画する
+    #ブロックを渡すと、ブロックを評価している間だけマージンが有効になる
+    #_margin_:: 設定するマージン
+    #返却値:: 自分自身を返す
+    def margin_during(margin)
+      raise MiyakoError, "not given block!" unless block_given?
+      omargin, @margin = @margin, margin
+      yield
+      @margin = omargin
+      return self
+    end
+
+    #===指定した高さで描画する際のマージンを求める
+    #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。
+    #第1引数に渡す"align"は、以下の3種類のシンボルのどれかを渡す
+    #:top:: 上側に描画(マージンはゼロ)
+    #:middle:: 中間に描画
+    #:bottom:: 下部に描画
+    #
+    #_align_:: 描画位置
+    #_height_:: 描画する高さ(デフォルトは、描画した最大の高さ）
+    #返却値:: マージンの値
+    def margin_height(align, height = @max_height)
+      return @font.margin_height(align, height)
+    end
+
+    #===ブロックを評価している間、文字色を変更する
+    #_color_:: 変更する文字色([r,g,b]の3要素の配列(値:0～255))
+    #返却値:: 自分自身を返す
+    def color_during(color)
+      raise MiyakoError, "not given block!" unless block_given?
+      @font.color_during(color){ yield }
+      return self
+    end
+
+    #===ブロックを評価している間、フォントサイズを変更する
+    #_size_:: 変更するフォントサイズ
+    #返却値:: 自分自身を返す
+    def font_size_during(size)
+      raise MiyakoError, "not given block!" unless block_given?
+      @font.size_during(size){ yield }
+      return self
+    end
+
+    #===ブロックを評価している間、太字に変更する
+    #文字が領域外にはみ出る場合があるので注意！
+    #返却値:: 自分自身を返す
+    def font_bold
+      raise MiyakoError, "not given block!" unless block_given?
+      @font.bold{ yield }
+      return self
+    end
+
+    #===ブロックを評価している間、斜体文字に変更する
+    #文字が領域外にはみ出る場合があるので注意！
+    #返却値:: 自分自身を返す
+    def font_italic
+      raise MiyakoError, "not given block!" unless block_given?
+      @font.italic{ yield }
+      return self
+    end
+
+    #===ブロックを評価している間、下線付き文字に変更する
+    #返却値:: 自分自身を返す
+    def font_under_line
+      raise MiyakoError, "not given block!" unless block_given?
+      @font.under_line{ yield }
+      return self
+    end
+
     #===テキストエリアに文字を描画する
     #_text_:: 描画する文字列
     #返却値:: 自分自身を返す
     def draw_text(text)
-      @locate.x = @font.draw_text(@textarea, text, @locate.x, @locate.y)
+      @locate.x = @font.draw_text(@textarea, text, @locate.x, @locate.y + @margin)
       @max_height = [@max_height, @font.line_height].max
       return self
     end

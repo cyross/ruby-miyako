@@ -564,10 +564,7 @@ module Miyako
     #_color_:: 文字色
     #返却値:: 自分自身を返す
     def color(color, &block)
-      tcolor = @yuki[:text_box].font.color
-      @yuki[:text_box].font.color = Color.to_rgb(color)
-      text block.call
-      @yuki[:text_box].font.color = tcolor
+      @yuki[:text_box].color_during(Color.to_rgb(color)){ text block.call }
       return self
     end
 
@@ -576,32 +573,27 @@ module Miyako
     #_size_:: 文字の大きさ（整数）
     #返却値:: 自分自身を返す
     def size(size, &block)
-      tsize = @yuki[:text_box].font.size
-      @yuki[:text_box].font.size = size
-      text block.call
-      @yuki[:text_box].font.size = tsize
+      @yuki[:text_box].font_size(size){
+        @yuki[:text_box].margin_during(@yuki[:text_box].margin_height(:middle)){ text block.call }
+      }
       return self
     end
   
     #===太文字を描画する
     #ブロック内で指定した文字列を太文字で表示する
+    #(使用すると文字の端が切れてしまう場合あり！)
     #返却値:: 自分自身を返す
     def bold(&block)
-      tbold = @yuki[:text_box].font.bold?
-      @yuki[:text_box].font.bold = true
-      text block.call
-      @yuki[:text_box].font.bold = tbold
+      @yuki[:text_box].font_bold{ text block.call }
       return self
     end
   
     #===斜体文字を描画する
     #ブロック内で指定した文字列を斜体で表示する
+    #(使用すると文字の端が切れてしまう場合あり！)
     #返却値:: 自分自身を返す
     def italic(&block)
-      titalic = @yuki[:text_box].font.bold?
-      @yuki[:text_box].font.italic = true
-      text block.call
-      @yuki[:text_box].font.italic = titalic
+      @yuki[:text_box].font_italic{ text block.call }
       return self
     end
   
@@ -609,10 +601,7 @@ module Miyako
     #ブロック内で指定した文字列を下線付きで表示する
     #返却値:: 自分自身を返す
     def under_line(&block)
-      tunder_line = @yuki[:text_box].font.under_line?
-      @yuki[:text_box].font.under_line = true
-      text block.call
-      @yuki[:text_box].font.under_line = tunder_line
+      @yuki[:text_box].font_under_line{ text block.call }
       return self
     end
 

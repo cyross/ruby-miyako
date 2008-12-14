@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
+	@@modes = [:text, :txt_calc, :takahashi, :tk_calc]
+		
   #==テキストや図形を描画するクラス
   #図形は、長方形・丸み付き長方形・円・楕円が描画可能
   #文字列は、通常の文字列と高橋メソッド形式文字列が描画可能
@@ -33,6 +35,7 @@ module Miyako
       @ray = parameter[:ray] ||= 0
       @edge = parameter[:edge] ||= nil
       @align = parameter[:align] ||= :left
+			@lines = parameter[:lines] ||= 2
     end
 
     @@shape_executer = Shape.new
@@ -44,14 +47,20 @@ module Miyako
     #_&block_:: 描画するテキスト(Ｙｕｋｉ形式)
     #返却値:: テキストを描画したスプライト
     def Shape.text(param, &block)
+      raise MiyakoError, "Cannot find any text(:text parameter)!" unless (param[:text] || block)
       @@shape_executer.create_text(param, block)
     end
 
     #===テキストを高橋メソッド形式で描画した画像を作成
+		#指定した大きさの矩形・行数で文字を描画する。
+		#指定した行数で描画を基準に文字サイズを算出する。
+    #但し、文字列が長すぎる時は、その文字数を基準に文字サイズを算出する。
+    #ブロックに渡した行数が指定数より多くなると文字列がはみ出るため、注意すること。
     #_param_:: 設定パラメータ。ハッシュ形式。
     #(:font => 描画するフォントのインスタンス(デフォルトはFont.sans_serif),
     #(:align => 複数行描画するときの文字列のアライン(:left,:center,:rightの三種。デフォルトは:left),
     #(:size => 描画するサイズ(ピクセル単位、Size構造体のインスタンス、デフォルトは[100,100]))
+    #(:lines => 描画する行数(デフォルトは2))
     #_&block_:: 描画するテキスト(Ｙｕｋｉ形式)
     #返却値:: テキストを描画したスプライト
     def Shape.takahashi(param, &block)
@@ -105,18 +114,17 @@ module Miyako
       org_size = @font.size
       org_color = @font.color
       @margins = []
-      @locate = Point.new(0, 0)
       area_size = calc(text_block)
-      area_size.w += @font.shadow_margin[0] if @font.use_shadow
       @sprite = Sprite.new({:size => area_size, :type => :alpha_channel, :is_fill => true})
       case @align
         when :left
         @margins = @margins.map{|v| 0 }
         when :center
-        @margins = @margins.map{|v| (area_size.w - v) / 2  }
+        @margins = @margins.map{|v| (area_size.w - v) >> 1 }
         when :right
-        @margins = @margins.map{|v| area_size.w - v  }
+        @margins = @margins.map{|v| area_size.w - v }
       end
+			@lines = @margins.length
       @locate = Point.new(@margins.shift, 0)
       text instance_eval(&text_block)
       @font.size = org_size
@@ -128,33 +136,43 @@ module Miyako
       init_parameter(param)
       org_size = @font.size
       org_color = @font.color
-      @margins = []
-      @locate = Point.new(0, 0)
-      area_size = calc_takahashi(text_block)
-      @font.size = @font.get_fit_size([(@size[0] - (@font.use_shadow ? @font.shadow_margin[0] : 0)) / area_size.w,
-                    @size[1] / area_size.h.to_i].min)
-      area_size = Size.new(area_size.w * @font.size, area_size.h * @font.line_height)
+			# calc font size
+      @font.size = @size[1] / @lines
+			# calc font size incldue line_height
+      @font.size = @font.size * @font.size / @font.line_height
+      set_font_size_inner(text_block)
+      # over width?
+      if @img_size.w > @size[0]
+        @font.size = @font.size * @size[0] / @img_size.w
+        set_font_size_inner(text_block)
+      end
       case @align
         when :left
         @margins = @margins.map{|v| 0 }
         when :center
-        @margins = @margins.map{|v| (area_size.w - v * @font.size) / 2  }
+        @margins = @margins.map{|v| (@size.w - v) / 2 }
         when :right
-        @margins = @margins.map{|v| area_size.w - v * @font.size  }
+        @margins = @margins.map{|v| @size.w - v }
       end
-      @sprite = Sprite.new({:size => area_size, :type => :alpha_channel, :is_fill => true})
+      @sprite = Sprite.new({:size => @size, :type => :alpha_channel, :is_fill => true})
       @locate = Point.new(@margins.shift, 0)
-      @max_height = @font.line_height
       text instance_eval(&text_block)
       @font.size = org_size
       @font.color = org_color
       return @sprite
     end
+    
+    def set_font_size_inner(text_block) #:nodoc:
+      @max_height = @font.line_height
+      @margins = []
+      tcalc(text_block)
+    end
 
     def calc(block) #:nodoc:
-      @calc_mode = true
+      @locate = Point.new(0, 0)
       @img_size = Size.new(0, 0)
       @max_height = @font.line_height
+      @calc_mode = true
       text instance_eval(&block)
       @calc_mode = false
       if @locate.x != 0
@@ -165,20 +183,16 @@ module Miyako
       return @img_size
     end
 
-    def calc_takahashi(block) #:nodoc:
-      @takahashi_calc_mode = true
+    def tcalc(block) #:nodoc:
+      @locate = Point.new(0, 0)
       @img_size = Size.new(0, 0)
+      @calc_mode = true
       text instance_eval(&block)
-      @takahashi_calc_mode = false
-      if @locate.x != 0
-        @margins << @locate.x
-        @img_size.w = [@locate.x, @img_size.w].max
-        @img_size.h += 1
-      end
-      return @img_size
+      @calc_mode = false
+      @margins << @locate.x if @locate.x != 0
     end
-
-    #===Shape.text/takahashiメソッドのブロック内で使用する、文字描画指示メソッド
+		
+    #===Shape.textメソッドのブロック内で使用する、文字描画指示メソッド
     #(例)Shape.text(){ text "abc" }
     #(例)Shape.takahashi(:size=>[200,200]){ text "名前重要" }
     #_text_:: 描画するテキスト
@@ -186,14 +200,8 @@ module Miyako
     def text(txt)
       return self if txt.eql?(self)
       txt = txt.gsub(/[\n\r\t\f]/,"")
-      if @takahashi_calc_mode
-        @locate.x += txt.split(//).length
-      elsif @calc_mode
-        @locate.x += @font.text_size(txt)[0]
-      else
-        @font.draw_text(@sprite, txt, @locate.x, @locate.y)
-        @locate.x += @font.text_size(txt)[0]
-      end
+      @font.draw_text(@sprite, txt, @locate.x, @locate.y) unless @calc_mode
+      @locate.x += @font.text_size(txt)[0]
       return self
     end
     
@@ -203,10 +211,7 @@ module Miyako
     #_color_:: 変更する色([r,g,b])もしくはColor[]メソッドの引数
     #返却値:: 自分自身
     def color(color, &block)
-      tcolor = @font.color
-      @font.color = Color.to_rgb(color)
-      text instance_eval(&block)
-      @font.color = tcolor
+      @font.color_during(Color.to_rgb(color)){ text instance_eval(&block) }
       return self
     end
 
@@ -216,35 +221,36 @@ module Miyako
     #_size_:: 変更するサイズ(整数)
     #返却値:: 自分自身
     def size(size, &block)
-      tsize = @font.size
-      @font.size = size
-      @max_height = [@max_height, @font.line_height].max
-      text instance_eval(&block)
-      @font.size = tsize
+      @font.size_during(size){
+        @max_height = [@max_height, @font.line_height].max
+        size_inner(@font.margin_height(:middle, @max_height)){ text instance_eval(&block) }
+      }
       return self
     end
   
+    def size_inner(margin, &block) #:nodoc:
+      @locate.y += margin
+      text instance_eval(&block)
+      @locate.y -= margin
+    end
+
     #===Shape.textメソッドのブロック内で使用する、太文字指示メソッド
     #ブロック内で指定した範囲でのみ太文字になる
+    #(使用すると文字の端が切れてしまう場合あり！)
     #(例)Shape.text(){ text "abc"; cr; bold{"def"} }
     #返却値:: 自分自身
     def bold(&block)
-      tbold = @font.bold?
-      @font.bold = true
-      text instance_eval(&block)
-      @font.bold = tbold
+      @font.bold{ text instance_eval(&block) }
       return self
     end
   
     #===Shape.textメソッドのブロック内で使用する、斜体指示メソッド
     #ブロック内で指定した範囲でのみ斜体文字になる
+    #(使用すると文字の端が切れてしまう場合あり！)
     #(例)Shape.text(){ text "abc"; cr; italic{"def"} }
     #返却値:: 自分自身
     def italic(&block)
-      titalic = @font.bold?
-      @font.italic = true
-      text instance_eval(&block)
-      @font.italic = titalic
+      @font.italic{ text instance_eval(&block) }
       return self
     end
   
@@ -253,10 +259,7 @@ module Miyako
     #(例)Shape.text(){ text "abc"; cr; bold{"def"} }
     #返却値:: 自分自身
     def under_line(&block)
-      tunder_line = @font.under_line?
-      @font.under_line = true
-      text instance_eval(&block)
-      @font.under_line = tunder_line
+      @font.under_line{ text instance_eval(&block) }
       return self
     end
 
@@ -269,13 +272,8 @@ module Miyako
         @img_size.w = [@locate.x, @img_size.w].max
         @img_size.h += @max_height
         @locate.x = 0
-      elsif @takahashi_calc_mode
-        @margins << @locate.x
-        @img_size.w = [@locate.x, @img_size.w].max
-        @img_size.h += 1
-        @locate.x = 0
       else
-        @locate.x = @margins.shift
+        @locate.x = @margins.shift || 0
       end
       @locate.y += @max_height
       return self

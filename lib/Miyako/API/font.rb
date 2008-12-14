@@ -137,6 +137,46 @@ module Miyako
       return self
     end
 
+    #===ブロック評価中のみ、フォントの大きさを変更する
+    #_sz_:: 変更するフォントの大きさ(単位：ピクセル)
+    #返却値:: 自分自身を返す
+    def size_during(sz)
+      raise MiyakoError, "not given block!" unless block_given?
+      tsize = @size
+      self.size = sz
+      yield
+      self.size = tsize
+      return self
+    end
+
+    #===ブロック評価中のみ、フォントの文字の色を変更する
+    #_color_:: 変更する色([r,g,b]の3要素の配列(値:0～255))
+    #返却値:: 自分自身を返す
+    def color_during(color)
+      raise MiyakoError, "not given block!" unless block_given?
+      tcolor, self.color = @color, color
+      yield
+      self.color = tcolor
+      return self
+    end
+
+    #===ブロック評価中のみ、影文字文字の色・マージンを変更する
+    #また、ブロック評価中は影文字が強制的に有効になる
+    #_color_:: 変更する色([r,g,b]の3要素の配列(値:0～255))、デフォルトはFont#shadow_colorメソッドの値([128,128,128])
+    #_margin_:: 変更する色(2要素の整数の配列、デフォルトはFont#shadow_marginメソッドの値([2,2])
+    #返却値:: 自分自身を返す
+    def shadow_during(color = @shadow_color, margin = @shadow_margin)
+      raise MiyakoError, "not given block!" unless block_given?
+      tflag, @use_shadow = @use_shadow, true
+      tcolor, @shadow_color = @shadow_color, color
+      tmargin, @shadow_margin = @shadow_margin, margin
+      yield
+      @use_shadow = tflag
+      @shadow_color = tcolor
+      @shadow_margin = tmargin
+      return self
+    end
+
     #===指定したピクセル数のフォントが十分(欠けることなく)収まるピクセル数を取得する
     #_size_:: フォントの大きさ(単位：ピクセル)
     #返却値:: 算出されたピクセル数
@@ -158,9 +198,17 @@ module Miyako
     end
 
     #===フォントの属性をbold(太文字)に設定する
+    #ブロックを渡したときは、ブロック評価中のみ太字になる
+    #文字が領域外にはみ出る場合があるので注意！
     #返却値:: 自分自身
     def bold
-      self.bold = true
+      if block_given?
+        tbold, self.bold = self.bold?, true
+        yield
+        self.bold = tbold
+      else
+        self.bold = true
+      end
       return self
     end
     
@@ -180,9 +228,17 @@ module Miyako
     end
     
     #===フォントの属性をitalic(斜め)に設定する
+    #ブロックを渡したときは、ブロック評価中のみ斜体文字になる
+    #文字が領域外にはみ出る場合があるので注意！
     #返却値:: 自分自身
     def italic
-      self.italic = true
+      if block_given?
+        titalic, self.italic = self.italic?, true
+        yield
+        self.italic = titalic
+      else
+        self.italic = true
+      end
       return self
     end
     
@@ -202,9 +258,16 @@ module Miyako
     end
     
     #===フォントの属性をunder_line(下線)に設定する
+    #ブロックを渡したときは、ブロック評価中のみ下線付き文字になる
     #返却値:: 自分自身
     def under_line
-      self.under_line = true
+      if block_given?
+        tunder_line, self.under_line = self.under_line?, true
+        yield
+        self.under_line = tunder_line
+      else
+        self.under_line = true
+      end
       return self
     end
     
@@ -269,9 +332,33 @@ module Miyako
     #_txt_:: 算出したい文字列
     #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
     def text_size(txt)
-      return @font.textSize(txt)
+      return [txt.chars.inject(0){|r, c| r += (c.length == 1 ? @size >> 1 : @size) } + (@use_shadow ? @shadow_margin[0] : 0),
+              self.line_height]
     end
     
+    #===指定した高さで描画する際のマージンを求める
+    #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。
+    #第1引数に渡す"align"は、以下の3種類のシンボルのどれかを渡す
+    #:top:: 上側に描画(マージンはゼロ)
+    #:middle:: 中間に描画
+    #:bottom:: 下部に描画
+    #
+    #_align_:: 描画位置
+    #_height_:: 描画する高さ
+    #返却値:: マージンの値
+    def margin_height(align, height)
+      case align
+        when :top
+          return 0
+        when :middle
+          return (height - self.line_height) >> 1
+        when :bottom
+          return height - self.line_height
+      end
+      #else
+      raise MiyakoError, "Illegal margin_height align! : #{align}"
+    end
+
     Font.create_font_path
 
     #===Serifフォント(明朝フォント)を取得する
