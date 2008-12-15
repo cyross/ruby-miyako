@@ -248,8 +248,8 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 	if(dmy > ry){ dmy = ry; }
 
 #define MIYAKO_INIT_RECT3 \
-	int dlx = drect.x + x1 + x2; \
-	int dly = drect.y + y1 + y2; \
+	int dlx = drect.x + x1; \
+	int dly = drect.y + y1; \
 	int dmx = dlx + (s1rect.w < s2rect.w ? s1rect.w : s2rect.w); \
 	int dmy = dly + (s1rect.h < s2rect.h ? s2rect.h : s2rect.h); \
   if(x2 + s2rect.w > s1rect.x + s1rect.w) \
