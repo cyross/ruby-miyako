@@ -163,6 +163,27 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 	SDL_Surface *SRCSURFACE = GetSurface(*(RSTRUCT_PTR(SRCUNIT)))->surface; \
 	SDL_Surface *DSTSURFACE = GetSurface(*(RSTRUCT_PTR(DSTUNIT)))->surface;
 
+#define MIYAKO_GET_UNIT_3(SRC1, SRC2, DST, SRC1UNIT, SRC2UNIT, DSTUNIT, SRC1SURFACE, SRC2SURFACE, DSTSURFACE) \
+	VALUE SRC1UNIT = SRC1; \
+  if(rb_obj_is_kind_of(SRC1UNIT, sSpriteUnit)==Qfalse){ \
+    SRC1UNIT = rb_funcall(SRC1UNIT, rb_intern("to_unit"), 0); \
+    if(SRC1UNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
+  } \
+	VALUE SRC2UNIT = SRC2; \
+  if(rb_obj_is_kind_of(SRC2UNIT, sSpriteUnit)==Qfalse){ \
+    SRC2UNIT = rb_funcall(SRC2UNIT, rb_intern("to_unit"), 0); \
+    if(SRC2UNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
+  } \
+	VALUE DSTUNIT = DST; \
+  if(rb_obj_is_kind_of(DSTUNIT, sSpriteUnit)==Qfalse){ \
+    DSTUNIT = rb_funcall(DSTUNIT, rb_intern("to_unit"), 0); \
+    if(DSTUNIT == Qnil){ rb_raise(eMiyakoError, "Destination instance has not SpriteUnit!"); }\
+  } \
+  if(rb_block_given_p() == Qtrue){ rb_yield_values(3, SRC1UNIT, SRC2UNIT, DSTUNIT); } \
+	SDL_Surface *SRC1SURFACE = GetSurface(*(RSTRUCT_PTR(SRC1UNIT)))->surface; \
+	SDL_Surface *SRC2SURFACE = GetSurface(*(RSTRUCT_PTR(SRC2UNIT)))->surface; \
+	SDL_Surface *DSTSURFACE = GetSurface(*(RSTRUCT_PTR(DSTUNIT)))->surface;
+
 #define MIYAKO_GET_UNIT_NO_SURFACE_1(SRC, SRCUNIT) \
 	VALUE SRCUNIT = SRC; \
   if(rb_obj_is_kind_of(SRCUNIT, sSpriteUnit)==Qfalse){ \
@@ -209,8 +230,8 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 #define MIYAKO_INIT_RECT2 \
 	int dlx = drect.x; \
 	int dly = drect.y; \
-	int dmx = dlx + drect.w; \
-	int dmy = dly + drect.h; \
+	int dmx = dlx + srect.w; \
+	int dmy = dly + srect.h; \
 	int rx = dst->clip_rect.x + dst->clip_rect.w; \
 	int ry = dst->clip_rect.y + dst->clip_rect.h; \
 	if(dlx < dst->clip_rect.x) \
@@ -226,6 +247,36 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 	if(dmx > rx){ dmx = rx; } \
 	if(dmy > ry){ dmy = ry; }
 
+#define MIYAKO_INIT_RECT3 \
+	int dlx = drect.x + x1 + x2; \
+	int dly = drect.y + y1 + y2; \
+	int dmx = dlx + (s1rect.w < s2rect.w ? s1rect.w : s2rect.w); \
+	int dmy = dly + (s1rect.h < s2rect.h ? s2rect.h : s2rect.h); \
+  if(x2 + s2rect.w > s1rect.x + s1rect.w) \
+  { \
+    dmx -= x2 + s2rect.w - (s1rect.x + s1rect.w); \
+  } \
+  if(y2 + s2rect.h > s1rect.y + s1rect.h) \
+  { \
+    dmy -= y2 + s2rect.h - (s1rect.y + s1rect.h); \
+  } \
+	int rx = dst->clip_rect.x + dst->clip_rect.w; \
+	int ry = dst->clip_rect.y + dst->clip_rect.h; \
+	if(dlx < dst->clip_rect.x) \
+	{ \
+		s1rect.x += (dst->clip_rect.x - dlx); \
+		s2rect.x += (dst->clip_rect.x - dlx); \
+		dlx = dst->clip_rect.x; \
+	} \
+	if(dly < dst->clip_rect.y) \
+	{ \
+		s1rect.y += (dst->clip_rect.y - dly); \
+		s2rect.y += (dst->clip_rect.y - dly); \
+		dly = dst->clip_rect.y; \
+	} \
+	if(dmx > rx){ dmx = rx; } \
+	if(dmy > ry){ dmy = ry; }
+  
 #define MIYAKO_PSET(XX,YY) \
         if(dcolor.a == 0){ \
           MIYAKO_SETCOLOR(scolor); \
@@ -335,6 +386,338 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 }
 
 /*
+===２つの画像のandを取り、別の画像へ転送する
+範囲は、src1側SpriteUnitとsrc2側との(ow,oh)の小さい方の範囲で転送する。
+src1とsrc2の合成は、src2側SpriteUnitの(x,y)をsrc1側の起点として、src2側SpriteUnitの(ow,oh)の範囲で転送する。
+dst側は、src1側SpriteUnitの(x,y)を起点に転送する。
+src1==src2の場合、何も行わない
+ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src1側SpriteUnit,src2側SpriteUnit,dst側SpriteUnit|となる。
+_src1_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_src2_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
+_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
+返却値:: なし
+*/
+static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE vdst)
+{
+  MIYAKO_GET_UNIT_3(vsrc1, vsrc2, vdst, s1unit, s2unit, dunit, src1, src2, dst);
+	Uint32 *psrc1 = (Uint32 *)(src1->pixels);
+	Uint32 *psrc2 = (Uint32 *)(src2->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src1->format;
+	MiyakoColor s1color, s2color, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect s1rect, s2rect, drect;
+	Uint32 src1_a = 0;
+	Uint32 src2_a = 0;
+	Uint32 dst_a = 0;
+
+	if(psrc1 == psrc2){ return Qnil; }
+	
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src1 == scr){ src1_a = 255; }
+	if(src2 == scr){ src2_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	//SpriteUnit:
+	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+	//[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+	//[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+	//[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	MIYAKO_SET_RECT(s1rect, s1unit);
+	MIYAKO_SET_RECT(s2rect, s2unit);
+	MIYAKO_SET_RECT(drect, dunit);
+
+  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5));
+  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6));
+  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5));
+  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
+  MIYAKO_INIT_RECT3;
+
+	SDL_LockSurface(src1);
+	SDL_LockSurface(src2);
+	SDL_LockSurface(dst);
+  
+	int px, py, sy1, sy2;
+	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y; py < dmy; py++, sy1++, sy2++)
+	{
+    Uint32 *ppsrc1 = psrc1 + sy1 * src1->w + s1rect.x + x2;
+    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x;
+    Uint32 *ppdst = pdst + py * dst->w + dlx;
+		for(px = dlx; px < dmx; px++)
+		{
+			pixel = *ppsrc1;
+			MIYAKO_GETCOLOR(s1color);
+			s1color.a |= src1_a;
+			pixel = *ppsrc2;
+			MIYAKO_GETCOLOR(s2color);
+			s2color.a |= src2_a;
+      pixel = *ppdst;
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      s1color.r &= s2color.r;
+      s1color.g &= s2color.g;
+      s1color.b &= s2color.b;
+      s1color.a &= s2color.a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(s1color);
+        *ppdst = pixel;
+        ppsrc1++;
+        ppsrc2++;
+        ppdst++;
+        continue;
+      }
+      if(s1color.a > 0)
+      {
+        dcolor.r = ((s1color.r * (s1color.a + 1)) >> 8) + ((dcolor.r * (256 - s1color.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((s1color.g * (s1color.a + 1)) >> 8) + ((dcolor.g * (256 - s1color.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((s1color.b * (s1color.a + 1)) >> 8) + ((dcolor.b * (256 - s1color.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = s1color.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *ppdst = pixel;
+      }
+      ppsrc1++;
+      ppsrc2++;
+      ppdst++;
+    }
+  }
+
+	SDL_UnlockSurface(src1);
+	SDL_UnlockSurface(src2);
+	SDL_UnlockSurface(dst);
+
+  return Qnil;
+}
+
+
+/*
+===２つの画像のorを取り、別の画像へ転送する
+範囲は、src1側SpriteUnitとsrc2側との(ow,oh)の小さい方の範囲で転送する。
+src1とsrc2の合成は、src2側SpriteUnitの(x,y)をsrc1側の起点として、src2側SpriteUnitの(ow,oh)の範囲で転送する。
+dst側は、src1側SpriteUnitの(x,y)を起点に転送する。
+src1==src2の場合、何も行わない
+ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src1側SpriteUnit,src2側SpriteUnit,dst側SpriteUnit|となる。
+_src1_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_src2_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
+_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
+返却値:: なし
+*/
+static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE vdst)
+{
+  MIYAKO_GET_UNIT_3(vsrc1, vsrc2, vdst, s1unit, s2unit, dunit, src1, src2, dst);
+	Uint32 *psrc1 = (Uint32 *)(src1->pixels);
+	Uint32 *psrc2 = (Uint32 *)(src2->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src1->format;
+	MiyakoColor s1color, s2color, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect s1rect, s2rect, drect;
+	Uint32 src1_a = 0;
+	Uint32 src2_a = 0;
+	Uint32 dst_a = 0;
+
+	if(psrc1 == psrc2){ return Qnil; }
+	
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src1 == scr){ src1_a = 255; }
+	if(src2 == scr){ src2_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	//SpriteUnit:
+	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+	//[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+	//[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+	//[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	MIYAKO_SET_RECT(s1rect, s1unit);
+	MIYAKO_SET_RECT(s2rect, s2unit);
+	MIYAKO_SET_RECT(drect, dunit);
+
+  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5));
+  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6));
+  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5));
+  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
+  MIYAKO_INIT_RECT3;
+
+	SDL_LockSurface(src1);
+	SDL_LockSurface(src2);
+	SDL_LockSurface(dst);
+  
+	int px, py, sy1, sy2;
+	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y; py < dmy; py++, sy1++, sy2++)
+	{
+    Uint32 *ppsrc1 = psrc1 + sy1 * src1->w + s1rect.x + x2;
+    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x;
+    Uint32 *ppdst = pdst + py * dst->w + dlx;
+		for(px = dlx; px < dmx; px++)
+		{
+			pixel = *ppsrc1;
+			MIYAKO_GETCOLOR(s1color);
+			s1color.a |= src1_a;
+			pixel = *ppsrc2;
+			MIYAKO_GETCOLOR(s2color);
+			s2color.a |= src2_a;
+      pixel = *ppdst;
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      s1color.r |= s2color.r;
+      s1color.g |= s2color.g;
+      s1color.b |= s2color.b;
+      s1color.a |= s2color.a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(s1color);
+        *ppdst = pixel;
+        ppsrc1++;
+        ppsrc2++;
+        ppdst++;
+        continue;
+      }
+      if(s1color.a > 0)
+      {
+        dcolor.r = ((s1color.r * (s1color.a + 1)) >> 8) + ((dcolor.r * (256 - s1color.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((s1color.g * (s1color.a + 1)) >> 8) + ((dcolor.g * (256 - s1color.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((s1color.b * (s1color.a + 1)) >> 8) + ((dcolor.b * (256 - s1color.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = s1color.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *ppdst = pixel;
+      }
+      ppsrc1++;
+      ppsrc2++;
+      ppdst++;
+    }
+  }
+
+	SDL_UnlockSurface(src1);
+	SDL_UnlockSurface(src2);
+	SDL_UnlockSurface(dst);
+
+  return Qnil;
+}
+
+
+/*
+===２つの画像のxorを取り、別の画像へ転送する
+範囲は、src1側SpriteUnitとsrc2側との(ow,oh)の小さい方の範囲で転送する。
+src1とsrc2の合成は、src2側SpriteUnitの(x,y)をsrc1側の起点として、src2側SpriteUnitの(ow,oh)の範囲で転送する。
+dst側は、src1側SpriteUnitの(x,y)を起点に転送する。
+src1==src2の場合、何も行わない
+ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src1側SpriteUnit,src2側SpriteUnit,dst側SpriteUnit|となる。
+_src1_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_src2_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
+_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
+返却値:: なし
+*/
+static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE vdst)
+{
+  MIYAKO_GET_UNIT_3(vsrc1, vsrc2, vdst, s1unit, s2unit, dunit, src1, src2, dst);
+	Uint32 *psrc1 = (Uint32 *)(src1->pixels);
+	Uint32 *psrc2 = (Uint32 *)(src2->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = src1->format;
+	MiyakoColor s1color, s2color, dcolor;
+	Uint32 tmp;
+	Uint32 pixel;
+	SDL_Rect s1rect, s2rect, drect;
+	Uint32 src1_a = 0;
+	Uint32 src2_a = 0;
+	Uint32 dst_a = 0;
+
+	if(psrc1 == psrc2){ return Qnil; }
+	
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src1 == scr){ src1_a = 255; }
+	if(src2 == scr){ src2_a = 255; }
+	if(dst == scr){ dst_a = 255; }
+
+	//SpriteUnit:
+	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+	//[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+	//[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+	//[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	MIYAKO_SET_RECT(s1rect, s1unit);
+	MIYAKO_SET_RECT(s2rect, s2unit);
+	MIYAKO_SET_RECT(drect, dunit);
+
+  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5));
+  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6));
+  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5));
+  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
+  MIYAKO_INIT_RECT3;
+
+	SDL_LockSurface(src1);
+	SDL_LockSurface(src2);
+	SDL_LockSurface(dst);
+  
+	int px, py, sy1, sy2;
+	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y; py < dmy; py++, sy1++, sy2++)
+	{
+    Uint32 *ppsrc1 = psrc1 + sy1 * src1->w + s1rect.x + x2;
+    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x;
+    Uint32 *ppdst = pdst + py * dst->w + dlx;
+		for(px = dlx; px < dmx; px++)
+		{
+			pixel = *ppsrc1;
+			MIYAKO_GETCOLOR(s1color);
+			s1color.a |= src1_a;
+			pixel = *ppsrc2;
+			MIYAKO_GETCOLOR(s2color);
+			s2color.a |= src2_a;
+      pixel = *ppdst;
+      MIYAKO_GETCOLOR(dcolor);
+			dcolor.a |= dst_a;
+      s1color.r ^= s2color.r;
+      s1color.g ^= s2color.g;
+      s1color.b ^= s2color.b;
+      s1color.a ^= s2color.a;
+      if(dcolor.a == 0){
+        MIYAKO_SETCOLOR(s1color);
+        *ppdst = pixel;
+        ppsrc1++;
+        ppsrc2++;
+        ppdst++;
+        continue;
+      }
+      if(s1color.a > 0)
+      {
+        dcolor.r = ((s1color.r * (s1color.a + 1)) >> 8) + ((dcolor.r * (256 - s1color.a)) >> 8);
+        if(dcolor.r > 255){ dcolor.r = 255; }
+        dcolor.g = ((s1color.g * (s1color.a + 1)) >> 8) + ((dcolor.g * (256 - s1color.a)) >> 8);
+        if(dcolor.g > 255){ dcolor.g = 255; }
+        dcolor.b = ((s1color.b * (s1color.a + 1)) >> 8) + ((dcolor.b * (256 - s1color.a)) >> 8);
+        if(dcolor.b > 255){ dcolor.b = 255; }
+        dcolor.a = s1color.a;
+        MIYAKO_SETCOLOR(dcolor);
+        *ppdst = pixel;
+      }
+      ppsrc1++;
+      ppsrc2++;
+      ppdst++;
+    }
+  }
+
+	SDL_UnlockSurface(src1);
+	SDL_UnlockSurface(src2);
+	SDL_UnlockSurface(dst);
+
+  return Qnil;
+}
+
+/*
 ===画像をαチャネル付き画像へ転送する
 引数で渡ってきた特定の色に対して、α値をゼロにする画像を生成する
 src==dstの場合、何も行わずすぐに呼びだし元に戻る
@@ -398,9 +781,60 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 }
 
 /*
-===画像をαチャネル付き画像へ転送する
+===画像のαチャネルを255に拡張する
+αチャネルの値を255に拡張する(α値をリセットする)
+範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
+ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
+_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+返却値:: なし
+*/
+static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
+{
+  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
+	Uint32 *psrc = (Uint32 *)(src->pixels);
+	Uint32 *pdst = (Uint32 *)(dst->pixels);
+	SDL_PixelFormat *fmt = dst->format;
+	Uint32 tmp;
+	Uint32 pixel;
+
+  //SpriteUnit:
+  //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
+  //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
+  //[9] -> :angle, [10] -> :xscale, [11] -> :yscale
+  //[12] -> :px, [13] -> :py, [14] -> :qx, [15] -> :qy
+	int w = src->w;
+	int h = src->h;
+  
+	if(w > dst->w) w = dst->w;
+	if(h > dst->h) h = dst->h;
+
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+  
+	int sx, sy;
+  for(sy = 0; sy < h; sy++)
+  {
+    Uint32 *ppsrc = psrc + sy * w;
+    Uint32 *ppdst = pdst + sy * dst->w;
+    for(sx = 0; sx < w; sx++)
+    {
+      pixel = *ppsrc++;
+      pixel |= (0xff >> fmt->Aloss) << fmt->Ashift;
+      *ppdst++ = pixel;
+    }
+  }
+
+	SDL_UnlockSurface(src);
+	SDL_UnlockSurface(dst);
+
+  return Qnil;
+}
+
+/*
+===画像をαチャネル付き画像へ変換する
 ２４ビット画像(αチャネルがゼロの画像)に対して、すべてのα値を255にする画像を生成する
-src==dstの場合、何も行わずすぐに呼びだし元に戻る
 範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
 ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
 ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -417,8 +851,6 @@ static VALUE bitmap_miyako_normal_to_alphachannel(VALUE self, VALUE vsrc, VALUE 
 	Uint32 tmp;
 	Uint32 pixel;
 
-	if(psrc == pdst){ return Qnil; }
-	
   //SpriteUnit:
   //[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
   //[5] -> :x, [6] -> :y, [7] -> :dx, [8] -> :dy
@@ -3215,7 +3647,11 @@ void Init_miyako_no_katana()
   nOne = INT2NUM(one);
 
   rb_define_singleton_method(cBitmap, "blit_aa!", bitmap_miyako_blit_aa, 4);
+  rb_define_singleton_method(cBitmap, "blit_and!", bitmap_miyako_blit_and, 3);
+  rb_define_singleton_method(cBitmap, "blit_or!", bitmap_miyako_blit_or, 3);
+  rb_define_singleton_method(cBitmap, "blit_xor!", bitmap_miyako_blit_xor, 3);
   rb_define_singleton_method(cBitmap, "ck_to_ac!", bitmap_miyako_colorkey_to_alphachannel, 3);
+  rb_define_singleton_method(cBitmap, "reset_ac!", bitmap_miyako_reset_alphachannel, 2);
   rb_define_singleton_method(cBitmap, "normal_to_ac!", bitmap_miyako_normal_to_alphachannel, 2);
   rb_define_singleton_method(cBitmap, "screen_to_ac!", bitmap_miyako_screen_to_alphachannel, 2);
   rb_define_singleton_method(cBitmap, "dec_alpha!", bitmap_miyako_dec_alpha, 3);

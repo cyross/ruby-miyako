@@ -35,6 +35,7 @@ module Miyako
       @ray = parameter[:ray] ||= 0
       @edge = parameter[:edge] ||= nil
       @align = parameter[:align] ||= :left
+      @valign = parameter[:valign] ||= :middle
 			@lines = parameter[:lines] ||= 2
     end
 
@@ -44,6 +45,7 @@ module Miyako
     #_param_:: 設定パラメータ。ハッシュ形式。
     #(:font => 描画するフォントのインスタンス(デフォルトはFont.sans_serif),
     #(:align => 複数行描画するときの文字列のアライン(:left,:center,:rightの三種。デフォルトは:left))
+    #(:valign => 行中の小さい文字を描画するときの縦の位置(:top,:middle,:bottomの三種。デフォルトは:middle))
     #_&block_:: 描画するテキスト(Ｙｕｋｉ形式)
     #返却値:: テキストを描画したスプライト
     def Shape.text(param, &block)
@@ -60,6 +62,7 @@ module Miyako
     #(:font => 描画するフォントのインスタンス(デフォルトはFont.sans_serif),
     #(:align => 複数行描画するときの文字列のアライン(:left,:center,:rightの三種。デフォルトは:left),
     #(:size => 描画するサイズ(ピクセル単位、Size構造体のインスタンス、デフォルトは[100,100]))
+    #(:valign => 行中の小さい文字を描画するときの縦の位置(:top,:middle,:bottomの三種。デフォルトは:middle))
     #(:lines => 描画する行数(デフォルトは2))
     #_&block_:: 描画するテキスト(Ｙｕｋｉ形式)
     #返却値:: テキストを描画したスプライト
@@ -136,11 +139,18 @@ module Miyako
       init_parameter(param)
       org_size = @font.size
       org_color = @font.color
+      olines = @lines
 			# calc font size
       @font.size = @size[1] / @lines
 			# calc font size incldue line_height
       @font.size = @font.size * @font.size / @font.line_height
       set_font_size_inner(text_block)
+      # over lines?
+      if @lines > olines
+        @font.size = @size[1] / @lines
+        @font.size = @font.size * @font.size / @font.line_height
+        set_font_size_inner(text_block)
+      end
       # over width?
       if @img_size.w > @size[0]
         @font.size = @font.size * @size[0] / @img_size.w
@@ -165,6 +175,7 @@ module Miyako
     def set_font_size_inner(text_block) #:nodoc:
       @max_height = @font.line_height
       @margins = []
+      @lines = 1
       tcalc(text_block)
     end
 
@@ -172,6 +183,7 @@ module Miyako
       @locate = Point.new(0, 0)
       @img_size = Size.new(0, 0)
       @max_height = @font.line_height
+      @lines = 1
       @calc_mode = true
       text instance_eval(&block)
       @calc_mode = false
@@ -223,7 +235,7 @@ module Miyako
     def size(size, &block)
       @font.size_during(size){
         @max_height = [@max_height, @font.line_height].max
-        size_inner(@font.margin_height(:middle, @max_height)){ text instance_eval(&block) }
+        size_inner(@font.margin_height(@valign, @max_height)){ text instance_eval(&block) }
       }
       return self
     end
@@ -272,6 +284,7 @@ module Miyako
         @img_size.w = [@locate.x, @img_size.w].max
         @img_size.h += @max_height
         @locate.x = 0
+        @lines += 1
       else
         @locate.x = @margins.shift || 0
       end

@@ -898,12 +898,15 @@ v2.0.0(2008.12.14)
 ・Bitmapクラスの各種画像変換メソッドの最後に!を追加(rotate, scale, transformは除く)
 ・Bitmap.dec_alpha!メソッドの変化率の仕様を変更(1.0・・・完全な透明、-1.0・・・完全な不透明)
 ・Bitmap.black_out!、Bitmap.white_out!メソッドの追加
+・Bitmap.reset_ac!メソッドを追加(αチャネルのリセット(αが0以外のときは255に変更)
+・Bitmap.blit_and!、Bitmap.blit_or!、Bitmap.blit_xor!メソッドを追加(r,g,b,aの各値のand、or、xorを取って転送)
 ・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
 ・Bitmap.ck_to_acメソッドの追加(特定カラーのα値をゼロにした、αチャネル付き画像を生成する。Sprite.newのカラーキー透明画像はこれに置き換えられる)
 ・Bitmap.normal_to_acメソッドの追加(すべての画素のα値を２５５にした、αチャネル付き画像を生成する。Sprite.newの未設定画像はこれに置き換えられる)
 ・Bitmap.scale、Bitmap.transformメソッドの高速化(拡大/縮小の係数を4096分割した整数計算(近似計算)に変更)
 ・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
-・Shape#takahashiメソッドのインタフェース・仕様を変更(:linesの追加、指定の行数を基準に文字サイズを計算。但し、１行の文字数が多ければそちらを優先)
+・Shape#text/takahashiメソッドのハッシュ引数に:vlianを追加(小さい文字を描くときの上付・中間・下付を指定)
+・Shape#takahashiメソッドのハッシュ引数に:linesを追加(指定の行数を基準に文字サイズを計算。但し、行数・１行の文字数が多ければそちらを優先)
 ・Parts#main_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
 ・Parts#[]=メソッドのインタフェース変更(すべてPartsインスタンス本体へのsnapとして設定)
 ・Parts#broad_rect、to_spriteメソッドの追加
