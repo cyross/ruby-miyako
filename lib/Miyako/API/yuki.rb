@@ -571,10 +571,11 @@ module Miyako
     #===文字の大きさを変更する
     #ブロック内で指定した文字列を、指定の大きさで描画する
     #_size_:: 文字の大きさ（整数）
+    #_valign_:: 文字の縦の位置(top, middle, bottom)。デフォルトは:middle
     #返却値:: 自分自身を返す
-    def size(size, &block)
+    def size(size, valign = :middle, &block)
       @yuki[:text_box].font_size(size){
-        @yuki[:text_box].margin_during(@yuki[:text_box].margin_height(:middle)){ text block.call }
+        @yuki[:text_box].margin_during(@yuki[:text_box].margin_height(valign)){ text block.call }
       }
       return self
     end

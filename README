@@ -883,6 +883,7 @@ v2.0.0(2008.12.14)
 ・Yuki#get_plot_resultメソッドの廃止
 ・Yuki#result_is_scene?、Yuki#result_is_scenario?メソッドの廃止
 ・Yuki#exec_plotメソッドをYuki#start_plotメソッドに変更
+・Yuki#sizeメソッドのインタフェースを変更(valignを追加)
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
