@@ -5,7 +5,7 @@
 require 'Miyako/miyako'
 include Miyako
 
-#Screen.fps_view = true
+Screen.fps_view = true
 
 def create_arm(num)
   spr = Sprite.new(:file=>sprintf("m1ku_arm_#{num}.png"), :type=>:ck)

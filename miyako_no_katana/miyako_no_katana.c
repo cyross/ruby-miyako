@@ -1,6 +1,6 @@
 /*
 --
-Miyako v1.5 Extend Library "Miyako no Katana"
+Miyako v2.0 Extend Library "Miyako no Katana"
 Copyright (C) 2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -69,6 +69,7 @@ static volatile ID id_update = Qnil;
 static volatile ID id_kakko = Qnil;
 static volatile int zero = Qnil;
 static volatile int one = Qnil;
+static volatile double div255[256];
 
 typedef struct
 {
@@ -105,33 +106,16 @@ DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFormat");
 
 #define MIYAKO_GETCOLOR(COLOR) \
-	tmp = pixel & fmt->Rmask; \
-	tmp >>= fmt->Rshift; \
-	COLOR.r = (Uint32)(tmp << fmt->Rloss); \
-	tmp = pixel & fmt->Gmask; \
-	tmp >>= fmt->Gshift; \
-	COLOR.g = (Uint32)(tmp << fmt->Gloss); \
-	tmp = pixel & fmt->Bmask; \
-	tmp >>= fmt->Bshift; \
-	COLOR.b = (Uint32)(tmp << fmt->Bloss); \
-  tmp = pixel & fmt->Amask; \
-	tmp >>= fmt->Ashift; \
-	COLOR.a = (Uint32)(tmp << fmt->Aloss);
+	COLOR.r = (Uint32)(((pixel & fmt->Rmask) >> fmt->Rshift) << fmt->Rloss); \
+	COLOR.g = (Uint32)(((pixel & fmt->Gmask) >> fmt->Gshift) << fmt->Gloss); \
+	COLOR.b = (Uint32)(((pixel & fmt->Bmask) >> fmt->Bshift) << fmt->Bloss); \
+	COLOR.a = (Uint32)(((pixel & fmt->Amask) >> fmt->Ashift) << fmt->Aloss);
 
-#define MIYAKO_SETCOLOR(COLOR) \
-  pixel = 0; \
-	tmp = COLOR.r >> fmt->Rloss; \
-	tmp <<= fmt->Rshift; \
-	pixel |= tmp; \
-	tmp = COLOR.g >> fmt->Gloss; \
-	tmp <<= fmt->Gshift; \
-	pixel |= tmp; \
-	tmp = COLOR.b >> fmt->Bloss; \
-	tmp <<= fmt->Bshift; \
-	pixel |= tmp; \
-  tmp = COLOR.a >> fmt->Aloss; \
-	tmp <<= fmt->Ashift; \
-	pixel |= tmp; \
+#define MIYAKO_SETCOLOR(RESULT, COLOR) \
+  RESULT = (COLOR.r >> fmt->Rloss) << fmt->Rshift | \
+           (COLOR.g >> fmt->Gloss) << fmt->Gshift | \
+           (COLOR.b >> fmt->Bloss) << fmt->Bshift | \
+           (COLOR.a >> fmt->Aloss) << fmt->Ashift;
 
 #define MIYAKO_SET_RECT(RECT, BASE) \
   RECT.x = NUM2INT(*(RSTRUCT_PTR(BASE) + 1)); \
@@ -208,8 +192,8 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 #define MIYAKO_INIT_RECT1 \
 	int dlx = drect.x + x; \
 	int dly = drect.y + y; \
-	int dmx = dlx + srect.w; \
-	int dmy = dly + srect.h; \
+	int dmx = dlx + drect.w; \
+	int dmy = dly + drect.h; \
 	int rx = dst->clip_rect.x + dst->clip_rect.w; \
 	int ry = dst->clip_rect.y + dst->clip_rect.h; \
 	if(dmx > drect.w) dmx = drect.w; \
@@ -230,8 +214,8 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 #define MIYAKO_INIT_RECT2 \
 	int dlx = drect.x; \
 	int dly = drect.y; \
-	int dmx = dlx + srect.w; \
-	int dmy = dly + srect.h; \
+	int dmx = dlx + drect.w; \
+	int dmy = dly + drect.h; \
 	int rx = dst->clip_rect.x + dst->clip_rect.w; \
 	int ry = dst->clip_rect.y + dst->clip_rect.h; \
 	if(dlx < dst->clip_rect.x) \
@@ -278,22 +262,26 @@ DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFor
 	if(dmy > ry){ dmy = ry; }
   
 #define MIYAKO_PSET(XX,YY) \
-        if(dcolor.a == 0){ \
-          MIYAKO_SETCOLOR(scolor); \
-          *(pdst + YY * dst->w + XX) = pixel; \
+        pixel = 0; \
+        if(dcolor.a == 0) \
+        { \
+          *(pdst + YY * dst->w + XX) = (scolor.r >> fmt->Rloss) << fmt->Rshift | \
+                                       (scolor.g >> fmt->Gloss) << fmt->Gshift | \
+                                       (scolor.b >> fmt->Bloss) << fmt->Bshift | \
+                                       (scolor.a >> fmt->Aloss) << fmt->Ashift; \
           continue; \
         } \
         if(scolor.a > 0) \
         { \
-          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8); \
-          if(dcolor.r > 255){ dcolor.r = 255; } \
-          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8); \
-          if(dcolor.g > 255){ dcolor.g = 255; } \
-          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8); \
-          if(dcolor.b > 255){ dcolor.b = 255; } \
-          dcolor.a = scolor.a; \
-          MIYAKO_SETCOLOR(dcolor); \
-          *(pdst + YY * dst->w + XX) = pixel; \
+          int a1 = scolor.a + 1; \
+          int a2 = 256 - scolor.a; \
+          scolor.r = (scolor.r * a1 + dcolor.r * a2) >> 8; \
+          scolor.g = (scolor.g * a1 + dcolor.g * a2) >> 8; \
+          scolor.b = (scolor.b * a1 + dcolor.b * a2) >> 8; \
+          *(pdst + YY * dst->w + XX) = (scolor.r >> fmt->Rloss) << fmt->Rshift | \
+                                       (scolor.g >> fmt->Gloss) << fmt->Gshift | \
+                                       (scolor.b >> fmt->Bloss) << fmt->Bshift | \
+                                       (scolor.a >> fmt->Aloss) << fmt->Ashift; \
         }
   
 /*
@@ -324,8 +312,8 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 	if(psrc == pdst){ return Qnil; }
 	
 	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	if(src == scr){ src_a = 255; }
-	if(dst == scr){ dst_a = 255; }
+	if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
 	//SpriteUnit:
 	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
@@ -349,30 +337,25 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
-			pixel = *ppsrc;
-			MIYAKO_GETCOLOR(scolor);
-			scolor.a |= src_a;
-      pixel = *ppdst;
+      pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
       if(dcolor.a == 0){
-        MIYAKO_SETCOLOR(scolor);
+        pixel = *ppsrc | src_a;
         *ppdst = pixel;
         ppsrc++;
         ppdst++;
         continue;
       }
+			pixel = *ppsrc | src_a;
+			MIYAKO_GETCOLOR(scolor);
       if(scolor.a > 0)
       {
-        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
-        if(dcolor.r > 255){ dcolor.r = 255; }
-        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
-        if(dcolor.g > 255){ dcolor.g = 255; }
-        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
-        if(dcolor.b > 255){ dcolor.b = 255; }
-        dcolor.a = scolor.a;
-        MIYAKO_SETCOLOR(dcolor);
-        *ppdst = pixel;
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
       }
       ppsrc++;
       ppdst++;
@@ -407,7 +390,7 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	Uint32 *psrc2 = (Uint32 *)(src2->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src1->format;
-	MiyakoColor s1color, s2color, dcolor;
+	MiyakoColor scolor, dcolor;
 	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect s1rect, s2rect, drect;
@@ -418,9 +401,9 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	if(psrc1 == psrc2){ return Qnil; }
 	
 	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	if(src1 == scr){ src1_a = 255; }
-	if(src2 == scr){ src2_a = 255; }
-	if(dst == scr){ dst_a = 255; }
+	if(src1 == scr){ src1_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(src2 == scr){ src2_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
 	//SpriteUnit:
 	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
@@ -449,38 +432,25 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
-			pixel = *ppsrc1;
-			MIYAKO_GETCOLOR(s1color);
-			s1color.a |= src1_a;
-			pixel = *ppsrc2;
-			MIYAKO_GETCOLOR(s2color);
-			s2color.a |= src2_a;
-      pixel = *ppdst;
+      pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
-      s1color.r &= s2color.r;
-      s1color.g &= s2color.g;
-      s1color.b &= s2color.b;
-      s1color.a &= s2color.a;
       if(dcolor.a == 0){
-        MIYAKO_SETCOLOR(s1color);
-        *ppdst = pixel;
+        *ppdst = (*ppsrc2 | src2_a) & (*ppsrc1 | src1_a);
         ppsrc1++;
         ppsrc2++;
         ppdst++;
         continue;
       }
-      if(s1color.a > 0)
+			pixel = (*ppsrc2 | src2_a) & (*ppsrc1 | src1_a);
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a > 0)
       {
-        dcolor.r = ((s1color.r * (s1color.a + 1)) >> 8) + ((dcolor.r * (256 - s1color.a)) >> 8);
-        if(dcolor.r > 255){ dcolor.r = 255; }
-        dcolor.g = ((s1color.g * (s1color.a + 1)) >> 8) + ((dcolor.g * (256 - s1color.a)) >> 8);
-        if(dcolor.g > 255){ dcolor.g = 255; }
-        dcolor.b = ((s1color.b * (s1color.a + 1)) >> 8) + ((dcolor.b * (256 - s1color.a)) >> 8);
-        if(dcolor.b > 255){ dcolor.b = 255; }
-        dcolor.a = s1color.a;
-        MIYAKO_SETCOLOR(dcolor);
-        *ppdst = pixel;
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
       }
       ppsrc1++;
       ppsrc2++;
@@ -518,7 +488,7 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 	Uint32 *psrc2 = (Uint32 *)(src2->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src1->format;
-	MiyakoColor s1color, s2color, dcolor;
+	MiyakoColor scolor, dcolor;
 	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect s1rect, s2rect, drect;
@@ -529,9 +499,9 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 	if(psrc1 == psrc2){ return Qnil; }
 	
 	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	if(src1 == scr){ src1_a = 255; }
-	if(src2 == scr){ src2_a = 255; }
-	if(dst == scr){ dst_a = 255; }
+	if(src1 == scr){ src1_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(src2 == scr){ src2_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
 	//SpriteUnit:
 	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
@@ -560,38 +530,25 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
-			pixel = *ppsrc1;
-			MIYAKO_GETCOLOR(s1color);
-			s1color.a |= src1_a;
-			pixel = *ppsrc2;
-			MIYAKO_GETCOLOR(s2color);
-			s2color.a |= src2_a;
-      pixel = *ppdst;
+      pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
-      s1color.r |= s2color.r;
-      s1color.g |= s2color.g;
-      s1color.b |= s2color.b;
-      s1color.a |= s2color.a;
       if(dcolor.a == 0){
-        MIYAKO_SETCOLOR(s1color);
-        *ppdst = pixel;
+        *ppdst = (*ppsrc2 | src2_a) | (*ppsrc1 | src1_a) ;
         ppsrc1++;
         ppsrc2++;
         ppdst++;
         continue;
       }
-      if(s1color.a > 0)
+			pixel = (*ppsrc2 | src2_a) | (*ppsrc1 | src1_a);
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a > 0)
       {
-        dcolor.r = ((s1color.r * (s1color.a + 1)) >> 8) + ((dcolor.r * (256 - s1color.a)) >> 8);
-        if(dcolor.r > 255){ dcolor.r = 255; }
-        dcolor.g = ((s1color.g * (s1color.a + 1)) >> 8) + ((dcolor.g * (256 - s1color.a)) >> 8);
-        if(dcolor.g > 255){ dcolor.g = 255; }
-        dcolor.b = ((s1color.b * (s1color.a + 1)) >> 8) + ((dcolor.b * (256 - s1color.a)) >> 8);
-        if(dcolor.b > 255){ dcolor.b = 255; }
-        dcolor.a = s1color.a;
-        MIYAKO_SETCOLOR(dcolor);
-        *ppdst = pixel;
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
       }
       ppsrc1++;
       ppsrc2++;
@@ -629,7 +586,7 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	Uint32 *psrc2 = (Uint32 *)(src2->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src1->format;
-	MiyakoColor s1color, s2color, dcolor;
+	MiyakoColor scolor, dcolor;
 	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect s1rect, s2rect, drect;
@@ -640,9 +597,9 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	if(psrc1 == psrc2){ return Qnil; }
 	
 	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	if(src1 == scr){ src1_a = 255; }
-	if(src2 == scr){ src2_a = 255; }
-	if(dst == scr){ dst_a = 255; }
+	if(src1 == scr){ src1_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(src2 == scr){ src2_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
 	//SpriteUnit:
 	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
@@ -671,38 +628,25 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
-			pixel = *ppsrc1;
-			MIYAKO_GETCOLOR(s1color);
-			s1color.a |= src1_a;
-			pixel = *ppsrc2;
-			MIYAKO_GETCOLOR(s2color);
-			s2color.a |= src2_a;
-      pixel = *ppdst;
+      pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
-      s1color.r ^= s2color.r;
-      s1color.g ^= s2color.g;
-      s1color.b ^= s2color.b;
-      s1color.a ^= s2color.a;
       if(dcolor.a == 0){
-        MIYAKO_SETCOLOR(s1color);
-        *ppdst = pixel;
+        *ppdst = (*ppsrc2 | src2_a) ^ (*ppsrc1 | src1_a) ;
         ppsrc1++;
         ppsrc2++;
         ppdst++;
         continue;
       }
-      if(s1color.a > 0)
+			pixel = (*ppsrc2 | src2_a) ^ (*ppsrc1 | src1_a);
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a > 0)
       {
-        dcolor.r = ((s1color.r * (s1color.a + 1)) >> 8) + ((dcolor.r * (256 - s1color.a)) >> 8);
-        if(dcolor.r > 255){ dcolor.r = 255; }
-        dcolor.g = ((s1color.g * (s1color.a + 1)) >> 8) + ((dcolor.g * (256 - s1color.a)) >> 8);
-        if(dcolor.g > 255){ dcolor.g = 255; }
-        dcolor.b = ((s1color.b * (s1color.a + 1)) >> 8) + ((dcolor.b * (256 - s1color.a)) >> 8);
-        if(dcolor.b > 255){ dcolor.b = 255; }
-        dcolor.a = s1color.a;
-        MIYAKO_SETCOLOR(dcolor);
-        *ppdst = pixel;
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
       }
       ppsrc1++;
       ppsrc2++;
@@ -1034,8 +978,7 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         scolor.a -= da;
         if(scolor.a > 0x80000000){ scolor.a = 0; }
         if(scolor.a > 255){ scolor.a = 255; }
-        MIYAKO_SETCOLOR(scolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
       }
     }
 
@@ -1143,8 +1086,7 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         if(scolor.g > 0x80000000){ scolor.g = 0; }
         scolor.b -= d;
         if(scolor.b > 0x80000000){ scolor.b = 0; }
-        MIYAKO_SETCOLOR(scolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
       }
     }
 
@@ -1251,8 +1193,7 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         if(scolor.g > 255){ scolor.g = 255; }
         scolor.b += d;
         if(scolor.b > 255){ scolor.b = 255; }
-        MIYAKO_SETCOLOR(scolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
       }
     }
 
@@ -1342,8 +1283,7 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
         scolor.r ^= 0xff;
         scolor.g ^= 0xff;
         scolor.b ^= 0xff;
-        MIYAKO_SETCOLOR(scolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
       }
     }
 
@@ -1408,8 +1348,7 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 				dcolor.b += scolor.b;
 				if(dcolor.b > 255){ dcolor.b = 255; }
 				dcolor.a = (dcolor.a > scolor.a ? dcolor.a : scolor.a);
-        MIYAKO_SETCOLOR(dcolor);
-        *(pdst + py * dst->w + px) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), dcolor);
 			}
     }
   }
@@ -1491,18 +1430,32 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
   int x, y;
   for(y = dly; y < dmy; y++)
   {
+    int ty = y - qy;
+    Uint32 *tp = pdst + y * dst->w;
     for(x = dlx; x < dmx; x++)
     {
-      int nx = (((x-qx)*icos-(y-qy)*isin) >> 12) + px;
-      int ny = (((x-qx)*isin+(y-qy)*icos) >> 12) + py;
-      if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
-			pixel = *(psrc + ny * src->w + nx);
-			MIYAKO_GETCOLOR(scolor);
-			scolor.a |= src_a;
-      pixel = *(pdst + y * dst->w + x);
+      int nx = (((x-qx)*icos-ty*isin) >> 12) + px;
+      if(nx < srect.x || nx >= (srect.x+srect.w)){ continue; }
+      int ny = (((x-qx)*isin+ty*icos) >> 12) + py;
+      if(ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
+      pixel = *(tp + x) | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
-      MIYAKO_PSET(x, y);
+			pixel = *(psrc + ny * src->w + nx) | src_a;
+      if(dcolor.a == 0)
+      {
+        *(tp + x) = pixel;
+        continue;
+      }
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a > 0)
+      {
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                    (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                    (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
+      }
     }
   }
 
@@ -1575,18 +1528,32 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
   int x, y;
   for(y = dly; y < dmy; y++)
   {
+    int ty = y - qy;
+    Uint32 *tp = pdst + y * dst->w;
     for(x = dlx; x < dmx; x++)
     {
       int nx = (((x-qx) * scx) >> 12) + px - off_x;
-      int ny = (((y-qy) * scy) >> 12) + py - off_y;
-      if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
-			pixel = *(psrc + ny * src->w + nx);
-			MIYAKO_GETCOLOR(scolor);
-			scolor.a |= src_a;
-      pixel = *(pdst + y * dst->w + x);
+      if(nx < srect.x || nx >= (srect.x+srect.w)){ continue; }
+      int ny = ((ty * scy) >> 12) + py - off_y;
+      if(ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
+      pixel = *(tp + x) | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
-      MIYAKO_PSET(x, y);
+			pixel = *(psrc + ny * src->w + nx) | src_a;
+      if(dcolor.a == 0)
+      {
+        *(tp + x) = pixel;
+        continue;
+      }
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a > 0)
+      {
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                    (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                    (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
+      }
     }
   }
 
@@ -1608,11 +1575,11 @@ static void transform_inner(VALUE sunit, VALUE dunit)
 	Uint32 src_a = 0;
 	Uint32 dst_a = 0;
 
-	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	if(src == scr){ src_a = 255; }
-	if(dst == scr){ dst_a = 255; }
-	
 	SDL_PixelFormat *fmt = src->format;
+	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+	if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	
 	MiyakoColor scolor, dcolor;
 	Uint32 tmp;
 	Uint32 pixel;
@@ -1654,18 +1621,32 @@ static void transform_inner(VALUE sunit, VALUE dunit)
   int x, y;
   for(y = dly; y < dmy; y++)
   {
+    int ty = y - qy;
+    Uint32 *tp = pdst + y * dst->w;
     for(x = dlx; x < dmx; x++)
     {
-      int nx = (((((x-qx)*icos-(y-qy)*isin) >> 12) * scx) >> 12) + px - off_x;
-      int ny = (((((x-qx)*isin+(y-qy)*icos) >> 12) * scy) >> 12) + py - off_y;
-      if(nx < srect.x || nx >= (srect.x+srect.w) || ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
-			pixel = *(psrc + ny * src->w + nx);
-			MIYAKO_GETCOLOR(scolor);
-			scolor.a |= src_a;
-      pixel = *(pdst + y * dst->w + x);
+      int nx = (((((x-qx)*icos-ty*isin) >> 12) * scx) >> 12) + px - off_x;
+      if(nx < srect.x || nx >= (srect.x+srect.w)){ continue; }
+      int ny = (((((x-qx)*isin+ty*icos) >> 12) * scy) >> 12) + py - off_y;
+      if(ny < srect.y || ny >= (srect.y+srect.h)){ continue; }
+      pixel = *(tp + x) | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
-      MIYAKO_PSET(x, y);
+			pixel = *(psrc + ny * src->w + nx) | src_a;
+      if(dcolor.a == 0)
+      {
+        *(tp + x) = pixel;
+        continue;
+      }
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a > 0)
+      {
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                    (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                    (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
+      }
     }
   }
 
@@ -1696,50 +1677,55 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
 }
 
 #define MIYAKO_RGB2HSV(RGBSTRUCT, HSVH, HSVS, HSVV) \
-  r = (double)(RGBSTRUCT.r) / 255.0; \
-  g = (double)(RGBSTRUCT.g) / 255.0; \
-  b = (double)(RGBSTRUCT.b) / 255.0; \
-  max = r; \
-  min = max; \
-  max = max < g ? g : max; \
-  max = max < b ? b : max; \
-  min = min > g ? g : min; \
-  min = min > b ? b : min; \
-  HSVV = max; \
-  if(HSVV == 0.0){ HSVH = 0.0; HSVS = 0.0; return; } \
-  HSVS = (max - min) / max; \
-  if(HSVS == 0.0){ HSVH = 0.0; return; } \
-  cr = (max - r)/(max - min); \
-  cg = (max - g)/(max - min); \
-  cb = (max - b)/(max - min); \
-  if(max == r){ HSVH = cb - cg; } \
-  if(max == g){ HSVH = 2.0 + cr - cb; } \
-  if(max == b){ HSVH = 4.0 + cg - cr; } \
-  HSVH *= 60.0; \
-  if(HSVH < 0){ HSVH += 360.0; }
+  Uint32 imax = RGBSTRUCT.r; \
+  Uint32 imin = imax; \
+  imax = imax < RGBSTRUCT.g ? RGBSTRUCT.g : imax; \
+  imax = imax < RGBSTRUCT.b ? RGBSTRUCT.b : imax; \
+  imin = imin > RGBSTRUCT.g ? RGBSTRUCT.g : imin; \
+  imin = imin > RGBSTRUCT.b ? RGBSTRUCT.b : imin; \
+  if(imax == 0){ HSVV == 0.0; HSVH = 0.0; HSVS = 0.0; } \
+  else \
+  { \
+    HSVV = div255[imax]; \
+    double delta = HSVV - div255[imin]; \
+    HSVS = delta / HSVV; \
+    if(HSVS == 0.0){ HSVH = 0.0; } \
+    else \
+    { \
+      delta *= 255.0; \
+      if(imax == RGBSTRUCT.r){ HSVH =       ((double)(RGBSTRUCT.g) - (double)(RGBSTRUCT.b))/delta; } \
+      if(imax == RGBSTRUCT.g){ HSVH = 2.0 + ((double)(RGBSTRUCT.b) - (double)(RGBSTRUCT.r))/delta; } \
+      if(imax == RGBSTRUCT.b){ HSVH = 4.0 + ((double)(RGBSTRUCT.r) - (double)(RGBSTRUCT.g))/delta; } \
+      HSVH *= 60.0; \
+      if(HSVH < 0){ HSVH += 360.0; } \
+    } \
+  }
 
 #define MIYAKO_HSV2RGB(HSVH, HSVS, HSVV, RGBSTRUCT) \
-  if(HSVS == 0.0){ RGBSTRUCT.r = RGBSTRUCT.g = RGBSTRUCT.b = (Uint32)(HSVV * 255.0); return; } \
-  i = HSVH / 60.0; \
-  if(     i < 1.0){ i = 0.0; } \
-  else if(i < 2.0){ i = 1.0; } \
-  else if(i < 3.0){ i = 2.0; } \
-  else if(i < 4.0){ i = 3.0; } \
-  else if(i < 5.0){ i = 4.0; } \
-  else if(i < 6.0){ i = 5.0; } \
-  f = HSVH / 60.0 - i; \
-  m = HSVV * (1 - HSVS); \
-  n = HSVV * (1 - HSVS * f); \
-  k = HSVV * (1 - HSVS * (1 - f)); \
-  if(     i == 0.0){ r = HSVV; g = k, b = m; } \
-  else if(i == 1.0){ r = n; g = HSVV, b = m; } \
-  else if(i == 2.0){ r = m; g = HSVV, b = k; } \
-  else if(i == 3.0){ r = m; g = n, b = HSVV; } \
-  else if(i == 4.0){ r = k; g = m, b = HSVV; } \
-  else if(i == 5.0){ r = HSVV; g = m, b = n; } \
-  RGBSTRUCT.r = (Uint32)(r * 255.0); \
-  RGBSTRUCT.g = (Uint32)(g * 255.0); \
-  RGBSTRUCT.b = (Uint32)(b * 255.0); \
+  if(HSVS == 0.0){ RGBSTRUCT.r = RGBSTRUCT.g = RGBSTRUCT.b = (Uint32)(HSVV * 255.0); } \
+  else \
+  { \
+    double tmp_i = HSVH / 60.0; \
+    if(     tmp_i < 1.0){ i = 0.0; } \
+    else if(tmp_i < 2.0){ i = 1.0; } \
+    else if(tmp_i < 3.0){ i = 2.0; } \
+    else if(tmp_i < 4.0){ i = 3.0; } \
+    else if(tmp_i < 5.0){ i = 4.0; } \
+    else if(tmp_i < 6.0){ i = 5.0; } \
+    f = tmp_i - i; \
+    m = HSVV * (1 - HSVS); \
+    n = HSVV * (1 - HSVS * f); \
+    k = HSVV * (1 - HSVS * (1 - f)); \
+    if(     i == 0.0){ r = HSVV; g = k, b = m; } \
+    else if(i == 1.0){ r = n; g = HSVV, b = m; } \
+    else if(i == 2.0){ r = m; g = HSVV, b = k; } \
+    else if(i == 3.0){ r = m; g = n, b = HSVV; } \
+    else if(i == 4.0){ r = k; g = m, b = HSVV; } \
+    else if(i == 5.0){ r = HSVV; g = m, b = n; } \
+    RGBSTRUCT.r = (Uint32)(r * 255.0); \
+    RGBSTRUCT.g = (Uint32)(g * 255.0); \
+    RGBSTRUCT.b = (Uint32)(b * 255.0); \
+  }
 
 /*
 ===画像の色相を変更する
@@ -1782,8 +1768,8 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 		Uint32 dst_a = 0;
 
 		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-		if(src == scr){ src_a = 255; }
-		if(dst == scr){ dst_a = 255; }
+    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
@@ -1793,9 +1779,9 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
     {
       for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
-        pixel = *(psrc + sy * src->w + sx);
+        pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
-        pixel = *(pdst + py * dst->w + px);
+        pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
         ph += deg;
@@ -1803,21 +1789,17 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
         if(ph >= d_pi){ ph -= d_pi; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
         if(dcolor.a == 0){
-          MIYAKO_SETCOLOR(scolor);
-          *(pdst + py * dst->w + px) = pixel;
+          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
         if(scolor.a > 0)
         {
-          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
-          if(dcolor.r > 255){ dcolor.r = 255; }
-          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
-          if(dcolor.g > 255){ dcolor.g = 255; }
-          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
-          if(dcolor.b > 255){ dcolor.b = 255; }
-          dcolor.a = scolor.a;
-          MIYAKO_SETCOLOR(dcolor);
-          *(pdst + py * dst->w + px) = pixel;
+          int a1 = scolor.a + 1;
+          int a2 = 256 - scolor.a;
+          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
         }
       }
     }
@@ -1846,8 +1828,7 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
         if(ph < 0.0){ ph += d_pi; }
         if(ph >= d_pi){ ph -= d_pi; }
         MIYAKO_HSV2RGB(ph, ps, pv, dcolor);
-        MIYAKO_SETCOLOR(dcolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), dcolor);
       }
     }
 
@@ -1894,8 +1875,8 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
 		Uint32 dst_a = 0;
 
 		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-		if(src == scr){ src_a = 255; }
-		if(dst == scr){ dst_a = 255; }
+    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
@@ -1905,9 +1886,9 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
     {
       for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
-        pixel = *(psrc + sy * src->w + sx);
+        pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
-        pixel = *(pdst + py * dst->w + px);
+        pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
         ps += sat;
@@ -1915,21 +1896,17 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
         if(ps > 1.0){ ps = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
         if(dcolor.a == 0){
-          MIYAKO_SETCOLOR(scolor);
-          *(pdst + py * dst->w + px) = pixel;
+          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
         if(scolor.a > 0)
         {
-          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
-          if(dcolor.r > 255){ dcolor.r = 255; }
-          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
-          if(dcolor.g > 255){ dcolor.g = 255; }
-          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
-          if(dcolor.b > 255){ dcolor.b = 255; }
-          dcolor.a = scolor.a;
-          MIYAKO_SETCOLOR(dcolor);
-          *(pdst + py * dst->w + px) = pixel;
+          int a1 = scolor.a + 1;
+          int a2 = 256 - scolor.a;
+          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
         }
       }
     }
@@ -1958,8 +1935,7 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
         if(ps < 0.0){ ps = 0.0; }
         if(ps > 1.0){ ps = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, dcolor);
-        MIYAKO_SETCOLOR(dcolor)
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), dcolor)
       }
     }
 
@@ -2007,8 +1983,8 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
 		Uint32 dst_a = 0;
 
 		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-		if(src == scr){ src_a = 255; }
-		if(dst == scr){ dst_a = 255; }
+    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
 		SDL_LockSurface(src);
     SDL_LockSurface(dst);
@@ -2018,9 +1994,9 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
     {
       for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
-        pixel = *(psrc + sy * src->w + sx);
+        pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
-        pixel = *(pdst + py * dst->w + px);
+        pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
         pv += val;
@@ -2028,21 +2004,17 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
         if(pv > 1.0){ pv = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
         if(dcolor.a == 0){
-          MIYAKO_SETCOLOR(scolor);
-          *(pdst + py * dst->w + px) = pixel;
+          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
         if(scolor.a > 0)
         {
-          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
-          if(dcolor.r > 255){ dcolor.r = 255; }
-          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
-          if(dcolor.g > 255){ dcolor.g = 255; }
-          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
-          if(dcolor.b > 255){ dcolor.b = 255; }
-          dcolor.a = scolor.a;
-          MIYAKO_SETCOLOR(dcolor);
-          *(pdst + py * dst->w + px) = pixel;
+          int a1 = scolor.a + 1;
+          int a2 = 256 - scolor.a;
+          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
         }
       }
     }
@@ -2071,8 +2043,7 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
         if(pv < 0.0){ pv = 0.0; }
         if(pv > 1.0){ pv = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, dcolor);
-        MIYAKO_SETCOLOR(dcolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), dcolor);
       }
     }
 
@@ -2127,8 +2098,8 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
 		Uint32 dst_a = 0;
 
 		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-		if(src == scr){ src_a = 255; }
-		if(dst == scr){ dst_a = 255; }
+    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 		
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
@@ -2138,9 +2109,9 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
     {
       for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
       {
-        pixel = *(psrc + sy * src->w + sx);
+        pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
-        pixel = *(pdst + py * dst->w + px);
+        pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
         ph += deg;
@@ -2154,21 +2125,17 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
         if(pv > 1.0){ pv = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
         if(dcolor.a == 0){
-          MIYAKO_SETCOLOR(scolor);
-          *(pdst + py * dst->w + px) = pixel;
+          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
         if(scolor.a > 0)
         {
-          dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
-          if(dcolor.r > 255){ dcolor.r = 255; }
-          dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
-          if(dcolor.g > 255){ dcolor.g = 255; }
-          dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
-          if(dcolor.b > 255){ dcolor.b = 255; }
-          dcolor.a = scolor.a;
-          MIYAKO_SETCOLOR(dcolor);
-          *(pdst + py * dst->w + px) = pixel;
+          int a1 = scolor.a + 1;
+          int a2 = 256 - scolor.a;
+          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
         }
       }
     }
@@ -2203,8 +2170,7 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
         if(pv < 0.0){ pv = 0.0; }
         if(pv > 1.0){ pv = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, dcolor);
-        MIYAKO_SETCOLOR(dcolor);
-        *(pdst + y * dst->w + x) = pixel;
+        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), dcolor);
       }
     }
 
@@ -2248,8 +2214,8 @@ static void render_to_inner(VALUE sunit, VALUE dunit)
 	if(psrc == pdst){ return; }
 	
 	SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	if(src == scr){ src_a = 255; }
-	if(dst == scr){ dst_a = 255; }
+	if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
 	//SpriteUnit:
 	//[0] -> :bitmap, [1] -> :ox, [2] -> :oy, [3] -> :ow, [4] -> :oh
@@ -2273,30 +2239,24 @@ static void render_to_inner(VALUE sunit, VALUE dunit)
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
-			pixel = *ppsrc;
-			MIYAKO_GETCOLOR(scolor);
-			scolor.a |= src_a;
-      pixel = *ppdst;
+      pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-			dcolor.a |= dst_a;
       if(dcolor.a == 0){
-        MIYAKO_SETCOLOR(scolor);
-        *ppdst = pixel;
+        *ppdst = *ppsrc | src_a;
         ppsrc++;
         ppdst++;
         continue;
       }
+			pixel = *ppsrc | src_a;
+			MIYAKO_GETCOLOR(scolor);
       if(scolor.a > 0)
       {
-        dcolor.r = ((scolor.r * (scolor.a + 1)) >> 8) + ((dcolor.r * (256 - scolor.a)) >> 8);
-        if(dcolor.r > 255){ dcolor.r = 255; }
-        dcolor.g = ((scolor.g * (scolor.a + 1)) >> 8) + ((dcolor.g * (256 - scolor.a)) >> 8);
-        if(dcolor.g > 255){ dcolor.g = 255; }
-        dcolor.b = ((scolor.b * (scolor.a + 1)) >> 8) + ((dcolor.b * (256 - scolor.a)) >> 8);
-        if(dcolor.b > 255){ dcolor.b = 255; }
-        dcolor.a = scolor.a;
-        MIYAKO_SETCOLOR(dcolor);
-        *ppdst = pixel;
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        scolor.r = (scolor.r * a1 + dcolor.r * a2) >> 8;
+        scolor.g = (scolor.g * a1 + dcolor.g * a2) >> 8;
+        scolor.b = (scolor.b * a1 + dcolor.b * a2) >> 8;
+        MIYAKO_SETCOLOR(*ppdst, scolor);
       }
       ppsrc++;
       ppdst++;
@@ -3734,4 +3694,7 @@ void Init_miyako_no_katana()
   rb_define_method(cFixedMap, "render_to", fixedmap_render_to_sprite, 1);
   rb_define_method(cMapLayer, "render_to", maplayer_render_to_sprite, 1);
   rb_define_method(cFixedMapLayer, "render_to", fixedmaplayer_render_to_sprite, 1);
+
+  int i;
+  for(i=0; i<256; i++){ div255[i] = (double)i / 255.0; }
 }
