@@ -122,7 +122,7 @@ module Miyako
     Command = Struct.new(:body, :body_selected, :condition, :result)
 
     attr_accessor :update_inner, :update_text
-    attr_reader :parts, :diagrams, :vars
+    attr_reader :parts, :diagrams, :vars, :valign
     
     #===Yukiを初期化する
     def initialize
@@ -157,6 +157,8 @@ module Miyako
       @visible = []
       @diagrams = {}
       @vars = {}
+      
+      @valign = :middle
 
       @is_outer_height = self.method(:is_outer_height)
     end
@@ -568,13 +570,28 @@ module Miyako
       return self
     end
 
+    #===ブロック評価中、行中の表示位置を変更する
+    #ブロックを評価している間だけ、デフォルトの縦の表示位置を変更する
+    #変更できる値は、:top、:middle、:bottomの3種類。
+    #ブロックを渡していないときはエラーを返す
+    #_valign_:: 文字の縦の位置(top, middle, bottom)
+    #返却値:: 自分自身を返す
+    def valign_during(valign)
+      raise MiyakoError, "Can't find block!" unless block_given?
+      oalign = @valign
+      @valign = valign
+      yield
+      @valign = oalign
+      return self
+    end
+
     #===文字の大きさを変更する
     #ブロック内で指定した文字列を、指定の大きさで描画する
     #_size_:: 文字の大きさ（整数）
-    #_valign_:: 文字の縦の位置(top, middle, bottom)。デフォルトは:middle
+    #_valign_:: 文字の縦の位置(top, middle, bottom)。デフォルトは:middle(Yuki#valign=,Yuki#valign_duringで変更可能)
     #返却値:: 自分自身を返す
-    def size(size, valign = :middle, &block)
-      @yuki[:text_box].font_size(size){
+    def size(size, valign = @valign, &block)
+      @yuki[:text_box].font_size_during(size){
         @yuki[:text_box].margin_during(@yuki[:text_box].margin_height(valign)){ text block.call }
       }
       return self

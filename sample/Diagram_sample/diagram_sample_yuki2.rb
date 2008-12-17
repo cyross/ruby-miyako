@@ -251,7 +251,11 @@ class MainScene
     reset_wait
     yuki.clear
     yuki.color(:red){
-      yuki.text "「そんなことないよぉ～"
+      yuki.size(32){
+        yuki.size(24){ "「そんなこと" }
+        yuki.text "ない"
+        yuki.size(24){ "よぉ～" }
+      }
       yuki.cr
       yuki.pause
       reset_wait

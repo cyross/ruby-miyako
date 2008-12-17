@@ -231,12 +231,27 @@ module Miyako
       return self
     end
 
+    #===フォントサイズを変更する
+    #行中の最大フォントサイズが更新されるので、見栄えの良い表示のためにこちらを使用することをお薦めします
+    #_size_:: 変更するフォントサイズ
+    #返却値:: 自分自身を返す
+    def font_size=(size)
+      @font.size = size
+      @max_height = @font.line_height if @max_height < @font.line_height
+      return self
+    end
+
     #===ブロックを評価している間、フォントサイズを変更する
     #_size_:: 変更するフォントサイズ
     #返却値:: 自分自身を返す
     def font_size_during(size)
       raise MiyakoError, "not given block!" unless block_given?
-      @font.size_during(size){ yield }
+      @font.size_during(size){
+        omax = @max_height
+        @max_height = @font.line_height if @max_height < @font.line_height
+        yield
+        @max_height = omax
+      }
       return self
     end
 

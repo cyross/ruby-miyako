@@ -884,6 +884,7 @@ v2.0.0(2008.12.14)
 ・Yuki#result_is_scene?、Yuki#result_is_scenario?メソッドの廃止
 ・Yuki#exec_plotメソッドをYuki#start_plotメソッドに変更
 ・Yuki#sizeメソッドのインタフェースを変更(valignを追加)
+・Yuki#valign,valign=,valign_duringメソッドの追加
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
@@ -926,7 +927,7 @@ v2.0.0(2008.12.14)
 ・LayoutSpace#broad_rectメソッドを追加
 ・LayoutSpace#rectメソッドがnilを返すバグを修正
 ・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
-・Textbox#columns、rows、text_size、update_animationメソッドの追加
+・Textbox#columns、rows、text_size、font_size、update_animationメソッドの追加
 ・Textbox#broad_rect、to_spriteメソッドの追加
 ・Diagram::Processor#sync?メソッドの追加
 ・SingleEnumerable.sizeメソッドの廃止(弊害が大きいため(Sprite#sizeメソッドのバグなど)。lengthのみ用意)
