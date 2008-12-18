@@ -235,7 +235,7 @@ module Miyako
     def size(size, &block)
       @font.size_during(size){
         @max_height = [@max_height, @font.line_height].max
-        size_inner(@font.margin_height(@valign, @max_height)){ text instance_eval(&block) }
+        size_inner(@font.margin_height(@valign, @max_height), &block)
       }
       return self
     end

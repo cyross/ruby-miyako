@@ -74,7 +74,7 @@ module Miyako
 
       @choices = Choices.new
       @now_choice = nil
-
+      
       @pause_type = :bottom
       @waiting = false
       @select_type = :left
@@ -290,10 +290,21 @@ module Miyako
       return self
     end
 
-    #===あとで書く
-    #_choices_:: あとで書く
-    #返却値:: あとで書く
+    #===選択肢の集合をTextBoxインスタンスに見合う形のChoicesクラスインスタンスの配列に変換する
+    #ブロック(引数一つのブロックのみ有効)を渡したときは、ブロックを評価して変換したChoicesクラスの配列を作成する。
+    #引数は、以下の構成を持つ配列のリスト。
+    #[非選択時スプライト(文字列可),選択時スプライト(文字列・nil可),選択結果インスタンス]
+    #　非選択時スプライト：自身が選択されていない時に表示するスプライト。文字列の時は、Shapeクラスなどでスプライトに変更する
+    #　選択時スプライト：自身が選択されている時に表示するスプライト。文字列の時は、Shapeクラスなどでスプライトに変更する
+    #　(そのとき、文字色が赤色になる)。
+    #　nilを渡すと、非選択時スプライトが使われる
+    #　選択結果インスタンス：コマンドが決定したときに、resultメソッドの値として渡すインスタンス。
+    #_choices_:: 選択肢の集合(上記参照)
+    #返却値:: Choicesクラスのインスタンスの配列
     def create_choices_chain(choices)
+      if block_given?
+        return yield(choices)
+      end
       choices = choices.map{|v|
         @font.color = Color[:white]
         body = v[0].to_sprite(@font)
@@ -303,9 +314,6 @@ module Miyako
         choice.result = v[2]
         next choice
       }
-      if block_given?
-        return yield(choices)
-      end
       list = []
       pos = 0
       choices2 = []
@@ -386,10 +394,10 @@ module Miyako
       return self
     end
 
-    #===あとで書く
-    #_dx_:: あとで書く
-    #_dy_:: あとで書く
-    #返却値:: あとで書く
+    #===選択肢・選択カーソルを移動させる
+    #_dx_:: 移動量(x軸方向)。-1,0,1の3種類
+    #_dy_:: 移動量(y軸方向)。-1,0,1の3種類
+    #返却値:: 自分自身を返す
     def move_cursor(dx, dy)
       @move_list[dy][dx].call
       if @select_cursor
@@ -402,9 +410,7 @@ module Miyako
       return self
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
-    def update_layout_position
+    def update_layout_position #:nodoc:
       @pos.move_to(*@layout.pos)
     end
 

@@ -837,6 +837,7 @@ v2.0.0(2008.12.14)
 ・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
 ・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
+・Input.updateで、マウスのボタンを押したままなのに、Input.clicked?の値がtrueになっていたバグを修正
 ・Font#text_sizeメソッドの内容の変更(2バイト以上の文字の幅が実際の文字の幅よりも大きくなっているため)
 ・Font#bold、italic、under_lineメソッドの内容の変更(ブロックを渡すと、ブロック評価中のみ効果がある仕様を追加)
 ・Font#margin_height、size_during、color_during、shadow_duringメソッドの追加
@@ -885,6 +886,10 @@ v2.0.0(2008.12.14)
 ・Yuki#exec_plotメソッドをYuki#start_plotメソッドに変更
 ・Yuki#sizeメソッドのインタフェースを変更(valignを追加)
 ・Yuki#valign,valign=,valign_duringメソッドの追加
+・Yuki#buttonメソッドの廃止
+・Yuki#release_checks、ok_checks、cansel_checksアクセサを追加
+・Yuki#reset_release_checks、reset_ok_checks、reset_cansel_checksメソッドを追加
+・Yuki#release_checks_during、ok_checks_during、cansel_checks_duringメソッドを追加
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)

@@ -160,8 +160,8 @@ module Miyako
 
     def Input::process_mousebuttondown(e) #:nodoc:
       set_mouse_button(:trigger, e.button)
-      set_mouse_button(:click, e.button)
       return unless @@mouse[:inner]
+      click_mouse_button(:click, e.button)
       set_mouse_button(:drag, e.button)
       @@mouse[:drag][:x] = @@mouse[:pos][:x]
       @@mouse[:drag][:y] = @@mouse[:pos][:y]
@@ -172,7 +172,6 @@ module Miyako
       reset_mouse_button(:trigger, e.button)
       click_interval = SDL.getTicks - @@click_start_tick
       if click_interval < @@mouse[:click][:interval]
-        set_mouse_button(:click, e.button)
         [:left, :middle, :right].each{|b| @@mouse[:drag][b] = false }
       else
         @@mouse[:drop][:left]    = @@mouse[:drag][:left] and (e.button == SDL::Mouse::BUTTON_LEFT)
@@ -188,6 +187,12 @@ module Miyako
     end
 
     def Input::process_default(e) #:nodoc:
+    end
+
+    def Input::click_mouse_button(mode, btn) #:nodoc:
+      @@mouse[mode][:left]    = (btn == SDL::Mouse::BUTTON_LEFT)
+      @@mouse[mode][:middle]  = (btn == SDL::Mouse::BUTTON_MIDDLE)
+      @@mouse[mode][:right]   = (btn == SDL::Mouse::BUTTON_RIGHT)
     end
 
     def Input::set_mouse_button(mode, btn) #:nodoc:
@@ -360,7 +365,9 @@ module Miyako
     #_btn_:: 問い合わせるボタンを示すシンボル(可変個)
     #返却値:: ボタンが押されていれば true を返す
     def Input::click?(btn)
-      return btn == :any ? (@@mouse[:click][:left] || @@mouse[:click][:middle] || @@mouse[:click][:right]) : @@mouse[:click][btn]
+      ret = btn == :any ? (@@mouse[:click][:left] || @@mouse[:click][:middle] || @@mouse[:click][:right]) : @@mouse[:click][btn]
+      @@mouse[:click][:left] = @@mouse[:click][:middle] = @@mouse[:click][:right] = false
+      return ret
     end
 
     #===ボタンが押されているかを問い合わせるメソッド
@@ -414,9 +421,8 @@ module Miyako
       @@mouse[:click][:interval] = v
     end
 
-    #===ダブルクリックの間隔を設定する
-    #間隔は、ミリ秒単位で設定できる
-    #_v_:: ボタンのクリック間隔
+    #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
+    #返却値:: マウスカーソルが画面内ならtrueを返す
     def Input::mouse_cursor_inner?
       return @@mouse[:inner]
     end

@@ -157,7 +157,7 @@ class Plotting
   end
 
   def update_input
-    @set.call(0.0) if Input.pushed_any?(:btn1) # １ボタンを押したら、表示途中のメッセージをすべて表示
+    @set.call(0.0) if (Input.pushed_any?(:btn1) || Input.click?(:left)) # １ボタンを押すor左クリックしたら、表示途中のメッセージをすべて表示
     @manager.update_input
   end
   

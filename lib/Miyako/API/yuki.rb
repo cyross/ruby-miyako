@@ -123,14 +123,19 @@ module Miyako
 
     attr_accessor :update_inner, :update_text
     attr_reader :parts, :diagrams, :vars, :valign
+    #release_checks:: ポーズ解除を問い合わせるメソッドの配列。
+    #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
+    #ok_checks:: コマンド選択決定を問い合わせるメソッドの配列。
+    #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
+    #cancel_checks:: コマンド選択解除（キャンセル）を問い合わせるメソッドの配列。
+    #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
+    attr_reader :release_checks, :ok_checks, :cancel_checks
     
     #===Yukiを初期化する
     def initialize
       @yuki = { }
       @yuki[:text_box] = nil
       @yuki[:command_box] = nil
-
-      @yuki[:btn] = {:ok => :btn1, :cansel => :btn2, :release => :btn1 }
 
       @yuki[:plot_thread] = nil
 
@@ -143,8 +148,9 @@ module Miyako
 
       @yuki[:pause_release] = false
       @yuki[:select_ok] = false
-      @yuki[:select_cansel] = false
+      @yuki[:select_cancel] = false
       @yuki[:select_amount] = [0, 0]
+      @yuki[:mouse_amount] = nil
 
       @yuki[:result] = nil
       @yuki[:plot_result] = nil
@@ -159,6 +165,18 @@ module Miyako
       @vars = {}
       
       @valign = :middle
+
+      @release_checks_default = [lambda{ Input.pushed_all?(:btn1) }, lambda{ Input.click?(:left) } ]
+      @release_checks = @release_checks_default.dup
+      
+      @ok_checks_default = [lambda{ Input.pushed_all?(:btn1) }, lambda{ Input.click?(:left) } ]
+      @ok_checks = @ok_checks_default.dup
+
+      @cancel_checks_default = [lambda{ Input.pushed_all?(:btn2) }, lambda{ Input.click?(:right) } ]
+      @cancel_checks = @cancel_checks_default.dup
+
+      @key_amount   = lambda{ Input.pushed_amount }
+      @mouse_amount = lambda{ Input.mouse_cursor_inner? ? Input.get_mouse_position : nil }
 
       @is_outer_height = self.method(:is_outer_height)
     end
@@ -302,18 +320,6 @@ module Miyako
       return self
     end
   
-    #===各ボタンの設定リストを出力する
-    #コマンド決定・キャンセル時に使用するボタンの一覧をシンボルのハッシュとして返す。ハッシュの内容は以下の通り
-    #ハッシュキー:: 説明:: デフォルト
-    #:release:: メッセージ待ちを終了するときに押すボタン:: :btn1
-    #:ok:: コマンド選択で「決定」するときに押すボタン:: btn1
-    #:cansel:: コマンド選択で「キャンセル」するときに押すボタン:: btn2
-    #
-    #返却値:: ボタンの設定リスト
-    def button
-      return @yuki[:btn]
-    end
-  
     #===シーンのセットアップ時に実行する処理
     #
     #返却値:: あとで書く
@@ -328,8 +334,9 @@ module Miyako
 
       @yuki[:pause_release] = false
       @yuki[:select_ok] = false
-      @yuki[:select_cansel] = false
+      @yuki[:select_cancel] = false
       @yuki[:select_amount] = [0, 0]
+      @yuki[:mouse_amount] = nil
 
       @yuki[:result] = nil
       @yuki[:plot_result] = nil
@@ -378,7 +385,7 @@ module Miyako
       @mutex.lock
       @yuki[:pause_release] = false
       @yuki[:select_ok] = false
-      @yuki[:select_cansel] = false
+      @yuki[:select_cancel] = false
       @yuki[:select_amount] = [0, 0]
       @mutex.unlock
     end
@@ -411,12 +418,13 @@ module Miyako
     #返却値:: nil を返す
     def update_plot_input
       return nil unless @yuki[:exec_plot]
-      if @yuki[:pausing] && Input.pushed_all?(@yuki[:btn][:ok])
+      if @yuki[:pausing] && @release_checks.inject(false){|r, c| r |= c.call }
         @yuki[:pause_release] = true
       elsif @yuki[:selecting]
-        @yuki[:select_ok] = true if Input.pushed_all?(@yuki[:btn][:ok])
-        @yuki[:select_cansel] = true if Input.pushed_all?(@yuki[:btn][:cansel])
-        @yuki[:select_amount] = Input.pushed_amount
+        @yuki[:select_ok] = true if @ok_checks.inject(false){|r, c| r |= c.call }
+        @yuki[:select_cancel] = true if @cancel_checks.inject(false){|r, c| r |= c.call }
+        @yuki[:select_amount] = @key_amount.call
+        @yuki[:mouse_amount] = @mouse_amount.call
       end
       return nil
     end
@@ -457,6 +465,66 @@ module Miyako
     #返却値:: プロット処理実行中の時はtrueを返す
     def executing?
       return @yuki[:exec_plot]
+    end
+
+    #===ポーズ解除問い合わせメソッド配列を初期状態に戻す
+    #返却値:: 自分自身を返す
+    def reset_release_checks
+      @release_checks = @release_checks_default.dup
+      return self
+    end
+
+    #===コマンド選択決定問い合わせメソッド配列を初期状態に戻す
+    #返却値:: 自分自身を返す
+    def reset_ok_checks
+      @ok_checks = @ok_checks_default.dup
+      return self
+    end
+
+    #===コマンド選択キャンセル問い合わせメソッド配列を初期状態に戻す
+    #返却値:: 自分自身を返す
+    def reset_cansel_checks
+      @cansel_checks = @cansel_checks_default.dup
+      return self
+    end
+
+    #===ブロック評価中、ポーズ解除問い合わせメソッド配列を置き換える
+    #ブロックの評価が終われば、メソッド配列を元に戻す
+    #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
+    #返却値:: 自分自身を返す
+    def release_checks_during(procs)
+      raise MiyakoError, "Can't find block!" unless block_given?
+      tmp = @release_checks
+      @release_checks = procs
+      yield
+      @release_checks = tmp
+      return self
+    end
+
+    #===ブロック評価中、コマンド選択決定問い合わせメソッド配列を置き換える
+    #ブロックの評価が終われば、メソッド配列を元に戻す
+    #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
+    #返却値:: 自分自身を返す
+    def ok_checks_during(procs)
+      raise MiyakoError, "Can't find block!" unless block_given?
+      tmp = @ok_checks
+      @ok_checks = procs
+      yield
+      @ok_checks = tmp
+      return self
+    end
+
+    #===ブロック評価中、コマンド選択キャンセル問い合わせメソッド配列を置き換える
+    #ブロックの評価が終われば、メソッド配列を元に戻す
+    #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
+    #返却値:: 自分自身を返す
+    def cansel_checks_during(procs)
+      raise MiyakoError, "Can't find block!" unless block_given?
+      tmp = @cansel_checks
+      @cansel_checks = procs
+      yield
+      @cansel_checks = tmp
+      return self
     end
 
     #===プロットの処理結果を返す
@@ -677,7 +745,7 @@ module Miyako
     #body_selectedを文字列を指定した場合は、文字色が赤色になることに注意
     #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
     #_cansel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
-    #_chain_block_:: コマンドの表示方法。あとで書く
+    #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
     def command(command_list, cansel_to = Canseled, &chain_block)
       raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @yuki[:command_box]
@@ -713,7 +781,7 @@ module Miyako
           @yuki[:selecting] = false
           @mutex.unlock
           reset_selecting
-        elsif @yuki[:select_cansel]
+        elsif @yuki[:select_cancel]
           @mutex.lock
           @yuki[:result] = @yuki[:cansel]
           @mutex.unlock
@@ -733,7 +801,7 @@ module Miyako
     def reset_selecting #:nodoc:
       @mutex.lock
       @yuki[:select_ok] = false
-      @yuki[:select_cansel] = false
+      @yuki[:select_cancel] = false
       @yuki[:select_amount] = [0, 0]
       @mutex.unlock
     end
@@ -791,7 +859,5 @@ module Miyako
 
       @is_outer_height = nil
     end
-  
-    private :button
   end
 end
