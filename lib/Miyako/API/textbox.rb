@@ -410,6 +410,23 @@ module Miyako
       return self
     end
 
+    #===マウスカーソルの位置とコマンドを照合する
+    #選択肢・選択カーソルを、マウスカーソルが当たっているコマンドに移動させる
+    #_x_:: マウスカーソルの位置(x軸方向)
+    #_y_:: マウスカーソルの位置(y軸方向)
+    #返却値:: 自分自身を返す
+    def attach_cursor(x, y)
+      return self unless @choices.attach(x, y)
+      if @select_cursor
+        @select_cursor.move_to(@choices.body.x -
+                                @select_cursor.ow *
+                                @@select_margin[@select_type],
+                               @choices.body.y +
+                                (@choices.body.oh - @select_cursor.oh) / 2)
+      end
+      return self
+    end
+
     def update_layout_position #:nodoc:
       @pos.move_to(*@layout.pos)
     end

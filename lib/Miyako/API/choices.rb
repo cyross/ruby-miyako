@@ -149,14 +149,38 @@ module Miyako
     end
 
     #===選択肢を変更する
-    #現在の選択状態を、全部選択していない状態にする
+    #指定の位置の現在の選択状態を、選択状態にする
     #_x_:: x方向位置
     #_y_:: y方向位置
     #返却値:: 自分自身を返す
     def select(x, y)
       raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
-      @now = @choices[x][y]
+      @non_select = false
+      @last_selected = @now
+      @now.selected = false
+      obj = @choices[x][y]
+      update_choices(@now, obj)
+      @now = obj
+      @now.selected = true
       return self
+    end
+
+    #===画面上の座標から、該当する選択肢を変更する
+    #マウスカーソル位置などの座標から、座標を含む選択肢を選択状態にする
+    #該当する場所が無ければ何もしない
+    #_x_:: x方向位置
+    #_y_:: y方向位置
+    #返却値:: 選択肢が見つかったときはtrue、見つからなかったときはfalseを返す
+    def attach(x, y)
+      obj = @now.base.detect{|ch| ch.selected ? ch.body_selected.broad_rect.in_range?(x, y) : ch.body.broad_rect.in_range?(x, y) }
+      return false unless obj
+      @non_select = false
+      @last_selected = @now
+      @now.selected = false
+      update_choices(@now, obj)
+      @now = obj
+      @now.selected = true
+      return true
     end
 
     #===選択肢を非選択状態に変更する

@@ -341,17 +341,17 @@ module Miyako
     #===マウスの現在位置を取得する
     #求める値は、{:x=>n,:y=>n}で示すハッシュとする
     #原点は、画面領域の左上を{:x=>0,:y=>0}とする
-    #返却値:: マウスカーソルの位置を示すハッシュ
+    #返却値:: マウスカーソルの位置を示すPoint構造体
     def Input::get_mouse_position
-      return {:x => @@mouse[:pos][:x], :y => @@mouse[:pos][:y]}
+      return Point.new(@@mouse[:pos][:x],@@mouse[:pos][:y])
     end
 
     #===マウスの移動量を取得する
     #求める値は、{:x=>n,:y=>n}で示すハッシュとする
     #移動量は、右下方向を正とする
-    #返却値:: マウスカーソルの移動量を示すハッシュ
+    #返却値:: マウスカーソルの移動量を示すSize構造体
     def Input::get_mouse_amount
-      return {:dx => @@mouse[:pos][:dx], :dy => @@mouse[:pos][:dy]}
+      return Size.new(@@mouse[:pos][:dx],@@mouse[:pos][:dy])
     end
 
     #===ボタンがクリックされたかを問い合わせるメソッド

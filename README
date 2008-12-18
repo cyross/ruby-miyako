@@ -838,6 +838,8 @@ v2.0.0(2008.12.14)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
 ・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
 ・Input.updateで、マウスのボタンを押したままなのに、Input.clicked?の値がtrueになっていたバグを修正
+・Input.get_mouse_positionメソッドの返却値を変更(ハッシュ→Point構造体)
+・Input.get_mouse_amountメソッドの返却値を変更(ハッシュ→Size構造体)
 ・Font#text_sizeメソッドの内容の変更(2バイト以上の文字の幅が実際の文字の幅よりも大きくなっているため)
 ・Font#bold、italic、under_lineメソッドの内容の変更(ブロックを渡すと、ブロック評価中のみ効果がある仕様を追加)
 ・Font#margin_height、size_during、color_during、shadow_duringメソッドの追加
@@ -866,6 +868,7 @@ v2.0.0(2008.12.14)
 ・TextBox#marginアクセサ、TextBox#margin_duringメソッドを追加（set_marginメソッドは、ブロックを渡すと、そのブロックが評価されている間だけマージンが有効）
 ・TextBox#font_size_during、font_bold、font_italic、font_under_line、color_during、margin_heightメソッドを追加
 　（ブロックを渡すと、そのブロックが評価されている間だけフォントの属性が変更）
+・TextBox#attach_cursorメソッドの追加
 ・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
 ・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
 ・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
@@ -940,7 +943,7 @@ v2.0.0(2008.12.14)
 ・Choices#start_choiceメソッド引数インタフェースの変更(第1引数にnilを渡すと、最後に選択した選択肢が自動的に選択される)
 ・Choices#non_select,selectメソッドの追加
 ・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
-・Choices#rect、broad_rect、to_spriteメソッドの追加
+・Choices#rect、broad_rect、to_sprite、attachメソッドの追加
 ・Collision#move、Collision#move_toメソッドを追加
 ・Plane#rect、Plane#broad_rectメソッドの追加
 ・Effectクラスを廃止
@@ -960,6 +963,7 @@ v2.0.0(2008.12.14)
 ・MapEvent#move、MapEvent#move_toメソッドを追加
 ・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
 ・MiyakoTapモジュールの廃止(tapメソッドが使えるようになったため)
+・Rect,Square構造体に#in_range?メソッドを追加
 ・drawing.rb追加
 ・Drawingモジュール追加（画像・画面への線形描画用、引数をSDL::Surfaceからスプライトに変更）
 ・これにより、Spriteクラスの各種線形描画メソッドを廃止

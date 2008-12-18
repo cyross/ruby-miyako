@@ -91,6 +91,14 @@ module Miyako
       self[3]=h
       return self
     end
+
+    #===指定の座標が矩形の範囲内かを問い合わせる
+    #_x_:: 指定のx座標
+    #_y_:: 指定のy座標
+    #返却値:: 座標が矩形の範囲内ならtrueを返す
+    def in_range?(x, y)
+      return (x >= self[0] && y >= self[1] && x < self[0] + self[2] && y < self[1] + self[3])
+    end
   end
 
   #==Square構造体用クラス
@@ -131,6 +139,14 @@ module Miyako
       self[2]=self[0] + w - 1
       self[3]=self[1] + h - 1
       return self
+    end
+
+    #===指定の座標が矩形の範囲内かを問い合わせる
+    #_x_:: 指定のx座標
+    #_y_:: 指定のy座標
+    #返却値:: 座標が矩形の範囲内ならtrueを返す
+    def in_range?(x, y)
+      return (x >= self[0] && y >= self[1] && x <= self[2] && y <= self[3])
     end
   end
 

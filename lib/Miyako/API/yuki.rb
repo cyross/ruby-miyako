@@ -794,6 +794,9 @@ module Miyako
         elsif @yuki[:select_amount] != [0,0]
           @yuki[:command_box].move_cursor(*@yuki[:select_amount])
           reset_selecting
+        elsif @yuki[:mouse_amount]
+          @yuki[:command_box].attach_cursor(*@yuki[:mouse_amount].to_a)
+          reset_selecting
         end
       end
     end
