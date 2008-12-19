@@ -32,7 +32,7 @@ module Miyako
   class Yuki
     #==キャンセルを示す構造体
     #コマンド選択がキャンセルされたときに生成される構造体
-    Canseled = Struct.new(:dummy)
+    Cansceled = Struct.new(:dummy)
 
     #==Yuki実行管理クラス(外部クラスからの管理用)
     #実行中のYukiの管理を行うためのクラス
@@ -79,8 +79,8 @@ module Miyako
 
       #===コマンド選択がキャンセルされたときの結果を返す
       #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
-      def canseled?
-        return @yuki_instance.canseled?
+      def canceled?
+        return @yuki_instance.canceled?
       end
       
       #===プロット処理が実行中かの問い合わせメソッド
@@ -180,6 +180,7 @@ module Miyako
 
       @pre_pause = lambda{}
       @pre_command = lambda{}
+      @pre_cancel = lambda{}
       
       @is_outer_height = self.method(:is_outer_height)
     end
@@ -486,47 +487,59 @@ module Miyako
 
     #===コマンド選択キャンセル問い合わせメソッド配列を初期状態に戻す
     #返却値:: 自分自身を返す
-    def reset_cansel_checks
-      @cansel_checks = @cansel_checks_default.dup
+    def reset_cancel_checks
+      @cancel_checks = @cancel_checks_default.dup
       return self
     end
 
     #===ブロック評価中、ポーズ解除問い合わせメソッド配列を置き換える
     #ブロックの評価が終われば、メソッド配列を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
+    #pre_procs:: ポーズ開始時に実行させるProc
     #返却値:: 自分自身を返す
-    def release_checks_during(procs)
+    def release_checks_during(procs, pre_procs)
       raise MiyakoError, "Can't find block!" unless block_given?
       tmp = @release_checks
+      tmp2 = @pre_pause
       @release_checks = procs
+      @pre_pause = pre_procs
       yield
       @release_checks = tmp
+      @pre_pause = tmp2
       return self
     end
 
     #===ブロック評価中、コマンド選択決定問い合わせメソッド配列を置き換える
     #ブロックの評価が終われば、メソッド配列を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
+    #pre_procs:: コマンド選択開始時に実行させるProc
     #返却値:: 自分自身を返す
-    def ok_checks_during(procs)
+    def ok_checks_during(procs, pre_procs)
       raise MiyakoError, "Can't find block!" unless block_given?
       tmp = @ok_checks
+      tmp2 = @pre_command
       @ok_checks = procs
+      @pre_command = pre_procs
       yield
       @ok_checks = tmp
+      @pre_command = tmp2
       return self
     end
 
     #===ブロック評価中、コマンド選択キャンセル問い合わせメソッド配列を置き換える
     #ブロックの評価が終われば、メソッド配列を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
+    #pre_procs:: コマンド選択開始時に実行させるProc
     #返却値:: 自分自身を返す
-    def cansel_checks_during(procs)
+    def cancel_checks_during(procs, pre_procs)
       raise MiyakoError, "Can't find block!" unless block_given?
-      tmp = @cansel_checks
-      @cansel_checks = procs
+      tmp = @cancel_checks
+      tmp2 = @pre_cancel
+      @cancel_checks = procs
+      @pre_cancel = pre_procs
       yield
-      @cansel_checks = tmp
+      @cancel_checks = tmp
+      @pre_cancel = tmp2
       return self
     end
 
@@ -538,11 +551,21 @@ module Miyako
       return self
     end
 
-    #===コマンド選択時に行いたい処理をブロックとして渡す
-    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
+    #===コマンド開始時に行いたい処理をブロックとして渡す
+    #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
+    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
     #返却値:: 自分自身を返す
     def pre_command(&proc)
       @pre_pause = proc
+      return self
+    end
+
+    #===コマンド開始時に行いたい処理をブロックとして渡す
+    #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
+    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
+    #返却値:: 自分自身を返す
+    def pre_cancel(&proc)
+      @pre_cancel = proc
       return self
     end
 
@@ -581,8 +604,8 @@ module Miyako
 
     #===コマンド選択がキャンセルされたときの結果を返す
     #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
-    def canseled?
-      return result == @yuki[:cansel]
+    def canceled?
+      return result == @yuki[:cancel]
     end
       
     #===ブロックを条件として設定する
@@ -766,20 +789,21 @@ module Miyako
     #キャンセルのときの結果も指定可能（既定ではキャンセル不可状態）
     #body_selectedをnilにした場合は、bodyと同一となる
     #body_selectedを文字列を指定した場合は、文字色が赤色になることに注意
-    #引数無しのブロックを渡せば、ポーズ開始前に行いたい処理を施すことが出来る
+    #引数無しのブロックを渡せば、コマンド選択開始前に、決定判別・キャンセル判別に必要な前処理を施すことが出来る
     #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
-    #_cansel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
+    #_cancel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
-    def command(command_list, cansel_to = Canseled, &chain_block)
+    def command(command_list, cancel_to = Canceled, &chain_block)
       raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @yuki[:command_box]
-      @yuki[:cansel] = cansel_to
+      @yuki[:cancel] = cancel_to
 
       choices = []
       command_list.each{|cm| choices.push([cm[:body], cm[:body_selected], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
       return self if choices.length == 0
 
       @pre_command.call
+      @pre_cancel.call
       yield if block_given?
       @yuki[:command_box].command(@yuki[:command_box].create_choices_chain(choices, &chain_block))
       @mutex.lock
@@ -809,7 +833,7 @@ module Miyako
           reset_selecting
         elsif @yuki[:select_cancel]
           @mutex.lock
-          @yuki[:result] = @yuki[:cansel]
+          @yuki[:result] = @yuki[:cancel]
           @mutex.unlock
           @yuki[:command_box].finish_command
           @yuki[:text_box].release

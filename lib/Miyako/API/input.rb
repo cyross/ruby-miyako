@@ -368,7 +368,6 @@ module Miyako
     def Input::click?(btn)
       btns = (btn == :any ? [:left, :middle, :right] : [btn])
       ret = btns.inject(false){|r, f| r |= @@mouse[:click][f]}
-      btns.each{|b| @@mouse[:click][b] = false }
       return ret
     end
 
