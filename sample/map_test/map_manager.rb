@@ -86,7 +86,7 @@ class MapManager
     @ar.dispose
     @sp.dispose
   end
-  
+    
   def_delegators(:@map, :w, :h, :get_code, :get_code_real)
   def_delegators(:@map, :get_amount, :events)
 end

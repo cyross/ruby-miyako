@@ -146,6 +146,13 @@ module Miyako
       return sprite
     end
 
+    #===SpriteUnit構造体を生成する
+    #いったんSpriteインスタンスを作成し、それをもとにSpriteUnit構造体を生成する。
+    #返却値:: 生成したSpriteUnit構造体
+    def to_unit
+      return self.to_sprite.to_unit
+    end
+
     #===現在の画面の最大の大きさを矩形で取得する
     #テキストボックスの状態により、取得できる矩形の大きさが変わる
     #返却値:: 生成された矩形(Rect構造体のインスタンス)

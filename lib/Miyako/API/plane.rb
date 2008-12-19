@@ -131,6 +131,13 @@ module Miyako
       return sprite
     end
 
+    #===SpriteUnit構造体を生成する
+    #いったんSpriteインスタンスを作成し、それをもとにSpriteUnit構造体を生成する。
+    #返却値:: 生成したSpriteUnit構造体
+    def to_unit
+      return self.to_sprite.to_unit
+    end
+
     def Plane::resize #:nodoc:
       @@planes.each{|p| p.resize }
       return nil

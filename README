@@ -920,7 +920,7 @@ v2.0.0(2008.12.14)
 ・Shape#takahashiメソッドのハッシュ引数に:linesを追加(指定の行数を基準に文字サイズを計算。但し、行数・１行の文字数が多ければそちらを優先)
 ・Parts#main_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
 ・Parts#[]=メソッドのインタフェース変更(すべてPartsインスタンス本体へのsnapとして設定)
-・Parts#broad_rect、to_spriteメソッドの追加
+・Parts#broad_rect、to_sprite、to_unitメソッドの追加
 ・Screen.updateメソッドの廃止(Screen.renderに統一)
 ・Screen.renderメソッドのインタフェース変更(is_clear引数の廃止)
 ・Screen.sizeメソッドの追加
@@ -937,7 +937,7 @@ v2.0.0(2008.12.14)
 ・LayoutSpace#rectメソッドがnilを返すバグを修正
 ・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
 ・Textbox#columns、rows、text_size、font_size、update_animationメソッドの追加
-・Textbox#broad_rect、to_spriteメソッドの追加
+・Textbox#broad_rect、to_sprite、to_unitメソッドの追加
 ・Diagram::Processor#sync?メソッドの追加
 ・SingleEnumerable.sizeメソッドの廃止(弊害が大きいため(Sprite#sizeメソッドのバグなど)。lengthのみ用意)
 ・Choice#body_selected, Choice#selectedメソッドの追加(選択時に表示を変える方式を実装)
@@ -946,7 +946,7 @@ v2.0.0(2008.12.14)
 ・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
 ・Choices#rect、broad_rect、to_sprite、attachメソッドの追加
 ・Collision#move、Collision#move_toメソッドを追加
-・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_spriteメソッドの追加
+・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_sprite、Plane#to_unitメソッドの追加
 ・Effectクラスを廃止
 ・Map#update、FixedMap#updateメソッドの内容変更(MapEventのupdateは行われず、明示的に呼び出すことに注意)
 ・Map#render、FixedMap#renderメソッドの追加(MapEventはrenderされず、明示的に呼び出すことに注意)
@@ -954,10 +954,10 @@ v2.0.0(2008.12.14)
 ・Map#syncメソッドを廃止、Map#sync_marginメソッドを追加(margin変更後、各レイヤへ同期させるために呼び出す)
 ・Map#render_toメソッドの追加
 ・Map#render、Map#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
-・Map#rect、Map#broad_rectメソッドの追加
+・Map#rect、Map#broad_rect、Map#to_sprite、Map#to_unitメソッドの追加
 ・FixedMap#render_toメソッドの追加
 ・FixedMap#render、FixedMap#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
-・FixedMap#rect、FixedMap#broad_rectメソッドの追加
+・FixedMap#rect、FixedMap#broad_rect、FixedMap#to_sprite、FixedMap#to_unitメソッドの追加
 ・MapEvent.newメソッドのインタフェース変更
 ・MapEvent#initメソッドのインタフェース変更(引数として、登録もとMap/FixedMapクラスのインスタンス・マップ上の位置を取得)
 ・MapEvent#execメソッドをMapEvent#startメソッドに改名

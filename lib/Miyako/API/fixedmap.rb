@@ -275,6 +275,25 @@ module Miyako
       return self.rect
     end
 
+    #===スプライトに変換した画像を表示する
+    #すべてのパーツを貼り付けた、１枚のスプライトを返す
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
+    #返却値:: 描画したスプライト
+    def to_sprite
+      rect = self.broad_rect
+      sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
+      self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
+      yield sprite if block_given?
+      return sprite
+    end
+
+    #===SpriteUnit構造体を生成する
+    #いったんSpriteインスタンスを作成し、それをもとにSpriteUnit構造体を生成する。
+    #返却値:: 生成したSpriteUnit構造体
+    def to_unit
+      return self.to_sprite.to_unit
+    end
+
     #===あとで書く
     #返却値:: あとで書く
     def chipSize

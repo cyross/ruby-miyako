@@ -2671,8 +2671,8 @@ static void fixedmaplayer_render_inner(VALUE self, VALUE dunit)
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
       VALUE ox = *(RSTRUCT_PTR(unit) + 5);
       VALUE oy = *(RSTRUCT_PTR(unit) + 6);
-      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x * ow);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y * oh);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
       render_inner(unit, dunit);
       *(RSTRUCT_PTR(unit) + 5) = ox;
       *(RSTRUCT_PTR(unit) + 6) = oy;
@@ -2735,7 +2735,7 @@ static void maplayer_render_to_inner(VALUE self, VALUE dunit)
       VALUE oy = *(RSTRUCT_PTR(unit) + 6);
       *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
       *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
-      render_inner(unit, dunit);
+      render_to_inner(unit, dunit);
       *(RSTRUCT_PTR(unit) + 5) = ox;
       *(RSTRUCT_PTR(unit) + 6) = oy;
     }
@@ -2775,9 +2775,9 @@ static void fixedmaplayer_render_to_inner(VALUE self, VALUE dunit)
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
       VALUE ox = *(RSTRUCT_PTR(unit) + 5);
       VALUE oy = *(RSTRUCT_PTR(unit) + 6);
-      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x * ow);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y * oh);
-      render_inner(unit, dunit);
+      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
+      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      render_to_inner(unit, dunit);
       *(RSTRUCT_PTR(unit) + 5) = ox;
       *(RSTRUCT_PTR(unit) + 6) = oy;
     }
@@ -2908,7 +2908,7 @@ static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
-    maplayer_render_inner(*(RARRAY_PTR(map_layers) + i), dunit);
+    maplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), dunit);
   }
 
   return Qnil;
@@ -2932,7 +2932,7 @@ static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
   for(i=0; i<RARRAY_LEN(map_layers); i++){
-    fixedmaplayer_render_inner(*(RARRAY_PTR(map_layers) + i), dunit);
+    fixedmaplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), dunit);
   }
 
   return Qnil;
