@@ -47,13 +47,27 @@ module Miyako
       self.y=y
       return self
     end
+    #また、ブロックを渡せば、複製したインスタンスに補正を欠けることが出来る(画像変換も可能)
 
     #===自分自身を返す
     #SpriteUnit対応
     #ダックタイピング用のメソッド
-    #返却値:: 自分自身(複製して返す)
+    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
+    #返却値:: 自分自身
     def to_unit
-      return self.dup
+      return self
+    end
+
+    #===スプライトを生成して返す
+    #ダックタイピング用のメソッド
+    #所持しているSpriteUnitから、Spriteクラスのインスタンスを生成する
+    #但し、bitmapの設定は:type=>:alpha_channelのみ
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
+    #返却値:: 生成したスプライト
+    def to_sprite
+      sprite = Sprite.new(:unit=>self, :type=>:ac)
+      yield sprite if block_given?
+      return sprite
     end
 
     #===画像の表示矩形を取得する

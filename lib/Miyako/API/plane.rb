@@ -121,6 +121,16 @@ module Miyako
       return self
     end
     
+    #===現在表示されているプレーンをSpriteクラスのインスタンスとして取得
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
+    #返却値:: 取り込んだ画像を含むSpriteクラスのインスタンス
+    def to_sprite
+      sprite = Sprite.new(:size=>self.rect.to_a[2..3], :type=>:ac)
+      self.render_to(sprite)
+      yield sprite if block_given?
+      return sprite
+    end
+
     def Plane::resize #:nodoc:
       @@planes.each{|p| p.resize }
       return nil

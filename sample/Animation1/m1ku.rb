@@ -5,7 +5,7 @@
 require 'Miyako/miyako'
 include Miyako
 
-Screen.fps_view = true
+#Screen.fps_view = true
 
 def create_arm(num)
   spr = Sprite.new(:file=>sprintf("m1ku_arm_#{num}.png"), :type=>:ck)
@@ -19,9 +19,8 @@ def create_eye(num)
   return spr
 end
 
-bk = Sprite.new(:file=>"m1ku_back.jpg", :type=>:as)
-back = bk.to_sprite
-back.fill([0,0,0])
+back = Sprite.new(:file=>"m1ku_back.jpg", :type=>:as)
+backs = SpriteAnimation.new(:sprite=>Array.new(12){|n| back.to_sprite{|sprite| Bitmap.hue!(sprite, sprite, 30 * n) }}, :wait => 0.1).start
 
 body = Sprite.new(:file=>"m1ku_body.png", :type=>:ck)
 body.move_to(200, 64)
@@ -52,17 +51,13 @@ eye_anim_param = {
 eye_anim = SpriteAnimation.new(eye_anim_param)
 eye_anim.start
 
-rate = 1.0
-amt = -0.1
-degree = 0
-damt = 10
-pos  = 0
-rate = 10
+damt = 30
 
 # Main Routine
 Miyako.main_loop do
   break if Input.quit_or_escape?
-  back.render
+  backs.render
+  backs.update_animation
   hair_r.render
   arm_anim.update_animation
   arm_anim.render
@@ -70,8 +65,4 @@ Miyako.main_loop do
   eye_anim.update_animation
   eye_anim.render
   hair_f.render
-  # change hue
-  back.fill([0,0,0])
-  Bitmap.hue!(bk, back, degree)
-  degree = (degree + damt) % 360
 end

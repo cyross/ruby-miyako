@@ -119,11 +119,13 @@ module Miyako
 
     #===スプライトに変換した画像を表示する
     #すべてのパーツを貼り付けた、１枚のスプライトを返す
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
     #返却値:: 描画したスプライト
     def to_sprite
       rect = self.broad_rect
       sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
       self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
+      yield sprite if block_given?
       return sprite
     end
 

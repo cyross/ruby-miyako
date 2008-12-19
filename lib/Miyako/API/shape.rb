@@ -368,8 +368,11 @@ end
 class String
   #===文字列から、その文字を描画したスプライトを作成する
   #自分自身が持つ文字列をShape.textメソッドを使用して画像を作成する
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
   #_data_:: 描画するフォント(Fontクラスのインスタンス)
   def to_sprite(data)
-    return Miyako::Shape.text({:text => self, :font => data})
+    sprite = Miyako::Shape.text({:text => self, :font => data})
+    yield sprite if block_given?
+    return sprite
   end
 end

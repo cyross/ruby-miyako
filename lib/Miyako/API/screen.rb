@@ -122,9 +122,10 @@ module Miyako
     end
 
     #===画面を管理するSpriteUnitを取得する
+    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
     #返却値:: SpriteUnitインスタンス
     def Screen::to_unit
-      return @@unit.dup
+      return @@unit
     end
 
     #===画像の回転・拡大・縮小の中心座標を取得する
@@ -227,15 +228,12 @@ module Miyako
 
     #===現在表示されている画面を複製し、Spriteクラスのインスタンスとして取得
     #Screen.captureとの違いは、パラメータ・サイズは不変(画面の大きさで複製)で取り扱う。
-    #
-    #_param_:: Spriteインスタンスを生成するときに渡すパラメータ(但し、:sizeと:typeのみ使用する)
-    #_rect_:: 取り込む画像の矩形(4要素の配列もしくはRect構造体のインスタンス)
-    #デフォルトは画面の大きさ
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
     #返却値:: 取り込んだ画像を含むSpriteクラスのインスタンス
     def Screen::to_sprite
-      param[:size] = Size.new(*(rect[2..3]))
-      dst = Sprite.new(param)
+      dst = Sprite.new(:size => Size.new(*(rect[2..3])), :type => :ac)
       Bitmap.screen_to_ac!(Screen, dst)
+      yield dst if block_given?
       return dst
     end
 

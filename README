@@ -853,6 +853,7 @@ v2.0.0(2008.12.14)
 ・Sprite#render_to、Sprite#render_transform、Sprite#render_to_transformメソッドの追加
 ・Sprite#render、Sprite#render_to、Sprite#render_transform、Sprite#render_to_transformにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
 ・Sprite.render_spriteメソッドの追加(スプライト同士の転送に対応)
+・Sprite#to_spriteメソッドにブロック対応の追加(複製したスプライトに補正・画像処理を加えられる)
 ・Sprite#collisionメソッドの廃止(コリジョンの独立化)
 ・Sprite#to_spriteメソッドの処理変更(selfを返す→複製して返す)
 ・Sprite#angle,angle=,xscale,xscale=,yscale,yscale=,center_x,center_x=,center_y,center_y=メソッドの追加
@@ -945,7 +946,7 @@ v2.0.0(2008.12.14)
 ・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
 ・Choices#rect、broad_rect、to_sprite、attachメソッドの追加
 ・Collision#move、Collision#move_toメソッドを追加
-・Plane#rect、Plane#broad_rectメソッドの追加
+・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_spriteメソッドの追加
 ・Effectクラスを廃止
 ・Map#update、FixedMap#updateメソッドの内容変更(MapEventのupdateは行われず、明示的に呼び出すことに注意)
 ・Map#render、FixedMap#renderメソッドの追加(MapEventはrenderされず、明示的に呼び出すことに注意)

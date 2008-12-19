@@ -317,13 +317,15 @@ module Miyako
     end
 
     #===インスタンスをSpriteUnit構造体に変換して取得する
+    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
     #返却値:: SpriteUnit化したスプライト
     def to_unit
-      return @unit.dup
+      return @unit
     end
 
     #===インスタンスをスプライト化して返す
     #インスタンスの複製を行う(画像インスタンスも複製)
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
     #注意事項：
     #１．複製のため、呼び出していくとメモリ使用量が著しく上がる
     #２．レイアウト情報がリセットされる(snapの親子関係が解消される)
@@ -332,7 +334,9 @@ module Miyako
       unit = @unit.dup
       unit.bitmap = Bitmap.create(unit.bitmap.w, unit.bitmap.h)
       Bitmap.blit_aa!(@unit, unit, 0, 0)
-      return Sprite.new(:unit=>unit, :type=>:ac)
+      sprite = Sprite.new(:unit=>unit, :type=>:ac)
+      yield sprite if block_given?
+      return sprite
     end
   end
 end

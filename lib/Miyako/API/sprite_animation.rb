@@ -188,11 +188,11 @@ module Miyako
         }
       else
         @units = Array.new(@pats){|pat|
-          SpriteUnitFactory.create(:bitmap=>@slist[p].bitmap,
-                                   :ox => @slist[p].ox,
-                                   :oy => @slist[p].oy,
-                                   :ow => @slist[p].ow,
-                                   :oh => @slist[p].oh)
+          SpriteUnitFactory.create(:bitmap=>@slist[pat].bitmap,
+                                   :ox => @slist[pat].ox,
+                                   :oy => @slist[pat].oy,
+                                   :ow => @slist[pat].ow,
+                                   :oh => @slist[pat].oh)
         }
       end
 
@@ -420,23 +420,25 @@ module Miyako
       return @exec
     end
 
-    # 現在実行中のパターンの元になったスプライトユニットを返す
-    # 返却値:: 現在表示しているスプライトユニット
+    #===現在実行中のパターンの元になったスプライトユニットを返す
+    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
+    #返却値:: 現在表示しているスプライトユニット
     def to_unit
-      return @now.dup
+      return @now
     end
     
-    # 現在実行中のパターンの画像を返す
-    # 返却値:: 現在表示している画像(bitmap)
+    #=== 現在実行中のパターンの画像を返す
+    #返却値:: 現在表示している画像(bitmap)
     def bitmap
       return @now.bitmap
     end
     
     #===現在実行中のパターンの元になったインスタンスを返す
     #取得するパターンは、元になったインスタンスのto_spriteメソッドを呼び出した時の値となる
-    # 返却値:: 現在表示しているスプライト
-    def to_sprite
-      return @slist[@plist[@pnum]].to_sprite
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
+    #返却値:: 現在表示しているスプライト
+    def to_sprite(&block)
+      return @slist[@plist[@pnum]].to_sprite(&block)
     end
 
     #===現在の画面の最大の大きさを矩形で取得する
