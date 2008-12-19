@@ -178,6 +178,9 @@ module Miyako
       @key_amount   = lambda{ Input.pushed_amount }
       @mouse_amount = lambda{ Input.mouse_cursor_inner? ? Input.get_mouse_position : nil }
 
+      @pre_pause = lambda{}
+      @pre_command = lambda{}
+      
       @is_outer_height = self.method(:is_outer_height)
     end
 
@@ -527,6 +530,22 @@ module Miyako
       return self
     end
 
+    #===ポーズ時に行いたい処理をブロックとして渡す
+    #pauseメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
+    #返却値:: 自分自身を返す
+    def pre_pause(&proc)
+      @pre_pause = proc
+      return self
+    end
+
+    #===コマンド選択時に行いたい処理をブロックとして渡す
+    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
+    #返却値:: 自分自身を返す
+    def pre_command(&proc)
+      @pre_pause = proc
+      return self
+    end
+
     #===プロットの処理結果を返す
     #プロット処理の結果を返す。
     #まだ結果が得られていない場合はnilを得る
@@ -709,8 +728,12 @@ module Miyako
     #ポーズが行われると、ポーズ用のカーソルが表示される
     #所定のボタンを押すとポーズが解除され、カーソルが消える
     #解除後は、プロットの続きを処理する
+    #引数無しのブロックを渡せば、ポーズ開始前に行いたい処理を施すことが出来る
+    #(たとえば、一定時間後に自動的にポーズ解除する場合、そのタイマーを開始させるなど)
     #返却値:: 自分自身を返す
     def pause
+      @pre_pause.call
+      yield if block_given?
       @yuki[:text_box].pause
       @mutex.lock
       @yuki[:pausing] = true
@@ -743,6 +766,7 @@ module Miyako
     #キャンセルのときの結果も指定可能（既定ではキャンセル不可状態）
     #body_selectedをnilにした場合は、bodyと同一となる
     #body_selectedを文字列を指定した場合は、文字色が赤色になることに注意
+    #引数無しのブロックを渡せば、ポーズ開始前に行いたい処理を施すことが出来る
     #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
     #_cansel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
@@ -755,6 +779,8 @@ module Miyako
       command_list.each{|cm| choices.push([cm[:body], cm[:body_selected], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
       return self if choices.length == 0
 
+      @pre_command.call
+      yield if block_given?
       @yuki[:command_box].command(@yuki[:command_box].create_choices_chain(choices, &chain_block))
       @mutex.lock
       @yuki[:result] = nil

@@ -894,6 +894,8 @@ v2.0.0(2008.12.14)
 ・Yuki#release_checks、ok_checks、cansel_checksアクセサを追加
 ・Yuki#reset_release_checks、reset_ok_checks、reset_cansel_checksメソッドを追加
 ・Yuki#release_checks_during、ok_checks_during、cansel_checks_duringメソッドを追加
+・Yuki#pre_pause、Yuki#pre_commandメソッドを追加
+・Yuki#pause、commandメソッドをブロック渡し対応にした
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
