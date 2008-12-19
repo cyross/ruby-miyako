@@ -356,6 +356,7 @@ module Miyako
 
     #===ボタンがクリックされたかを問い合わせるメソッド
     #ボタンの問い合わせは可変個数のシンボルで行う。指定できるボタンは以下の通り
+    #このメソッドを呼び出した後、そのボタンの返却値は、Input.updateが呼ばれない限りfalseになることに注意。
     #
     #:left : 左ボタン
     #:middle : 中ボタン(ホイールをクリック)
@@ -365,8 +366,9 @@ module Miyako
     #_btn_:: 問い合わせるボタンを示すシンボル(可変個)
     #返却値:: ボタンが押されていれば true を返す
     def Input::click?(btn)
-      ret = btn == :any ? (@@mouse[:click][:left] || @@mouse[:click][:middle] || @@mouse[:click][:right]) : @@mouse[:click][btn]
-      @@mouse[:click][:left] = @@mouse[:click][:middle] = @@mouse[:click][:right] = false
+      btns = (btn == :any ? [:left, :middle, :right] : [btn])
+      ret = btns.inject(false){|r, f| r |= @@mouse[:click][f]}
+      btns.each{|b| @@mouse[:click][b] = false }
       return ret
     end
 

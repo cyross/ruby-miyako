@@ -48,7 +48,7 @@ class MainScene
     elsif @yuki.executing?
       @yuki.update
     elsif @executing_flags.none?
-      if Input.pushed_any?(:btn1)
+      if Input.pushed_any?(:btn1) || Input.click?(:left)
         #１ボタンを押したとき、イベントに重なっていればマップイベントを実行、
         #外れていれば、コマンドウィンドウを開く
         event_flags = @map.events.map{|e| e.met?(:collision => @map.collision)}
