@@ -21,15 +21,17 @@ class Red
 
   def setup
     @yuki.setup
-    @yuki.exec_plot(self.method(:plot))
+    message_box.start
+    command_box.start
+    @yuki.start_plot(@yuki.to_plot(self, :plot))
   end
   
   def get_command
-    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:akamatsu_aisatsu] == false}, self.method(:red2)),
-             Yuki::Command.new("辺りを見る", nil, lambda{var[:akamatsu_aisatsu]==true }, self.method(:look)),
-             Yuki::Command.new("話す",       nil, lambda{var[:akamatsu_aisatsu]==true }, self.method(:talk)),
-             Yuki::Command.new("渡す",       nil, lambda{var[:akamatsu_aisatsu] && var[:release_akamatsu_book] && var[:search_bookmark]==false}, self.method(:send1)),
-             Yuki::Command.new("渡す",       nil, lambda{var[:search_bookmark] && var[:get_bookmark] && var[:aikotoba]==false}, self.method(:send2)),
+    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:akamatsu_aisatsu] == false}, @yuki.to_plot(self, :red2)),
+             Yuki::Command.new("辺りを見る", nil, lambda{var[:akamatsu_aisatsu]==true }, @yuki.to_plot(self, :look)),
+             Yuki::Command.new("話す",       nil, lambda{var[:akamatsu_aisatsu]==true }, @yuki.to_plot(self, :talk)),
+             Yuki::Command.new("渡す",       nil, lambda{var[:akamatsu_aisatsu] && var[:release_akamatsu_book] && var[:search_bookmark]==false}, @yuki.to_plot(self, :send1)),
+             Yuki::Command.new("渡す",       nil, lambda{var[:search_bookmark] && var[:get_bookmark] && var[:aikotoba]==false}, @yuki.to_plot(self, :send2)),
              Yuki::Command.new("戻る",       nil, lambda{var[:akamatsu_aisatsu]==true}, MainScene)]
   end
   
@@ -40,7 +42,7 @@ class Red
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     if @yuki.is_scenario?(r)
-      @yuki.exec_plot(r)
+      @yuki.start_plot(r)
       r = @now
     end
     return r
@@ -191,6 +193,11 @@ class Red
   def text_wait(txt, w = 0.3)
     @yuki.text txt
     @yuki.wait w
+  end
+
+  def final
+    message_box.stop
+    command_box.stop
   end
     
   def dispose

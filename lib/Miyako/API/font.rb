@@ -25,6 +25,7 @@ module Miyako
 
 =begin rdoc
 ==フォント管理クラス
+フォントは、等幅フォント奨励(プロポーショナルフォントを選ぶと、文字が正しく描画されない可能性あり）
 =end
   class Font
     extend Forwardable
@@ -43,10 +44,10 @@ module Miyako
                                       "/ライブラリ/Fonts/", "/システム/ライブラリ/Fonts/"]
 
     @@font_base_name = Hash.new
-    @@font_base_name["win"] = [{:serif=>"msmincho.ttc", :sans_serif=>"meiryo.ttc"},
-                               {:serif=>"msmincho.ttc", :sans_serif=>"msgothic.ttc"},
+    @@font_base_name["win"] = [{:serif=>"msmincho.ttc", :sans_serif=>"msgothic.ttc"},
                                {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"},
-                               {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"}]
+                               {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"},
+                               {:serif=>"msmincho.ttc", :sans_serif=>"meiryo.ttc"}]
     @@font_base_name["linux"] = [{:serif=>"sazanami-mincho.ttf", :sans_serif=>"sazanami-gothic.ttf"},
                                     {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"},
                                     {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"}]
@@ -324,7 +325,7 @@ module Miyako
       else
         return x
       end
-      return x + @font.textSize(str)[0]
+      return x + self.text_size(str)[0]
     end
 
     #===文字列描画したときの大きさを取得する
@@ -332,8 +333,8 @@ module Miyako
     #_txt_:: 算出したい文字列
     #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
     def text_size(txt)
-      return [txt.chars.inject(0){|r, c| r += (c.length == 1 ? @size >> 1 : @size) } + (@use_shadow ? @shadow_margin[0] : 0),
-              self.line_height]
+      width = txt.chars.inject(0){|r, c| r += (c.length == 1 ? @size >> 1 : @size) } + (@use_shadow ? @shadow_margin[0] : 0)
+      return [width, self.line_height]
     end
     
     #===指定した高さで描画する際のマージンを求める

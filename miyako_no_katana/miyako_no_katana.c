@@ -2956,31 +2956,33 @@ static VALUE sa_set_pat(VALUE self)
 static VALUE sa_update_frame(VALUE self)
 {
   int cnt = NUM2INT(rb_iv_get(self, "@cnt"));
-  if(cnt == 0){
-    VALUE num = rb_iv_get(self, "@pnum");
-    VALUE loop = rb_iv_get(self, "@loop");
 
-    int pnum = NUM2INT(num);
-    int pats = NUM2INT(rb_iv_get(self, "@pats"));
-    pnum = (pnum + 1) % pats;
-
-    rb_iv_set(self, "@pnum", INT2NUM(pnum));
-
-    if(loop == Qfalse && pnum == 0){
-      rb_funcall(self, rb_intern("stop"), 0);
-      return Qnil;
-    }
-
-    sa_set_pat(self);
-    VALUE plist = rb_iv_get(self, "@plist");
-    VALUE waits = rb_iv_get(self, "@waits");
-    rb_iv_set(self, "@cnt", *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum))));
-  }
-  else{
+  if(cnt > 0){
     cnt--;
     rb_iv_set(self, "@cnt", INT2NUM(cnt));
+    return Qfalse;
   }
-  return Qnil;
+
+  VALUE num = rb_iv_get(self, "@pnum");
+  VALUE loop = rb_iv_get(self, "@loop");
+
+  int pnum = NUM2INT(num);
+  int pats = NUM2INT(rb_iv_get(self, "@pats"));
+  pnum = (pnum + 1) % pats;
+
+  rb_iv_set(self, "@pnum", INT2NUM(pnum));
+
+  if(loop == Qfalse && pnum == 0){
+    rb_funcall(self, rb_intern("stop"), 0);
+    return Qfalse;
+  }
+
+  sa_set_pat(self);
+  VALUE plist = rb_iv_get(self, "@plist");
+  VALUE waits = rb_iv_get(self, "@waits");
+  rb_iv_set(self, "@cnt", *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum))));
+
+  return Qtrue;
 }
 
 /*
@@ -2990,29 +2992,30 @@ static VALUE sa_update_wait_counter(VALUE self)
 {
   VALUE cnt = rb_iv_get(self, "@cnt");
   VALUE waiting = rb_funcall(cnt, rb_intern("waiting?"), 0);
-  if(waiting == Qfalse){
-    VALUE num = rb_iv_get(self, "@pnum");
-    VALUE loop = rb_iv_get(self, "@loop");
 
-    int pnum = NUM2INT(num);
-    int pats = NUM2INT(rb_iv_get(self, "@pats"));
-    pnum = (pnum + 1) % pats;
-    
-    rb_iv_set(self, "@pnum", INT2NUM(pnum));
-    
-    if(loop == Qfalse && pnum == 0){
-      rb_funcall(self, rb_intern("stop"), 0);
-      return Qnil;
-    }
+  if(waiting == Qtrue) return Qfalse;
+  
+  VALUE num = rb_iv_get(self, "@pnum");
+  VALUE loop = rb_iv_get(self, "@loop");
 
-    sa_set_pat(self);
-    VALUE plist = rb_iv_get(self, "@plist");
-    VALUE waits = rb_iv_get(self, "@waits");
-    cnt = *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum)));
-    rb_iv_set(self, "@cnt", cnt);
-    rb_funcall(cnt, rb_intern("start"), 0);
+  int pnum = NUM2INT(num);
+  int pats = NUM2INT(rb_iv_get(self, "@pats"));
+  pnum = (pnum + 1) % pats;
+    
+  rb_iv_set(self, "@pnum", INT2NUM(pnum));
+    
+  if(loop == Qfalse && pnum == 0){
+    rb_funcall(self, rb_intern("stop"), 0);
+    return Qfalse;
   }
-  return Qnil;
+
+  sa_set_pat(self);
+  VALUE plist = rb_iv_get(self, "@plist");
+  VALUE waits = rb_iv_get(self, "@waits");
+  cnt = *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum)));
+  rb_iv_set(self, "@cnt", cnt);
+  rb_funcall(cnt, rb_intern("start"), 0);
+  return Qtrue;
 }
 
 /*
@@ -3020,8 +3023,9 @@ static VALUE sa_update_wait_counter(VALUE self)
 */
 static VALUE sa_update(VALUE self)
 {
+  VALUE is_change = Qfalse;
   VALUE exec = rb_iv_get(self, "@exec");
-  if(exec == Qfalse){ return Qnil; }
+  if(exec == Qfalse){ return is_change; }
 
   VALUE polist = rb_iv_get(self, "@pos_offset");
   VALUE dir = rb_iv_get(self, "@dir");
@@ -3036,9 +3040,9 @@ static VALUE sa_update(VALUE self)
   *(RSTRUCT_PTR(now) +  didx1) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  didx1)) - NUM2INT(pos_off));
 
   if(rb_obj_is_kind_of(rb_iv_get(self, "@cnt"), rb_cInteger) == Qtrue)
-    sa_update_frame(self);
+    is_change = sa_update_frame(self);
   else
-    sa_update_wait_counter(self);
+    is_change = sa_update_wait_counter(self);
   
   now = rb_iv_get(self, "@now");
   num = rb_iv_get(self, "@pnum");
@@ -3057,7 +3061,7 @@ static VALUE sa_update(VALUE self)
   
   *(RSTRUCT_PTR(now) +  didx2) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  didx2)) + NUM2INT(pos_off));
 
-  return Qnil;
+  return is_change;
 }
 
 /*

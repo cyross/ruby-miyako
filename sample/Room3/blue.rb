@@ -23,7 +23,9 @@ class Blue
 
   def setup
     @yuki.setup
-    @yuki.exec_plot(self.method(:plot))
+    message_box.start
+    command_box.start
+    @yuki.start_plot(@yuki.to_plot(self, :plot))
   end
 
   def update
@@ -33,7 +35,7 @@ class Blue
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     if @yuki.is_scenario?(r)
-      @yuki.exec_plot(r)
+      @yuki.start_plot(r)
       r = @now
     end
     return r
@@ -47,23 +49,23 @@ class Blue
   end
   
   def get_command
-    return [Yuki::Command.new("挨拶する", nil, lambda{var[:aoyama_aisatsu]==false}, self.method(:blue2)),
-             Yuki::Command.new("辺りを見る", nil, lambda{var[:aoyama_aisatsu]==true}, self.method(:look_blue)),
-             Yuki::Command.new("話す", nil, lambda{var[:aoyama_aisatsu]==true}, self.method(:talk)),
-             Yuki::Command.new("渡す", nil, lambda{var[:aoyama_aisatsu]==true && var[:release_aoyama_book]==true && var[:release_akamatsu_book]==false}, self.method(:send1)),
-             Yuki::Command.new("探す", nil, lambda{var[:search_bookmark]==true && var[:get_bookmark]==false}, self.method(:search)),
+    return [Yuki::Command.new("挨拶する", nil, lambda{var[:aoyama_aisatsu]==false}, @yuki.to_plot(self, :blue2)),
+             Yuki::Command.new("辺りを見る", nil, lambda{var[:aoyama_aisatsu]==true}, @yuki.to_plot(self, :look_blue)),
+             Yuki::Command.new("話す", nil, lambda{var[:aoyama_aisatsu]==true}, @yuki.to_plot(self, :talk)),
+             Yuki::Command.new("渡す", nil, lambda{var[:aoyama_aisatsu]==true && var[:release_aoyama_book]==true && var[:release_akamatsu_book]==false}, @yuki.to_plot(self, :send1)),
+             Yuki::Command.new("探す", nil, lambda{var[:search_bookmark]==true && var[:get_bookmark]==false}, @yuki.to_plot(self, :search)),
              Yuki::Command.new("戻る", nil, lambda{var[:aoyama_aisatsu]==true}, MainScene)]
   end
   
   def get_search
     "どこを？"
-    return [Yuki::Command.new("壁", nil, nil, self.method(:wall)),
-             Yuki::Command.new("テレビ", nil, nil, self.method(:tv)),
-             Yuki::Command.new("テレビ台", nil, nil, self.method(:tv_base)),
-             Yuki::Command.new("ビデオデッキ", nil, lambda{var[:look_video_base] == true}, self.method(:video)),
-             Yuki::Command.new("テレビゲーム機", nil, lambda{var[:look_video_base] == true}, self.method(:tv_game)),
-             Yuki::Command.new("ソファー", nil, nil, self.method(:sofar)),
-             Yuki::Command.new("ベッド", nil, nil, self.method(:bed)),
+    return [Yuki::Command.new("壁", nil, nil, @yuki.to_plot(self, :wall)),
+             Yuki::Command.new("テレビ", nil, nil, @yuki.to_plot(self, :tv)),
+             Yuki::Command.new("テレビ台", nil, nil, @yuki.to_plot(self, :tv_base)),
+             Yuki::Command.new("ビデオデッキ", nil, lambda{var[:look_video_base] == true}, @yuki.to_plot(self, :video)),
+             Yuki::Command.new("テレビゲーム機", nil, lambda{var[:look_video_base] == true}, @yuki.to_plot(self, :tv_game)),
+             Yuki::Command.new("ソファー", nil, nil, @yuki.to_plot(self, :sofar)),
+             Yuki::Command.new("ベッド", nil, nil, @yuki.to_plot(self, :bed)),
              Yuki::Command.new("戻る", nil, nil, "ret")]
   end
   
@@ -75,7 +77,7 @@ class Blue
     yuki.color(:cyan){var[:aoyama_aisatsu]==true ? "青山くん" : "男の子"}
     yuki.text "が居る。"
     yuki.cr
-    return self.method(:main_command)
+    return yuki.to_plot(self, :main_command)
   end
   
   def main_command(yuki)
@@ -241,6 +243,11 @@ class Blue
     yuki.pause.cr
     yuki.text "ソファーより固そうだ。"
     yuki.pause.clear
+  end
+
+  def final
+    message_box.stop
+    command_box.stop
   end
 
   def dispose

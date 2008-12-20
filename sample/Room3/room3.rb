@@ -23,4 +23,4 @@ require 'blue'
 require 'ending'
 
 r3 = Story.new
-r3.run(Title)
+r3.run(MainScene)

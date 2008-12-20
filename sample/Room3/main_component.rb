@@ -13,9 +13,9 @@ module MainComponent
     sc = SpriteAnimation.new(:sprite => sc, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1])
 
     tb = TextBox.new(:size=>size, :font=>font, :wait_cursor=>wc, :select_cursor=>sc)
-    tb.pause_type = :out # ウェイトカーソルとボックスの真下に
+    tb.set_wait_cursor_position{|wc,tbox| wc.right.bottom } # ウェイトカーソルとボックスの右下に
 
-    bg = Sprite.new(:size=>tb.size, :type=>:ac)
+    bg = Sprite.new(:size=>tb.size.map{|n| n + 4}, :type=>:ac)
     bg.fill(color)
     
     box = Parts.new(bg.size)

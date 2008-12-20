@@ -30,10 +30,9 @@ module Miyako
     extend Forwardable
 
     @@windows = Array.new
-    @@select_margin = {:left => 1, :over => 0}
 
     attr_accessor :textarea
-    attr_accessor :pause_type, :select_type, :waiting, :selecting
+    attr_accessor :select_type, :waiting, :selecting
     attr_accessor :font, :margin
     attr_reader :wait_cursor, :select_cursor, :choices
     attr_reader :draw_type, :locate, :size, :max_height
@@ -68,14 +67,20 @@ module Miyako
       @textarea = Sprite.new({:size => @size, :type => :ac, :is_fill => true})
 
       @wait_cursor = params[:wait_cursor] || params[:wc] || nil
+      @wait_cursor.snap(@textarea) if @wait_cursor
+      @default_wait_cursor_position = lambda{|wcursor, tbox| wcursor.center.bottom(:inside)}
+      @wait_cursor_position = @default_wait_cursor_position
       @select_cursor = params[:select_cursor] || params[:sc] || nil
+      @select_cursor.snap(@textarea) if @select_cursor
+      @default_select_cursor_position = lambda{|scursor, tbox| scursor.left(:outside).middle}
+      @select_cursor_position = @default_select_cursor_position
 
       @command_page_size = params[:page_size] || @base[1]
 
       @choices = Choices.new
       @now_choice = nil
+      @pre_attach = false
       
-      @pause_type = :bottom
       @waiting = false
       @select_type = :left
       @selecting = false
@@ -119,6 +124,36 @@ module Miyako
     end
 
     def update #:nodoc:
+    end
+    
+    #===テキストボックスのアニメーションを開始する
+    #返却値:: 自分自身を返す
+    def start
+      @textarea.start
+      @wait_cursor.start if @wait_cursor
+      @choices.start
+      @select_cursor.start if @select_cursor
+      return self
+    end
+
+    #===テキストボックスのアニメーションを停止する
+    #返却値:: 自分自身を返す
+    def stop
+      @textarea.stop
+      @wait_cursor.stop if @wait_cursor
+      @choices.stop
+      @select_cursor.stop if @select_cursor
+      return self
+    end
+
+    #===テキストボックスのアニメーションを先頭に戻す
+    #返却値:: 自分自身を返す
+    def reset
+      @textarea.reset
+      @wait_cursor.reset if @wait_cursor
+      @choices.reset
+      @select_cursor.reset if @select_cursor
+      return self
     end
 
     #===テキストボックスの表示を更新する
@@ -315,10 +350,12 @@ module Miyako
         return yield(choices)
       end
       choices = choices.map{|v|
+        org_font_color = @font.color
         @font.color = Color[:white]
         body = v[0].to_sprite(@font)
         @font.color = Color[:red]
         body_selected = v[1] ? v[1].to_sprite(@font) : body
+        @font.color = org_font_color
         choice = Choices.create_choice(body, body_selected)
         choice.result = v[2]
         next choice
@@ -341,17 +378,9 @@ module Miyako
           v.up = cc[y - 1]
           v.right = (y >= right.length ? right.last : right[y])
           v.left = (y >= left.length ? left.last : left[y])
-          v.body.move_to(@textarea.x + 
-                           @locate.x + 
-                           @select_cursor.ow *
-                           @@select_margin[@select_type],
-                          yp)
+          v.body.move_to(@textarea.x + @locate.x, yp)
           if v.body_selected
-            v.body_selected.move_to(@textarea.x + 
-                                     @locate.x + 
-                                     @select_cursor.ow *
-                                     @@select_margin[@select_type],
-                                     yp)
+            v.body_selected.move_to(@textarea.x + @locate.x, yp)
           end
           yp += v.body.oh
         }
@@ -382,14 +411,9 @@ module Miyako
       raise MiyakoError, "don't set Choice!" if @choices.length == 0
       @choices.start_choice
       if @select_cursor
-        @select_cursor.move_to(@choices.body.x -
-                                @select_cursor.ow * 
-                                @@select_margin[@select_type],
-                              @choices.body.y +
-                                (@choices.body.oh - @select_cursor.oh) / 2)
-        @select_cursor.start
+        @select_cursor.snap(@choices.body)
+        @select_cursor_position.call(@select_cursor, @choices.body)
       end
-      @choices.start
       @selecting = true
       return self
     end
@@ -397,69 +421,119 @@ module Miyako
     #===コマンド選択を終了する
     #返却値:: 自分自身を返す
     def finish_command
-      @choices.stop
-      @select_cursor.stop
       @selecting = false
       return self
     end
 
     #===選択肢・選択カーソルを移動させる
+    #但し、非選択状態だったときは、選択状態に戻るだけ
+    #(そのときの選択肢は、最後に選択した選択肢を指定する)
     #_dx_:: 移動量(x軸方向)。-1,0,1の3種類
     #_dy_:: 移動量(y軸方向)。-1,0,1の3種類
     #返却値:: 自分自身を返す
     def move_cursor(dx, dy)
+      unless @choices.any_select?
+        @choices.start_choice(nil) # 選択状態を元に戻す
+        return self
+      end
       @move_list[dy][dx].call
       if @select_cursor
-        @select_cursor.move_to(@choices.body.x -
-                                @select_cursor.ow *
-                                @@select_margin[@select_type],
-                               @choices.body.y +
-                                (@choices.body.oh - @select_cursor.oh) / 2)
+        @select_cursor.snap(@choices.body)
+        @select_cursor_position.call(@select_cursor, @choices.body)
       end
       return self
     end
 
     #===マウスカーソルの位置とコマンドを照合する
     #選択肢・選択カーソルを、マウスカーソルが当たっているコマンドに移動させる
+    #どのコマンドにも当たっていない場合は、すべてのコマンドは非選択状態になる
     #_x_:: マウスカーソルの位置(x軸方向)
     #_y_:: マウスカーソルの位置(y軸方向)
     #返却値:: 自分自身を返す
     def attach_cursor(x, y)
-      return self unless @choices.attach(x, y)
-      if @select_cursor
-        @select_cursor.move_to(@choices.body.x -
-                                @select_cursor.ow *
-                                @@select_margin[@select_type],
-                               @choices.body.y +
-                                (@choices.body.oh - @select_cursor.oh) / 2)
+      attach = @choices.attach(x, y)
+      if attach
+        if @select_cursor
+          @select_cursor.snap(@choices.body)
+          @select_cursor_position.call(@select_cursor, @choices.body)
+        end
+      else
+        @choices.non_select if @pre_attach
       end
+      @pre_attach = attach
       return self
+    end
+
+    #===マウスカーソルの位置にコマンドがあるかどうかを問い合わせる
+    #マウスカーソルがどれかのコマンドの上にあるときはtrue、どれにも当たっていないときはfalseを返す
+    #_x_:: マウスカーソルの位置(x軸方向)
+    #_y_:: マウスカーソルの位置(y軸方向)
+    #返却値:: マウスカーソルがどれかのコマンドにあるときはtrueを返す
+    def attach_any_command?(x, y)
+      return @choices.attach(x, y)
     end
 
     def update_layout_position #:nodoc:
       @pos.move_to(*@layout.pos)
     end
 
+    #===入力待ち状態(ポーズ)に表示するカーソルの位置を設定する
+    #ポーズカーソルの位置を、パラメータ二つ(カーソル本体・テキストボックス)を引数に取るブロックで実装する
+    #位置は、テキストエリアをsnapしていると想定して実装する
+    #デフォルトは、テキストエリアの中下に置かれる(center.bottom(:inside))
+    #(例)テキストボックスの中下(テキストエリアの外) -> {|wc, tbox| wc.center.bottom(:outside) }
+    # 　 テキストボックスの右下(テキストエリアの中) -> {|wc, tbox| wc.right.bottom }
+    # 　 テキストの最後尾 -> {|wc, tbox| wc.left{|b| tbox.locate.x }.top{|b| tbox.locate.y} }
+    #    (テキストエリアの左上から右下へ現在の描画開始位置(tbox.locateメソッドで示した値)の距離移動した箇所)
+    #ブロックを渡していなかったり、ブロックの引数が2個でなければエラーを返す
+    #返却値:: 自分自身を返す
+    def set_wait_cursor_position(&proc)
+      raise MiyakoError, "Can't find block!" unless proc
+      raise MiyakoError, "This method must have two parameters!" unless proc.arity == 2
+      @wait_cursor_position = proc
+      return self
+    end
+
+    #===入力待ち状態(ポーズ)に表示するカーソルの位置をデフォルトに戻す
+    #デフォルトの位置は、テキストエリアの中下(center.bottom(:inside))に設定されている
+    #返却値:: 自分自身を返す
+    def reset_wait_cursor_position
+      @wait_cursor_position = @default_wait_cursor_position
+      return self
+    end
+
+    #===コマンド選択時に表示するカーソルの位置を設定する
+    #カーソルの位置を、パラメータ二つ(カーソル本体・選択肢)を引数に取るブロックで実装する
+    #位置は、テキストエリアをsnapしていると想定して実装する
+    #デフォルトは、選択肢の左側に置かれる(left(:outside).middle)
+    #(例)選択肢の右側 -> {|wc, choice| wc.right(:outside).middle }
+    # 　 選択肢の真上 -> {|wc, choice| wc.centering }
+    #ブロックを渡していなかったり、ブロックの引数が2個でなければエラーを返す
+    #返却値:: 自分自身を返す
+    def set_select_cursor_position(&proc)
+      raise MiyakoError, "Can't find block!" unless proc
+      raise MiyakoError, "This method must have two parameters!" unless proc.arity == 2
+      @select_cursor_position = proc
+      return self
+    end
+
+    #===入力待ち状態(ポーズ)に表示するカーソルの位置をデフォルトに戻す
+    #デフォルトの位置は、テキストエリアの中下(center.bottom(:inside))に設定されている
+    #返却値:: 自分自身を返す
+    def reset_select_cursor_position
+      @select_cursor_position = @default_select_cursor_position
+      return self
+    end
+
     #===入力待ち状態(ポーズ)にする
     #ポーズカーソルを表示する。pause?メソッドの結果がtrueになる
-    #ポーズカーソルの位置は、pause_type=メソッドの結果に依る(デフォルトは:bottom)
+    #ポーズカーソルの位置は、set_wait_cursor_positionで設定したブロックが評価されて決定される
+    #(デフォルトはテキストエリアの中下
     #返却値:: 自分自身を返す
     def pause
       @waiting = true
       return self unless @wait_cursor
-      case @pause_type
-      when :bottom
-        @wait_cursor.move_to(@textarea.x +
-                              (@textarea.w - @wait_cursor.ow) / 2,
-                             @textarea.y + @textarea.h - @wait_cursor.oh)
-      when :out
-        @wait_cursor.move_to(@textarea.x +
-                              (@textarea.w - @wait_cursor.ow) / 2,
-                             @textarea.y + @textarea.h)
-      when :last
-        @wait_cursor.move_to(@textarea.x + @locate.x, @textarea.y + @locate.y)
-      end
-      @wait_cursor.start
+      @wait_cursor_position.call(@wait_cursor, self)
       return self
     end
 
@@ -468,7 +542,6 @@ module Miyako
     #返却値:: 自分自身を返す
     def release
       @waiting = false
-      @wait_cursor.stop if @wait_cursor
       return self
     end
 

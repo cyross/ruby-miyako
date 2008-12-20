@@ -98,10 +98,15 @@ module Miyako
 
     #===選択を開始する
     #選択肢の初期位置を指定することができる
+    #第1引数にnilを渡すと、
+    #(例)
+    #choices.start_choice # [0][0]で示す位置の選択肢を選択する
+    #choices.start_choice(5,1) # [5][1]で示す位置の選択肢を選択する
+    #choices.start_choice(nil) # 最後に選択した選択肢を選択する(未選択だったときは全省略時の呼び出しと等価)
     #_x_:: 初期位置(x 座標)。規定値は 0。nilを渡すと、最後に選択した選択肢が選ばれる。
     #_y_:: 初期位置(y 座標)。規定値は 0
     def start_choice(x = 0, y = 0)
-      raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x != nil && x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
+      raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x != nil && (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length))
       @now = x ? @choices[x][y] : @last_selected
       @now.selected = true
       @last_selected = @now
@@ -148,6 +153,13 @@ module Miyako
       return self
     end
 
+    #===選択肢が選択状態かを問い合わせる
+    #現在、選択肢が選択状態か非選択状態(non_selectメソッド呼び出しなど)かを問い合わせる
+    #返却値:: 選択状態ならtrue、非選択状態ならfalseを返す
+    def any_select?
+      return !@non_select
+    end
+
     #===選択肢を変更する
     #指定の位置の現在の選択状態を、選択状態にする
     #_x_:: x方向位置
@@ -181,6 +193,17 @@ module Miyako
       @now = obj
       @now.selected = true
       return true
+    end
+
+    #===画面上の座標から、該当する選択肢があるかどうかを問い合わせる
+    #マウスカーソル位置などの座標から、座標を含む選択肢があるときはtrue、
+    #無いときはfalseを返す
+    #_x_:: x方向位置
+    #_y_:: y方向位置
+    #返却値:: 選択肢が見つかったときはtrue、見つからなかったときはfalseを返す
+    def attach?(x, y)
+      obj = @now.base.detect{|ch| ch.selected ? ch.body_selected.broad_rect.in_range?(x, y) : ch.body.broad_rect.in_range?(x, y) }
+      return obj ? true : false
     end
 
     #===選択肢を非選択状態に変更する
@@ -302,21 +325,39 @@ module Miyako
     # 選択肢のアニメーションを開始する
     # 返却値:: 自分自身を返す
     def start
-      @now.base.each{|c| c.body.start if c.condition.call }
+      return self unless @now
+      @now.base.each{|c|
+        if c.condition.call
+          c.body.start
+          c.body_selected.start if c.body != c.body_selected
+        end
+      }
       return self
     end
 
     # 選択肢のアニメーションを終了させる
     # 返却値:: 自分自身を返す
     def stop
-      @now.base.each{|c| c.body.stop if c.condition.call }
+      return self unless @now
+      @now.base.each{|c|
+        if c.condition.call
+          c.body.stop
+          c.body_selected.stop if c.body != c.body_selected
+        end
+      }
       return self
     end
 
     # 選択肢のアニメーションの再生位置を最初に戻す
     # 返却値:: 自分自身を返す
     def reset
-      @now.base.each{|c| c.body.reset if c.condition.call }
+      return self unless @now
+      @now.base.each{|c|
+        if c.condition.call
+          c.body.reset
+          c.body_selected.reset if c.body != c.body_selected
+        end
+      }
       return self
     end
 
@@ -324,6 +365,7 @@ module Miyako
     # (手動で更新する必要があるときに呼び出す)
     # 返却値:: 自分自身を返す
     def update_animation
+      return self unless @now
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
          c.body_selected.update_animation :

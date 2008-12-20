@@ -37,7 +37,7 @@ class Title
   end
 
   def waiting
-    if Input.pushed_any?
+    if Input.pushed_any? || Input.click?(:left)
       @exec = self.method(:view_out)
       @visible = false
     end
@@ -75,13 +75,13 @@ class TitleCall
     @yuki.select_textbox(message_box[:box])
     @man = Sprite.new(:file=>"image/start.png", :type=>:ck)
     @man.center.bottom
+    @alpha = 0.0
     @wait = WaitCounter.new(0.2)
     @exec = self.method(:view_in)
   end
 
   def setup
     @yuki.setup
-    @man.alpha = 0
     @wait.start
   end
 
@@ -90,14 +90,20 @@ class TitleCall
     return @exec.call
   end
   
+  def final
+    message_box.stop
+  end
+  
   def view_in
     if @wait.finish?
-      if @man.alpha == 255
+      if @alpha == 1.0
         @yuki.start_plot(self.method(:plot))
         @exec = self.method(:exec_yuki)
+        message_box.start
         return @now
       end
-      @man.alpha += 15
+      @alpha += 0.15
+      @alpha = 1.0 if @alpha >= 1.0
       @wait.start
     end
     return @now
@@ -165,7 +171,7 @@ class TitleCall
   end
 
   def render
-    @man.render
+    Bitmap.dec_alpha!(@man, Screen, @alpha)
     message_box.render if @exec == self.method(:exec_yuki)
   end
 end

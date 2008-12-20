@@ -2,9 +2,9 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.0
-【   作成日   】　2008/12/14
+【   作成日   】　2008/12/20
 【    種別    】　フリーウェア
-【  開発言語  】　Ruby 1.8.7-p22
+【  開発言語  】　Ruby 1.8.7-p72
 【 ランタイム 】　Ruby 1.8.7～,Ruby/SDL 2.0～,SDL
 【  対応機種  】　Windows 2000/XP/Vista、Linux、MacOSX
 【   再配布   】　GNU LGPL 2.1に基く
@@ -831,7 +831,7 @@ v1.5.0a(2008.07.21)
 ・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
 ・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
 
-v2.0.0(2008.12.14)
+v2.0.0(2008.12.20)
 ・Ruby/SDL2.0準拠に変更
 ・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
@@ -842,6 +842,7 @@ v2.0.0(2008.12.14)
 ・Font#text_sizeメソッドの内容の変更(2バイト以上の文字の幅が実際の文字の幅よりも大きくなっているため)
 ・Font#bold、italic、under_lineメソッドの内容の変更(ブロックを渡すと、ブロック評価中のみ効果がある仕様を追加)
 ・Font#margin_height、size_during、color_during、shadow_duringメソッドの追加
+・Font#sans_serifの優先度をメイリオ優先からMSゴシック優先に変更（メイリオは最後に、等幅フォント奨励へ変更）
 ・SpriteBase#render、rect、broad_rectメソッドの追加、dp,dp=,show,hideメソッドの廃止
 ・SpriteBase.ox,oy,ow,ohメソッドの戻り値仕様を変更(nil→0へ変更)
 ・SpriteBase.to_spriteメソッドの戻り値仕様を変更(nil→selfへ変更)
@@ -868,7 +869,9 @@ v2.0.0(2008.12.14)
 ・TextBox#marginアクセサ、TextBox#margin_duringメソッドを追加（set_marginメソッドは、ブロックを渡すと、そのブロックが評価されている間だけマージンが有効）
 ・TextBox#font_size_during、font_bold、font_italic、font_under_line、color_during、margin_heightメソッドを追加
 　（ブロックを渡すと、そのブロックが評価されている間だけフォントの属性が変更）
-・TextBox#attach_cursorメソッドの追加
+・TextBox#start、TextBox#stop、TextBox#resetメソッドの追加
+・TextBox#attach_cursor、TextBox#attach_any_command?メソッドの追加
+・TextBox#set_wait_cursor_position、TextBox#reset_wait_cursor_position、TextBox#set_select_cursor_position、TextBox#reset_select_cursor_positionメソッドの追加
 ・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
 ・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
 ・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
@@ -893,8 +896,8 @@ v2.0.0(2008.12.14)
 ・Yuki#release_checks、ok_checks、cansel_checksアクセサを追加
 ・Yuki#reset_release_checks、reset_ok_checks、reset_cansel_checksメソッドを追加
 ・Yuki#release_checks_during、ok_checks_during、cansel_checks_duringメソッドを追加
-・Yuki#pre_pause、Yuki#pre_commandメソッドを追加
-・Yuki#pause、commandメソッドをブロック渡し対応にした
+・Yuki#pre_pause、Yuki#pre_command、Yuki#pre_cancel、Yuki#post_pause、Yuki#post_command、Yuki#post_cancelメソッドを追加
+・Yuki#textbox、Yuki#commandboxメソッドを追加
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
@@ -945,7 +948,7 @@ v2.0.0(2008.12.14)
 ・Choices#start_choiceメソッド引数インタフェースの変更(第1引数にnilを渡すと、最後に選択した選択肢が自動的に選択される)
 ・Choices#non_select,selectメソッドの追加
 ・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
-・Choices#rect、broad_rect、to_sprite、attachメソッドの追加
+・Choices#rect、broad_rect、to_sprite、attach、attach?、any_select?メソッドの追加
 ・Collision#move、Collision#move_toメソッドを追加
 ・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_sprite、Plane#to_unitメソッドの追加
 ・Effectクラスを廃止
@@ -977,6 +980,7 @@ v2.0.0(2008.12.14)
 ・viewport.rb追加
 ・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
 ・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
+・miyako_no_katanaの、SpriteAnimation#update_animationが仕様通りになっていなかった問題を修正
 ・EXT/miyako_cairo.rb追加
 ・MiyakoCairoモジュールを追加
 ・MiyakoCairo.to_cairo_surface、MiyakoCairo.to_spriteメソッドの追加

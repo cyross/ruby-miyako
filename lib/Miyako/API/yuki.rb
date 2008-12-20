@@ -32,7 +32,7 @@ module Miyako
   class Yuki
     #==キャンセルを示す構造体
     #コマンド選択がキャンセルされたときに生成される構造体
-    Cansceled = Struct.new(:dummy)
+    Canceled = Struct.new(:dummy)
 
     #==Yuki実行管理クラス(外部クラスからの管理用)
     #実行中のYukiの管理を行うためのクラス
@@ -170,10 +170,12 @@ module Miyako
       @release_checks_default = [lambda{ Input.pushed_all?(:btn1) }, lambda{ Input.click?(:left) } ]
       @release_checks = @release_checks_default.dup
       
-      @ok_checks_default = [lambda{ Input.pushed_all?(:btn1) }, lambda{ Input.click?(:left) } ]
+      @ok_checks_default = [lambda{ Input.pushed_all?(:btn1) },
+                            lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) } ]
       @ok_checks = @ok_checks_default.dup
 
-      @cancel_checks_default = [lambda{ Input.pushed_all?(:btn2) }, lambda{ Input.click?(:right) } ]
+      @cancel_checks_default = [lambda{ Input.pushed_all?(:btn2) },
+                                lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:right) } ]
       @cancel_checks = @cancel_checks_default.dup
 
       @key_amount   = lambda{ Input.pushed_amount }
@@ -228,6 +230,20 @@ module Miyako
     def select_commandbox(box)
       @yuki[:command_box] = box
       return self
+    end
+  
+    #===テキストボックスを取得する
+    #テキストボックスが登録されていないときはnilを返す
+    #返却値:: テキストボックスのインスタンス
+    def textbox
+      return @yuki[:text_box]
+    end
+  
+    #===コマンドボックスを取得する
+    #コマンドボックスが登録されていないときはnilを返す
+    #返却値:: コマンドボックスのインスタンス
+    def commandbox
+      return @yuki[:command_box]
     end
   
     #===遷移図を登録する
@@ -493,6 +509,33 @@ module Miyako
     #返却値:: 自分自身を返す
     def reset_cancel_checks
       @cancel_checks = @cancel_checks_default.dup
+      return self
+    end
+
+    #===ポーズ前後処理メソッド配列を初期状態に戻す
+    #pre_pause/post_pauseの処理を初期状態([])に戻す
+    #返却値:: 自分自身を返す
+    def reset_pre_post_release
+      @pre_pause = []
+      @post_pause = []
+      return self
+    end
+
+    #===コマンド選択前後処理メソッド配列を初期状態に戻す
+    #pre_command/post_commandの処理を初期状態([])に戻す
+    #返却値:: 自分自身を返す
+    def reset_pre_post_command
+      @pre_command = []
+      @post_command = []
+      return self
+    end
+
+    #===コマンド選択キャンセル前後処理メソッド配列を初期状態に戻す
+    #pre_cancel/post_cancelの処理を初期状態([])に戻す
+    #返却値:: 自分自身を返す
+    def reset_pre_post_cancel
+      @pre_acncel = []
+      @post_cancel = []
       return self
     end
 

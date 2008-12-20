@@ -17,25 +17,25 @@ class MainScene
     @yuki.setup
     message_box.start
     command_box.start
-    @yuki.exec_plot(self.method(:plot))
+    @yuki.start_plot(@yuki.to_plot(self, :plot))
   end
-
+  
   def update
     return nil if Input.quit_or_escape?
     message_box.update_animation
     command_box.update_animation
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
-    @yuki.exec_plot(self.method(:plot)) if (@yuki.executing? == false && r == @now)
+    @yuki.start_plot(@yuki.to_plot(self, :plot)) if (@yuki.executing? == false && r == @now)
     return r
   end
   
   def get_command
     return [Yuki::Command.new("緑の扉から入る", nil, nil, Green),
-             Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == true }, self.method(:red_sekkaku)),
+             Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == true }, @yuki.to_plot(self, :red_sekkaku)),
              Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == false}, Red),
              Yuki::Command.new("青の扉から入る", nil, nil, Blue),
-             Yuki::Command.new("合い言葉を言う", nil, lambda{var[:aikotoba] == true}, self.method(:tell_aikotoba))]
+             Yuki::Command.new("合い言葉を言う", nil, lambda{var[:aikotoba] == true}, @yuki.to_plot(self, :tell_aikotoba))]
   end
   
   def plot(yuki)

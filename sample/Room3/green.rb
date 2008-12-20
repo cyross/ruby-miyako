@@ -22,7 +22,9 @@ class Green
 
   def setup
     @yuki.setup
-    @yuki.exec_plot(self.method(:plot))
+    message_box.start
+    command_box.start
+    @yuki.start_plot(@yuki.to_plot(self, :plot))
   end
 
   def update
@@ -32,7 +34,7 @@ class Green
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     if @yuki.is_scenario?(r)
-      @yuki.exec_plot(r)
+      @yuki.start_plot(r)
       r = @now
     end
     return r
@@ -46,9 +48,9 @@ class Green
   end
   
   def get_command
-    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:midori_aisatsu]==false}, self.method(:green2)),
-             Yuki::Command.new("辺りを見る", nil, lambda{var[:midori_aisatsu]==true},  self.method(:look_green)),
-             Yuki::Command.new("話す",       nil, lambda{var[:midori_aisatsu]==true},  self.method(:talk)),
+    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:midori_aisatsu]==false}, @yuki.to_plot(self, :green2)),
+             Yuki::Command.new("辺りを見る", nil, lambda{var[:midori_aisatsu]==true},  @yuki.to_plot(self, :look_green)),
+             Yuki::Command.new("話す",       nil, lambda{var[:midori_aisatsu]==true},  @yuki.to_plot(self, :talk)),
              Yuki::Command.new("戻る",       nil, lambda{var[:midori_aisatsu]==true},  MainScene)]
   end
   
@@ -176,6 +178,11 @@ class Green
   def talk5(yuki)
     yuki.text "「ちゃんと本渡してくれたぁ？」"
     yuki.pause.clear
+  end
+
+  def final
+    message_box.stop
+    command_box.stop
   end
 
   def dispose

@@ -74,7 +74,7 @@ class Ending
   def view_in2
     if @timer.finish?
       @exec = self.method(:plot_executing)
-      @yuki.exec_plot(self.method(:plot))
+      @yuki.start_plot(@yuki.to_plot(self, :plot))
     end
     return @now
   end
