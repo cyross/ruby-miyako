@@ -178,9 +178,12 @@ module Miyako
       @key_amount   = lambda{ Input.pushed_amount }
       @mouse_amount = lambda{ Input.mouse_cursor_inner? ? Input.get_mouse_position : nil }
 
-      @pre_pause = lambda{}
-      @pre_command = lambda{}
-      @pre_cancel = lambda{}
+      @pre_pause    = lambda{}
+      @pre_command  = lambda{}
+      @pre_cancel   = lambda{}
+      @post_pause   = lambda{}
+      @post_command = lambda{}
+      @post_cancel  = lambda{}
       
       @is_outer_height = self.method(:is_outer_height)
     end
@@ -495,51 +498,63 @@ module Miyako
     #===ブロック評価中、ポーズ解除問い合わせメソッド配列を置き換える
     #ブロックの評価が終われば、メソッド配列を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
-    #pre_procs:: ポーズ開始時に実行させるProc
+    #pre_proc:: ポーズ開始時に実行させるProc
+    #post_proc:: ポーズ解除時に実行させるProc
     #返却値:: 自分自身を返す
-    def release_checks_during(procs, pre_procs)
+    def release_checks_during(procs, pre_proc, post_proc)
       raise MiyakoError, "Can't find block!" unless block_given?
       tmp = @release_checks
       tmp2 = @pre_pause
+      tmp3 = @post_pause
       @release_checks = procs
-      @pre_pause = pre_procs
+      @pre_pause = pre_proc
+      @post_pause = post_proc
       yield
       @release_checks = tmp
       @pre_pause = tmp2
+      @post_pause = tmp3
       return self
     end
 
     #===ブロック評価中、コマンド選択決定問い合わせメソッド配列を置き換える
     #ブロックの評価が終われば、メソッド配列を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
-    #pre_procs:: コマンド選択開始時に実行させるProc
+    #pre_proc:: コマンド選択開始時に実行させるProc
+    #post_proc:: コマンド選択決定時に実行させるProc
     #返却値:: 自分自身を返す
-    def ok_checks_during(procs, pre_procs)
+    def ok_checks_during(procs, pre_proc, post_proc)
       raise MiyakoError, "Can't find block!" unless block_given?
       tmp = @ok_checks
       tmp2 = @pre_command
-      @ok_checks = procs
-      @pre_command = pre_procs
+      tmp3 = @post_command
+      @ok_checks = proc
+      @pre_command = pre_proc
+      @post_command = post_proc
       yield
       @ok_checks = tmp
       @pre_command = tmp2
+      @post_command = tmp3
       return self
     end
 
     #===ブロック評価中、コマンド選択キャンセル問い合わせメソッド配列を置き換える
     #ブロックの評価が終われば、メソッド配列を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
-    #pre_procs:: コマンド選択開始時に実行させるProc
+    #pre_proc:: コマンド選択開始時に実行させるProc
+    #post_proc:: コマンド選択キャンセル時に実行させるProc
     #返却値:: 自分自身を返す
-    def cancel_checks_during(procs, pre_procs)
+    def cancel_checks_during(procs, pre_proc, post_proc)
       raise MiyakoError, "Can't find block!" unless block_given?
       tmp = @cancel_checks
       tmp2 = @pre_cancel
+      tmp3 = @post_cancel
       @cancel_checks = procs
       @pre_cancel = pre_procs
+      @post_cancel = post_procs
       yield
       @cancel_checks = tmp
       @pre_cancel = tmp2
+      @post_cancel = tmp3
       return self
     end
 
@@ -551,21 +566,47 @@ module Miyako
       return self
     end
 
-    #===コマンド開始時に行いたい処理をブロックとして渡す
+    #===コマンド選択開始時に行いたい処理をブロックとして渡す
     #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
     #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
     #返却値:: 自分自身を返す
     def pre_command(&proc)
-      @pre_pause = proc
+      @pre_command = proc
       return self
     end
 
-    #===コマンド開始時に行いたい処理をブロックとして渡す
+    #===コマンド選択開始時に行いたい処理をブロックとして渡す
     #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
     #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
     #返却値:: 自分自身を返す
     def pre_cancel(&proc)
       @pre_cancel = proc
+      return self
+    end
+
+    #===ポーズ解除時に行いたい処理をブロックとして渡す
+    #pauseメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
+    #返却値:: 自分自身を返す
+    def post_pause(&proc)
+      @post_pause = proc
+      return self
+    end
+
+    #===コマンド選択終了時に行いたい処理をブロックとして渡す
+    #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
+    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
+    #返却値:: 自分自身を返す
+    def post_command(&proc)
+      @post_command = proc
+      return self
+    end
+
+    #===コマンド選択終了時に行いたい処理をブロックとして渡す
+    #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
+    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
+    #返却値:: 自分自身を返す
+    def post_cancel(&proc)
+      @post_cancel = proc
       return self
     end
 
@@ -765,6 +806,7 @@ module Miyako
         @update_inner.call(self)
         Thread.pass unless Thread.current.eql?(Thread.main)
       end
+      @post_pause.call
       return self
     end
 
@@ -814,6 +856,8 @@ module Miyako
         @update_inner.call(self)
         Thread.pass unless Thread.current.eql?(Thread.main)
       end
+      @post_cancel.call
+      @post_command.call
       return self
     end
 
