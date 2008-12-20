@@ -127,14 +127,13 @@ rcairo 1.8.0以降(miyako-cairo使用時)
 
 アーカイブファイルを展開すると以下のファイルが展開されます。
 
-・Miyako/miyako.rb（Miyakoライブラリ）
-・Miyako/win/idaten_miyako.so(Windows用idaten_miyako)
-・Miyako/win/miyako_no_katana.so(Windows用miyako_no_katana)
-・Miyako/libディレクトリ（ライブラリ本体）
+・miyako.rb（Miyakoライブラリ）
+・win/miyako_no_katana.so(Windows用miyako_no_katana)
+・libディレクトリ（ライブラリ本体）
 ・miyako_no_katana/miyako_no_katana.c(miyako_no_katanaソース)
 ・miyako_no_katana/extconf.rb(miyako_no_katanaコンパイル用configureファイル)
 ・install_miyako.rb(Miyakoインストール実行ファイル)
-・readme.txt（本ファイル）
+・README（本ファイル）
 ・docディレクトリ（リファレンスマニュアル）
 
 【  インストール   】

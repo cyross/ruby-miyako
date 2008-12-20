@@ -130,6 +130,7 @@ module Miyako
     #cancel_checks:: コマンド選択解除（キャンセル）を問い合わせるメソッドの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
     attr_reader :release_checks, :ok_checks, :cancel_checks
+    attr_reader :pre_pause, :pre_command, :pre_cancel, :post_pause, :post_command, :post_cancel
     
     #===Yukiを初期化する
     def initialize
@@ -178,12 +179,12 @@ module Miyako
       @key_amount   = lambda{ Input.pushed_amount }
       @mouse_amount = lambda{ Input.mouse_cursor_inner? ? Input.get_mouse_position : nil }
 
-      @pre_pause    = lambda{}
-      @pre_command  = lambda{}
-      @pre_cancel   = lambda{}
-      @post_pause   = lambda{}
-      @post_command = lambda{}
-      @post_cancel  = lambda{}
+      @pre_pause    = []
+      @pre_command  = []
+      @pre_cancel   = []
+      @post_pause   = []
+      @post_command = []
+      @post_cancel  = []
       
       @is_outer_height = self.method(:is_outer_height)
     end
@@ -496,65 +497,50 @@ module Miyako
     end
 
     #===ブロック評価中、ポーズ解除問い合わせメソッド配列を置き換える
-    #ブロックの評価が終われば、メソッド配列を元に戻す
+    #同時に、ポーズ時処理(Yuki#pre_pause)、ポーズ解除時処理(Yuki#post_pause)を引数で設定できる。
+    #ブロックの評価が終われば、メソッド配列・ポーズ時処理・ポーズ解除時処理を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
-    #pre_proc:: ポーズ開始時に実行させるProc
-    #post_proc:: ポーズ解除時に実行させるProc
+    #pre_proc:: ポーズ開始時に実行させるProc(デフォルトは[](何もしない))
+    #post_proc:: ポーズ解除時に実行させるProc(デフォルトは[](何もしない))
     #返却値:: 自分自身を返す
-    def release_checks_during(procs, pre_proc, post_proc)
+    def release_checks_during(procs, pre_procs = [], post_procs = [])
       raise MiyakoError, "Can't find block!" unless block_given?
-      tmp = @release_checks
-      tmp2 = @pre_pause
-      tmp3 = @post_pause
-      @release_checks = procs
-      @pre_pause = pre_proc
-      @post_pause = post_proc
+      backup = [@release_checks, @pre_pause, @post_pause]
+      @release_checks, @pre_pause, @post_pause = procs, pre_proc, post_proc
       yield
-      @release_checks = tmp
-      @pre_pause = tmp2
-      @post_pause = tmp3
+      @release_checks, @pre_pause, @post_pause = backup.pop(3)
       return self
     end
 
     #===ブロック評価中、コマンド選択決定問い合わせメソッド配列を置き換える
-    #ブロックの評価が終われば、メソッド配列を元に戻す
+    #同時に、コマンド選択開始時処理(Yuki#pre_command)、コマンド選択終了時処理(Yuki#post_command)を引数で設定できる。
+    #ブロックの評価が終われば、メソッド配列・コマンド選択開始時処理・コマンド選択終了時処理を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
-    #pre_proc:: コマンド選択開始時に実行させるProc
-    #post_proc:: コマンド選択決定時に実行させるProc
+    #pre_proc:: コマンド選択開始時に実行させるProc(デフォルトは[](何もしない))
+    #post_proc:: コマンド選択決定時に実行させるProc(デフォルトは[](何もしない))
     #返却値:: 自分自身を返す
-    def ok_checks_during(procs, pre_proc, post_proc)
+    def ok_checks_during(procs, pre_procs = [], post_procs = [])
       raise MiyakoError, "Can't find block!" unless block_given?
-      tmp = @ok_checks
-      tmp2 = @pre_command
-      tmp3 = @post_command
-      @ok_checks = proc
-      @pre_command = pre_proc
-      @post_command = post_proc
+      backup = [@ok_checks, @pre_command, @post_command]
+      @ok_checks, @pre_command, @post_command = procs, pre_proc, post_proc
       yield
-      @ok_checks = tmp
-      @pre_command = tmp2
-      @post_command = tmp3
+      @ok_checks, @pre_command, @post_command = backup.pop(3)
       return self
     end
 
     #===ブロック評価中、コマンド選択キャンセル問い合わせメソッド配列を置き換える
-    #ブロックの評価が終われば、メソッド配列を元に戻す
+    #同時に、コマンド選択開始時処理(Yuki#pre_cancel)、コマンド選択終了時処理(Yuki#post_cancel)を引数で設定できる。
+    #ブロックの評価が終われば、メソッド配列・コマンド選択開始時処理・コマンド選択終了時処理を元に戻す
     #procs:: 置き換えるメソッド配列(callメソッドを持ち、true/falseを返すメソッドの配列)
-    #pre_proc:: コマンド選択開始時に実行させるProc
-    #post_proc:: コマンド選択キャンセル時に実行させるProc
+    #pre_proc:: コマンド選択開始時に実行させるProc(デフォルトは[](何もしない))
+    #post_proc:: コマンド選択キャンセル時に実行させるProc(デフォルトは[](何もしない))
     #返却値:: 自分自身を返す
-    def cancel_checks_during(procs, pre_proc, post_proc)
+    def cancel_checks_during(procs, pre_procs = [], post_procs = [])
       raise MiyakoError, "Can't find block!" unless block_given?
-      tmp = @cancel_checks
-      tmp2 = @pre_cancel
-      tmp3 = @post_cancel
-      @cancel_checks = procs
-      @pre_cancel = pre_procs
-      @post_cancel = post_procs
+      backup = [@cancel_checks, @pre_cancel, @post_cancel]
+      @cancel_checks, @pre_cancel, @post_cancel = procs, pre_proc, post_proc
       yield
-      @cancel_checks = tmp
-      @pre_cancel = tmp2
-      @post_cancel = tmp3
+      @cancel_checks, @pre_cancel, @post_cancel = backup.pop(3)
       return self
     end
 
@@ -729,8 +715,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def valign_during(valign)
       raise MiyakoError, "Can't find block!" unless block_given?
-      oalign = @valign
-      @valign = valign
+      oalign, @valign = @valign, valign
       yield
       @valign = oalign
       return self
@@ -796,7 +781,7 @@ module Miyako
     #(たとえば、一定時間後に自動的にポーズ解除する場合、そのタイマーを開始させるなど)
     #返却値:: 自分自身を返す
     def pause
-      @pre_pause.call
+      @pre_pause.each{|proc| proc.call}
       yield if block_given?
       @yuki[:text_box].pause
       @mutex.lock
@@ -806,7 +791,7 @@ module Miyako
         @update_inner.call(self)
         Thread.pass unless Thread.current.eql?(Thread.main)
       end
-      @post_pause.call
+      @post_pause.each{|proc| proc.call}
       return self
     end
 
@@ -844,8 +829,8 @@ module Miyako
       command_list.each{|cm| choices.push([cm[:body], cm[:body_selected], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
       return self if choices.length == 0
 
-      @pre_command.call
-      @pre_cancel.call
+      @pre_command.each{|proc| proc.call}
+      @pre_cancel.each{|proc| proc.call}
       yield if block_given?
       @yuki[:command_box].command(@yuki[:command_box].create_choices_chain(choices, &chain_block))
       @mutex.lock
@@ -856,8 +841,8 @@ module Miyako
         @update_inner.call(self)
         Thread.pass unless Thread.current.eql?(Thread.main)
       end
-      @post_cancel.call
-      @post_command.call
+      @post_cancel.each{|proc| proc.call}
+      @post_command.each{|proc| proc.call}
       return self
     end
 
