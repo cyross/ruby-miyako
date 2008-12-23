@@ -360,33 +360,23 @@ module Miyako
         choice.result = v[2]
         next choice
       }
-      list = []
-      pos = 0
-      choices2 = []
-      while cpart = choices[pos, @command_page_size]
-        break if cpart.length == 0
-        choices2.push(cpart)
-        pos += @command_page_size
-      end
+      choices2 = choices.each_slice(@command_page_size).to_a
       choices2.each_with_index{|cc, x|
         len = cc.length
-        right = choices2[(x + 1) % choices2.length]
+        right = choices2[x + 1] || choices2[0]
         left = choices2[x - 1]
         yp = @textarea.y + @locate.y
         cc.each_with_index{|v, y|
-          v.down = cc[(y + 1) % len]
+          v.down = cc[y + 1] || cc[0]
           v.up = cc[y - 1]
-          v.right = (y >= right.length ? right.last : right[y])
-          v.left = (y >= left.length ? left.last : left[y])
+          v.right = right[y] || right.last
+          v.left = left[y] || left.last
           v.body.move_to(@textarea.x + @locate.x, yp)
-          if v.body_selected
-            v.body_selected.move_to(@textarea.x + @locate.x, yp)
-          end
-          yp += v.body.oh
+          v.body_selected.move_to(@textarea.x + @locate.x, yp)
+          yp += [v.body.broad_rect.h, v.body_selected.broad_rect.h].max
         }
-        list.push(cc)
       }
-      return list
+      return choices2
     end
     
     #===コマンド選択を設定する
