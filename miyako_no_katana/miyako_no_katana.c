@@ -1423,7 +1423,6 @@ static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE ds
 ===画像を回転させて貼り付ける
 転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
 転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度は、src側SpriteUnitのangleを使用する
 回転角度が正だと右回り、負だと左回りに回転する
 src==dstの場合、何も行わない
 ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
@@ -1431,8 +1430,9 @@ src==dstの場合、何も行わない
 ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
 _src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
 */
-static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
+static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radian)
 {
   MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
@@ -1460,14 +1460,14 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 
   MIYAKO_INIT_RECT2;
   
-  double rad = NUM2DBL(*(RSTRUCT_PTR(sunit)+7)) * -1.0;
+  double rad = NUM2DBL(radian) * -1.0;
   long isin = (long)(sin(rad)*4096.0);
   long icos = (long)(cos(rad)*4096.0);
 
-	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
-	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
-	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(dunit)+10));
-	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(dunit)+11));
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+7));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+8));
+	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(dunit)+7));
+	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(dunit)+8));
 
   Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
 
@@ -1514,7 +1514,6 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 ===画像を拡大・縮小・鏡像(ミラー反転)させて貼り付ける
 転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
 転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
-変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
 但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
 src==dstの場合、何も行わない
@@ -1523,8 +1522,10 @@ src==dstの場合、何も行わない
 ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
 _src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_xscale_:: 拡大率(x方向)
+_yscale_:: 拡大率(y方向)
 */
-static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
+static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscale, VALUE yscale)
 {
   MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
 	Uint32 *psrc = (Uint32 *)(src->pixels);
@@ -1552,8 +1553,8 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
 
   MIYAKO_INIT_RECT2;
 
-  double tscx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
-  double tscy = NUM2DBL(*(RSTRUCT_PTR(sunit)+9));
+  double tscx = NUM2DBL(xscale);
+  double tscy = NUM2DBL(yscale);
 
   if(tscx == 0.0 || tscy == 0.0){ return; }
 
@@ -1563,10 +1564,10 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
   int off_x = scx < 0 ? 1 : 0;
   int off_y = scy < 0 ? 1 : 0;
 
-	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
-	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
-	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
-	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+7));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+8));
+	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+7));
+	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+8));
 
   Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
 
@@ -1612,7 +1613,7 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
 /*
 ===回転・拡大・縮小・鏡像用インナーメソッド
 */
-static void transform_inner(VALUE sunit, VALUE dunit)
+static void transform_inner(VALUE sunit, VALUE dunit, VALUE radian, VALUE xscale, VALUE yscale)
 {
 	SDL_Surface *src = GetSurface(*(RSTRUCT_PTR(sunit)))->surface;
 	SDL_Surface *dst = GetSurface(*(RSTRUCT_PTR(dunit)))->surface;
@@ -1641,12 +1642,12 @@ static void transform_inner(VALUE sunit, VALUE dunit)
 
   MIYAKO_INIT_RECT2;
   
-  double rad = NUM2DBL(*(RSTRUCT_PTR(sunit)+7)) * -1.0;
+  double rad = NUM2DBL(radian) * -1.0;
   long isin = (long)(sin(rad)*4096.0);
   long icos = (long)(cos(rad)*4096.0);
 
-  double tscx = NUM2DBL(*(RSTRUCT_PTR(sunit)+8));
-  double tscy = NUM2DBL(*(RSTRUCT_PTR(sunit)+9));
+  double tscx = NUM2DBL(xscale);
+  double tscy = NUM2DBL(yscale);
 
   if(tscx == 0.0 || tscy == 0.0){ return; }
 
@@ -1656,10 +1657,10 @@ static void transform_inner(VALUE sunit, VALUE dunit)
   int off_x = scx < 0 ? 1 : 0;
   int off_y = scy < 0 ? 1 : 0;
 
-	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
-	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
-	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
-	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
+	int px = srect.x + NUM2INT(*(RSTRUCT_PTR(sunit)+7));
+	int py = srect.y + NUM2INT(*(RSTRUCT_PTR(sunit)+8));
+	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+7));
+	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+8));
 
   Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
 
@@ -1715,11 +1716,14 @@ src==dstの場合、何も行わない
 ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
 _src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
 _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
+_xscale_:: 拡大率(x方向)
+_yscale_:: 拡大率(y方向)
 */
-static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst)
+static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, vdst, sunit, dunit);
-  transform_inner(sunit, dunit);
+  transform_inner(sunit, dunit, radian, xscale, yscale);
   return Qnil;
 }
 
@@ -2390,7 +2394,6 @@ static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 ===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
 転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
 画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度は、src側SpriteUnitのangleを使用する
 回転角度が正だと右回り、負だと左回りに回転する
 変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
@@ -2399,11 +2402,14 @@ static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 (ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
 ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
 返却値:: 自分自身を返す
+_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
+_xscale_:: 拡大率(x方向)
+_yscale_:: 拡大率(y方向)
 */
-static VALUE sprite_render_transform(VALUE self)
+static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VALUE yscale)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, mScreen, sunit, dunit);
-  transform_inner(sunit, dunit);
+  transform_inner(sunit, dunit, radian, xscale, yscale);
   return self;
 }
 
@@ -2411,7 +2417,6 @@ static VALUE sprite_render_transform(VALUE self)
 ===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
 転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
 画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度は、src側SpriteUnitのangleを使用する
 回転角度が正だと右回り、負だと左回りに回転する
 変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
 度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
@@ -2420,12 +2425,15 @@ static VALUE sprite_render_transform(VALUE self)
 (ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
 ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
 _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
+_xscale_:: 拡大率(x方向)
+_yscale_:: 拡大率(y方向)
 返却値:: 自分自身を返す
 */
-static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst)
+static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, vdst, sunit, dunit);
-  transform_inner(sunit, dunit);
+  transform_inner(sunit, dunit, radian, xscale, yscale);
   return self;
 }
 
@@ -3715,9 +3723,9 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(cBitmap, "subtraction!", bitmap_miyako_subtraction_synthesis, 2);
   rb_define_singleton_method(cBitmap, "subtraction!", bitmap_miyako_subtraction_synthesis, 2);
 
-	rb_define_singleton_method(cBitmap, "rotate", bitmap_miyako_rotate, 2);
-	rb_define_singleton_method(cBitmap, "scale", bitmap_miyako_scale, 2);
-	rb_define_singleton_method(cBitmap, "transform", bitmap_miyako_transform, 2);
+	rb_define_singleton_method(cBitmap, "rotate", bitmap_miyako_rotate, 3);
+	rb_define_singleton_method(cBitmap, "scale", bitmap_miyako_scale, 4);
+	rb_define_singleton_method(cBitmap, "transform", bitmap_miyako_transform, 5);
 
   rb_define_singleton_method(cBitmap, "hue!", bitmap_miyako_hue, 3);
   rb_define_singleton_method(cBitmap, "saturation!", bitmap_miyako_saturation, 3);
@@ -3745,8 +3753,8 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(cSprite, "render_to", sprite_c_render_to_sprite, 2);
   rb_define_method(cSprite, "render", sprite_render, 0);
   rb_define_method(cSprite, "render_to", sprite_render_to_sprite, 1);
-  rb_define_method(cSprite, "render_transform", sprite_render_transform, 0);
-  rb_define_method(cSprite, "render_to_transform", sprite_render_to_sprite_transform, 1);
+  rb_define_method(cSprite, "render_transform", sprite_render_transform, 3);
+  rb_define_method(cSprite, "render_to_transform", sprite_render_to_sprite_transform, 4);
 
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);

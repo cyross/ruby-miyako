@@ -856,7 +856,7 @@ v2.0.0(2008.12.20)
 ・Sprite#to_spriteメソッドにブロック対応の追加(複製したスプライトに補正・画像処理を加えられる)
 ・Sprite#collisionメソッドの廃止(コリジョンの独立化)
 ・Sprite#to_spriteメソッドの処理変更(selfを返す→複製して返す)
-・Sprite#angle,angle=,xscale,xscale=,yscale,yscale=,center_x,center_x=,center_y,center_y=メソッドの追加
+・Sprite#center_x,center_x=,center_y,center_y=メソッドの追加
 ・Sprite#broad_rectメソッドの追加
 ・Sprite.newメソッドに:unitハッシュキーを追加(SpriteUnitから生成)
 ・Spriteクラスの各種画像変換メソッド(scale、rotate、hsvなど)を廃止

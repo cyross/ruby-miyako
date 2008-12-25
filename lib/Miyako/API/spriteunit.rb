@@ -25,7 +25,7 @@ module Miyako
   #==SpriteUnitを生成するための構造体クラス
   #Structクラスからの継承
   #--
-  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, :dx, :dy, [:effect], [:viewport], :angle, :xscale, :yscale, :px, :py, :qx, :qy)
+  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, :cx, :cy)
   #++
   class SpriteUnitBase < Struct
     #===位置を変更する(変化量を指定)
@@ -88,7 +88,7 @@ module Miyako
   #==スプライト出力情報構造体
   #基本的なことは、Sprite.renderで行うことが出来るが、凝った処理を行う場合は、SpriteUnitを使う
   #--
-  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, [:effect], [:viewport], :angle, :xscale, :yscale, :cx, :cy)
+  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, :cx, :cy)
   #++
   #([数字])は、配列として認識したときのインデックス番号に対応(Struct#[]メソッドを呼び出した時のインデックス)
   #:bitmap([0]) -> 画像データ(SDL::Surfaceクラスのインスタンス)
@@ -98,21 +98,18 @@ module Miyako
   #:oh([4])     -> 描画高さ
   #:x([5])     -> 描画幅
   #:y([6])     -> 描画高さ
-  #:angle([7])  -> 回転角度(ラジアン単位)
-  #:xscale([8]) -> X方向拡大・縮小・鏡像の割合(実数。変換後の幅が32768を切る様にすること)
-  #:yscale([9]) -> Y方向拡大・縮小・鏡像の割合(実数。変換後の幅が32768を切る様にすること)
-  #:cx([10])     -> 回転・拡大・縮小・鏡像の中心座標(x方向)
-  #:cy([11])     -> 回転・拡大・縮小・鏡像の中心座標(y方向)
-  SpriteUnit = SpriteUnitBase.new(:bitmap, :ox, :oy, :ow, :oh, :x, :y, :angle, :xscale, :yscale, :cx, :cy)
+  #:cx([7])     -> 回転・拡大・縮小・鏡像の中心座標(x方向)
+  #:cy([8])     -> 回転・拡大・縮小・鏡像の中心座標(y方向)
+  SpriteUnit = SpriteUnitBase.new(:bitmap, :ox, :oy, :ow, :oh, :x, :y, :cx, :cy)
 
   #==SpriteUnit生成ファクトリクラス
   #SpriteUnit構造体のインスタンスを生成するためのクラス
   class SpriteUnitFactory
-    PARAMS = [:bitmap, :ox, :oy, :ow, :oh, :x, :y, :angle, :xscale, :yscale, :cx, :cy]
+    PARAMS = [:bitmap, :ox, :oy, :ow, :oh, :x, :y, :cx, :cy]
     #==SpriteUnitのインスタンスを生成する
     #params: 初期化するSpriteUnit構造体の値。ハッシュ引数。引数のキーは、SpriteUnitのアクセサ名と同一。省略可能
     def SpriteUnitFactory.create(params = nil)
-      unit = SpriteUnit.new(nil, 0, 0, 0, 0, 0, 0, 0, 1.0, 1.0, 0, 0)
+      unit = SpriteUnit.new(nil, 0, 0, 0, 0, 0, 0, 0, 0)
       return SpriteUnitFactory.apply(unit, params)
     end
 
