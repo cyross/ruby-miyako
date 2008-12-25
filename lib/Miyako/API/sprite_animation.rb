@@ -163,11 +163,7 @@ module Miyako
       if @slist.length == 0
         @slist = Array.new(@pats){|pat| s }
         @units = Array.new(@pats){|pat|
-          u = SpriteUnitFactory.create(:bitmap=>@slist[pat].bitmap,
-                                       :ox => @slist[pat].ox,
-                                       :oy => @slist[pat].oy,
-                                       :ow => @slist[pat].ow,
-                                       :oh => @slist[pat].oh)
+          u = @slist[pat].to_unit.dup
           px = pat % (@pat_len / @pat_olen)
           if @dir == :h
             u.oy = @slist[pat].oh * @plist[px]
@@ -179,21 +175,9 @@ module Miyako
       elsif @slist.length < @pats
         tmp = @slist
         @slist = @slist.cycle.take(@pats)
-        @units = Array.new(@pats){|pat|
-          SpriteUnitFactory.create(:bitmap=>@slist[pat].bitmap,
-                                   :ox => @slist[pat].ox,
-                                   :oy => @slist[pat].oy,
-                                   :ow => @slist[pat].ow,
-                                   :oh => @slist[pat].oh)
-        }
+        @units = Array.new(@pats){|pat| @slist[pat].to_unit.dup }
       else
-        @units = Array.new(@pats){|pat|
-          SpriteUnitFactory.create(:bitmap=>@slist[pat].bitmap,
-                                   :ox => @slist[pat].ox,
-                                   :oy => @slist[pat].oy,
-                                   :ow => @slist[pat].ow,
-                                   :oh => @slist[pat].oh)
-        }
+        @units = Array.new(@pats){|pat| @slist[pat].to_unit.dup }
       end
 
       if @move_offset.length == 0
@@ -236,7 +220,7 @@ module Miyako
     attr_accessor :visible
 
     def update_layout_position #:nodoc:
-      @now.move_to(*@layout.pos) if @now
+      @units.each{|u| u.move_to(*@layout.pos)}
     end
 
     #===現在表示しているスプライトのowを取得する
@@ -342,26 +326,6 @@ module Miyako
     #但し、インスタンス生成時に:loop->falseを設定していれば、アニメーションを終了する
     #返却値:: アニメーションパターンが切り替わればtrue、切り替わらないとき、アニメーションが終了したときはfalseを返す
     def update_animation
-      is_change = false
-      return is_change unless @exec
-      if @dir == :h
-        @now.oy -= @pos_offset[@pnum]
-      else
-        @now.ox -= @pos_offset[@pnum]
-      end
-      if @cnt.kind_of?(Integer)
-        is_change = update_frame
-      else
-        is_change = update_wait_counter
-      end
-      @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
-                   @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
-      if @dir == :h
-        @now.oy += @pos_offset[@pnum]
-      else
-        @now.ox += @pos_offset[@pnum]
-      end
-      return is_change
     end
 
     def update_frame #:nodoc:

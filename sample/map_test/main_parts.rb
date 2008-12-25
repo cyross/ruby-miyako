@@ -13,18 +13,18 @@ class CommonParts
     cfont = Font.sans_serif
     cfont.size = 16
     
-    wc = Sprite.new({:file => "wait_cursor.png", :type => :ac})
-    wc.oh = wc.w
-    
-    wc = SpriteAnimation.new({:sprite => wc, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
-    sc = Sprite.new({:file => "cursor.png", :type => :ac})
-    sc.oh = sc.w
+    wcs = Sprite.new({:file => "wait_cursor.png", :type => :ac})
+    wcs.oh = wcs.w
+    scs = Sprite.new({:file => "cursor.png", :type => :ac})
+    scs.oh = scs.w
 
-    sc = SpriteAnimation.new({:sprite => sc, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
-
+    wc = SpriteAnimation.new({:sprite => wcs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
+    sc = SpriteAnimation.new({:sprite => scs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
     tb = TextBox.new({:size => [20, 4], :font => font, :wait_cursor => wc, :select_cursor => sc})
-    tb.pause_type = :out
+    tb.set_wait_cursor_position{|wc, tbox| wc.right.bottom }
  
+    wc = SpriteAnimation.new({:sprite => wcs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
+    sc = SpriteAnimation.new({:sprite => scs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
     cb = TextBox.new({:size => [8, 8], :font => cfont, :wait_cursor => wc, :select_cursor => sc})
 
     bg = Sprite.new({:size=>tb.size, :type=>:ac})
@@ -44,5 +44,25 @@ class CommonParts
     @cbox.right{|body| 2.percent(body) }.top{|body| 2.percent(body) }
 
     @executing = false
+  end
+  
+  def start
+    @box.start
+    @cbox.start
+  end
+  
+  def stop
+    @box.stop
+    @cbox.stop
+  end
+  
+  def reset
+    @box.reset
+    @cbox.reset
+  end
+  
+  def update_animation
+    @box.update_animation
+    @cbox.update_animation
   end
 end

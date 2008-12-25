@@ -9,7 +9,7 @@ class MainScene
 
     @map = MapManager.new
     @size = @map.size
-    @map.collision.amount = Size.new(@amt, @amt)
+    @map.collision.amount.resize(@amt, @amt)
     @executing_flags = Array.new(@map.events.length){|n| false}
 
     # キャラクタの初期位置を指定([10,10]に位置)
@@ -32,11 +32,13 @@ class MainScene
   def setup
     @map.start
     @chr.start
+    @parts.start
   end
 
   def update
     return nil if Input.quit_or_escape?
 
+    @parts.update_animation
     @map.update
     @chr.update
 
@@ -62,7 +64,7 @@ class MainScene
         @d = Input::trigger_amount
         @d[1] = 0 if @d[0] != 0 && @d[1] != 0 # 移動を横方向優先に
         # コリジョンの移動量を設定
-        @map.collision.direction = @d
+        @map.collision.direction.move_to(*@d)
         #キャラクタの向きを変更
         @chr.turn(@d)
         #マップの移動量を求める
@@ -126,6 +128,7 @@ class MainScene
   end
   
   def final
+    @parts.stop
     @map.stop
     @chr.stop
   end

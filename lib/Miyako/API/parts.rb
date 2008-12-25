@@ -36,11 +36,11 @@ module Miyako
     #===Partsクラスインスタンスを生成
     #_size_:: パーツ全体の大きさ。Size構造体のインスタンスもしくは要素数が2の配列
     def initialize(size)
-      init_layout
-      set_layout_size(size[0], size[1])
-
       @parts = {}
       @parts_list = []
+
+      init_layout
+      set_layout_size(size[0], size[1])
     end
 
     #===nameで示した補助パーツを返す
@@ -97,7 +97,7 @@ module Miyako
       return self
     end
 
-    #===メインパーツと補助パーツのすべてのアニメーションを更新する(自動実行)
+    #===メインパーツと補助パーツのすべてのアニメーションを更新する
     #返却値:: 自分自身
     def update_animation
       self.each{|parts| parts.update_animation }
@@ -110,10 +110,8 @@ module Miyako
       return self
     end
 
-    #===メインパーツと補助パーツのすべてのアニメーションを更新する(自動実行)
-    #返却値:: 自分自身
-    def update
-      self.update_animation
+    def update #:nodoc:
+      self.each{|parts| parts.update }
       return self
     end
 

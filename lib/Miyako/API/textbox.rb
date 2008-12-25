@@ -291,10 +291,8 @@ module Miyako
     def font_size_during(size)
       raise MiyakoError, "not given block!" unless block_given?
       @font.size_during(size){
-        omax = @max_height
         @max_height = @font.line_height if @max_height < @font.line_height
         yield
-        @max_height = omax
       }
       return self
     end

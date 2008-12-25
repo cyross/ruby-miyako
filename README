@@ -866,6 +866,7 @@ v2.0.0(2008.12.20)
 ・SpriteAnimation#render、SpriteAnimation#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
 ・SpriteAnimation#rect、broad_rectメソッドの追加
 ・SpriteAnimation#to_spriteメソッドの処理を変更（元になったインスタンスのto_spriteメソッドを呼び出した時の値となる）
+・SpriteAnimation#renderメソッドの既存のバグを修正
 ・TextBox#marginアクセサ、TextBox#margin_duringメソッドを追加（set_marginメソッドは、ブロックを渡すと、そのブロックが評価されている間だけマージンが有効）
 ・TextBox#font_size_during、font_bold、font_italic、font_under_line、color_during、margin_heightメソッドを追加
 　（ブロックを渡すと、そのブロックが評価されている間だけフォントの属性が変更）
@@ -949,6 +950,7 @@ v2.0.0(2008.12.20)
 ・Choices#non_select,selectメソッドの追加
 ・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
 ・Choices#rect、broad_rect、to_sprite、attach、attach?、any_select?メソッドの追加
+・Collision#pos,Collision#rect,Collision#direction,Collision#amountアクセサをreaderに変更
 ・Collision#move、Collision#move_toメソッドを追加
 ・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_sprite、Plane#to_unitメソッドの追加
 ・Effectクラスを廃止

@@ -356,24 +356,21 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 		{
       pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-      if(dcolor.a == 0){
-        pixel = *ppsrc | src_a;
+			pixel = *ppsrc | src_a;
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ ppsrc++; ppdst++; continue; }
+      if(dcolor.a == 0 || scolor.a == 255){
         *ppdst = pixel;
         ppsrc++;
         ppdst++;
         continue;
       }
-			pixel = *ppsrc | src_a;
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+               (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+               (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+               (255 >> fmt->Aloss) << fmt->Ashift;
       ppsrc++;
       ppdst++;
     }
@@ -452,24 +449,22 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 		{
       pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-      if(dcolor.a == 0){
-        *ppdst = (*ppsrc2 | src2_a) & (*ppsrc1 | src1_a);
+			pixel = (*ppsrc2 | src2_a) & (*ppsrc1 | src1_a);
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ ppsrc1++; ppsrc2++; ppdst++; continue; }
+      if(dcolor.a == 0 || scolor.a == 255){
+        *ppdst = pixel;
         ppsrc1++;
         ppsrc2++;
         ppdst++;
         continue;
       }
-			pixel = (*ppsrc2 | src2_a) & (*ppsrc1 | src1_a);
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+               (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+               (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+               (255 >> fmt->Aloss) << fmt->Ashift;
       ppsrc1++;
       ppsrc2++;
       ppdst++;
@@ -537,6 +532,8 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
   int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
   MIYAKO_INIT_RECT3;
 
+  Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+  
 	SDL_LockSurface(src1);
 	SDL_LockSurface(src2);
 	SDL_LockSurface(dst);
@@ -551,24 +548,22 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 		{
       pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-      if(dcolor.a == 0){
-        *ppdst = (*ppsrc2 | src2_a) | (*ppsrc1 | src1_a) ;
+			pixel = (*ppsrc2 | src2_a) | (*ppsrc1 | src1_a);
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ ppsrc1++; ppsrc2++; ppdst++; continue; }
+      if(dcolor.a == 0 || scolor.a == 255){
+        *ppdst = pixel;
         ppsrc1++;
         ppsrc2++;
         ppdst++;
         continue;
       }
-			pixel = (*ppsrc2 | src2_a) | (*ppsrc1 | src1_a);
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+               (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+               (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+               put_a;
       ppsrc1++;
       ppsrc2++;
       ppdst++;
@@ -636,6 +631,8 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
   int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
   MIYAKO_INIT_RECT3;
 
+  Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
 	SDL_LockSurface(src1);
 	SDL_LockSurface(src2);
 	SDL_LockSurface(dst);
@@ -650,7 +647,8 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 		{
       pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-      if(dcolor.a == 0){
+      if(scolor.a == 0){ ppsrc1++; ppsrc2++; ppdst++; continue; }
+      if(dcolor.a == 0 || scolor.a == 255){
         *ppdst = (*ppsrc2 | src2_a) ^ (*ppsrc1 | src1_a) ;
         ppsrc1++;
         ppsrc2++;
@@ -659,15 +657,12 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
       }
 			pixel = (*ppsrc2 | src2_a) ^ (*ppsrc1 | src1_a);
 			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                 (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                 (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                 (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *ppdst = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+               (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+               (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+               put_a;
       ppsrc1++;
       ppsrc2++;
       ppdst++;
@@ -1386,19 +1381,18 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
       pixel = *(psrc + sy * src->w + sx);
       MIYAKO_GETCOLOR(scolor);
 			scolor.a |= src_a;
-			if(scolor.a > 0){
-        pixel = *(pdst + py * dst->w + px);
-        MIYAKO_GETCOLOR(dcolor);
-				dcolor.a |= dst_a;
-				dcolor.r += scolor.r;
-				if(dcolor.r > 255){ dcolor.r = 255; }
-				dcolor.g += scolor.g;
-				if(dcolor.g > 255){ dcolor.g = 255; }
-				dcolor.b += scolor.b;
-				if(dcolor.b > 255){ dcolor.b = 255; }
-				dcolor.a = (dcolor.a > scolor.a ? dcolor.a : scolor.a);
-        MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), dcolor);
-			}
+      if(scolor.a == 0){ continue; }
+      pixel = *(pdst + py * dst->w + px);
+      MIYAKO_GETCOLOR(dcolor);
+      dcolor.a |= dst_a;
+      dcolor.r += scolor.r;
+			if(dcolor.r > 255){ dcolor.r = 255; }
+			dcolor.g += scolor.g;
+			if(dcolor.g > 255){ dcolor.g = 255; }
+			dcolor.b += scolor.b;
+			if(dcolor.b > 255){ dcolor.b = 255; }
+			dcolor.a = (dcolor.a > scolor.a ? dcolor.a : scolor.a);
+      MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), dcolor);
     }
   }
 
@@ -1475,6 +1469,8 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
 	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(dunit)+10));
 	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(dunit)+11));
 
+  Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
   SDL_LockSurface(src);
   SDL_LockSurface(dst);
   
@@ -1492,21 +1488,19 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst)
       pixel = *(tp + x) | dst_a;
       MIYAKO_GETCOLOR(dcolor);
 			pixel = *(psrc + ny * src->w + nx) | src_a;
-      if(dcolor.a == 0)
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ continue; }
+      if(dcolor.a == 0 || scolor.a == 255)
       {
         *(tp + x) = pixel;
         continue;
       }
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                    (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                    (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                  (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                  (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                    put_a;
     }
   }
 
@@ -1574,6 +1568,8 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
 	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
 	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
 
+  Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
   SDL_LockSurface(src);
   SDL_LockSurface(dst);
   
@@ -1591,21 +1587,19 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst)
       pixel = *(tp + x) | dst_a;
       MIYAKO_GETCOLOR(dcolor);
 			pixel = *(psrc + ny * src->w + nx) | src_a;
-      if(dcolor.a == 0)
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ continue; }
+      if(dcolor.a == 0 || scolor.a == 255)
       {
         *(tp + x) = pixel;
         continue;
       }
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                    (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                    (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                  (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                  (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                  put_a;
     }
   }
 
@@ -1667,6 +1661,8 @@ static void transform_inner(VALUE sunit, VALUE dunit)
 	int qx = NUM2INT(*(RSTRUCT_PTR(sunit)+5)) + NUM2INT(*(RSTRUCT_PTR(sunit)+10));
 	int qy = NUM2INT(*(RSTRUCT_PTR(sunit)+6)) + NUM2INT(*(RSTRUCT_PTR(sunit)+11));
 
+  Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
   SDL_LockSurface(src);
   SDL_LockSurface(dst);
   
@@ -1684,21 +1680,19 @@ static void transform_inner(VALUE sunit, VALUE dunit)
       pixel = *(tp + x) | dst_a;
       MIYAKO_GETCOLOR(dcolor);
 			pixel = *(psrc + ny * src->w + nx) | src_a;
-      if(dcolor.a == 0)
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ continue; }
+      if(dcolor.a == 0 || scolor.a == 255)
       {
         *(tp + x) = pixel;
         continue;
       }
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                    (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                    (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      *(tp + x) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                  (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                  (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                  put_a;
     }
   }
 
@@ -1825,6 +1819,8 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
     if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
     if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
+    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
@@ -1835,6 +1831,7 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
       {
         pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
+        if(scolor.a == 0){ continue; }
         pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
@@ -1842,19 +1839,16 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
         if(ph < 0.0){ ph += d_pi; }
         if(ph >= d_pi){ ph -= d_pi; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0){
+        if(dcolor.a == 0 || scolor.a == 255){
           MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
-        if(scolor.a > 0)
-        {
-          int a1 = scolor.a + 1;
-          int a2 = 256 - scolor.a;
-          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-        }
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                     put_a;
       }
     }
 
@@ -1933,6 +1927,8 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
     if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
     if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
+    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
@@ -1943,6 +1939,7 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
       {
         pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
+        if(scolor.a == 0){ continue; }
         pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
@@ -1950,19 +1947,16 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
         if(ps < 0.0){ ps = 0.0; }
         if(ps > 1.0){ ps = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0){
+        if(dcolor.a == 0 || scolor.a == 255){
           MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
-        if(scolor.a > 0)
-        {
-          int a1 = scolor.a + 1;
-          int a2 = 256 - scolor.a;
-          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-        }
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                     put_a;
       }
     }
 
@@ -2042,7 +2036,9 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
     if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
     if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 
-		SDL_LockSurface(src);
+    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+
+    SDL_LockSurface(src);
     SDL_LockSurface(dst);
   
     int px, py, sx, sy;
@@ -2052,6 +2048,7 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
       {
         pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
+        if(scolor.a == 0){ continue; }
         pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
@@ -2059,19 +2056,16 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
         if(pv < 0.0){ pv = 0.0; }
         if(pv > 1.0){ pv = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0){
+        if(dcolor.a == 0 || scolor.a == 255){
           MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
-        if(scolor.a > 0)
-        {
-          int a1 = scolor.a + 1;
-          int a2 = 256 - scolor.a;
-          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-        }
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                     put_a;
       }
     }
 
@@ -2157,6 +2151,8 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
 		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
     if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
     if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+
+    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
 		
     SDL_LockSurface(src);
     SDL_LockSurface(dst);
@@ -2168,6 +2164,7 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
       {
         pixel = *(psrc + sy * src->w + sx) | src_a;
         MIYAKO_GETCOLOR(scolor);
+        if(scolor.a == 0){ continue; }
         pixel = *(pdst + py * dst->w + px) | dst_a;
         MIYAKO_GETCOLOR(dcolor);
         MIYAKO_RGB2HSV(scolor, ph, ps, pv);
@@ -2181,19 +2178,16 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
         if(pv < 0.0){ pv = 0.0; }
         if(pv > 1.0){ pv = 1.0; }
         MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0){
+        if(dcolor.a == 0 || scolor.a == 255){
           MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
           continue;
         }
-        if(scolor.a > 0)
-        {
-          int a1 = scolor.a + 1;
-          int a2 = 256 - scolor.a;
-          *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                      (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                      (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                      (scolor.a >> fmt->Aloss) << fmt->Ashift;
-        }
+        int a1 = scolor.a + 1;
+        int a2 = 256 - scolor.a;
+        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
+                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
+                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
+                                     put_a;
       }
     }
 
@@ -2296,25 +2290,24 @@ static void render_to_inner(VALUE sunit, VALUE dunit)
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
+			pixel = *ppsrc | src_a;
+			MIYAKO_GETCOLOR(scolor);
+      if(scolor.a == 0){ ppsrc++; ppdst++; continue; }
       pixel = *ppdst | dst_a;
       MIYAKO_GETCOLOR(dcolor);
-      if(dcolor.a == 0){
+      if(dcolor.a == 0 || scolor.a == 255){
         *ppdst = *ppsrc | src_a;
         ppsrc++;
         ppdst++;
         continue;
       }
-			pixel = *ppsrc | src_a;
-			MIYAKO_GETCOLOR(scolor);
-      if(scolor.a > 0)
-      {
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        scolor.r = (scolor.r * a1 + dcolor.r * a2) >> 8;
-        scolor.g = (scolor.g * a1 + dcolor.g * a2) >> 8;
-        scolor.b = (scolor.b * a1 + dcolor.b * a2) >> 8;
-        MIYAKO_SETCOLOR(*ppdst, scolor);
-      }
+      int a1 = scolor.a + 1;
+      int a2 = 256 - scolor.a;
+      scolor.r = (scolor.r * a1 + dcolor.r * a2) >> 8;
+      scolor.g = (scolor.g * a1 + dcolor.g * a2) >> 8;
+      scolor.b = (scolor.b * a1 + dcolor.b * a2) >> 8;
+      scolor.a = 255;
+      MIYAKO_SETCOLOR(*ppdst, scolor);
       ppsrc++;
       ppdst++;
     }
@@ -2627,13 +2620,14 @@ static void maplayer_render_inner(VALUE self, VALUE dunit)
       if(code == -1){ continue; }
       VALUE unit = *(RARRAY_PTR(munits) + code);
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
-      VALUE ox = *(RSTRUCT_PTR(unit) + 5);
-      VALUE oy = *(RSTRUCT_PTR(unit) + 6);
-      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
+      VALUE *runit = RSTRUCT_PTR(unit);
+      VALUE ox = *(runit + 5);
+      VALUE oy = *(runit + 6);
+      *(runit + 5) = INT2NUM(x * ow - mx);
+      *(runit + 6) = INT2NUM(y * oh - my);
       render_inner(unit, dunit);
-      *(RSTRUCT_PTR(unit) + 5) = ox;
-      *(RSTRUCT_PTR(unit) + 6) = oy;
+      *(runit + 5) = ox;
+      *(runit + 6) = oy;
     }
   }
 }
@@ -2669,13 +2663,14 @@ static void fixedmaplayer_render_inner(VALUE self, VALUE dunit)
       if(code == -1){ continue; }
       VALUE unit = *(RARRAY_PTR(munits) + code);
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
-      VALUE ox = *(RSTRUCT_PTR(unit) + 5);
-      VALUE oy = *(RSTRUCT_PTR(unit) + 6);
-      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      VALUE *runit = RSTRUCT_PTR(unit);
+      VALUE ox = *(runit + 5);
+      VALUE oy = *(runit + 6);
+      *(runit + 5) = INT2NUM(pos_x + x * ow);
+      *(runit + 6) = INT2NUM(pos_y + y * oh);
       render_inner(unit, dunit);
-      *(RSTRUCT_PTR(unit) + 5) = ox;
-      *(RSTRUCT_PTR(unit) + 6) = oy;
+      *(runit + 5) = ox;
+      *(runit + 6) = oy;
     }
   }
 }
@@ -2731,13 +2726,14 @@ static void maplayer_render_to_inner(VALUE self, VALUE dunit)
       if(code == -1){ continue; }
       VALUE unit = *(RARRAY_PTR(munits) + code);
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
-      VALUE ox = *(RSTRUCT_PTR(unit) + 5);
-      VALUE oy = *(RSTRUCT_PTR(unit) + 6);
-      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(x * ow - mx);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(y * oh - my);
+      VALUE *runit = RSTRUCT_PTR(unit);
+      VALUE ox = *(runit + 5);
+      VALUE oy = *(runit + 6);
+      *(runit + 5) = INT2NUM(x * ow - mx);
+      *(runit + 6) = INT2NUM(y * oh - my);
       render_to_inner(unit, dunit);
-      *(RSTRUCT_PTR(unit) + 5) = ox;
-      *(RSTRUCT_PTR(unit) + 6) = oy;
+      *(runit + 5) = ox;
+      *(runit + 6) = oy;
     }
   }
 }
@@ -2773,13 +2769,14 @@ static void fixedmaplayer_render_to_inner(VALUE self, VALUE dunit)
       if(code == -1){ continue; }
       VALUE unit = *(RARRAY_PTR(munits) + code);
       unit = rb_funcall(unit, rb_intern("to_unit"), 0);
-      VALUE ox = *(RSTRUCT_PTR(unit) + 5);
-      VALUE oy = *(RSTRUCT_PTR(unit) + 6);
-      *(RSTRUCT_PTR(unit) + 5) = INT2NUM(pos_x + x * ow);
-      *(RSTRUCT_PTR(unit) + 6) = INT2NUM(pos_y + y * oh);
+      VALUE *runit = RSTRUCT_PTR(unit);
+      VALUE ox = *(runit + 5);
+      VALUE oy = *(runit + 6);
+      *(runit + 5) = INT2NUM(pos_x + x * ow);
+      *(runit + 6) = INT2NUM(pos_y + y * oh);
       render_to_inner(unit, dunit);
-      *(RSTRUCT_PTR(unit) + 5) = ox;
-      *(RSTRUCT_PTR(unit) + 6) = oy;
+      *(runit + 5) = ox;
+      *(runit + 6) = oy;
     }
   }
 }
@@ -3027,40 +3024,11 @@ static VALUE sa_update(VALUE self)
   VALUE exec = rb_iv_get(self, "@exec");
   if(exec == Qfalse){ return is_change; }
 
-  VALUE polist = rb_iv_get(self, "@pos_offset");
-  VALUE dir = rb_iv_get(self, "@dir");
-  
-  VALUE now = rb_iv_get(self, "@now");
-  VALUE num = rb_iv_get(self, "@pnum");
-  VALUE pos_off = *(RARRAY_PTR(polist) + NUM2INT(num));
-  
-  int didx1 = (rb_to_id(dir) == rb_intern("h") ? 3 : 2);
-  int didx2 = didx1 - 1;
-  
-  *(RSTRUCT_PTR(now) +  didx1) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  didx1)) - NUM2INT(pos_off));
-
   if(rb_obj_is_kind_of(rb_iv_get(self, "@cnt"), rb_cInteger) == Qtrue)
     is_change = sa_update_frame(self);
   else
     is_change = sa_update_wait_counter(self);
   
-  now = rb_iv_get(self, "@now");
-  num = rb_iv_get(self, "@pnum");
-
-  VALUE slist = rb_iv_get(self, "@slist");
-  VALUE plist = rb_iv_get(self, "@plist");
-  VALUE molist = rb_iv_get(self, "@move_offset");
-
-  VALUE s = *(RARRAY_PTR(slist) + NUM2INT(*(RARRAY_PTR(plist) + NUM2INT(num))));
-  VALUE move_off = *(RARRAY_PTR(molist) + NUM2INT(num));
-
-  *(RSTRUCT_PTR(now) + 5) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("x"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
-  *(RSTRUCT_PTR(now) + 6) = INT2NUM(NUM2INT(rb_funcall(s, rb_intern("y"), 0)) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne)));
-
-  pos_off = *(RARRAY_PTR(polist) + NUM2INT(num));
-  
-  *(RSTRUCT_PTR(now) +  didx2) = INT2NUM(NUM2INT(*(RSTRUCT_PTR(now) +  didx2)) + NUM2INT(pos_off));
-
   return is_change;
 }
 
@@ -3075,8 +3043,34 @@ static VALUE sa_update(VALUE self)
 static VALUE sa_render(VALUE self)
 {
   VALUE vsrc = rb_iv_get(self, "@now");
+  VALUE *runit = RSTRUCT_PTR(vsrc);
+  VALUE polist = rb_iv_get(self, "@pos_offset");
+  VALUE dir = rb_iv_get(self, "@dir");
+  
+  int num = NUM2INT(rb_iv_get(self, "@pnum"));
+
+  VALUE molist = rb_iv_get(self, "@move_offset");
+  VALUE move_off = *(RARRAY_PTR(molist) + num);
+
+  int pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
+
+  int didx = (rb_to_id(dir) == rb_intern("h") ? 3 : 2);
+  
+  VALUE tmp_oxy = *(runit +  didx);
+  VALUE tmp_x = *(runit + 5);
+  VALUE tmp_y = *(runit + 6);
+
+  *(runit + didx) = INT2NUM(NUM2INT(tmp_oxy) - pos_off);
+  *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
+  *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne )));
+
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, mScreen, sunit, dunit);
   render_inner(sunit, dunit);
+
+  *(runit + 5) = tmp_x;
+  *(runit + 6) = tmp_y;
+  *(runit + didx) = tmp_oxy;
+
   return Qnil;
 }
 
@@ -3092,8 +3086,34 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE vsrc = rb_iv_get(self, "@now");
+  VALUE *runit = RSTRUCT_PTR(vsrc);
+  VALUE polist = rb_iv_get(self, "@pos_offset");
+  VALUE dir = rb_iv_get(self, "@dir");
+  
+  int num = NUM2INT(rb_iv_get(self, "@pnum"));
+
+  int pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
+
+  VALUE molist = rb_iv_get(self, "@move_offset");
+  VALUE move_off = *(RARRAY_PTR(molist) + num);
+
+  int didx = (rb_to_id(dir) == rb_intern("h") ? 3 : 2);
+  
+  VALUE tmp_oxy = *(runit +  didx);
+  VALUE tmp_x = *(runit + 5);
+  VALUE tmp_y = *(runit + 6);
+
+  *(runit + didx) = INT2NUM(NUM2INT(tmp_oxy) - pos_off);
+  *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
+  *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne )));
+
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, vdst, sunit, dunit);
   render_to_inner(sunit, dunit);
+
+  *(runit + 5) = tmp_x;
+  *(runit + 6) = tmp_y;
+  *(runit + didx) = tmp_oxy;
+
   return Qnil;
 }
 
@@ -3117,8 +3137,9 @@ static VALUE plane_render(VALUE self)
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
 
-  int sw = NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
-  int sh = NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
+  VALUE *psunit = RSTRUCT_PTR(sunit);
+  int sw = NUM2INT(*(psunit + 3));
+  int sh = NUM2INT(*(psunit + 4));
 
   int x, y;
   for(y = 0; y < h; y++){
@@ -3127,8 +3148,8 @@ static VALUE plane_render(VALUE self)
       int y2 = (y-1) * sh + pos_y;
       if(x2 > 0 || y2 > 0
       || (x2+sw) <= ssw || (y2+sh) <= ssh){
-        *(RSTRUCT_PTR(sunit) + 5) = INT2NUM(x2);
-        *(RSTRUCT_PTR(sunit) + 6) = INT2NUM(y2);
+        *(psunit + 5) = INT2NUM(x2);
+        *(psunit + 6) = INT2NUM(y2);
         render_inner(sunit, dunit);
       }
     }
@@ -3158,8 +3179,9 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
 
-  int sw = NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
-  int sh = NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
+  VALUE *psunit = RSTRUCT_PTR(sunit);
+  int sw = NUM2INT(*psunit + 3);
+  int sh = NUM2INT(*psunit + 4);
 
   int x, y;
   for(y = 0; y < h; y++){
@@ -3168,8 +3190,8 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
       int y2 = (y-1) * sh + pos_y;
       if(x2 > 0 || y2 > 0
       || (x2+sw) <= ssw || (y2+sh) <= ssh){
-        *(RSTRUCT_PTR(sunit) + 5) = INT2NUM(x2);
-        *(RSTRUCT_PTR(sunit) + 6) = INT2NUM(y2);
+        *(psunit + 5) = INT2NUM(x2);
+        *(psunit + 6) = INT2NUM(y2);
         render_to_inner(sunit, dunit);
       }
     }
@@ -3244,22 +3266,18 @@ static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE c2)
 {
-  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
-  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
-  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
-  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
-  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero));
-  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne));
-  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2))) - 1;
-  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3))) - 1;
-  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero));
-  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne));
-  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2))) - 1;
-  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3))) - 1;
+  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
+  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
+  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
+  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1);
+  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1));
+  int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
+  int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
+  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2);
+  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1));
+  int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
+  int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
 
   int v = 0;
   if(l1 <= l2 && l2 <= r1) v |= 1;
@@ -3276,34 +3294,22 @@ static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE c2)
 */
 static VALUE collision_c_collision_with_move(VALUE self, VALUE c1, VALUE c2)
 {
-  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
-  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
-  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
-  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
-  VALUE dir1 = rb_funcall(c1, rb_intern("direction"), 0);
-  VALUE dir2 = rb_funcall(c2, rb_intern("direction"), 0);
-  VALUE amt1 = rb_funcall(c1, rb_intern("amount"), 0);
-  VALUE amt2 = rb_funcall(c2, rb_intern("amount"), 0);
-  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(dir1, id_kakko, 1, nZero))
-    * NUM2INT(rb_funcall(amt1, id_kakko, 1, nZero));
-  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(dir1, id_kakko, 1, nOne))
-    * NUM2INT(rb_funcall(amt1, id_kakko, 1, nOne));
-  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2))) - 1;
-  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3))) - 1;
-  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(dir2, id_kakko, 1, nZero))
-    * NUM2INT(rb_funcall(amt2, id_kakko, 1, nZero));
-  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(dir2, id_kakko, 1, nOne))
-    * NUM2INT(rb_funcall(amt2, id_kakko, 1, nOne));
-  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2))) - 1;
-  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3))) - 1;
+  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
+  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
+  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
+  VALUE *pdir1 = RSTRUCT_PTR(rb_iv_get(c1, "@direction"));
+  VALUE *pdir2 = RSTRUCT_PTR(rb_iv_get(c2, "@direction"));
+  VALUE *pamt1 = RSTRUCT_PTR(rb_iv_get(c1, "@amount"));
+  VALUE *pamt2 = RSTRUCT_PTR(rb_iv_get(c2, "@amount"));
+  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1) + NUM2INT(*pdir1) * NUM2INT(*pamt1);
+  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1)) + NUM2INT(*(pdir1+1)) * NUM2INT(*(pamt1+1));
+  int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
+  int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
+  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2) + NUM2INT(*pdir2) * NUM2INT(*pamt2);
+  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1)) + NUM2INT(*(pdir2+1)) * NUM2INT(*(pamt2+1));
+  int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
+  int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
 
   int v = 0;
   if(l1 <= l2 && l2 <= r1) v |= 1;
@@ -3320,22 +3326,18 @@ static VALUE collision_c_collision_with_move(VALUE self, VALUE c1, VALUE c2)
 */
 static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE c2)
 {
-  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
-  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
-  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
-  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
-  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero));
-  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne));
-  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2)));
-  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3)));
-  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero));
-  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne));
-  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2)));
-  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3)));
+  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
+  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
+  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
+  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1);
+  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1));
+  int r1 = l1 + NUM2INT(*(prect1+2));
+  int b1 = t1 + NUM2INT(*(prect1+3));
+  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2);
+  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1));
+  int r2 = l2 + NUM2INT(*(prect2+2));
+  int b2 = t2 + NUM2INT(*(prect2+3));
 
   int v = 0;
   if(r1 == l2) v |= 1;
@@ -3374,22 +3376,18 @@ static VALUE collision_c_out(VALUE self, VALUE c1, VALUE c2)
 */
 static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE c2)
 {
-  VALUE rect1 = rb_funcall(c1, rb_intern("rect"), 0);
-  VALUE rect2 = rb_funcall(c2, rb_intern("rect"), 0);
-  VALUE pos1 = rb_funcall(c1, rb_intern("pos"), 0);
-  VALUE pos2 = rb_funcall(c2, rb_intern("pos"), 0);
-  int l1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nZero));
-  int t1 = NUM2INT(rb_funcall(pos1, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect1, id_kakko, 1, nOne));
-  int r1 = l1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(2))) - 1;
-  int b1 = t1 + NUM2INT(rb_funcall(rect1, id_kakko, 1, INT2NUM(3))) - 1;
-  int l2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nZero))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nZero));
-  int t2 = NUM2INT(rb_funcall(pos2, id_kakko, 1, nOne))
-    + NUM2INT(rb_funcall(rect2, id_kakko, 1, nOne));
-  int r2 = l2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(2))) - 1;
-  int b2 = t2 + NUM2INT(rb_funcall(rect2, id_kakko, 1, INT2NUM(3))) - 1;
+  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
+  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
+  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
+  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1);
+  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1));
+  int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
+  int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
+  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2);
+  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1));
+  int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
+  int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
 
   int v = 0;
   if(l1 <= l2 && r2 <= r1) v |= 1;

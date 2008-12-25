@@ -85,7 +85,7 @@ class Slime < Monster
       @wait.start
     else
       data = @ary[val-1]
-      @coll.direction = data[0..1]
+      @coll.direction.move_to(*(data[0..1]))
       
       ret = map.get_amount_by_rect(0, @spr.rect, @coll)
       

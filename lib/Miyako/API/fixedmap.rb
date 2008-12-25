@@ -241,24 +241,26 @@ module Miyako
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
       dx, dy = collision.direction[0]*collision.amount[0], collision.direction[1]*collision.amount[1]
       x, y = rect[0]-@pos[0], rect[1]-@pos[1]
-      collision.pos = Point.new(x, y)
-      px1, px2 = (x+dx) / @mapchip.chip_size[0], (x+rect[2]-1+dx) / @mapchip.chip_size[0]
-      py1, py2 = (y+dy) / @mapchip.chip_size[1], (y+rect[3]-1+dy) / @mapchip.chip_size[1]
-      (py1..py2).each{|py|
-        rpy = py * @mapchip.chip_size[1]
-        (px1..px2).each{|px|
-          rpx = px * @mapchip.chip_size[0]
-          @map_layers.each_with_index{|ml, idx|
-            code = ml.get_code(px, py)
-            next if code == -1 # not use chip
-            @coll = @mapchip.collision_table[type][code].dup
-            @coll.pos  = Point.new(rpx, rpy)
-            atable = @mapchip.access_table[type][code]
-            if @coll.into?(collision)
-              mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
-              mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
-              mma.collisions << [idx, code, :into]
-            end
+      collision.pos.move_to(x, y){
+        px1, px2 = (x+dx) / @mapchip.chip_size[0], (x+rect[2]-1+dx) / @mapchip.chip_size[0]
+        py1, py2 = (y+dy) / @mapchip.chip_size[1], (y+rect[3]-1+dy) / @mapchip.chip_size[1]
+        (py1..py2).each{|py|
+          rpy = py * @mapchip.chip_size[1]
+          (px1..px2).each{|px|
+            rpx = px * @mapchip.chip_size[0]
+            @map_layers.each_with_index{|ml, idx|
+              code = ml.get_code(px, py)
+              next if code == -1 # not use chip
+              @coll = @mapchip.collision_table[type][code]
+              @coll.pos.move_to(rpx, rpy){
+                atable = @mapchip.access_table[type][code]
+                if @coll.into?(collision)
+                  mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
+                  mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
+                  mma.collisions << [idx, code, :into]
+                end
+              }
+            }
           }
         }
       }

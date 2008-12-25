@@ -28,13 +28,13 @@ module Miyako
     extend Forwardable
 
     # コリジョンの範囲([x,y,w,h])
-    attr_accessor :rect
+    attr_reader :rect
     # 元データの位置([x,y])
-    attr_accessor :pos
+    attr_reader :pos
     # 移動方向([dx,dy], dx,dy:-1,0,1)
-    attr_accessor :direction
+    attr_reader :direction
     # 移動量([w,h])
-    attr_accessor :amount
+    attr_reader :amount
     
     #===コリジョンのインスタンスを作成する
     #_rect_:: コリジョンを設定する範囲
@@ -100,21 +100,32 @@ module Miyako
       return Collision.cover?(self, c2)
     end
 
-    #===コリジョンをの位置を、指定の移動量で移動する
+    #===コリジョンの位置を、指定の移動量で移動する
+    #ブロックを渡したとき、そのブロックを評価中のときのみ移動を反映する
     #_x_:: 移動量(x方向)。単位はピクセル
     #_y_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move(x, y)
       @pos.move(x, y)
+      if block_given?
+        yield
+        @pos.move(-x, -y)
+      end
       return self
     end
 
-    #===コリジョンをの位置を、指定の位置へ移動する
+    #===コリジョンの位置を、指定の位置へ移動する
+    #ブロックを渡したとき、そのブロックを評価中のときのみ移動を反映する
     #_x_:: 移動先の位置(x方向)。単位はピクセル
     #_y_:: 移動先の位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move_to(x, y)
+      ox, oy = @pos.to_a
       @pos.move_to(x, y)
+      if block_given?
+        yield
+        @pos.move_to(ox, oy)
+      end
       return self
     end
 

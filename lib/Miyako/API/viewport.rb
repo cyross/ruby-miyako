@@ -63,23 +63,39 @@ module Miyako
 
     #===ビューポートの左上位置を変更する
     #移動量を指定して、位置を変更する
+    #ブロックを渡せば、その評価中のみ移動する
     #_dx_:: 移動量(x方向)
     #_dy_:: 移動量(y方向)
     #返却値:: 自分自身を返す
     def move(dx,dy)
+      orect = rect.to_a[0..1]
+      osq = sq.to_a[0..1]
       @rect.move(dx,dy)
       @sq.move(dx, dy)
+      if block_given?
+        yield
+        @rect.move_to(*orect)
+        @sq.move_to(*osq)
+      end
       return self
     end
 
     #===ビューポートの左上位置を変更する
     #移動先を指定して、位置を変更する
+    #ブロックを渡せば、その評価中のみ移動する
     #_x_:: 移動先位置(x方向)
     #_y_:: 移動先位置(y方向)
     #返却値:: 自分自身を返す
     def move_to(x,y)
+      orect = rect.to_a[0..1]
+      osq = sq.to_a[0..1]
       @rect.move_to(x,y)
       @sq.move_to(x, y)
+      if block_given?
+        yield
+        @rect.move_to(*orect)
+        @sq.move_to(*osq)
+      end
     end
 
     #===ビューポートの大きさを変更する
