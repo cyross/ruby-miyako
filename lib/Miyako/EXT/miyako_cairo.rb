@@ -20,13 +20,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 begin
+  loaded = false
   require 'cairo'
-rescue LoadError
+rescue
   begin
     require 'rubygems'
     require 'cairo'
-  rescue LoadError
-    raise Miyako::MiyakoError, "Sorry, Cairo-Miyako Interface has rcairo."
+    loaded = true
+  rescue
+    raise Miyako::MiyakoError, "Sorry, Cairo-Miyako Interface has rcairo." unless loaded
   end
 end
 
