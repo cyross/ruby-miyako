@@ -46,9 +46,17 @@ module Miyako
     FULLSCREEN_MODE = 1
 
     #ウインドウモード・フルスクリーンモードを切り替える際のフラグを示す配列
-    ScreenFlag = Array.new
-    ScreenFlag.push(SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT)
-    ScreenFlag.push(SDL::ANYFORMAT | SDL::FULLSCREEN)
+    ScreenFlag = $miyako_use_opengl ? [SDL::OPENGL, SDL::OPENGL | SDL::FULLSCREEN] : [SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT, SDL::ANYFORMAT | SDL::FULLSCREEN]
+    
+    if $miyako_use_opengl
+      SDL::GL.set_attr(SDL::GL::RED_SIZE, 8)
+      SDL::GL.set_attr(SDL::GL::GREEN_SIZE, 8)
+      SDL::GL.set_attr(SDL::GL::BLUE_SIZE, 8)
+      SDL::GL.set_attr(SDL::GL::ALPHA_SIZE, 8)
+      SDL::GL.set_attr(SDL::GL::DEPTH_SIZE, 32)
+      SDL::GL.set_attr(SDL::GL::STENCIL_SIZE, 32)
+      SDL::GL.set_attr(SDL::GL::DOUBLEBUFFER, 1)
+    end
     
     def Screen::get_fps_count
       return @@fps == 0 ? 0 : FpsMax / @@fps
@@ -182,11 +190,19 @@ module Miyako
       return @@size.dup
     end
 
-    def Screen::set_screen(f) #:nodoc:
-      return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << f))
-      @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << f))
+    #===画面のサーフェスを生成する
+    #グローバル変数$miyako_open_screen==falseの時に有効
+    #画面サーフェスを生成し、表示させる
+    #require 'Miyako/miyako'を記述する前に、"$miyako_open_screen=false"と記述すると
+    def Screen::open
+      @@screen = SDL::Screen.open(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
       SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
       @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
+    end
+
+    def Screen::set_screen #:nodoc:
+      return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
+      self.open
       return true
     end
 
@@ -196,16 +212,15 @@ module Miyako
     #_h_:: 画面の高さ
     #返却値:: 変更に成功したときは trueを返す
     def Screen::set_size(w, h)
+      return unless @@screen
       return false unless SDL.checkVideoMode(w, h, BPP, ScreenFlag[@@mode])
       @@size = Size.new(w, h)
-      @@screen = SDL.setVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
-      SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
-      @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
+      self.open
       return true
     end
 
     def Screen::check_mode_error #:nodoc:
-      unless Screen::set_screen(ScreenFlag[@@mode])
+      unless Screen::set_screen
         print "Sorry, this system not supported display...\n";
         exit(1)
       end
@@ -240,6 +255,7 @@ module Miyako
     #===画像を消去する
     #画像を黒色([0,0,0,0])で塗りつぶす
     def Screen::clear
+      return unless @@screen
       @@screen.fillRect(0, 0, @@screen.w, @@screen.h, [0, 0, 0, 0])
     end
     

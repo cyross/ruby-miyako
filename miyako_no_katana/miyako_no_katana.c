@@ -39,6 +39,7 @@ static VALUE mMapEvent = Qnil;
 static VALUE mLayout = Qnil;
 static VALUE mDiagram = Qnil;
 static VALUE eMiyakoError = Qnil;
+static VALUE cGL = Qnil;
 static VALUE cSurface = Qnil;
 static VALUE cEvent2 = Qnil;
 static VALUE cJoystick = Qnil;
@@ -63,8 +64,13 @@ static VALUE cMovie = Qnil;
 static VALUE cProcessor = Qnil;
 static VALUE cYuki = Qnil;
 static VALUE cThread = Qnil;
+static VALUE sPoint = Qnil;
+static VALUE sSize = Qnil;
+static VALUE sRect = Qnil;
+static VALUE sSquare = Qnil;
 static VALUE nZero = Qnil;
 static VALUE nOne = Qnil;
+static VALUE use_opengl = Qnil;
 static volatile ID id_update = Qnil;
 static volatile ID id_kakko = Qnil;
 static volatile int zero = Qnil;
@@ -2486,7 +2492,12 @@ static VALUE screen_render(VALUE self)
 
   screen_update_tick(self);
 
-  SDL_Flip(pdst);
+  if(use_opengl == Qfalse)
+  {
+    SDL_Flip(pdst);
+    return;
+  }
+  rb_funcall(cGL, rb_intern("swap_buffers"), 0);
   
   return Qnil;
 }
@@ -3637,6 +3648,234 @@ static VALUE processor_mainloop(VALUE self)
   return self;
 }
 
+static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
+{
+  VALUE *off = RSTRUCT_PTR(*(RSTRUCT_PTR(rb_iv_get(self, "@layout")) + 3));
+  VALUE *pox = off+0;
+  VALUE *poy = off+1;
+  VALUE tx = *pox;
+  VALUE ty = *poy;
+  *pox = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
+  *poy = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
+  rb_funcall(self, rb_intern("calc_layout"), 0);
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pox = tx;
+    *poy = ty;
+    rb_funcall(self, rb_intern("calc_layout"), 0);
+  }
+}
+
+static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
+{
+  VALUE *layout = RSTRUCT_PTR(rb_iv_get(self, "@layout"));
+  VALUE *off = RSTRUCT_PTR(*(layout + 3));
+  VALUE *pos = RSTRUCT_PTR(*(layout + 0));
+  VALUE tx = *(off+0);
+  VALUE ty = *(off+1);
+  *(off+0) = INT2NUM(NUM2INT(tx)+NUM2INT(x)-NUM2INT(*(pos+0)));
+  *(off+1) = INT2NUM(NUM2INT(ty)+NUM2INT(y)-NUM2INT(*(pos+1)));
+  rb_funcall(self, rb_intern("calc_layout"), 0);
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *(off+0) = tx;
+    *(off+1) = ty;
+    rb_funcall(self, rb_intern("calc_layout"), 0);
+  }
+}
+
+static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *px = st+5;
+  VALUE *py = st+6;
+  VALUE tx = *px;
+  VALUE ty = *py;
+  *px = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
+  *py = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *px = tx;
+    *py = ty;
+  }
+}
+
+static VALUE su_move_to(VALUE self, VALUE x, VALUE y)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *px = st+5;
+  VALUE *py = st+6;
+  VALUE tx = *px;
+  VALUE ty = *py;
+  *px = x;
+  *py = y;
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *px = tx;
+    *py = ty;
+  }
+}
+
+static VALUE point_move(VALUE self, VALUE dx, VALUE dy)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *px = st+0;
+  VALUE *py = st+1;
+  VALUE tx = *px;
+  VALUE ty = *py;
+  *px = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
+  *py = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *px = tx;
+    *py = ty;
+  }
+}
+
+static VALUE point_move_to(VALUE self, VALUE x, VALUE y)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *px = st+0;
+  VALUE *py = st+1;
+  VALUE tx = *px;
+  VALUE ty = *py;
+  *px = x;
+  *py = y;
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *px = tx;
+    *py = ty;
+  }
+}
+
+static VALUE size_resize(VALUE self, VALUE w, VALUE h)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pw = st+0;
+  VALUE *ph = st+1;
+  VALUE tw = *pw;
+  VALUE th = *ph;
+  *pw = w;
+  *ph = h;
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pw = tw;
+    *ph = th;
+  }
+}
+
+static VALUE rect_resize(VALUE self, VALUE w, VALUE h)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pw = st+2;
+  VALUE *ph = st+3;
+  VALUE tw = *pw;
+  VALUE th = *ph;
+  *pw = w;
+  *ph = h;
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pw = tw;
+    *ph = th;
+  }
+}
+
+static VALUE rect_in_range(VALUE self, VALUE vx, VALUE vy)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  int l = NUM2INT(*(st+0));
+  int t = NUM2INT(*(st+1));
+  int w = NUM2INT(*(st+2));
+  int h = NUM2INT(*(st+3));
+  int x = NUM2INT(vx);
+  int y = NUM2INT(vy);
+  
+  if(x >= l && y >= t && x < (l+w) && y < (t+h)){ return Qtrue; }
+  return Qfalse;
+}
+
+static VALUE square_move(VALUE self, VALUE dx, VALUE dy)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pl = st+0;
+  VALUE *pt = st+1;
+  VALUE *pr = st+2;
+  VALUE *pb = st+3;
+  VALUE tl = *pl;
+  VALUE tt = *pt;
+  VALUE tr = *pr;
+  VALUE tb = *pb;
+  *pl = INT2NUM(NUM2INT(tl)+NUM2INT(dx));
+  *pt = INT2NUM(NUM2INT(tt)+NUM2INT(dy));
+  *pr = INT2NUM(NUM2INT(tr)+NUM2INT(dx));
+  *pb = INT2NUM(NUM2INT(tb)+NUM2INT(dy));
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pl = tl;
+    *pt = tt;
+    *pr = tr;
+    *pb = tb;
+  }
+}
+
+static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pl = st+0;
+  VALUE *pt = st+1;
+  VALUE *pr = st+2;
+  VALUE *pb = st+3;
+  VALUE tl = *pl;
+  VALUE tt = *pt;
+  VALUE tr = *pr;
+  VALUE tb = *pb;
+  int w = NUM2INT(tr)-NUM2INT(tl);
+  int h = NUM2INT(tb)-NUM2INT(tt);
+  *pl = x;
+  *pt = y;
+  *pr = INT2NUM(NUM2INT(x)+w);
+  *pb = INT2NUM(NUM2INT(y)+h);
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pl = tl;
+    *pt = tt;
+    *pr = tr;
+    *pb = tb;
+  }
+}
+
+static VALUE square_resize(VALUE self, VALUE w, VALUE h)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pl = st+0;
+  VALUE *pt = st+1;
+  VALUE *pr = st+2;
+  VALUE *pb = st+3;
+  VALUE tr = *pr;
+  VALUE tb = *pb;
+  *pr = INT2NUM(NUM2INT(*pl) + NUM2INT(w) - 1);
+  *pb = INT2NUM(NUM2INT(*pt) + NUM2INT(h) - 1);
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pr = tr;
+    *pb = tb;
+  }
+}
+
+static VALUE square_in_range(VALUE self, VALUE vx, VALUE vy)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  int l = NUM2INT(*(st+0));
+  int t = NUM2INT(*(st+1));
+  int r = NUM2INT(*(st+2));
+  int b = NUM2INT(*(st+3));
+  int x = NUM2INT(vx);
+  int y = NUM2INT(vy);
+  
+  if(x >= l && y >= t && x <= r && y <= b){ return Qtrue; }
+  return Qfalse;
+}
+
 /*
 :nodoc:
 */
@@ -3675,6 +3914,7 @@ void Init_miyako_no_katana()
   mLayout = rb_define_module_under(mMiyako, "Layout");
   mDiagram = rb_define_module_under(mMiyako, "Diagram");
   eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
+  cGL  = rb_define_module_under(mSDL, "GL");
   cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
   cEvent2  = rb_define_class_under(mSDL, "Event2", rb_cObject);
   cJoystick  = rb_define_class_under(mSDL, "Joystick", rb_cObject);
@@ -3698,6 +3938,10 @@ void Init_miyako_no_katana()
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
   cYuki = rb_define_class_under(mMiyako, "Yuki", rb_cObject);
   cThread = rb_define_class("Thread", rb_cObject);
+  sPoint = rb_define_class_under(mMiyako, "PointStruct", rb_cStruct);
+  sSize = rb_define_class_under(mMiyako, "SizeStruct", rb_cStruct);
+  sRect = rb_define_class_under(mMiyako, "RectStruct", rb_cStruct);
+  sSquare = rb_define_class_under(mMiyako, "SquareStruct", rb_cStruct);
 
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");
@@ -3736,6 +3980,9 @@ void Init_miyako_no_katana()
   rb_define_module_function(mScreen, "render", screen_render, 0);
   rb_define_module_function(mScreen, "render_screen", screen_render_screen, 1);
 
+	rb_define_method(mLayout, "move", layout_move, 2);
+	rb_define_method(mLayout, "move_to", layout_move_to, 2);
+  
   rb_define_method(cWaitCounter, "start", counter_start, 0);
   rb_define_method(cWaitCounter, "stop",  counter_stop,  0);
   rb_define_method(cWaitCounter, "wait_inner", counter_wait_inner, 1);
@@ -3755,6 +4002,9 @@ void Init_miyako_no_katana()
   rb_define_method(cSprite, "render_to", sprite_render_to_sprite, 1);
   rb_define_method(cSprite, "render_transform", sprite_render_transform, 3);
   rb_define_method(cSprite, "render_to_transform", sprite_render_to_sprite_transform, 4);
+
+  rb_define_method(sSpriteUnit, "move", su_move, 2);
+  rb_define_method(sSpriteUnit, "move_to", su_move_to, 2);
 
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);
@@ -3796,6 +4046,20 @@ void Init_miyako_no_katana()
   rb_define_method(cMapLayer, "render_to", maplayer_render_to_sprite, 1);
   rb_define_method(cFixedMapLayer, "render_to", fixedmaplayer_render_to_sprite, 1);
 
+  rb_define_method(sPoint, "move", point_move, 2);
+  rb_define_method(sPoint, "move_to", point_move_to, 2);
+  rb_define_method(sSize, "resize", size_resize, 2);
+  rb_define_method(sRect, "move", point_move, 2);
+  rb_define_method(sRect, "move_to", point_move_to, 2);
+  rb_define_method(sRect, "resize", rect_resize, 2);
+  rb_define_method(sRect, "in_range?", rect_in_range, 2);
+  rb_define_method(sSquare, "move", square_move, 2);
+  rb_define_method(sSquare, "move_to", square_move_to, 2);
+  rb_define_method(sSquare, "resize", square_resize, 2);
+  rb_define_method(sSquare, "in_range?", square_in_range, 2);
+  
   int i;
   for(i=0; i<256; i++){ div255[i] = (double)i / 255.0; }
+
+  use_opengl = rb_gv_get("$miyako_use_opengl");
 }

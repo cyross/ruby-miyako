@@ -835,6 +835,8 @@ v2.0.0(2008.12.20)
 ・Ruby/SDL2.0準拠に変更
 ・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
+・グローバル変数$miyako_use_wait、$miyako_wait_time、$miyako_use_openglを追加
+　(フレームバッファ:32bit(赤、青、緑、αともに8bit)、デプスバッファ:32bit、ステンシルバッファ:32bit)
 ・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
 ・Input.updateで、マウスのボタンを押したままなのに、Input.clicked?の値がtrueになっていたバグを修正
 ・Input.get_mouse_positionメソッドの返却値を変更(ハッシュ→Point構造体)

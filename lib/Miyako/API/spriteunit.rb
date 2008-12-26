@@ -25,26 +25,40 @@ module Miyako
   #==SpriteUnitを生成するための構造体クラス
   #Structクラスからの継承
   #--
-  #SpriteUnit = Struct.new([:dp], :bitmap, :ox, :oy, :ow, :oh, :x, :y, :cx, :cy)
+  #SpriteUnit = Struct.new(:bitmap, :ox, :oy, :ow, :oh, :x, :y, :cx, :cy)
   #++
   class SpriteUnitBase < Struct
     #===位置を変更する(変化量を指定)
+    #位置を右方向へdxピクセル、下方向へdyピクセル移動する
+    #ブロックを渡すと、ブロック評価中の位置を変更する
     #_dx_:: 移動量(x方向)。単位はピクセル
     #_dy_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move(dx, dy)
+      o = [self.x, self.y]
       self.x+=dx
       self.y+=dy
+      if block_given?
+        yield
+        self.x, self.y = o
+      end
       return self
     end
 
     #===位置を変更する(位置指定)
+    #左上を(0.0)として、位置を右xピクセル、下yピクセルの位置移動する
+    #ブロックを渡すと、ブロック評価中の位置を変更する
     #_x_:: 移動先位置(x方向)。単位はピクセル
     #_y_:: 移動先位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move_to(x, y)
+      o = [self.x, self.y]
       self.x=x
       self.y=y
+      if block_given?
+        yield
+        self.x, self.y = o
+      end
       return self
     end
     #また、ブロックを渡せば、複製したインスタンスに補正を欠けることが出来る(画像変換も可能)
