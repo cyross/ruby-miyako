@@ -590,8 +590,8 @@ module Miyako
     #===ポーズ時に行いたい処理をブロックとして渡す
     #pauseメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
     #返却値:: 自分自身を返す
-    def pre_pause(&proc)
-      @pre_pause = proc
+    def add_pre_pause(&proc)
+      @pre_pause << proc
       return self
     end
 
@@ -599,8 +599,8 @@ module Miyako
     #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
     #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
     #返却値:: 自分自身を返す
-    def pre_command(&proc)
-      @pre_command = proc
+    def add_pre_command(&proc)
+      @pre_command << proc
       return self
     end
 
@@ -608,16 +608,16 @@ module Miyako
     #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
     #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
     #返却値:: 自分自身を返す
-    def pre_cancel(&proc)
-      @pre_cancel = proc
+    def add_pre_cancel(&proc)
+      @pre_cancel << proc
       return self
     end
 
     #===ポーズ解除時に行いたい処理をブロックとして渡す
     #pauseメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
     #返却値:: 自分自身を返す
-    def post_pause(&proc)
-      @post_pause = proc
+    def add_post_pause(&proc)
+      @post_pause << proc
       return self
     end
 
@@ -625,8 +625,8 @@ module Miyako
     #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
     #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
     #返却値:: 自分自身を返す
-    def post_command(&proc)
-      @post_command = proc
+    def add_post_command(&proc)
+      @post_command << proc
       return self
     end
 
@@ -634,8 +634,8 @@ module Miyako
     #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
     #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
     #返却値:: 自分自身を返す
-    def post_cancel(&proc)
-      @post_cancel = proc
+    def add_post_cancel(&proc)
+      @post_cancel << proc
       return self
     end
 

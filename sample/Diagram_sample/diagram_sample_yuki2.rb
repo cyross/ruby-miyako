@@ -185,6 +185,8 @@ class MainScene
     font = Font.sans_serif
     font.color = Color[:white]
     font.size = 24
+    font.hspace = 8
+    font.vspace = 4
     @box = TextBox.new(:size=>[20,5], :wait_cursor => ws, :select_cursor => cs, :font => font)
     @box_bg = Sprite.new(:size => @box.size.to_a.map{|v| v + TEXTBOX_MARGIN}, :type => :ac)
     @box_bg.fill([0,0,255,128])

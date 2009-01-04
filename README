@@ -845,6 +845,8 @@ v2.0.0(2008.12.20)
 ・Font#bold、italic、under_lineメソッドの内容の変更(ブロックを渡すと、ブロック評価中のみ効果がある仕様を追加)
 ・Font#margin_height、size_during、color_during、shadow_duringメソッドの追加
 ・Font#sans_serifの優先度をメイリオ優先からMSゴシック優先に変更（メイリオは最後に、等幅フォント奨励へ変更）
+・Font#hspaceプロパティの追加
+・Font#draw_typeプロパティの廃止(アンチエイシアリングのみ有効)
 ・SpriteBase#render、rect、broad_rectメソッドの追加、dp,dp=,show,hideメソッドの廃止
 ・SpriteBase.ox,oy,ow,ohメソッドの戻り値仕様を変更(nil→0へ変更)
 ・SpriteBase.to_spriteメソッドの戻り値仕様を変更(nil→selfへ変更)
@@ -875,6 +877,7 @@ v2.0.0(2008.12.20)
 ・TextBox#start、TextBox#stop、TextBox#resetメソッドの追加
 ・TextBox#attach_cursor、TextBox#attach_any_command?メソッドの追加
 ・TextBox#set_wait_cursor_position、TextBox#reset_wait_cursor_position、TextBox#set_select_cursor_position、TextBox#reset_select_cursor_positionメソッドの追加
+・TextBox#on_pause=, TextBox#on_release=, TextBox#on_draw=メソッドを追加
 ・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
 ・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
 ・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加

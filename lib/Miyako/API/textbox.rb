@@ -35,7 +35,7 @@ module Miyako
     attr_accessor :select_type, :waiting, :selecting
     attr_accessor :font, :margin
     attr_reader :wait_cursor, :select_cursor, :choices
-    attr_reader :draw_type, :locate, :size, :max_height
+    attr_reader :locate, :size, :max_height
 
     #===インスタンスの作成
     #テキストボックスを生成する。パラメータは以下の通り。
@@ -55,7 +55,7 @@ module Miyako
       @locate     = Point.new(0, 0)
 
       @base = params[:size] || Size.new(20, 8)
-      @size = Size.new(@font.size * @base[0] +
+      @size = Size.new((@font.size + @font.hspace) * @base[0] - @font.hspace +
                         (@font.use_shadow ? @font.shadow_margin[0] : 0),
                        @font.line_height *
                         @base[1] - @font.vspace)
@@ -75,6 +75,12 @@ module Miyako
       @default_select_cursor_position = lambda{|scursor, tbox| scursor.left(:outside).middle}
       @select_cursor_position = @default_select_cursor_position
 
+      @on_pause = lambda{}
+
+      @on_release = lambda{}
+      
+      @on_draw = lambda{}
+      
       @command_page_size = params[:page_size] || @base[1]
 
       @choices = Choices.new
@@ -329,6 +335,22 @@ module Miyako
     def draw_text(text)
       @locate.x = @font.draw_text(@textarea, text, @locate.x, @locate.y + @margin)
       @max_height = [@max_height, @font.line_height].max
+      @on_draw.call
+      return self
+    end
+
+    #===文字描画時に行う処理を記述したブロックを登録する
+    #処理を行うブロックはオブジェクトとして渡す。
+    #ブロック引数の時は、そのブロックを処理している間のみ、そのオブジェクトを呼び出して処理させる
+    #_event_:: 文字描画時処理するブロック
+    #返却値:: 自分自身を返す
+    def on_draw=(event)
+      tdraw = @on_draw
+      @on_draw = event
+      if block_given?
+        yield
+        @on_draw = tdraw
+      end
       return self
     end
 
@@ -522,6 +544,22 @@ module Miyako
       @waiting = true
       return self unless @wait_cursor
       @wait_cursor_position.call(@wait_cursor, self)
+      @on_pause.call
+      return self
+    end
+
+    #===ポーズ時に行う処理を記述したブロックを登録する
+    #処理を行うブロックはオブジェクトとして渡す。
+    #ブロック引数の時は、そのブロックを処理している間のみ、そのオブジェクトを呼び出して処理させる
+    #_event_:: ポーズ時処理するブロック
+    #返却値:: 自分自身を返す
+    def on_pause=(event)
+      tpause = @on_pause
+      @on_pause = event
+      if block_given?
+        yield
+        @on_pause = tpause
+      end
       return self
     end
 
@@ -530,6 +568,22 @@ module Miyako
     #返却値:: 自分自身を返す
     def release
       @waiting = false
+      @on_release.call
+      return self
+    end
+
+    #===ポーズ解除時に行う処理を記述したブロックを登録する
+    #処理を行うブロックはオブジェクトとして渡す。
+    #ブロック引数の時は、そのブロックを処理している間のみ、そのオブジェクトを呼び出して処理させる
+    #_event_:: ポーズ解除時処理するブロック
+    #返却値:: 自分自身を返す
+    def on_release=(event)
+      trelease = @on_release
+      @on_release = event
+      if block_given?
+        yield
+        @on_release = trelease
+      end
       return self
     end
 

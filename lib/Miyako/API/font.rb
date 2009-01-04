@@ -31,7 +31,7 @@ module Miyako
     extend Forwardable
 
     attr_reader :size, :line_skip, :height, :ascent, :descent
-    attr_accessor :color, :use_shadow, :shadow_color, :shadow_margin, :vspace, :draw_type
+    attr_accessor :color, :use_shadow, :shadow_color, :shadow_margin, :vspace, :hspace
 
     @@font_cache = {}
 
@@ -112,15 +112,14 @@ module Miyako
       @color = [255, 255, 255]
       @fname = fname
       @vspace = 0
+      @hspace = 0
       @bold = false
       @italic = false
       @under_line = false
-      @draw_type = :mild
       @fpath = Font.findFontPath(@fname) or raise MiyakoError, "Cannot Find Font! : #{@fname}"
       @font = Font.get_font_inner(@fname, @fpath, @size)
       @font.style = SDL::TTF::STYLE_NORMAL
       init_height
-      @draw_text = {:solid => self.method(:_draw_text), :mild => self.method(:_draw_text_mild)}
       @use_shadow = false
       @shadow_color = [128, 128, 128]
       @shadow_margin = [2, 2]
@@ -303,29 +302,26 @@ module Miyako
     def draw_text(dst, str, x, y)
       str = str.toutf8
       str = Iconv.conv("UTF-8-MAC", "UTF-8", str) if Miyako.getOSName == "mac_osx"
-      return @draw_text[@draw_type][dst, str, x, y]
-    end
-    
-    def _draw_text(dst, str, x, y) #:nodoc:
-      @font.drawSolidUTF8(dst.bitmap, str, x + @shadow_margin[0], y + @shadow_margin[1], @shadow_color[0], @shadow_color[1], @shadow_color[2]) if @use_shadow
-      @font.drawSolidUTF8(dst.bitmap, str, x, y, @color[0], @color[1], @color[2])
-      return x + @font.textSize(str)[0]
-    end
-
-    def _draw_text_mild(dst, str, x, y) #:nodoc:
-      src = @font.renderBlendedUTF8(str, @color[0], @color[1], @color[2])
-      if src
+      str.chars{|c|
         if @use_shadow
-          src2 = @font.renderBlendedUTF8(str, @shadow_color[0], @shadow_color[1], @shadow_color[2])
-          SpriteUnitFactory.apply(@unit, {:bitmap=>src2, :ow=>src2.w, :oh=>src2.h})
-          Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
+          src2 = @font.renderBlendedUTF8(c, @shadow_color[0], @shadow_color[1], @shadow_color[2])
+          if src2
+            SpriteUnitFactory.apply(@unit, {:bitmap=>src2, :ow=>src2.w, :oh=>src2.h})
+            Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
+          else
+            break x
+          end
         end
-        SpriteUnitFactory.apply(@unit, {:bitmap=>src, :ow=>src.w, :oh=>src.h})
-        Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x, y)
-      else
-        return x
-      end
-      return x + self.text_size(str)[0]
+        src = @font.renderBlendedUTF8(c, @color[0], @color[1], @color[2])
+        if src
+          SpriteUnitFactory.apply(@unit, {:bitmap=>src, :ow=>src.w, :oh=>src.h})
+          Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x, y)
+        else
+          break x
+        end
+        x += self.text_size(c)[0] + @hspace
+      }
+      return x
     end
 
     #===文字列描画したときの大きさを取得する
@@ -333,7 +329,7 @@ module Miyako
     #_txt_:: 算出したい文字列
     #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
     def text_size(txt)
-      width = txt.chars.inject(0){|r, c| r += (c.length == 1 ? @size >> 1 : @size) } + (@use_shadow ? @shadow_margin[0] : 0)
+      width = txt.chars.inject(0){|r, c| r += (c.length == 1 ? @size >> 1 : @size) } + (@use_shadow ? @shadow_margin[0] : 0) + @hspace * (txt.chars.to_a.length - 1)
       return [width, self.line_height]
     end
     
