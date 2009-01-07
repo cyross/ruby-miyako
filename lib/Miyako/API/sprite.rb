@@ -135,8 +135,6 @@ module Miyako
 
       if param.has_key?(:unit)
         SpriteUnitFactory.apply(@unit, :ow=>param[:unit].ow, :oh=>param[:unit].oh,
-                                       :angle => param[:unit].angle,
-                                       :xscale => param[:unit].xscale, :yscale => param[:unit].yscale,
                                        :cx => param[:unit].cx, :cy => param[:unit].cy)
         self.move_to(param[:unit].x, param[:unit].y)
       end

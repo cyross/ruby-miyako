@@ -157,7 +157,6 @@ require 'Miyako/API/map'
 require 'Miyako/API/fixedmap'
 require 'Miyako/API/map_event'
 require 'Miyako/API/story'
-require 'Miyako/API/diagram'
 
 module Miyako
   #===Miyakoのメインループ

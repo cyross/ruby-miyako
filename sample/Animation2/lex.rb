@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #! /usr/bin/ruby
 # Lex sample for Miyako v2.0
 # 2008.11.24 Cyross Makoto

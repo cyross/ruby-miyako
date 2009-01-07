@@ -70,7 +70,6 @@ Miyakoのタイトルは、以下の事柄に由来しています
 ・MPEGファイルによるムービー再生に対応
 ・キーボード、ジョイパッド両対応(1人プレイのみという制限付きです・・・)
 ・マウス対応（v1.0～）
-・Stateパターン(状態遷移図のようなもの)を使用して処理の流れを記述できるDiagramProcessorクラスなど(v1.5pre6～)
 ・Ruby/SDLの機能が使える（ラッパークラスなので）
 ・Rubyの勉強に役に立つ（ハズ）
 
@@ -985,6 +984,7 @@ v2.0.0(2008.12.20)
 ・fixedmap.rb追加
 ・map_event.rb追加
 ・viewport.rb追加
+・diagram.rb削除(Ruby1.9.1でまともに動かないため)
 ・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
 ・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
 ・miyako_no_katanaの、SpriteAnimation#update_animationが仕様通りになっていなかった問題を修正

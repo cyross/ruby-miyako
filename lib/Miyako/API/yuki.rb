@@ -122,7 +122,7 @@ module Miyako
     Command = Struct.new(:body, :body_selected, :condition, :result)
 
     attr_accessor :update_inner, :update_text
-    attr_reader :parts, :diagrams, :vars, :valign
+    attr_reader :parts, :vars, :valign
     #release_checks:: ポーズ解除を問い合わせるメソッドの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
     #ok_checks:: コマンド選択決定を問い合わせるメソッドの配列。
@@ -162,7 +162,6 @@ module Miyako
       
       @parts = {}
       @visible = []
-      @diagrams = {}
       @vars = {}
       
       @valign = :middle
@@ -197,7 +196,6 @@ module Miyako
     def render
       @visible.each{|name|
         @parts[name].render if @parts.has_key?(name)
-        @diagrams[name].render if @diagrams.has_key?(name)
       }
       return self
     end
@@ -246,20 +244,6 @@ module Miyako
       return @yuki[:command_box]
     end
   
-    #===遷移図を登録する
-    #遷移図をパーツnameとして登録する。
-    #遷移図を登録すると、update_inputメソッドがYuki2::update_plotメソッドを呼び出した時に
-    #自動的に呼び出される(renderメソッドは呼ばれないことに注意！)。
-    #Yuki::diagrams[name]で参照可能
-    #:name:: パーツ名（シンボル）
-    #:diagram:: 登録対象の遷移図インスタンス
-    #
-    #返却値:: 自分自身を返す
-    def regist_diagram(name, diagram)
-      @diagrams[name] = diagram
-      return self
-    end
-  
     #===オブジェクトの登録を解除する
     #パーツnameとして登録されているオブジェクトを登録から解除する。
     #:name:: パーツ名（シンボル）
@@ -267,16 +251,6 @@ module Miyako
     #返却値:: 自分自身を返す
     def remove_parts(name)
       @parts.delete(name)
-      return self
-    end
-  
-    #===遷移図の登録を解除する
-    #パーツnameとして登録されている遷移図を登録から解除する。
-    #:name:: パーツ名（シンボル）
-    #
-    #返却値:: 自分自身を返す
-    def remove_diagram(name)
-      @diagrams.delete(@parts[name])
       return self
     end
   
@@ -402,10 +376,6 @@ module Miyako
         selecting if @yuki[:selecting]
         waiting   if @yuki[:waiting]
       end
-      @diagrams.each_value{|dia|
-        dia.update_input
-        dia.update if dia.sync?
-      }
       @mutex.lock
       @yuki[:pause_release] = false
       @yuki[:select_ok] = false
@@ -475,7 +445,6 @@ module Miyako
       @yuki[:exec_plot] = true
       @mutex.unlock
       @yuki[:plot_result] = plot_proc ? plot_proc.call(self) : plot_block.call(self)
-      @diagrams.each_value{|dia| dia.stop }
       @mutex.lock
       @yuki[:exec_plot] = false
       if @yuki[:plot_thread]
@@ -584,58 +553,6 @@ module Miyako
       @cancel_checks, @pre_cancel, @post_cancel = procs, pre_proc, post_proc
       yield
       @cancel_checks, @pre_cancel, @post_cancel = backup.pop(3)
-      return self
-    end
-
-    #===ポーズ時に行いたい処理をブロックとして渡す
-    #pauseメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
-    #返却値:: 自分自身を返す
-    def add_pre_pause(&proc)
-      @pre_pause << proc
-      return self
-    end
-
-    #===コマンド選択開始時に行いたい処理をブロックとして渡す
-    #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
-    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
-    #返却値:: 自分自身を返す
-    def add_pre_command(&proc)
-      @pre_command << proc
-      return self
-    end
-
-    #===コマンド選択開始時に行いたい処理をブロックとして渡す
-    #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
-    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
-    #返却値:: 自分自身を返す
-    def add_pre_cancel(&proc)
-      @pre_cancel << proc
-      return self
-    end
-
-    #===ポーズ解除時に行いたい処理をブロックとして渡す
-    #pauseメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
-    #返却値:: 自分自身を返す
-    def add_post_pause(&proc)
-      @post_pause << proc
-      return self
-    end
-
-    #===コマンド選択終了時に行いたい処理をブロックとして渡す
-    #コマンド決定処理メソッド配列での評価に必要な処理をこのメソッドで渡す
-    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからコマンド選択に入る
-    #返却値:: 自分自身を返す
-    def add_post_command(&proc)
-      @post_command << proc
-      return self
-    end
-
-    #===コマンド選択終了時に行いたい処理をブロックとして渡す
-    #コマンドキャンセル処理メソッド配列での評価に必要な処理をこのメソッドで渡す
-    #commandメソッドを呼び出した際に、本メソッドで定義したブロックを評価してからポーズに入る
-    #返却値:: 自分自身を返す
-    def add_post_cancel(&proc)
-      @post_cancel << proc
       return self
     end
 
@@ -977,8 +894,6 @@ module Miyako
       @parts = nil
       @visible.clear
       @visible = nil
-      @diagrams.clear
-      @diagrams = nil
       @vars.clear
       @vars = nil
 

@@ -46,7 +46,6 @@ static VALUE cJoystick = Qnil;
 static VALUE cWaitCounter = Qnil;
 static VALUE cColor = Qnil;
 static VALUE cFont = Qnil;
-static VALUE cPixelFormat = Qnil;
 static VALUE cBitmap = Qnil;
 static VALUE cSprite = Qnil;
 static VALUE cSpriteAnimation = Qnil;
@@ -109,7 +108,6 @@ static GLOBAL_DEFINE_GET_STRUCT(struct_name, fun, klass, klassstr)
 
 // from rubysdl-video.c
 DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
-DEFINE_GET_STRUCT(SDL_PixelFormat, Get_PixelFormat, cPixelFormat, "SDL::PixelFormat");
 
 #define MIYAKO_GETCOLOR(COLOR) \
 	COLOR.r = (Uint32)(((pixel & fmt->Rmask) >> fmt->Rshift) << fmt->Rloss); \
@@ -326,7 +324,6 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect srect, drect;
 	Uint32 src_a = 0;
@@ -412,7 +409,6 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src1->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect s1rect, s2rect, drect;
 	Uint32 src1_a = 0;
@@ -509,7 +505,6 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src1->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect s1rect, s2rect, drect;
 	Uint32 src1_a = 0;
@@ -608,7 +603,6 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src1->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect s1rect, s2rect, drect;
 	Uint32 src1_a = 0;
@@ -702,7 +696,6 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = dst->format;
 	MiyakoColor color_key, color;
-	Uint32 tmp;
 	Uint32 pixel;
 
 	if(psrc == pdst){ return Qnil; }
@@ -763,7 +756,6 @@ static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = dst->format;
-	Uint32 tmp;
 	Uint32 pixel;
 
   //SpriteUnit:
@@ -816,7 +808,6 @@ static VALUE bitmap_miyako_normal_to_alphachannel(VALUE self, VALUE vsrc, VALUE 
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = dst->format;
-	Uint32 tmp;
 	Uint32 pixel;
 
   //SpriteUnit:
@@ -871,8 +862,6 @@ static VALUE bitmap_miyako_screen_to_alphachannel(VALUE self, VALUE vsrc, VALUE 
 	Uint32 *psrc = (Uint32 *)(src->pixels);
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = dst->format;
-	MiyakoColor color_key, color;
-	Uint32 tmp;
 	Uint32 pixel;
 
 	if(psrc == pdst){ return Qnil; }
@@ -942,7 +931,6 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
   Uint32 da = (Uint32)(255.0 * deg);
 
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 
   if(src != dst){
@@ -1045,7 +1033,6 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
   deg = 1.0 - deg;
 
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 
   Uint32 d = (Uint32)(255.0 * deg);
@@ -1163,7 +1150,6 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
   }
 
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 
   Uint32 d = (Uint32)(255.0 * deg);
@@ -1271,7 +1257,6 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 
   if(src != dst){
@@ -1358,7 +1343,6 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect srect, drect;
 	Uint32 src_a = 0;
@@ -1452,10 +1436,8 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
 
 	SDL_PixelFormat *fmt = src->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect srect, drect;
-	SDL_Rect screct, dcrect;
 	
 	if(psrc == pdst){ return Qnil; }
 	
@@ -1545,10 +1527,8 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
 
 	SDL_PixelFormat *fmt = src->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect srect, drect;
-	SDL_Rect screct, dcrect;
 	
 	if(psrc == pdst){ return Qnil; }
 	
@@ -1562,7 +1542,7 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
   double tscx = NUM2DBL(xscale);
   double tscy = NUM2DBL(yscale);
 
-  if(tscx == 0.0 || tscy == 0.0){ return; }
+  if(tscx == 0.0 || tscy == 0.0){ return Qnil; }
 
   int scx = (int)(4096.0 / tscx);
   int scy = (int)(4096.0 / tscy);
@@ -1634,10 +1614,8 @@ static void transform_inner(VALUE sunit, VALUE dunit, VALUE radian, VALUE xscale
 	if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
 	
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect srect, drect;
-	SDL_Rect screct, dcrect;
 	
 	if(psrc == pdst){ return; }
 	
@@ -1805,12 +1783,11 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 	SDL_PixelFormat *fmt = src->format;
   double deg = NUM2DBL(degree);
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
-  double ph, ps, pv;
   double d_pi = 360.0;
-  double r, g, b, max, min, cr, cg, cb;
-  double i, f, m, n, k;
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
 
   if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
   
@@ -1916,11 +1893,10 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
 	SDL_PixelFormat *fmt = src->format;
   double sat = NUM2DBL(saturation);
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
-  double ph, ps, pv;
-  double r, g, b, max, min, cr, cg, cb;
-  double i, f, m, n, k;
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
 
   if(src != dst){
 		SDL_Rect srect, drect;
@@ -2025,11 +2001,10 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
 	SDL_PixelFormat *fmt = src->format;
   double val = NUM2DBL(value);
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
-  double ph, ps, pv;
-  double r, g, b, max, min, cr, cg, cb;
-  double i, f, m, n, k;
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
 
   if(src != dst){
 		SDL_Rect srect, drect;
@@ -2138,12 +2113,11 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
   double sat = NUM2DBL(saturation);
   double val = NUM2DBL(value);
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
-  double ph, ps, pv;
   double d_pi = 360.0;
-  double r, g, b, max, min, cr, cg, cb;
-  double i, f, m, n, k;
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
 
   if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
   
@@ -2242,19 +2216,6 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
 }
 
 /*
-:nodoc:
-*/
-static VALUE sprite_update(VALUE self)
-{
-  VALUE update = rb_iv_get(self, "@update");
-  
-  if(update != Qnil){ rb_funcall(update, rb_intern("call"), 1, self); }
-  if(rb_block_given_p() == Qtrue){ rb_yield(self); }
-
-  return self;
-}
-
-/*
 ===内部用レンダメソッド
 */
 static void render_to_inner(VALUE sunit, VALUE dunit)
@@ -2266,7 +2227,6 @@ static void render_to_inner(VALUE sunit, VALUE dunit)
 	Uint32 *pdst = (Uint32 *)(dst->pixels);
 	SDL_PixelFormat *fmt = src->format;
 	MiyakoColor scolor, dcolor;
-	Uint32 tmp;
 	Uint32 pixel;
 	SDL_Rect srect, drect;
 	Uint32 src_a = 0;
@@ -2495,7 +2455,7 @@ static VALUE screen_render(VALUE self)
   if(use_opengl == Qfalse)
   {
     SDL_Flip(pdst);
-    return;
+    return Qnil;
   }
   rb_funcall(cGL, rb_intern("swap_buffers"), 0);
   
@@ -3232,18 +3192,12 @@ static VALUE parts_render(VALUE self)
 {
   VALUE parts_list = rb_iv_get(self, "@parts_list");
   VALUE parts_hash = rb_iv_get(self, "@parts");
-  VALUE dunit = rb_funcall(mScreen, rb_intern("to_unit"), 0);
 
   int i;
   for(i=0; i<RARRAY_LEN(parts_list); i++)
   {
     VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
-#if 0
-    MIYAKO_GET_UNIT_NO_SURFACE_1(parts, sunit);
-    render_inner(sunit, dunit);
-#else
     rb_funcall(parts, rb_intern("render"), 0);
-#endif
   }
   
   return Qnil;
@@ -3263,18 +3217,12 @@ static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE parts_list = rb_iv_get(self, "@parts_list");
   VALUE parts_hash = rb_iv_get(self, "@parts");
-  VALUE dunit = rb_funcall(vdst, rb_intern("to_unit"), 0);
 
   int i;
   for(i=0; i<RARRAY_LEN(parts_list); i++)
   {
     VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
-#if 0
-    MIYAKO_GET_UNIT_NO_SURFACE_1(parts, sunit);
-    render_to_inner(sunit, dunit);
-#else
     rb_funcall(parts, rb_intern("render_to"), 1, vdst);
-#endif
   }
   
   return Qnil;
@@ -3664,6 +3612,7 @@ static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
     *poy = ty;
     rb_funcall(self, rb_intern("calc_layout"), 0);
   }
+  return Qnil;
 }
 
 static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
@@ -3682,6 +3631,7 @@ static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
     *(off+1) = ty;
     rb_funcall(self, rb_intern("calc_layout"), 0);
   }
+  return Qnil;
 }
 
 static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
@@ -3698,6 +3648,7 @@ static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
     *px = tx;
     *py = ty;
   }
+  return Qnil;
 }
 
 static VALUE su_move_to(VALUE self, VALUE x, VALUE y)
@@ -3714,6 +3665,7 @@ static VALUE su_move_to(VALUE self, VALUE x, VALUE y)
     *px = tx;
     *py = ty;
   }
+  return Qnil;
 }
 
 static VALUE point_move(VALUE self, VALUE dx, VALUE dy)
@@ -3730,6 +3682,7 @@ static VALUE point_move(VALUE self, VALUE dx, VALUE dy)
     *px = tx;
     *py = ty;
   }
+  return Qnil;
 }
 
 static VALUE point_move_to(VALUE self, VALUE x, VALUE y)
@@ -3746,6 +3699,7 @@ static VALUE point_move_to(VALUE self, VALUE x, VALUE y)
     *px = tx;
     *py = ty;
   }
+  return Qnil;
 }
 
 static VALUE size_resize(VALUE self, VALUE w, VALUE h)
@@ -3762,6 +3716,7 @@ static VALUE size_resize(VALUE self, VALUE w, VALUE h)
     *pw = tw;
     *ph = th;
   }
+  return Qnil;
 }
 
 static VALUE rect_resize(VALUE self, VALUE w, VALUE h)
@@ -3778,6 +3733,7 @@ static VALUE rect_resize(VALUE self, VALUE w, VALUE h)
     *pw = tw;
     *ph = th;
   }
+  return Qnil;
 }
 
 static VALUE rect_in_range(VALUE self, VALUE vx, VALUE vy)
@@ -3816,6 +3772,7 @@ static VALUE square_move(VALUE self, VALUE dx, VALUE dy)
     *pr = tr;
     *pb = tb;
   }
+  return Qnil;
 }
 
 static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
@@ -3842,6 +3799,7 @@ static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
     *pr = tr;
     *pb = tb;
   }
+  return Qnil;
 }
 
 static VALUE square_resize(VALUE self, VALUE w, VALUE h)
@@ -3860,6 +3818,7 @@ static VALUE square_resize(VALUE self, VALUE w, VALUE h)
     *pr = tr;
     *pb = tb;
   }
+  return Qnil;
 }
 
 static VALUE square_in_range(VALUE self, VALUE vx, VALUE vy)

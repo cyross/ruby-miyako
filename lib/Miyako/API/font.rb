@@ -319,7 +319,7 @@ module Miyako
         else
           break x
         end
-        x += self.text_size(c)[0] + @hspace
+        x += self.text_size(c)[0]
       }
       return x
     end
@@ -329,7 +329,7 @@ module Miyako
     #_txt_:: 算出したい文字列
     #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
     def text_size(txt)
-      width = txt.chars.inject(0){|r, c| r += (c.length == 1 ? @size >> 1 : @size) } + (@use_shadow ? @shadow_margin[0] : 0) + @hspace * (txt.chars.to_a.length - 1)
+      width = txt.chars.inject(0){|r, c| r += (c.bytesize == 1 ? @size >> 1 : @size) } + ((@use_shadow ? @shadow_margin[0] : 0) + @hspace) * (txt.chars.to_a.length - 1)
       return [width, self.line_height]
     end
     
