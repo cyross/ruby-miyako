@@ -60,6 +60,7 @@ module Miyako
     def update_layout_position #:nodoc:
       @x = @layout.pos[0]
       @y = @layout.pos[1]
+      @sprite.move_to(*@layout.pos)
     end
     
     #===動画再生時の音量を指定する
@@ -101,7 +102,7 @@ module Miyako
     #===動画を再生させる
     #動画の先頭から再生する。ブロックを渡したときは、ブロックを評価している間動画を再生する
     #_vol_:: 動画再生時の音量。0～100の整数
-    def play(vol = nil)
+    def start(vol = nil)
       set_volume(vol) if vol
       @movie.play
       if block_given?

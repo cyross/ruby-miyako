@@ -4,8 +4,8 @@
 【 バージョン 】　2.0.0
 【   作成日   】　2008/12/20
 【    種別    】　フリーウェア
-【  開発言語  】　Ruby 1.8.7-p72
-【 ランタイム 】　Ruby 1.8.7～,Ruby/SDL 2.0～,SDL
+【  開発言語  】　Ruby 1.9.1-RC1
+【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.0～,SDL
 【  対応機種  】　Windows 2000/XP/Vista、Linux、MacOSX
 【   再配布   】　GNU LGPL 2.1に基く
 【    転載    】　GNU LGPL 2.1に基く
@@ -117,7 +117,7 @@ WindowsXp Home/Pro、WindowsVista、Linux、MacOSX等、Ruby/SDLが動作する�
 ビデオメモリ　：8MB（32bitカラー対応、64MB以上奨励）
 サウンドカード：必須(出来ればSoundBlaster Live!クラス)
 
-Ruby1.8.7以降
+Ruby1.9.1以降
 Ruby/SDL 2.0＋対応SDLライブラリ群
 (SDL、SDL_ttf、SDL_image、SDL_Mixer、SGE、smpeg)
 rcairo 1.8.0以降(miyako-cairo使用時)
@@ -142,7 +142,7 @@ rcairo 1.8.0以降(miyako-cairo使用時)
 １．Rubyのインストール
 
 Linuxでは標準でRubyがインストールされていいるはずですので説明は割愛します。
-なお、バージョンは最新の1.8系統（1.8.7以降）でお願いします。
+なお、バージョンは最新の1.9系統（1.9.1以降）でお願いします。
 
 Windowsでは、以下のサイトにあるActiveRubyのインストールをお願いします。
 （詳しい説明は割愛）
@@ -832,7 +832,7 @@ v1.5.0a(2008.07.21)
 
 v2.0.0(2008.12.20)
 ・Ruby/SDL2.0準拠に変更
-・対象Rubyランタイムを、Ruby1.8.7以降に変更(バージョンチェックの追加)
+・対象Rubyランタイムを、Ruby1.9.1以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
 ・グローバル変数$miyako_use_wait、$miyako_wait_time、$miyako_use_openglを追加
 　(フレームバッファ:32bit(赤、青、緑、αともに8bit)、デプスバッファ:32bit、ステンシルバッファ:32bit)
@@ -877,7 +877,9 @@ v2.0.0(2008.12.20)
 ・TextBox#attach_cursor、TextBox#attach_any_command?メソッドの追加
 ・TextBox#set_wait_cursor_position、TextBox#reset_wait_cursor_position、TextBox#set_select_cursor_position、TextBox#reset_select_cursor_positionメソッドの追加
 ・TextBox#on_pause=, TextBox#on_release=, TextBox#on_draw=メソッドを追加
+・Textbox#execメソッドの廃止
 ・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
+・Yukiの実行をFiberに変更
 ・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
 ・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
 ・Yuki#is_scene?、Yuki#is_scenario?メソッドの追加
@@ -973,6 +975,8 @@ v2.0.0(2008.12.20)
 ・MapEvent#execメソッドをMapEvent#startメソッドに改名
 ・MapEvent#move、MapEvent#move_toメソッドを追加
 ・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
+・Movie#playメソッドをMovie#startメソッドに変更
+・Movie#moveメソッドが機能しないバグを修正
 ・MiyakoTapモジュールの廃止(tapメソッドが使えるようになったため)
 ・Rect,Square構造体に#in_range?メソッドを追加
 ・drawing.rb追加
@@ -984,7 +988,6 @@ v2.0.0(2008.12.20)
 ・fixedmap.rb追加
 ・map_event.rb追加
 ・viewport.rb追加
-・diagram.rb削除(Ruby1.9.1でまともに動かないため)
 ・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
 ・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
 ・miyako_no_katanaの、SpriteAnimation#update_animationが仕様通りになっていなかった問題を修正

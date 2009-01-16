@@ -26,8 +26,8 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
-if RUBY_VERSION < '1.8.7'
-  puts 'Sorry. Miyako needs Ruby 1.8.7 or above...'
+if RUBY_VERSION < '1.9.1'
+  puts 'Sorry. Miyako needs Ruby 1.9.1 or above...'
   exit
 end
 
@@ -157,6 +157,7 @@ require 'Miyako/API/map'
 require 'Miyako/API/fixedmap'
 require 'Miyako/API/map_event'
 require 'Miyako/API/story'
+require 'Miyako/API/diagram'
 
 module Miyako
   #===Miyakoのメインループ

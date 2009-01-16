@@ -635,16 +635,6 @@ module Miyako
       return self
     end
 
-    #===ブロックで指定した描画処理を非同期に行う
-    #ブロックを渡すと、描画処理を非同期に行う。
-    #更新処理はスレッドを使うが、現在、終了を確認する方法が無いため、扱いに注意すること
-    #（確実にスレッド処理が終わるコードになっているか確認すること）
-    #返却値:: 自分自身を返す
-    def exec
-      Thread.new(Proc.new){|proc| proc.call } if block_given?
-      return self
-    end
-
     #===あとで書く
     #返却値:: あとで書く
     def dispose

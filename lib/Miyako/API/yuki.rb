@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-require 'thread'
-
 #=シナリオ言語Yuki実装モジュール
 module Miyako
   #==Yuki本体クラス
@@ -43,17 +41,15 @@ module Miyako
       #_yuki_:: 管理対象の Yuki モジュールを mixin したクラスのインスタンス
       #_plot_proc_:: プロットメソッド・プロシージャインスタンス。デフォルトは nil
       #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
-      #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
-      def initialize(yuki, plot_proc, with_update_input = true, use_thread = false)
+      def initialize(yuki, plot_proc, with_update_input = true)
         @with_update_input = with_update_input
-        @use_thread = use_thread
         @yuki_instance = yuki
         @yuki_plot = plot_proc
       end
 
       #===プロット処理を開始する
       def start
-        @yuki_instance.start_plot(@yuki_plot, @with_update_input, @use_thread)
+        @yuki_instance.start_plot(@yuki_plot, @with_update_input)
       end
 
       #===入力更新処理を呼び出す
@@ -135,34 +131,33 @@ module Miyako
     #===Yukiを初期化する
     def initialize
       @yuki = { }
-      @yuki[:text_box] = nil
-      @yuki[:command_box] = nil
+      @text_box = nil
+      @command_box = nil
 
-      @yuki[:plot_thread] = nil
+      @executing = false
+      @with_update_input = true
 
-      @yuki[:exec_plot] = false
-      @yuki[:with_update_input] = true
+      @pausing = false
+      @selecting = false
+      @waiting = false
 
-      @yuki[:pausing] = false
-      @yuki[:selecting] = false
-      @yuki[:waiting] = false
+      @pause_release = false
+      @select_ok = false
+      @select_cancel = false
+      @select_amount = [0, 0]
+      @mouse_amount = nil
 
-      @yuki[:pause_release] = false
-      @yuki[:select_ok] = false
-      @yuki[:select_cancel] = false
-      @yuki[:select_amount] = [0, 0]
-      @yuki[:mouse_amount] = nil
-
-      @yuki[:result] = nil
-      @yuki[:plot_result] = nil
+      @result = nil
+      @plot_result = nil
 
       @update_inner = lambda{|yuki|}
       @update_text   = lambda{|yuki|}
-      @mutex = Mutex.new
       
       @parts = {}
       @visible = []
       @vars = {}
+
+      @executing_fiber = nil
       
       @valign = :middle
 
@@ -217,7 +212,7 @@ module Miyako
     #
     #返却値:: 自分自身を返す
     def select_textbox(box)
-      @yuki[:text_box] = box
+      @text_box = box
       return self
     end
   
@@ -226,7 +221,7 @@ module Miyako
     #
     #返却値:: 自分自身を返す
     def select_commandbox(box)
-      @yuki[:command_box] = box
+      @command_box = box
       return self
     end
   
@@ -234,14 +229,14 @@ module Miyako
     #テキストボックスが登録されていないときはnilを返す
     #返却値:: テキストボックスのインスタンス
     def textbox
-      return @yuki[:text_box]
+      return @text_box
     end
   
     #===コマンドボックスを取得する
     #コマンドボックスが登録されていないときはnilを返す
     #返却値:: コマンドボックスのインスタンス
     def commandbox
-      return @yuki[:command_box]
+      return @command_box
     end
   
     #===オブジェクトの登録を解除する
@@ -313,7 +308,6 @@ module Miyako
     def wait_by_finish(name)
       until @parts[name].finish?
         @update_inner.call(self)
-        Thread.pass unless Thread.current.eql?(Thread.main)
       end
       return self
     end
@@ -322,22 +316,22 @@ module Miyako
     #
     #返却値:: あとで書く
     def setup
-      @yuki[:plot_result] = nil
+      @plot_result = nil
 
-      @yuki[:exec_plot] = false
+      @executing = false
 
-      @yuki[:pausing] = false
-      @yuki[:selecting] = false
-      @yuki[:waiting] = false
+      @pausing = false
+      @selecting = false
+      @waiting = false
 
-      @yuki[:pause_release] = false
-      @yuki[:select_ok] = false
-      @yuki[:select_cancel] = false
-      @yuki[:select_amount] = [0, 0]
-      @yuki[:mouse_amount] = nil
+      @pause_release = false
+      @select_ok = false
+      @select_cancel = false
+      @select_amount = [0, 0]
+      @mouse_amount = nil
 
-      @yuki[:result] = nil
-      @yuki[:plot_result] = nil
+      @result = nil
+      @plot_result = nil
     end
   
     #===プロット処理を実行する(明示的に呼び出す必要がある場合)
@@ -352,16 +346,14 @@ module Miyako
     #
     #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
     #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
-    #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
     #返却値:: あとで書く
-    def start_plot(plot_proc = nil, with_update_input = true, use_thread = false, &plot_block)
-      raise MiyakoError, "Yuki Error! Textbox is not selected!" unless @yuki[:text_box]
+    def start_plot(plot_proc = nil, with_update_input = true, &plot_block)
+      raise MiyakoError, "Yuki Error! Textbox is not selected!" unless @text_box
       raise MiyakoError, "Yuki Error! Plot must have one parameter!" if plot_proc && plot_proc.arity != 1
       raise MiyakoError, "Yuki Error! Plot must have one parameter!" if plot_block && plot_block.arity != 1
-      @yuki[:text_box].exec{ plot_facade(plot_proc, &plot_block) }
-      until @yuki[:exec_plot] do; end
-      @yuki[:plot_thread] = Thread.new{ update_plot_thread } if use_thread
-      @yuki[:with_update_input] = with_update_input
+      @with_update_input = with_update_input
+      @executing_fiber = Fiber.new{ plot_facade(plot_proc, &plot_block) }
+      @executing_fiber.resume
       return self
     end
   
@@ -369,30 +361,18 @@ module Miyako
     #ポーズ中、コマンド選択中、 Yuki#wait メソッドによるウェイトの状態確認を行う。
     #プロット処理の実行確認は出来ない
     def update
-      return unless @yuki[:exec_plot]
-      update_plot_input if @yuki[:with_update_input]
-      unless @yuki[:plot_thread]
-        pausing if @yuki[:pausing]
-        selecting if @yuki[:selecting]
-        waiting   if @yuki[:waiting]
-      end
-      @mutex.lock
-      @yuki[:pause_release] = false
-      @yuki[:select_ok] = false
-      @yuki[:select_cancel] = false
-      @yuki[:select_amount] = [0, 0]
-      @mutex.unlock
+      return unless @executing
+      update_plot_input if @with_update_input
+      pausing if @pausing
+      selecting if @selecting
+      waiting   if @waiting
+      @pause_release = false
+      @select_ok = false
+      @select_cancel = false
+      @select_amount = [0, 0]
+      @executing_fiber.resume
     end
   
-    def update_plot_thread #:nodoc:
-      while @yuki[:exec_plot]
-        pausing if @yuki[:pausing]
-        selecting if @yuki[:selecting]
-        waiting   if @yuki[:waiting]
-        Thread.pass
-      end
-    end
-    
     #===プロット用メソッドをYukiへ渡すためのインスタンスを作成する
     #プロット用に用意したメソッド（引数一つのメソッド）を、Yukiでの選択結果や移動先として利用できる
     #インスタンスに変換する
@@ -411,14 +391,14 @@ module Miyako
     #プロット処理の場合は、メインスレッドから明示的に呼び出す必要がある
     #返却値:: nil を返す
     def update_plot_input
-      return nil unless @yuki[:exec_plot]
-      if @yuki[:pausing] && @release_checks.inject(false){|r, c| r |= c.call }
-        @yuki[:pause_release] = true
-      elsif @yuki[:selecting]
-        @yuki[:select_ok] = true if @ok_checks.inject(false){|r, c| r |= c.call }
-        @yuki[:select_cancel] = true if @cancel_checks.inject(false){|r, c| r |= c.call }
-        @yuki[:select_amount] = @key_amount.call
-        @yuki[:mouse_amount] = @mouse_amount.call
+      return nil unless @executing
+      if @pausing && @release_checks.inject(false){|r, c| r |= c.call }
+        @pause_release = true
+      elsif @selecting
+        @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
+        @select_cancel = true if @cancel_checks.inject(false){|r, c| r |= c.call }
+        @select_amount = @key_amount.call
+        @mouse_amount = @mouse_amount.call
       end
       return nil
     end
@@ -435,29 +415,21 @@ module Miyako
     #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
     #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
     #返却値:: YukiManager クラスのインスタンス
-    def manager(plot_proc = nil, with_update_input = true, use_thread = false, &plot_block)
-      return Manager.new(self, plot_proc || plot_block, with_update_input, use_thread)
+    def manager(plot_proc = nil, with_update_input = true, &plot_block)
+      return Manager.new(self, plot_proc || plot_block, with_update_input)
     end
   
     def plot_facade(plot_proc = nil, &plot_block) #:nodoc:
-      @mutex.lock
-      @yuki[:plot_result] = nil
-      @yuki[:exec_plot] = true
-      @mutex.unlock
-      @yuki[:plot_result] = plot_proc ? plot_proc.call(self) : plot_block.call(self)
-      @mutex.lock
-      @yuki[:exec_plot] = false
-      if @yuki[:plot_thread]
-        @yuki[:plot_thread].join
-        @yuki[:plot_thread] = nil
-      end
-      @mutex.unlock
+      @plot_result = nil
+      @executing = true
+      @plot_result = plot_proc ? plot_proc.call(self) : plot_block.call(self)
+      @executing = false
     end
   
     #===プロット処理が実行中かどうかを確認する
     #返却値:: プロット処理実行中の時はtrueを返す
     def executing?
-      return @yuki[:exec_plot]
+      return @executing
     end
 
     #===ポーズ解除問い合わせメソッド配列を初期状態に戻す
@@ -562,14 +534,14 @@ module Miyako
     #プロット処理が終了していないのに結果を得られるので注意！
     #返却値:: プロットの処理結果
     def result
-      return @yuki[:plot_result]
+      return @plot_result
     end
   
     #===プロット処理の結果を設定する
     #_ret_:: 設定する結果。デフォルトはnil
     #返却値:: 自分自身を返す
     def result=(ret = nil)
-      @yuki[:plot_result] = ret
+      @plot_result = ret
       return self
     end
 
@@ -592,7 +564,7 @@ module Miyako
     #===コマンド選択がキャンセルされたときの結果を返す
     #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
     def canceled?
-      return result == @yuki[:cancel]
+      return result == @cancel
     end
       
     #===ブロックを条件として設定する
@@ -606,19 +578,19 @@ module Miyako
     #===コマンド選択中の問い合わせメソッド
     #返却値:: コマンド選択中の時はtrueを返す
     def selecting?
-      return @yuki[:selecting]
+      return @selecting
     end
     
     #===Yuki#waitメソッドによる処理待ちの問い合わせメソッド
     #返却値:: 処理待ちの時はtrueを返す
     def waiting?
-      return @yuki[:waiting]
+      return @waiting
     end
     
     #===メッセージ送り待ちの問い合わせメソッド
     #返却値:: メッセージ送り待ちの時はtrueを返す
     def pausing?
-      return @yuki[:pausing]
+      return @pausing
     end
   
     #===条件に合っていればポーズをかける
@@ -641,19 +613,20 @@ module Miyako
       txt.chars{|ch|
         if /[\n\r]/.match(ch)
           next wait_by_cond(@is_outer_height)
-        elsif @yuki[:text_box].locate.x + @yuki[:text_box].font.text_size(ch)[0] >= @yuki[:text_box].textarea.w
+        elsif @text_box.locate.x + @text_box.font.text_size(ch)[0] >= @text_box.textarea.w
           wait_by_cond(@is_outer_height)
         elsif /[\t\f]/.match(ch)
           next nil
         end
-        @yuki[:text_box].draw_text(ch)
+        @text_box.draw_text(ch)
         @update_text.call(self)
+        Fiber.yield
       }
       return self
     end
 
     def is_outer_height #:nodoc:
-      return @yuki[:text_box].locate.y + @yuki[:text_box].max_height >= @yuki[:text_box].textarea.h
+      return @text_box.locate.y + @text_box.max_height >= @text_box.textarea.h
     end
     
     private :is_outer_height
@@ -663,7 +636,7 @@ module Miyako
     #_color_:: 文字色
     #返却値:: 自分自身を返す
     def color(color, &block)
-      @yuki[:text_box].color_during(Color.to_rgb(color)){ text block.call }
+      @text_box.color_during(Color.to_rgb(color)){ text block.call }
       return self
     end
 
@@ -687,8 +660,8 @@ module Miyako
     #_valign_:: 文字の縦の位置(top, middle, bottom)。デフォルトは:middle(Yuki#valign=,Yuki#valign_duringで変更可能)
     #返却値:: 自分自身を返す
     def size(size, valign = @valign, &block)
-      @yuki[:text_box].font_size_during(size){
-        @yuki[:text_box].margin_during(@yuki[:text_box].margin_height(valign)){ text block.call }
+      @text_box.font_size_during(size){
+        @text_box.margin_during(@text_box.margin_height(valign)){ text block.call }
       }
       return self
     end
@@ -698,7 +671,7 @@ module Miyako
     #(使用すると文字の端が切れてしまう場合あり！)
     #返却値:: 自分自身を返す
     def bold(&block)
-      @yuki[:text_box].font_bold{ text block.call }
+      @text_box.font_bold{ text block.call }
       return self
     end
   
@@ -707,7 +680,7 @@ module Miyako
     #(使用すると文字の端が切れてしまう場合あり！)
     #返却値:: 自分自身を返す
     def italic(&block)
-      @yuki[:text_box].font_italic{ text block.call }
+      @text_box.font_italic{ text block.call }
       return self
     end
   
@@ -715,21 +688,21 @@ module Miyako
     #ブロック内で指定した文字列を下線付きで表示する
     #返却値:: 自分自身を返す
     def under_line(&block)
-      @yuki[:text_box].font_under_line{ text block.call }
+      @text_box.font_under_line{ text block.call }
       return self
     end
 
     #===改行を行う
     #返却値:: 自分自身を返す
     def cr
-      @yuki[:text_box].cr
+      @text_box.cr
       return self
     end
 
     #===テキストボックスの内容を消去する
     #返却値:: 自分自身を返す
     def clear 
-      @yuki[:text_box].clear
+      @text_box.clear
       return self
     end
 
@@ -743,25 +716,21 @@ module Miyako
     def pause
       @pre_pause.each{|proc| proc.call}
       yield if block_given?
-      @yuki[:text_box].pause
-      @mutex.lock
-      @yuki[:pausing] = true
-      @mutex.unlock
-      while @yuki[:pausing]
+      @text_box.pause
+      @pausing = true
+      while @pausing
         @update_inner.call(self)
-        Thread.pass unless Thread.current.eql?(Thread.main)
+        Fiber.yield
       end
       @post_pause.each{|proc| proc.call}
       return self
     end
 
     def pausing #:nodoc:
-      return unless @yuki[:pause_release]
-      @yuki[:text_box].release
-      @mutex.lock
-      @yuki[:pausing] = false
-      @yuki[:pause_release] = false
-      @mutex.unlock
+      return unless @pause_release
+      @text_box.release
+      @pausing = false
+      @pause_release = false
     end
   
     #===ポーズをかけて、テキストボックスの内容を消去する
@@ -783,7 +752,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def command(command_list, cancel_to = Canceled, &chain_block)
       raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @yuki[:command_box]
-      @yuki[:cancel] = cancel_to
+      @cancel = cancel_to
 
       choices = []
       command_list.each{|cm| choices.push([cm[:body], cm[:body_selected], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
@@ -792,14 +761,12 @@ module Miyako
       @pre_command.each{|proc| proc.call}
       @pre_cancel.each{|proc| proc.call}
       yield if block_given?
-      @yuki[:command_box].command(@yuki[:command_box].create_choices_chain(choices, &chain_block))
-      @mutex.lock
-      @yuki[:result] = nil
-      @yuki[:selecting] = true
-      @mutex.unlock
-      while @yuki[:selecting]
+      @command_box.command(@command_box.create_choices_chain(choices, &chain_block))
+      @result = nil
+      @selecting = true
+      while @selecting
         @update_inner.call(self)
-        Thread.pass unless Thread.current.eql?(Thread.main)
+        Fiber.yield
       end
       @post_cancel.each{|proc| proc.call}
       @post_command.each{|proc| proc.call}
@@ -807,45 +774,34 @@ module Miyako
     end
 
     def selecting #:nodoc:
-      return unless @yuki[:selecting]
-      exit if $miyako_debug_mode && Input.quit_or_escape?
-      if @yuki[:command_box].selecting?
-        if @yuki[:select_ok]
-          @mutex.lock
-          @yuki[:result] = @yuki[:command_box].result
-          @mutex.unlock
-          @yuki[:command_box].finish_command
-          @yuki[:text_box].release
-          @mutex.lock
-          @yuki[:selecting] = false
-          @mutex.unlock
+      return unless @selecting
+      if @command_box.selecting?
+        if @select_ok
+          @result = @command_box.result
+          @command_box.finish_command
+          @text_box.release
+          @selecting = false
           reset_selecting
-        elsif @yuki[:select_cancel]
-          @mutex.lock
-          @yuki[:result] = @yuki[:cancel]
-          @mutex.unlock
-          @yuki[:command_box].finish_command
-          @yuki[:text_box].release
-          @mutex.lock
-          @yuki[:selecting] = false
-          @mutex.unlock
+        elsif @select_cancel
+          @result = @cancel
+          @command_box.finish_command
+          @text_box.release
+          @selecting = false
           reset_selecting
-        elsif @yuki[:select_amount] != [0,0]
-          @yuki[:command_box].move_cursor(*@yuki[:select_amount])
+        elsif @select_amount != [0,0]
+          @command_box.move_cursor(*@select_amount)
           reset_selecting
-        elsif @yuki[:mouse_amount]
-          @yuki[:command_box].attach_cursor(*@yuki[:mouse_amount].to_a)
+        elsif @mouse_amount
+          @command_box.attach_cursor(*@mouse_amount.to_a)
           reset_selecting
         end
       end
     end
   
     def reset_selecting #:nodoc:
-      @mutex.lock
-      @yuki[:select_ok] = false
-      @yuki[:select_cancel] = false
-      @yuki[:select_amount] = [0, 0]
-      @mutex.unlock
+      @select_ok = false
+      @select_cancel = false
+      @select_amount = [0, 0]
     end
 
     #===コマンドの選択結果を返す
@@ -854,7 +810,7 @@ module Miyako
     #プロット処理・コマンド選択が終了していないのに結果を得られるので注意！
     #返却値:: コマンドの選択結果
     def select_result
-      return @yuki[:result]
+      return @result
     end
 
     #===プロットの処理を待機する
@@ -864,31 +820,25 @@ module Miyako
     def wait(length)
       @waiting_timer = WaitCounter.new(length)
       @waiting_timer.start
-      @mutex.lock
-      @yuki[:waiting] = true
-      @mutex.unlock
-      while @yuki[:waiting]
+      @waiting = true
+      while @waiting
         @update_inner.call(self)
-        Thread.pass unless Thread.current.eql?(Thread.main)
+        Fiber.yield
       end
       return self
     end
 
     def waiting #:nodoc:
       return if @waiting_timer.waiting?
-      @mutex.lock
-      @yuki[:waiting] = false
-      @mutex.unlock
+      @waiting = false
     end
 
     #===インスタンスで使用しているオブジェクトを解放する
     def dispose
-      @yuki.clear
-      @yuki = nil
-
       @update_inner = nil
       @update_text   = nil
-      @mutex = nil
+      
+      @executing_fiber = nil
       
       @parts.clear
       @parts = nil

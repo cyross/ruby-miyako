@@ -1,5 +1,5 @@
-if RUBY_VERSION < '1.8.7'
-  puts 'Sorry. Miyako needs Ruby 1.8.7 or above...'
+if RUBY_VERSION < '1.9.1'
+  puts 'Sorry. Miyako needs Ruby 1.9.1 or above...'
   exit
 end
 
