@@ -172,8 +172,8 @@ module Miyako
                                 lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:right) } ]
       @cancel_checks = @cancel_checks_default.dup
 
-      @key_amount   = lambda{ Input.pushed_amount }
-      @mouse_amount = lambda{ Input.mouse_cursor_inner? ? Input.get_mouse_position : nil }
+      @key_amount_proc   = lambda{ Input.pushed_amount }
+      @mouse_amount_proc = lambda{ Input.mouse_cursor_inner? ? Input.get_mouse_position : nil }
 
       @pre_pause    = []
       @pre_command  = []
@@ -397,8 +397,8 @@ module Miyako
       elsif @selecting
         @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
         @select_cancel = true if @cancel_checks.inject(false){|r, c| r |= c.call }
-        @select_amount = @key_amount.call
-        @mouse_amount = @mouse_amount.call
+        @select_amount = @key_amount_proc.call
+        @mouse_amount = @mouse_amount_proc.call
       end
       return nil
     end
@@ -751,7 +751,7 @@ module Miyako
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
     def command(command_list, cancel_to = Canceled, &chain_block)
-      raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @yuki[:command_box]
+      raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @command_box
       @cancel = cancel_to
 
       choices = []

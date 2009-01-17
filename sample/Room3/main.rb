@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 class MainScene
   include Story::Scene
   include MainComponent

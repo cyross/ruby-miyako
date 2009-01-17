@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #キャラクタ管理クラス
 class PChara # Player Character
   extend Forwardable

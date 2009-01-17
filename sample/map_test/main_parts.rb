@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #共通パーツクラス
 class CommonParts
   include Singleton

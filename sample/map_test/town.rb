@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #街を表すイベントクラス
 class EventTown
   include MapEvent

@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 class Green
   include Story::Scene
   include MainComponent

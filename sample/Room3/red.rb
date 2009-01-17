@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 class Red
   include Story::Scene
   include MainComponent

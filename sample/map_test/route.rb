@@ -1,4 +1,4 @@
-
+# -*- encoding: utf-8 -*-
 # 道しるべ（１）を表すイベントクラス
 class EventRouteMarker
   include MapEvent

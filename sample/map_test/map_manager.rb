@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #マップ管理クラス
 class MapManager
   extend Forwardable

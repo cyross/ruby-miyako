@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 # 共通部品クラス
 # メッセージテキストボックス、コマンドボックスを定義
 module MainComponent

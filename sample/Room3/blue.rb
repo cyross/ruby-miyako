@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 class Blue
   include Story::Scene
   include MainComponent

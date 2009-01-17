@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 #オアシスを表すイベントクラス
 class EventOasis
   include MapEvent

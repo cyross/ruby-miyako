@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 # エンディング定義
 class Ending
   include Story::Scene
