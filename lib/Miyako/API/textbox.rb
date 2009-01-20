@@ -378,6 +378,8 @@ module Miyako
         @font.color = org_font_color
         choice = Choices.create_choice(body, body_selected)
         choice.result = v[2]
+        choice.end_select = v[3]
+        choice.end_select_proc = v[4]
         next choice
       }
       choices2 = choices.each_slice(@command_page_size).to_a

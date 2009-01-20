@@ -39,7 +39,7 @@ if SDL::VERSION < '2.0'
 end
 
 require 'forwardable'
-require 'iconv'
+require 'iconv' if RUBY_VERSION < '1.9.0'
 require 'kconv'
 require 'jcode' if RUBY_VERSION < '1.9.0'
 require 'rbconfig'

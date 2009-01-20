@@ -106,7 +106,7 @@ class MainScene
 
   def command_plot(yuki)
       yuki.command([Yuki::Command.new("話す", "話す", nil, yuki.to_plot(self, :talk)),
-                     Yuki::Command.new("調べる", "調べる", nil, yuki.to_plot(self, :check))], @now)
+                    Yuki::Command.new("調べる", "調べる", nil, yuki.to_plot(self, :check))], @now)
       yuki.select_result.call(yuki) if yuki.is_scenario?(yuki.select_result)
       return @now
   end

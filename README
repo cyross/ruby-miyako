@@ -908,7 +908,8 @@ v2.0.0(2008.12.20)
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
 ・Yuki::Manager#canseled?メソッドの追加
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
-・Yuki::Command構造体の使用を変更(選択時画像・文字を指定するbody_selectedを追加)
+・Yuki::Command構造体の仕様を変更(選択時画像・文字を指定するbody_selectedを追加)
+・Yuki::CommandEX構造体の追加(コマンド選択終了可否、終了せずに行う処理のブロックを追加)
 ・Viewportクラスの追加(viewport.rbの追加)
 ・Viewport#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
 　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
@@ -952,10 +953,15 @@ v2.0.0(2008.12.20)
 ・Diagram::Processor#sync?メソッドの追加
 ・SingleEnumerable.sizeメソッドの廃止(弊害が大きいため(Sprite#sizeメソッドのバグなど)。lengthのみ用意)
 ・Choice#body_selected, Choice#selectedメソッドの追加(選択時に表示を変える方式を実装)
+・Choice#attributeメソッドの追加(選択時に何らかの属性を加えるときに使用。Yukiでは、選択してもコマンド選択を終了しない)
+・Choice#end_selectメソッドの追加(この選択肢を選択すると、コマンドを終了かどうかを設定(true/false)。デフォルトはtrue
+・Choice#end_select_procメソッドの追加(end_select=falseのときに、この選択肢を選択したときに行う処理をブロックで指定。
+　ブロックは1つの引数を取る(コマンド選択テキストボックス))
 ・Choices#start_choiceメソッド引数インタフェースの変更(第1引数にnilを渡すと、最後に選択した選択肢が自動的に選択される)
 ・Choices#non_select,selectメソッドの追加
 ・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
 ・Choices#rect、broad_rect、to_sprite、attach、attach?、any_select?メソッドの追加
+・Choices#attribute、end_select?、call_end_select_procメソッドの追加
 ・Collision#pos,Collision#rect,Collision#direction,Collision#amountアクセサをreaderに変更
 ・Collision#move、Collision#move_toメソッドを追加
 ・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_sprite、Plane#to_unitメソッドの追加

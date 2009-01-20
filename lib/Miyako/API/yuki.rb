@@ -116,7 +116,16 @@ module Miyako
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
     Command = Struct.new(:body, :body_selected, :condition, :result)
-
+  
+    #==コマンド構造体
+    #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
+    #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
+    #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
+    #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
+    #_end_select_:: この選択肢を選択すると、コマンドを終了かどうかを設定(true/false)。デフォルトはtrue
+    #_end_select_proc_:: end_select=falseのときに、この選択肢を選択したときに処理するブロック。ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはProc.new{|command_box| }
+    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select, :end_select_proc)
+    
     attr_accessor :update_inner, :update_text
     attr_reader :parts, :vars, :valign
     #release_checks:: ポーズ解除を問い合わせるメソッドの配列。
@@ -169,7 +178,7 @@ module Miyako
       @ok_checks = @ok_checks_default.dup
 
       @cancel_checks_default = [lambda{ Input.pushed_all?(:btn2) },
-                                lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:right) } ]
+                                lambda{ Input.click?(:right) } ]
       @cancel_checks = @cancel_checks_default.dup
 
       @key_amount_proc   = lambda{ Input.pushed_amount }
@@ -755,7 +764,15 @@ module Miyako
       @cancel = cancel_to
 
       choices = []
-      command_list.each{|cm| choices.push([cm[:body], cm[:body_selected], cm[:result]]) if (cm[:condition] == nil || cm[:condition].call) }
+      command_list.each{|cm|
+        if (cm[:condition] == nil || cm[:condition].call)
+          cm_array = [cm[:body], cm[:body_selected], cm[:result]]
+          methods = cm.methods
+          cm_array << (methods.include?(:end_select) ? cm[:end_select] : true)
+          cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : lambda{|cbox|})
+          choices.push(cm_array)
+        end
+      }
       return self if choices.length == 0
 
       @pre_command.each{|proc| proc.call}
@@ -775,26 +792,29 @@ module Miyako
 
     def selecting #:nodoc:
       return unless @selecting
-      if @command_box.selecting?
-        if @select_ok
-          @result = @command_box.result
-          @command_box.finish_command
-          @text_box.release
-          @selecting = false
-          reset_selecting
-        elsif @select_cancel
-          @result = @cancel
-          @command_box.finish_command
-          @text_box.release
-          @selecting = false
-          reset_selecting
-        elsif @select_amount != [0,0]
-          @command_box.move_cursor(*@select_amount)
-          reset_selecting
-        elsif @mouse_amount
-          @command_box.attach_cursor(*@mouse_amount.to_a)
-          reset_selecting
+      return unless @command_box.selecting?
+      if @select_ok
+        unless @command_box.choices.end_select?
+          @command_box.choices.call_end_select_proc(@command_box)
+          return
         end
+        @result = @command_box.result
+        @command_box.finish_command
+        @text_box.release
+        @selecting = false
+        reset_selecting
+      elsif @select_cancel
+        @result = @cancel
+        @command_box.finish_command
+        @text_box.release
+        @selecting = false
+        reset_selecting
+      elsif @select_amount != [0,0]
+        @command_box.move_cursor(*@select_amount)
+        reset_selecting
+      elsif @mouse_amount
+        @command_box.attach_cursor(*@mouse_amount.to_a)
+        reset_selecting
       end
     end
   
