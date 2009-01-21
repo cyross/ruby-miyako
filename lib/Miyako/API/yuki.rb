@@ -122,20 +122,28 @@ module Miyako
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
-    #_end_select_:: この選択肢を選択すると、コマンドを終了かどうかを設定(true/false)。デフォルトはtrue
-    #_end_select_proc_:: end_select=falseのときに、この選択肢を選択したときに処理するブロック。ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはProc.new{|command_box| }
-    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select, :end_select_proc)
+    #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
+    #ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはnil
+    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc)
     
     attr_accessor :update_inner, :update_text
     attr_reader :parts, :vars, :valign
-    #release_checks:: ポーズ解除を問い合わせるメソッドの配列。
+    #release_checks:: ポーズ解除を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
-    #ok_checks:: コマンド選択決定を問い合わせるメソッドの配列。
+    #ok_checks:: コマンド選択決定を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
-    #cancel_checks:: コマンド選択解除（キャンセル）を問い合わせるメソッドの配列。
+    #cancel_checks:: コマンド選択解除（キャンセル）を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
     attr_reader :release_checks, :ok_checks, :cancel_checks
     attr_reader :pre_pause, :pre_command, :pre_cancel, :post_pause, :post_command, :post_cancel
+    #selecting_procs:: コマンド選択時に行うブロックの配列。
+    #ブロックは4つの引数を取る必要がある。
+    #(1)コマンド決定ボタンを押した？(true/false)
+    #(2)キャンセルボタンを押した？(true/false)
+    #(3)キーパッドの移動量を示す配列([dx,dy])
+    #(4)マウスの位置を示す配列([x,y])
+    #callメソッドを持つブロックが使用可能。
+    attr_reader :selecting_procs
     
     #===Yukiを初期化する
     def initialize
@@ -190,6 +198,7 @@ module Miyako
       @post_pause   = []
       @post_command = []
       @post_cancel  = []
+      @selecting_procs = []
       
       @is_outer_height = self.method(:is_outer_height)
     end
@@ -768,8 +777,7 @@ module Miyako
         if (cm[:condition] == nil || cm[:condition].call)
           cm_array = [cm[:body], cm[:body_selected], cm[:result]]
           methods = cm.methods
-          cm_array << (methods.include?(:end_select) ? cm[:end_select] : true)
-          cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : lambda{|cbox|})
+          cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : nil)
           choices.push(cm_array)
         end
       }
@@ -793,8 +801,11 @@ module Miyako
     def selecting #:nodoc:
       return unless @selecting
       return unless @command_box.selecting?
+      @selecting_procs.each{|sp|
+        sp.call(@select_ok, @select_cansel, @select_amount, @mouse_amount)
+      }
       if @select_ok
-        unless @command_box.choices.end_select?
+        if @command_box.choices.end_select?
           @command_box.choices.call_end_select_proc(@command_box)
           return
         end

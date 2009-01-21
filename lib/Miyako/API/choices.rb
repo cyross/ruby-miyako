@@ -38,9 +38,10 @@ module Miyako
   #_down_:: 下方向を選択したときに参照するChoice構造体のインスタンス
   #_base_:: 構造体が要素となっている配列
   #_attribute_:: 属性を示すハッシュ
-  #_end_select_:: この選択肢を選択すると、コマンドを終了かどうかを設定(true/false)。デフォルトはtrue
-  #_end_select_proc_:: end_select=falseのときに、この選択肢を選択したときに処理するブロック。ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはProc.new{|command_box| }
-  Choice = Struct.new(:body, :body_selected, :condition, :selected, :result, :left, :right, :up, :down, :base, :attribute, :end_select, :end_select_proc)
+  #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
+  #ブロックは1つの引数を取る(コマンド選択テキストボックス))。
+  #デフォルトはnil(何もしない)
+  Choice = Struct.new(:body, :body_selected, :condition, :selected, :result, :left, :right, :up, :down, :base, :attribute, :end_select_proc)
 
   #==選択肢を管理するクラス
   #選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
@@ -70,7 +71,7 @@ module Miyako
     #返却値:: 生成された Choice構造体のインスタンス
     def Choices.create_choice(body, body_selected = nil, selected = false)
       choice = Choice.new(body, body_selected, Proc.new{ true }, selected,
-                          nil, nil, nil, nil, nil, nil, {}, true, lambda{|cbox|})
+                          nil, nil, nil, nil, nil, nil, {}, nil)
       choice.left = choice
       choice.right = choice
       choice.up = choice
@@ -142,7 +143,7 @@ module Miyako
     #falseのときは、コマンド選択を終了してはならない(本当にそうかは実装社に委ねる)。
     #返却値:: true/false(終了可能の時はtrueを返す)
     def end_select?
-      return @now.end_select
+      return @now.end_select_proc != nil
     end
 
     #===選択肢に対応したブロックを呼び出す
@@ -151,7 +152,7 @@ module Miyako
     #_command_box_:: この選択肢を制御しているコマンドボックス
     #返却値:: Choice#select_procメソッド呼び出し後の結果
     def call_end_select_proc(command_box)
-      return @now.end_select_proc.call(command_box)
+      return @now.end_select_proc.call(command_box) if @now.end_select_proc
     end
 
     def update_choices(org, nxt) #:nodoc:
