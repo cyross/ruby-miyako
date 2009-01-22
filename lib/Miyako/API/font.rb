@@ -319,10 +319,20 @@ module Miyako
         else
           break x
         end
-        x += self.text_size(c)[0]
+        x += chr_size_inner(c)
       }
       return x
     end
+
+    #===文字列描画したときの大きさを取得する
+    #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。
+    #_txt_:: 算出したい文字列
+    #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
+    def chr_size_inner(char)
+      return (char.bytesize == 1 ? @size >> 1 : @size) + (@use_shadow ? @shadow_margin[0] : 0) + @hspace
+    end
+    
+    private :chr_size_inner
 
     #===文字列描画したときの大きさを取得する
     #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。

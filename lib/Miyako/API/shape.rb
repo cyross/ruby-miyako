@@ -117,18 +117,28 @@ module Miyako
       org_size = @font.size
       org_color = @font.color
       @margins = []
+      @heights = []
       area_size = calc(text_block)
       @sprite = Sprite.new({:size => area_size, :type => :alpha_channel, :is_fill => true})
       case @align
         when :left
-        @margins = @margins.map{|v| 0 }
+          @margins = @margins.map{|v| 0 }
         when :center
-        @margins = @margins.map{|v| (area_size.w - v) >> 1 }
+          @margins = @margins.map{|v| (area_size.w - v) >> 1 }
         when :right
-        @margins = @margins.map{|v| area_size.w - v }
+          @margins = @margins.map{|v| area_size.w - v }
       end
 			@lines = @margins.length
-      @locate = Point.new(@margins.shift, 0)
+      vmargin = 0
+      case @valign
+        when :top
+          vmargin = 0
+        when :middle
+          vmargin = (area_size.h - @heights.inject(:+)) >> 1
+        when :bottom
+          vmargin = area_size.h - @heights.inject(:+)
+      end
+      @locate = Point.new(@margins.shift, vmargin)
       text instance_eval(&text_block)
       @font.size = org_size
       @font.color = org_color
@@ -158,14 +168,23 @@ module Miyako
       end
       case @align
         when :left
-        @margins = @margins.map{|v| 0 }
+          @margins = @margins.map{|v| 0 }
         when :center
-        @margins = @margins.map{|v| (@size.w - v) / 2 }
+          @margins = @margins.map{|v| (@size[0] - v) / 2 }
         when :right
-        @margins = @margins.map{|v| @size.w - v }
+          @margins = @margins.map{|v| @size[0] - v }
+      end
+      vmargin = 0
+      case @valign
+        when :top
+          vmargin = 0
+        when :middle
+          vmargin = (@size[1] - @heights.inject(:+)) >> 1
+        when :bottom
+          vmargin = @size[1] - @heights.inject(:+)
       end
       @sprite = Sprite.new({:size => @size, :type => :alpha_channel, :is_fill => true})
-      @locate = Point.new(@margins.shift, 0)
+      @locate = Point.new(@margins.shift, vmargin)
       text instance_eval(&text_block)
       @font.size = org_size
       @font.color = org_color
@@ -175,6 +194,7 @@ module Miyako
     def set_font_size_inner(text_block) #:nodoc:
       @max_height = @font.line_height
       @margins = []
+      @heights = []
       @lines = 1
       tcalc(text_block)
     end
@@ -191,6 +211,7 @@ module Miyako
         @margins << @locate.x
         @img_size.w = [@locate.x, @img_size.w].max
         @img_size.h += @max_height
+        @heights << @max_height
       end
       return @img_size
     end
@@ -201,7 +222,11 @@ module Miyako
       @calc_mode = true
       text instance_eval(&block)
       @calc_mode = false
-      @margins << @locate.x if @locate.x != 0
+      if @locate.x != 0
+        @margins << @locate.x if @locate.x != 0
+        @heights << @max_height
+      end
+      @img_size.w = [@locate.x, @img_size.w].max
     end
 		
     #===Shape.textメソッドのブロック内で使用する、文字描画指示メソッド
@@ -281,6 +306,7 @@ module Miyako
     def cr
       if @calc_mode
         @margins << @locate.x
+        @heights << @max_height
         @img_size.w = [@locate.x, @img_size.w].max
         @img_size.h += @max_height
         @locate.x = 0

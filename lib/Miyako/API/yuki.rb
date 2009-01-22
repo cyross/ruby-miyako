@@ -334,8 +334,6 @@ module Miyako
     #
     #返却値:: あとで書く
     def setup
-      @plot_result = nil
-
       @executing = false
 
       @pausing = false
