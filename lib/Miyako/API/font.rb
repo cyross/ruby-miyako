@@ -30,6 +30,10 @@ module Miyako
   class Font
     extend Forwardable
 
+    OS_MAC_OS_X = "mac_osx"
+    ORG_ENC = "UTF-8"
+    NEW_ENC = "UTF-8-MAC"
+    
     attr_reader :size, :line_skip, :height, :ascent, :descent
     attr_accessor :color, :use_shadow, :shadow_color, :shadow_margin, :vspace, :hspace
 
