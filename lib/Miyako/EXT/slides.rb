@@ -109,10 +109,31 @@ module Miyako
     end
 
     #===スライドを画面に描画する
+    #単純にslide_renderメソッドを呼び出し、結果を返すだけのテンプレートメソッド
+    #このメソッドを記述し直すことにより、柔軟なrenderを行える
     #ブロックを渡すと、スライド,画面側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
     #ブロックの引数は、|スライド側SpriteUnit,画面側SpriteUnit|となる。
     #返却値:: 自分自身を返す
     def render(&block)
+      return slide_render(&block)
+    end
+
+    #===スライドを画像に描画する
+    #単純にslide_render_toメソッドを呼び出し、結果を返すだけのテンプレートメソッド
+    #このメソッドを記述し直すことにより、柔軟なrenderを行える
+    #ブロックを渡すと、スライド,画像側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+    #ブロックの引数は、|スライド側SpriteUnit,画像側SpriteUnit|となる。
+    #_dst_:: 描画先画像(Spriteクラスインスタンスなど)
+    #返却値:: 自分自身を返す
+    def render_to(dst, &block)
+      return slide_render_to(dst, &block)
+    end
+
+    #===スライドを画面に描画する
+    #ブロックを渡すと、スライド,画面側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
+    #ブロックの引数は、|スライド側SpriteUnit,画面側SpriteUnit|となる。
+    #返却値:: 自分自身を返す
+    def slide_render(&block)
       @body.render(&block)
       return self
     end
@@ -122,7 +143,7 @@ module Miyako
     #ブロックの引数は、|スライド側SpriteUnit,画像側SpriteUnit|となる。
     #_dst_:: 描画先画像(Spriteクラスインスタンスなど)
     #返却値:: 自分自身を返す
-    def render_to(dst, &block)
+    def slide_render_to(dst, &block)
       @body.render(dst, &block)
       return self
     end

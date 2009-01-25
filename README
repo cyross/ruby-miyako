@@ -1002,7 +1002,7 @@ v2.0.0(2008.12.20)
 ・MiyakoCairo.to_cairo_surface、MiyakoCairo.to_spriteメソッドの追加
 ・RasterScrollクラスの修正(render/render_toメソッド追加など)
 ・Slideの初期化方法の変更(スライド本体(背景)は、slide[:___base___]で参照可能に)
-・Slide#render、render_to、update、update_animationメソッド追加
+・Slide#render、render_to、update、update_animation、slide_render、slide_render_toメソッド追加
 ・Slide[]で利用できるテンプレートに"white","black","half-white"を追加
 ・miyako_ext.rb削除
 ・install_miyaok.rbの修正(旧バージョンのディレクトリを削除、miyako_no_katanaビルド時に環境変数SDL_CONFIG_PATHを参照する様にした)
