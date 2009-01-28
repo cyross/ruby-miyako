@@ -33,6 +33,9 @@ License:: LGPL2.1
 #include "ruby.h"
 #include "ruby/encoding.h"
 
+static VALUE layout_calc_layout(VALUE self);
+static VALUE layout_snap(int argc, VALUE *argv, VALUE self);
+
 static VALUE mSDL = Qnil;
 static VALUE mMiyako = Qnil;
 static VALUE mScreen = Qnil;
@@ -66,6 +69,7 @@ static VALUE cMovie = Qnil;
 static VALUE cProcessor = Qnil;
 static VALUE cYuki = Qnil;
 static VALUE cThread = Qnil;
+static VALUE cEncoding = Qnil;
 static VALUE cIconv = Qnil;
 static VALUE sPoint = Qnil;
 static VALUE sSize = Qnil;
@@ -79,12 +83,8 @@ static volatile ID id_kakko = Qnil;
 static volatile int zero = Qnil;
 static volatile int one = Qnil;
 static volatile double div255[256];
-static volatile ID id_os_name = Qnil;
-static volatile ID id_toutf8 = Qnil;
-static volatile ID id_conv = Qnil;
-static volatile ID id_mac_os_x = Qnil;
+static volatile ID id_encode = Qnil;
 static volatile ID id_utf8 = Qnil;
-static volatile ID id_utf8_mac = Qnil;
 
 typedef struct
 {
@@ -3617,12 +3617,12 @@ static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
   VALUE ty = *poy;
   *pox = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
   *poy = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
-  rb_funcall(self, rb_intern("calc_layout"), 0);
+  layout_calc_layout(self);
   if(rb_block_given_p() == Qtrue){
     rb_yield(Qnil);
     *pox = tx;
     *poy = ty;
-    rb_funcall(self, rb_intern("calc_layout"), 0);
+    layout_calc_layout(self);
   }
   return Qnil;
 }
@@ -3636,14 +3636,103 @@ static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
   VALUE ty = *(off+1);
   *(off+0) = INT2NUM(NUM2INT(tx)+NUM2INT(x)-NUM2INT(*(pos+0)));
   *(off+1) = INT2NUM(NUM2INT(ty)+NUM2INT(y)-NUM2INT(*(pos+1)));
-  rb_funcall(self, rb_intern("calc_layout"), 0);
+  layout_calc_layout(self);
   if(rb_block_given_p() == Qtrue){
     rb_yield(Qnil);
     *(off+0) = tx;
     *(off+1) = ty;
-    rb_funcall(self, rb_intern("calc_layout"), 0);
+    layout_calc_layout(self);
   }
   return Qnil;
+}
+
+static VALUE layout_calc_layout(VALUE self)
+{
+  VALUE layout   = rb_iv_get(self, "@layout");
+  VALUE pos     = *(RSTRUCT_PTR(layout)+0);
+  VALUE loc     = *(RSTRUCT_PTR(layout)+10);
+  VALUE off     = *(RSTRUCT_PTR(layout)+3);
+  VALUE *base   = RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+2));
+  
+  VALUE arg1 = rb_ary_new();
+  rb_ary_push(arg1, nZero);
+  if(*(base+2) == Qnil){ rb_ary_push(arg1, *(RSTRUCT_PTR(rb_iv_get(mScreen, "@@size"))+0)); }
+  else{ rb_ary_push(arg1, *(base+2)); }
+  VALUE lx = rb_proc_call(*(RARRAY_PTR(loc)+0), arg1);
+
+  VALUE arg2 = rb_ary_new();
+  rb_ary_push(arg2, nOne);
+  if(*(base+3) == Qnil){ rb_ary_push(arg2, *(RSTRUCT_PTR(rb_iv_get(mScreen, "@@size"))+1)); }
+  else{ rb_ary_push(arg2, *(base+3)); }
+  VALUE ly = rb_proc_call(*(RARRAY_PTR(loc)+1), arg2);
+
+  *(RSTRUCT_PTR(pos)+0) = INT2NUM(NUM2INT(lx)+NUM2INT(*(RSTRUCT_PTR(off)+0)));
+  *(RSTRUCT_PTR(pos)+1) = INT2NUM(NUM2INT(ly)+NUM2INT(*(RSTRUCT_PTR(off)+1)));
+
+  rb_funcall(self, rb_intern("update_layout_position"), 0);
+
+  VALUE snap     = *(RSTRUCT_PTR(layout)+4);
+  VALUE children = *(RSTRUCT_PTR(snap)+1);
+  int i;
+  for(i=0; i<RARRAY_LEN(children); i++)
+  {
+    layout_snap(0, NULL, *(RARRAY_PTR(children) + i));
+  }
+  return Qnil;
+}
+
+static VALUE layout_add_snap_child(VALUE self, VALUE spr)
+{
+  VALUE layout   = rb_iv_get(self, "@layout");
+  VALUE snap     = *(RSTRUCT_PTR(layout)+4);
+  VALUE children = *(RSTRUCT_PTR(snap)+1);
+  if(rb_ary_includes(children, spr)==Qfalse){ rb_ary_push(children, spr); }
+  layout_calc_layout(self);
+  return self;
+}
+
+static VALUE layout_delete_snap_child(VALUE self, VALUE spr)
+{
+  VALUE layout   = rb_iv_get(self, "@layout");
+  VALUE snap     = *(RSTRUCT_PTR(layout)+4);
+  VALUE children = *(RSTRUCT_PTR(snap)+1);
+  if(TYPE(spr) == T_ARRAY)
+  {
+    int i;
+    for(i=0; i<RARRAY_LEN(spr); i++){ rb_ary_delete(children, *(RARRAY_PTR(spr) + i)); }
+  }
+  else
+  {
+    rb_ary_delete(children, spr);
+  }
+  layout_calc_layout(self);
+  return self;
+}
+
+static VALUE layout_snap(int argc, VALUE *argv, VALUE self)
+{
+  VALUE spr = Qnil;
+  rb_scan_args(argc, argv, "01", &spr);
+  VALUE layout = rb_iv_get(self, "@layout");
+  VALUE snap   = *(RSTRUCT_PTR(layout)+4);
+  VALUE *sprite = RSTRUCT_PTR(snap);
+  if(spr != Qnil)
+  {
+    if(*sprite != Qnil){ layout_delete_snap_child(*sprite, self); }
+    *sprite = spr;
+    layout_add_snap_child(spr, self);
+  }
+  if(*sprite != Qnil)
+  {
+    VALUE *rect = RSTRUCT_PTR(rb_funcall(*sprite, rb_intern("rect"), 0));
+    VALUE *base = RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+2));
+    *(base+0) = *(rect+0);
+    *(base+1) = *(rect+1);
+    *(base+2) = *(rect+2);
+    *(base+3) = *(rect+3);
+  }
+  layout_calc_layout(self);
+  return self;
 }
 
 static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
@@ -3852,17 +3941,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   rb_secure(4);
   StringValue(str);
 
-  str = rb_funcall(str, id_toutf8, 0);
-  
-  VALUE os_name = rb_funcall(mMiyako, id_os_name, 0);
-  
-  if(rb_str_cmp(os_name, rb_const_get(cFont, id_mac_os_x)) == 0)
-  {
-    str = rb_funcall(cIconv, id_conv,
-                     rb_const_get(cFont, id_utf8),
-                     rb_const_get(cFont, id_utf8_mac),
-                     str);
-  }
+  str = rb_funcall(str, id_encode, 1, rb_const_get(cEncoding, id_utf8));
   
   TTF_Font *font = Get_TTF_Font(rb_iv_get(self, "@font"));
 
@@ -4102,6 +4181,7 @@ void Init_miyako_no_katana()
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
   cYuki = rb_define_class_under(mMiyako, "Yuki", rb_cObject);
   cThread = rb_define_class("Thread", rb_cObject);
+  cEncoding = rb_define_class("Encoding", rb_cObject);
   sPoint = rb_define_class_under(mMiyako, "PointStruct", rb_cStruct);
   sSize = rb_define_class_under(mMiyako, "SizeStruct", rb_cStruct);
   sRect = rb_define_class_under(mMiyako, "RectStruct", rb_cStruct);
@@ -4116,12 +4196,8 @@ void Init_miyako_no_katana()
   one = 1;
   nOne = INT2NUM(one);
 
-  id_os_name  = rb_intern("getOSName");
-  id_toutf8   = rb_intern("toutf8");
-  id_conv     = rb_intern("conv");
-  id_mac_os_x = rb_intern("OS_MAC_OS_X");
-  id_utf8     = rb_intern("ORG_ENC");
-  id_utf8_mac = rb_intern("NEW_ENC");
+  id_utf8   = rb_intern("UTF_8");
+  id_encode = rb_intern("encode");
   
   rb_define_singleton_method(cBitmap, "blit_aa!", bitmap_miyako_blit_aa, 4);
   rb_define_singleton_method(cBitmap, "blit_and!", bitmap_miyako_blit_and, 3);
@@ -4154,6 +4230,10 @@ void Init_miyako_no_katana()
 
 	rb_define_method(mLayout, "move", layout_move, 2);
 	rb_define_method(mLayout, "move_to", layout_move_to, 2);
+	rb_define_method(mLayout, "calc_layout", layout_calc_layout, 0);
+	rb_define_method(mLayout, "snap", layout_snap, -1);
+	rb_define_method(mLayout, "add_snap_child", layout_add_snap_child, 1);
+	rb_define_method(mLayout, "delete_snap_child", layout_delete_snap_child, 1);
   
   rb_define_method(cWaitCounter, "start", counter_start, 0);
   rb_define_method(cWaitCounter, "stop",  counter_stop,  0);

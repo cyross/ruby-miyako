@@ -315,7 +315,7 @@ module Miyako
     #===あとで書く
     #返却値:: あとで書く
     def rect
-      return Rect.new(*(@layout.pos.to_a + @layout.size.to_a))
+      return Rect.new(@layout.pos[0], @layout.pos[1], @layout.size[0], @layout.size[1])
     end
 
     #===インスタンスのレイアウトを指定の別のインスタンスに依存(スナップ)させる
@@ -350,7 +350,7 @@ module Miyako
     end
     
     def add_snap_child(spr) #:nodoc:
-      @layout.snap.children.push(spr) unless @layout.snap.children.include?(spr)
+      @layout.snap.children << spr unless @layout.snap.children.include?(spr)
       calc_layout
       return self
     end

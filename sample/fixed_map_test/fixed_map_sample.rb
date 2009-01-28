@@ -7,6 +7,8 @@ require 'Miyako/miyako'
 
 include Miyako
 
+Screen::fps_view = true
+
 # Monster Class
 class Monster
   extend Forwardable
@@ -17,7 +19,7 @@ class Monster
     @spr.oh = size
     @coll= Collision.new(Rect.new(0, 0, @spr.ow, @spr.oh),
                           Point.new(@spr.x, @spr.y))
-    @coll.amount = Size.new(1, 1)
+    @coll.amount.resize(1, 1)
     ap = { }
     ap[:sprite] = @spr
     ap[:wait] = wait

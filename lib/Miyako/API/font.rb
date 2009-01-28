@@ -30,9 +30,9 @@ module Miyako
   class Font
     extend Forwardable
 
-    OS_MAC_OS_X = "mac_osx"
-    ORG_ENC = "UTF-8"
-    NEW_ENC = "UTF-8-MAC"
+#    OS_MAC_OS_X = "mac_osx"
+#    ORG_ENC = "UTF-8"
+#    NEW_ENC = "UTF-8-MAC"
     
     attr_reader :size, :line_skip, :height, :ascent, :descent
     attr_accessor :color, :use_shadow, :shadow_color, :shadow_margin, :vspace, :hspace
@@ -67,7 +67,8 @@ module Miyako
     def Font.search_font_path_file(hash, path) #:nodoc:
       Dir.glob(path+"*"){|d|
         hash = Font.search_font_path_file(hash, d+"/") if test(?d, d)
-        d = Iconv.conv("UTF-8-MAC", "UTF-8", d.toutf8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
+#        d = Iconv.conv("UTF-8-MAC", "UTF-8", d.toutf8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
+        d = d.encode(Encoding::UTF_8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
         d = d.tr("\\", "\/")
         hash[$1] = d if (d =~ /\/([^\/\.]+\.tt[fc])\z/ || d =~ /\/([^\/\.]+\.otf)\z/) # MacOSX対応
       }
@@ -304,8 +305,7 @@ module Miyako
     #_x_:: 描画位置x軸
     #_y_:: 描画位置Y軸
     def draw_text(dst, str, x, y)
-      str = str.toutf8
-      str = Iconv.conv("UTF-8-MAC", "UTF-8", str) if Miyako.getOSName == "mac_osx"
+      str = str.encode(Encoding::UTF_8)
       str.chars{|c|
         if @use_shadow
           src2 = @font.renderBlendedUTF8(c, @shadow_color[0], @shadow_color[1], @shadow_color[2])
