@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -156,6 +156,27 @@ module Miyako
       @parts_list = nil
       @parts.clear
       @parts = nil
+    end
+
+    #===パーツを画面に描画する
+    #各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、各パーツを貼り付ける。
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|パーツのSpriteUnit|となる。
+    #デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
+    def render
+    end
+
+    #===パーツを画面に描画する
+    #各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
+    #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|パーツのSpriteUnit|となる。
+    #デフォルトでは、描画順は登録順となる。順番を変更したいときは、render_toメソッドをオーバーライドする必要がある
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    def render_to(dst)
     end
   end
 end

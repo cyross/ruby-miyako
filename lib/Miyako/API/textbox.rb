@@ -40,11 +40,11 @@ module Miyako
     #===インスタンスの作成
     #テキストボックスを生成する。パラメータは以下の通り。
     #(括弧内は省略形)
-    #:font:: 描画フォント(Fontクラスのインスタンス)　デフォルトはFont.sans_serif
-    #:size:: 描画文字数(2要素の配列またはSize構造体のインスタンス)　デフォルトはSize(20,8)
-    #:wait_cursor(:wc):: ボタン入力待ちを示すカーソル(SpriteもしくはSpriteAnimationクラスのインスタンス)
-    #:select_cursor(:sc):: 選択カーソル(SpriteもしくはSpriteAnimationクラスのインスタンス)
-    #:page_size:: 一度にテキストボックスに表示させる選択肢の数(縦方向、デフォルトは8)
+    #_:font_:: 描画フォント(Fontクラスのインスタンス)　デフォルトはFont.sans_serif
+    #_:size_:: 描画文字数(2要素の配列またはSize構造体のインスタンス)　デフォルトはSize(20,8)
+    #_:wait_cursor(:wc)_:: ボタン入力待ちを示すカーソル(SpriteもしくはSpriteAnimationクラスのインスタンス)
+    #_:select_cursor(:sc)_:: 選択カーソル(SpriteもしくはSpriteAnimationクラスのインスタンス)
+    #_:page_size_:: 一度にテキストボックスに表示させる選択肢の数(縦方向、デフォルトは8)
     #
     #_params_:: 生成時のパラメータ(ハッシュ引数)
     #返却値:: TextBoxクラスのインスタンス
@@ -261,9 +261,9 @@ module Miyako
     #===指定した高さで描画する際のマージンを求める
     #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。
     #第1引数に渡す"align"は、以下の3種類のシンボルのどれかを渡す
-    #:top:: 上側に描画(マージンはゼロ)
-    #:middle:: 中間に描画
-    #:bottom:: 下部に描画
+    #_:top_:: 上側に描画(マージンはゼロ)
+    #_:middle_:: 中間に描画
+    #_:bottom_:: 下部に描画
     #
     #_align_:: 描画位置
     #_height_:: 描画する高さ(デフォルトは、描画した最大の高さ）
@@ -594,20 +594,21 @@ module Miyako
       return @waiting
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===コマンド選択中かどうかを確認する
+    #返却値:: 選択中の時はtrueを返す
     def selecting?
       return @selecting
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===選択結果を取得する
+    #返却値:: コマンドの選択結果(選択中のnilを返す)
     def result
       return @choices.result
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===テキストエリアに描画している文字を消去する
+    #透明色で消去したあと、描画開始位置を左上(0,0)に移動する
+    #返却値:: 自分自身を返す
     def clear
       @textarea.bitmap.fillRect(0, 0, @size[0], @size[1], [0, 0, 0, 0])
       @locate = Point.new(0, 0)
@@ -636,8 +637,7 @@ module Miyako
       return self
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===情報を解放する
     def dispose
       @textarea.dispose
       @textarea = nil

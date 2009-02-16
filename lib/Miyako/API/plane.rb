@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -141,6 +141,19 @@ module Miyako
     def Plane::resize #:nodoc:
       @@planes.each{|p| p.resize }
       return nil
+    end
+
+    #===プレーンを画面に描画する
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+    def render
+    end
+
+    #===プレーンを画像に描画する
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
+    #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    def render_to(dst)
     end
 
     def_delegators(:sprite)

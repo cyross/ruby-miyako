@@ -3654,6 +3654,9 @@ static VALUE layout_calc_layout(VALUE self)
   VALUE off     = *(RSTRUCT_PTR(layout)+3);
   VALUE *base   = RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+2));
   
+  VALUE old_pos_x = *(RSTRUCT_PTR(pos)+0);
+  VALUE old_pos_y = *(RSTRUCT_PTR(pos)+1);
+  
   VALUE arg1 = rb_ary_new();
   rb_ary_push(arg1, nZero);
   if(*(base+2) == Qnil){ rb_ary_push(arg1, *(RSTRUCT_PTR(rb_iv_get(mScreen, "@@size"))+0)); }
@@ -3666,9 +3669,14 @@ static VALUE layout_calc_layout(VALUE self)
   else{ rb_ary_push(arg2, *(base+3)); }
   VALUE ly = rb_proc_call(*(RARRAY_PTR(loc)+1), arg2);
 
-  *(RSTRUCT_PTR(pos)+0) = INT2NUM(NUM2INT(lx)+NUM2INT(*(RSTRUCT_PTR(off)+0)));
-  *(RSTRUCT_PTR(pos)+1) = INT2NUM(NUM2INT(ly)+NUM2INT(*(RSTRUCT_PTR(off)+1)));
+  VALUE new_pos_x = INT2NUM(NUM2INT(lx)+NUM2INT(*(RSTRUCT_PTR(off)+0)));
+  VALUE new_pos_y = INT2NUM(NUM2INT(ly)+NUM2INT(*(RSTRUCT_PTR(off)+1)));
 
+  if(old_pos_x == new_pos_x && old_pos_y == new_pos_y){ return Qnil; }
+
+  *(RSTRUCT_PTR(pos)+0) = new_pos_x;
+  *(RSTRUCT_PTR(pos)+1) = new_pos_y;
+  
   rb_funcall(self, rb_intern("update_layout_position"), 0);
 
   VALUE snap     = *(RSTRUCT_PTR(layout)+4);

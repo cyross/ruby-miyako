@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -57,8 +57,12 @@ module Miyako
 
   #==レイアウト管理モジュール
   #位置情報やスナップ、座標丸めなどを管理する
+  #本モジュールはmixinすることで機能する。
+  #また、mixinする場合は、以下の処理を施すこと
+  #１．クラスのinitializeメソッドの最初にinit_layoutメソッドを呼び出す
+  #２．update_layout_positionメソッドを実装する
   #なお、本モジュールをmixinした場合は、インスタンス変数 @layout が予約される。
-  #@kayoutへの参照のみ許される。
+  #@layoutへのユーザアクセスは参照のみ許される。
   module Layout
     #===現在の位置情報を別のインスタンス変数に反映させるためのテンプレートメソッド
     #move や centering などのメソッドを呼び出した際に@layout［:pos］の値を反映させるときに使う
@@ -250,43 +254,27 @@ module Miyako
       }
     end
 
-    #===あとで書く
-    #_w_:: あとで書く
-    #_h_:: あとで書く
-    #返却値:: あとで書く
-    def set_base_size(w, h)
+    def set_base_size(w, h) #:nodoc:
       @layout.base[2] = w
       @layout.base[3] = h
       calc_layout
       return self
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
-    def reset_base_size
+    def reset_base_size #:nodoc:
       @layout.base[2] = nil
       @layout.base[3] = nil
       calc_layout
       return self
     end
 
-    #===あとで書く
-    #_x_:: あとで書く
-    #_y_:: あとで書く
-    #返却値:: あとで書く
-    def set_base_point(x, y)
+    def set_base_point(x, y) #:nodoc:
       @layout.base[0], @layout.base[1] = [x, y]
       calc_layout
       return self
     end
 
-    #===あとで書く
-    #_x_:: あとで書く
-    #_y_:: あとで書く
-    #_w_:: あとで書く
-    #_h_:: あとで書く
-    #返却値:: あとで書く
-    def set_base(x, y, w, h)
+    def set_base(x, y, w, h) #:nodoc:
       @layout.base[0] = x
       @layout.base[1] = y
       @layout.base[2] = w
@@ -295,9 +283,7 @@ module Miyako
       return self
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
-    def reset_base
+    def reset_base #:nodoc:
       @layout.base[0] = 0
       @layout.base[1] = 0
       @layout.base[2] = nil
@@ -306,14 +292,13 @@ module Miyako
       return self
     end
     
-    #===あとで書く
-    #返却値:: あとで書く
-    def get_base
+    def get_base #:nodoc:
       return @layout.base
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===インスタンスの位置・大きさを求める
+    #インスタンスの位置・大きさをRect構造体で求める
+    #返却値:: Rect構造体
     def rect
       return Rect.new(@layout.pos[0], @layout.pos[1], @layout.size[0], @layout.size[1])
     end

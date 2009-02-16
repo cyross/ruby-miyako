@@ -1,3 +1,6 @@
+# Miyako2.0 install script
+# 2009 Cyross Makoto
+
 if RUBY_VERSION < '1.9.1'
   puts 'Sorry. Miyako needs Ruby 1.9.1 or above...'
   exit
@@ -37,14 +40,14 @@ if osn =~ /mswin|mingw|cygwin|bccwin/
 elsif osn =~ /darwin/ # Mac OS X
   unless ENV['SDL_CONFIG_PATH'] 
     puts 'Please set SDL_CONFIG_PATH environment variable...'
-    puts "USAGE: SDL_CONFIG_PATH='/bin/sh /hoge/foo/sdl-config"
+    puts "USAGE: SDL_CONFIG_PATH='sdl-config'"
     exit
   end
   system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make ; cp miyako_no_katana.bundle ../")
 else # linux, U*IX...
   unless ENV['SDL_CONFIG_PATH'] 
     puts 'Please set SDL_CONFIG_PATH environment variable...'
-    puts "USAGE: SDL_CONFIG_PATH='/bin/sh /hoge/foo/sdl-config"
+    puts "USAGE: SDL_CONFIG_PATH='sdl-config"
     exit
   end
   system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make ; cp miyako_no_katana.so ../")
@@ -73,3 +76,5 @@ end
 Dir.glob("lib/Miyako/*.rb"){|fname| FileUtils.install(fname, sitelibdir, option)}
 Dir.glob("lib/Miyako/API/*.rb"){|fname| FileUtils.install(fname, apidir, option)}
 Dir.glob("lib/Miyako/EXT/*.rb"){|fname| FileUtils.install(fname, extdir, option)}
+
+FileUtils.chmod_R(0644, sitelibdir) unless osn =~ /mswin|mingw|cygwin|bccwin/

@@ -3,7 +3,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -26,27 +26,21 @@ module Miyako
   #==シーン実行クラス
   #用意したシーンインスタンスを実行
   class Story
-    #===あとで書く
-    #返却値:: あとで書く
-    def prev_label
+    def prev_label #:nodoc:
       return @prev_label
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
-    def next_label
+    def next_label #:nodoc:
       return @next_label
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
-    def upper_label
+    def upper_label #:nodoc:
       return @stack.empty? ? nil : @stack.last[0]
     end
 
     #===インスタンスの作成
-    #
-    #返却値:: あとで書く
+    #ストーリー情報の初期か
+    #返却値:: 生成したインスタンス
     def initialize
       @prev_label = nil
       @next_label = nil
@@ -71,9 +65,9 @@ module Miyako
       return @scene_cache[class_symbol]
     end
 
-    #===あとで書く
-    #_n_:: あとで書く
-    #返却値:: あとで書く
+    #===Storyの実行を始める
+    #"obj.run(MainScene)"と記述すると、SceneモジュールをmixinしたMainSceneクラスのインスタンスを作成し、評価を始める
+    #_n_:: 最初に実行するシーン名(クラス名を定数で)
     def run(n)
       return nil if n == nil
       u = nil
@@ -117,13 +111,18 @@ module Miyako
       @scene_cache_list.clear
     end
     
-    #===あとで書く
+    #===内部の情報を解放する
     def dispose
       @scene_cache.keys.each{|k| @scene_cache[del_symbol].dispose }
     end
 
     #==シーンモジュール
-    #本モジュールをmixinすることにより、シーンを示すインスタンスを作??することができる
+    #本モジュールをmixinすることにより、シーンを示すインスタンスを作成することができる
+    #mixinするときに気をつけなければいけないのは、本モジュールでは以下のインスタンス変数・モジュール変数を
+    #予約しているため、これらの変数の値を勝手に変えてはいけない
+    #@@scenesモジュール変数(シーンクラス一覧が入っている配列)、@storyインスタンス変数(シーンを呼び出したStoryクラスインスタンス)
+    #@nowインスタンス変数(現在評価しているシーンクラス)、@preインスタンス変数(一つ前に評価していたシーンクラス)
+    #@upperインスタンス変数(sub_routineの呼び元シーンクラス)、@nextインスタンス変数(移動先のシーンクラス)
     module Scene
 	  @@scenes = {}
 
@@ -139,8 +138,10 @@ module Miyako
         return @@scenes.has_key?(s)
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーン形式を示すテンプレートメソッド
+      #シーンには、シーケンスな移動が出来る"scene"形式と、終了したときに移動元に戻る"sub_routine"形式がある。
+      #"scene"形式の時はシンボル":scene"、"sub_routine"形式の時はシンボル":sub_routine"を返す様に実装する
+      #返却値:: "scene"形式の時はシンボル:scene、"sub_routine"形式の時はシンボル:sub_routineを返す(デフォルトは:sceneを返す)
       def scene_type
         return :scene
       end
@@ -160,34 +161,39 @@ module Miyako
         @upper = u
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーン内で使用するオブジェクトの初期化テンプレートメソッド
+      #シーン内で使用するインスタンスを生成するときなどにこのメソッドを実装する
       def init
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーン内で使用するオブジェクトの初期設定テンプレートメソッド
+      #シーン内で使用するインスタンスの設定を行うときにこのメソッドを実装する
+      #(シーン生成時に生成したインスタンスはキャッシュされ、再利用することができることに注意)
       def setup
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーンの情報を更新するテンプレートメソッド
+      #
+      #現在実行しているシーンを繰り返し実行する場合はインスタンス変数@nowを返すように実装する
+      #nilを返すとシーンの処理を終了する(元のStory#runメソッド呼び出しの次に処理が移る)
+      #但し、scene_typeメソッドの結果が:sub_routneのとき、移動元シーンに戻る
+      #返却値:: 移動先シーンクラス
       def update
         return @now
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーンで指定しているインスタンスを画面に描画するテンプレートメソッド
       def render
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーン内で使用したオブジェクトの後始末を行うテンプレートメソッド
+      #ここでは、解放処理(dispose)ではなく、終了処理(値を変更するなど)に実装する
+      #setupメソッドと対になっているというイメージ
       def final
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーンに使用したデータの解放を記述するテンプレートメソッド
+      #initメソッドと対になっているというイメージ
       def dispose
       end
       
@@ -195,14 +201,17 @@ module Miyako
         @next = label
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===シーンの解説を返す(テンプレートメソッド)
+      #Sceneモジュールをmixinしたとき、解説文を返す実装をしておくと、
+      #Scene.#lisutupメソッドを呼び出したときに、noticeメソッドの結果を取得できる
+      #返却値:: シーンの解説(文字列)
       def notice
         return ""
       end
 
-      #===あとで書く
-      #返却値:: あとで書く
+      #===登録しているシーン一覧をリストアップする
+      #リストの内容は、"シーンクラス名(文字列),シーンクラス(ポインタ),解説(noticeメソッドの内容)"という書式で取得できる
+      #返却値:: リストアップしたシーンの配列
       def Scene.listup
         list = Array.new
         sns = @@scenes
@@ -210,9 +219,8 @@ module Miyako
         return list
       end
 
-      #===あとで書く
-      #_csvname_:: あとで書く
-      #返却値:: あとで書く
+      #===Scene.#listupメソッドの内容をCSVファイルに保存する
+      #_csvname_:: 保存するCSVファイルパス
       def Scene.listup2csv(csvfname)
         csvfname += ".csv" if csvfname !~ /\.csv$/
         list = self.listup

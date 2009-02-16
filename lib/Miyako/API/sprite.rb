@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -290,6 +290,73 @@ module Miyako
       sprite = Sprite.new(:unit=>unit, :type=>:ac)
       yield sprite if block_given?
       return sprite
+    end
+
+    #===インスタンスの内容を別のインスタンスに描画する
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #ブロックの引数は、|転送元のSpriteUnit,転送先のSpriteUnit|となる。
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 自分自身を返す
+    def Sprite.render_to(src, dst)
+    end
+
+    #===インスタンスの内容を画面に描画する
+    #現在の画像を、現在の状態で描画するよう指示する
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
+    #返却値:: 自分自身を返す
+    def render
+    end
+
+    #===インスタンスの内容を別のインスタンスに描画する
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 自分自身を返す
+    def render_to(dst)
+    end
+
+    #===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
+    #回転角度が正だと右回り、負だと左回りに回転する
+    #変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
+    #度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+    #また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
+    #返却値:: 自分自身を返す
+    #_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
+    #_xscale_:: 拡大率(x方向)
+    #_yscale_:: 拡大率(y方向)
+    def render_transform(radian, xscale, yscale)
+    end
+
+    #===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
+    #回転角度が正だと右回り、負だと左回りに回転する
+    #変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
+    #度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+    #また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
+    #_xscale_:: 拡大率(x方向)
+    #_yscale_:: 拡大率(y方向)
+    #返却値:: 自分自身を返す
+    def render_to_transform(dst, radian, xscale, yscale)
     end
   end
 end

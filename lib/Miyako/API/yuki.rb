@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -216,8 +216,8 @@ module Miyako
     #===オブジェクトを登録する
     #オブジェクトをパーツnameとして登録する。
     #Yuki::parts[name]で参照可能
-    #:name:: パーツ名（シンボル）
-    #:parts:: 登録対象のインスタンス
+    #_name_:: パーツ名（シンボル）
+    #_parts_:: 登録対象のインスタンス
     #
     #返却値:: 自分自身を返す
     def regist_parts(name, parts)
@@ -226,7 +226,7 @@ module Miyako
     end
   
     #===表示・描画対象のテキストボックスを選択する
-    #:box:: テキストボックスのインスタンス
+    #_box_:: テキストボックスのインスタンス
     #
     #返却値:: 自分自身を返す
     def select_textbox(box)
@@ -235,7 +235,7 @@ module Miyako
     end
   
     #===表示・描画対象のコマンドボックスを選択する
-    #:box:: テキストボックスのインスタンス
+    #_box_:: テキストボックスのインスタンス
     #
     #返却値:: 自分自身を返す
     def select_commandbox(box)
@@ -259,7 +259,7 @@ module Miyako
   
     #===オブジェクトの登録を解除する
     #パーツnameとして登録されているオブジェクトを登録から解除する。
-    #:name:: パーツ名（シンボル）
+    #_name_:: パーツ名（シンボル）
     #
     #返却値:: 自分自身を返す
     def remove_parts(name)
@@ -270,7 +270,7 @@ module Miyako
     #===パーツで指定したオブジェクトを先頭に表示する
     #描画時に、指定したパーツを描画する
     #すでにshowメソッドで表示指定している場合は、先頭に表示させる
-    #:names:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
+    #_names_:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
     #返却値:: 自分自身を返す
     def show(*names)
       names.each{|name|
@@ -282,7 +282,7 @@ module Miyako
   
     #===パーツで指定したオブジェクトを隠蔽する
     #描画時に、指定したパーツを描画させないよう指定する
-    #:names:: パーツ名（シンボル）、複数指定可能
+    #_names_:: パーツ名（シンボル）、複数指定可能
     #返却値:: 自分自身を返す
     def hide(*names)
       names.each{|name| @visible.delete(name) }
@@ -292,7 +292,7 @@ module Miyako
     #===パーツで指定したオブジェクトの処理を開始する
     #nameで指定したパーツが持つ処理を隠蔽する。
     #（但し、パーツで指定したオブジェクトがstartメソッドを持つことが条件）
-    #:name:: パーツ名（シンボル）
+    #_name_:: パーツ名（シンボル）
     #返却値:: 自分自身を返す
     def start(name)
       @parts[name].start
@@ -302,7 +302,7 @@ module Miyako
     #===パーツで指定したオブジェクトを再生する
     #nameで指定したパーツを再生する。
     #（但し、パーツで指定したオブジェクトがplayメソッドを持つことが条件）
-    #:name:: パーツ名（シンボル）
+    #_name_:: パーツ名（シンボル）
     #返却値:: 自分自身を返す
     def play(name)
       @parts[name].play
@@ -312,7 +312,7 @@ module Miyako
     #===パーツで指定したオブジェクトの処理を停止する
     #nameで指定したパーツが持つ処理を停止する。
     #（但し、パーツで指定したオブジェクトがstopメソッドを持つことが条件）
-    #:name:: パーツ名（シンボル）
+    #_name_:: パーツ名（シンボル）
     #返却値:: 自分自身を返す
     def stop(name)
       @parts[name].stop
@@ -321,7 +321,7 @@ module Miyako
   
     #===遷移図の処理が終了するまで待つ
     #nameで指定した遷移図の処理が終了するまで、プロットを停止する
-    #:name:: 遷移図名（シンボル）
+    #_name_: 遷移図名（シンボル）
     #返却値:: 自分自身を返す
     def wait_by_finish(name)
       until @parts[name].finish?
@@ -332,7 +332,8 @@ module Miyako
   
     #===シーンのセットアップ時に実行する処理
     #
-    #返却値:: あとで書く
+    #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
+    #返却値:: 自分自身を返す
     def setup
       @executing = false
 
@@ -348,6 +349,10 @@ module Miyako
 
       @result = nil
       @plot_result = nil
+      
+      yield self if block_given?
+      
+      return self
     end
   
     #===プロット処理を実行する(明示的に呼び出す必要がある場合)

@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -135,6 +135,25 @@ module Miyako
       def dispose #:nodoc:
         @mapdat = nil
         @baseimg = nil
+      end
+
+      #===マップレイヤーを画面に描画する
+      #転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+      #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+      #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+      #ブロックの引数は、|画面のSpriteUnit|となる。
+      #返却値:: 自分自身を返す
+      def render
+      end
+
+      #===マップレイヤーを画像に転送する
+      #転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+      #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+      #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+      #ブロックの引数は、|転送先のSpriteUnit|となる。
+      #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+      #返却値:: 自分自身を返す
+      def render_to(dst)
       end
     end
 
@@ -277,43 +296,54 @@ module Miyako
       return @map_layers[idx]
     end
 
-    #===あとで書く
-    #_idx_:: あとで書く
-    #_x_:: あとで書く
-    #_y_:: あとで書く
-    #返却値:: あとで書く
+    #===実座標を使用して、指定のレイヤー・位置のマップチップ番号を取得
+    #イベントレイヤーでの番号はイベント番号と一致する
+    #ブロックを渡すと、求めたマップチップ番号をブロック引数として受け取る評価を行える
+    #_idx_:: マップレイヤー配列のインデックス
+    #_x_:: マップチップ単位での位置(ピクセル単位)
+    #_y_:: マップチップ単位での位置(ピクセル単位）
+    #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
     def get_code_real(idx, x = 0, y = 0)
       code = @map_layers[idx].get_code(x / @mapchip.chip_size[0], y / @mapchip.chip_size[1])
       yield code if block_given?
       return code
     end
 
-    #===あとで書く
-    #_idx_:: あとで書く
-    #_x_:: あとで書く
-    #_y_:: あとで書く
-    #返却値:: あとで書く
+    #===指定のレイヤー・位置のマップチップ番号を取得
+    #イベントレイヤーでの番号はイベント番号と一致する
+    #ブロックを渡すと、求めたマップチップ番号をブロック引数として受け取る評価を行える
+    #_idx_:: マップレイヤー配列のインデックス
+    #_x_:: マップチップ単位での位置(ピクセル単位ではない)
+    #_y_:: マップチップ単位での位置(ピクセル単位ではない)
+    #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
     def get_code(idx, x = 0, y = 0)
       code = @map_layers[idx].get_code(x, y)
       yield code if block_given?
       return code
     end
     
-    #===あとで書く
-    #_idx_:: あとで書く
-    #_code_:: あとで書く
-    #_base_:: あとで書く
-    #返却値:: あとで書く
+    #===対象のマップチップ番号の画像を置き換える
+    #_idx_:: 置き換えるマップチップレイヤー番号
+    #_code_:: 置き換えるマップチップ番号
+    #_base_:: 置き換え対象の画像・アニメーション
+    #返却値:: 自分自身を返す
     def set_mapchip_base(idx, code, base)
       @map_layers[idx].mapchip_units[code] = base
       return self
     end
 
-    #===あとで書く
-    #_type_:: あとで書く
-    #_size_:: あとで書く
-    #_collision_:: あとで書く
-    #返却値:: あとで書く
+    #===現在の位置、指定の大きさから、移動する方向・移動量・マップの移動許可などをもとに、最終的な移動量を求める
+    #本メソッドでは、以下の情報をもとに移動量を取得する
+    #移動形式：第１引数(０以上の整数)
+    #マップの大きさ(pixel)：第２引数(Size構造体)
+    #マップチップの大きさ(pixel)：Mapインスタンス生成時に設定したMapChipインスタンス
+    #マップ上の位置：Mapインスタンス
+    #キャラクタの当たり判定、移動量：第３引数(Collisionクラスインスタンス)
+    #移動量・キャラクタの
+    #_type_:: 移動形式(０以上の整数)
+    #_size_:: マップの大きさ
+    #_collision_:: 移動するキャラクタのコリジョン情報(Collosionクラス)
+    #返却値:: 許容できる移動量(MapMoveAmount構造体)
     def get_amount(type, size, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
@@ -347,11 +377,16 @@ module Miyako
       return mma
     end
 
-    #===あとで書く
-    #_type_:: あとで書く
-    #_rect_:: あとで書く
-    #_collision_:: あとで書く
-    #返却値:: あとで書く
+    #===現在の位置、指定の大きさから、移動する方向・移動量・マップの移動許可などをもとに、最終的な移動量を求める
+    #本メソッドでは、以下の情報をもとに移動量を取得する
+    #移動形式：第１引数(０以上の整数)
+    #マップ上の位置、マップの大きさ(pixel)：第２引数(Rect構造体)
+    #マップチップの大きさ(pixel)：Mapインスタンス生成時に設定したMapChipインスタンス
+    #キャラクタの当たり判定、移動量：第３引数(Collisionクラスインスタンス)
+    #_type_:: 移動タイプ(０以上の整数)
+    #_rect_:: 位置・大きさを設定したRect構造体
+    #_collision_:: 移動するキャラクタのコリジョン情報(Collosionクラス)
+    #返却値:: 許容できる移動量(MapMoveAmount構造体)
     def get_amount_by_rect(type, rect, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
@@ -386,20 +421,20 @@ module Miyako
       return mma
     end
     
-    #===あとで書く
-    #返却値:: あとで書く
+    #===マップチップ１枚の大きさを取得する
+    #マップチップの大きさが32×32ピクセルの場合は、[32,32]のSize構造体が返る
+    #返却値:: マップチップのサイズ(Size構造体)
     def chip_size
       return @mapchip.chip_size
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===すべてのマップイベントを終了させる
+    #マップに登録しているイベントすべてのfinalメソッドを呼び出す
     def final
       @event_layer.each{|e| e.final } if @event_layer
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===マップ情報を解放する
     def dispose
       @map_layers.each{|l|
         l.dispose
@@ -421,6 +456,29 @@ module Miyako
     #返却値:: マップイベントの配列
     def events
       return @event_layer || []
+    end
+
+    #===マップを画面に描画する
+    #転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+    #各レイヤ－を、レイヤーインデックス番号の若い順に描画する
+    #但し、マップイベントは描画しない
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|画面のSpriteUnit|となる。
+    #返却値:: 自分自身を返す
+    def render
+    end
+
+    #===マップを画像に描画する
+    #転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
+    #各レイヤ－を、レイヤーインデックス番号の若い順に描画する
+    #但し、マップイベントは描画しない
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|転送先のSpriteUnit|となる。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 自分自身を返す
+    def render_to(dst)
     end
   end
 end

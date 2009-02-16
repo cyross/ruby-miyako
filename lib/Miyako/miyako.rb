@@ -4,7 +4,7 @@
 #
 #Authors:: サイロス誠
 #Version:: 2.0.0
-#Copyright:: 2007-2008 Cyross Makoto
+#Copyright:: 2007-2009 Cyross Makoto
 #License:: LGPL2.1
 #
 =begin
@@ -41,11 +41,7 @@ end
 require 'forwardable'
 require 'iconv' if RUBY_VERSION < '1.9.0'
 require 'kconv'
-require 'jcode' if RUBY_VERSION < '1.9.0'
 require 'rbconfig'
-
-$KCODE = 'u' if RUBY_VERSION < '1.9.0'
-
 
 #デバッグモードの設定。デバッグモードにするときはtrueを渡す。デフォルトはfalse
 $miyako_debug_mode ||= false
@@ -66,8 +62,6 @@ if $not_use_audio
 else
   SDL.init(SDL::INIT_VIDEO | SDL::INIT_AUDIO | SDL::INIT_JOYSTICK)
 end
-
-Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
@@ -122,11 +116,11 @@ module Miyako
     str = title
     case @@osName
     when "win"
-      str = title.to_s().tosjis()
+      str = title.to_s().encode(Encoding::SJIS)
     when "mac_osx"
-      str = Iconv.conv("UTF-8-MAC", "UTF-8", title.to_s().toutf8())
+      str = title.to_s().encode(Encoding::UTF_8)
     when "linux"
-      str = title.to_s().toeuc()
+      str = title.to_s().encode(Encoding::EUCJP)
     end
     SDL::WM.setCaption(str, "")
   end

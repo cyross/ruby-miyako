@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -67,7 +67,6 @@ module Miyako
     def Font.search_font_path_file(hash, path) #:nodoc:
       Dir.glob(path+"*"){|d|
         hash = Font.search_font_path_file(hash, d+"/") if test(?d, d)
-#        d = Iconv.conv("UTF-8-MAC", "UTF-8", d.toutf8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
         d = d.encode(Encoding::UTF_8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
         d = d.tr("\\", "\/")
         hash[$1] = d if (d =~ /\/([^\/\.]+\.tt[fc])\z/ || d =~ /\/([^\/\.]+\.otf)\z/) # MacOSX対応
@@ -78,21 +77,21 @@ module Miyako
     def Font.create_font_path #:nodoc:
       osn = Miyako::getOSName
       @@font_base_path[osn].each{|path|
-        path = Iconv.conv("UTF-8-MAC", "UTF-8", path.toutf8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
+        path = path.encode(Encoding::UTF_8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
         path = path.tr("\\", "\/")
         @@name_2_font_path = Font.search_font_path_file(@@name_2_font_path, path)
       }
     end
 
     def Font.findFontPath(fname) #:nodoc:
-      fname = Iconv.conv("UTF-8-MAC", "UTF-8", fname.toutf8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
+      fname = fname.encode(Encoding::UTF_8) if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
       return @@name_2_font_path.fetch(fname, nil)
     end
 
     def Font.get_font_inner(fname, fpath, size=16) #:nodoc:
       if Miyako.getOSName == "mac_osx" # MacOSXはパス名がUTF-8固定のため
-        fname = Iconv.conv("UTF-8-MAC", "UTF-8", fname.toutf8)
-        fpath = Iconv.conv("UTF-8-MAC", "UTF-8", fpath.toutf8)
+        fname = fname.encode(Encoding::UTF_8)
+        fpath = fpath.encode(Encoding::UTF_8)
       end
       @@font_cache[fname] ||= {}
       @@font_cache[fname][size] ||= SDL::TTF.open(fpath, size)

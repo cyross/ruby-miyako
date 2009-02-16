@@ -2,7 +2,7 @@
 =begin
 --
 Miyako v2.0
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -233,8 +233,8 @@ module Miyako
       return v == 3 || v == 12
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #== インスタンスの内容を解放する
+    #返却値:: なし
     def dispose
       @pos.clear
       @pos = nil
@@ -445,8 +445,8 @@ module Miyako
       return [@collisions[idx], @bodies[idx]]
     end
 
-    #===あとで書く
-    #返却値:: あとで書く
+    #===オブジェクトを解放する
+    #返却値:: なし
     def dispose
       @collisions.clear
       @collisions = nil
