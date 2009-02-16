@@ -210,7 +210,7 @@ Windowsでは、Ruby/SDLバイナリパッケージの使用をお奨めしま�
 また、sdl-configの場所を正しく指定できる様に、環境変数SDL_CONFIG_PATH(sdl-configの実行パス)のを参照しています。
 ビルド前に必ず設定をお願いいたします。
 
-(例)SDL_CONFIG_PATH='/bin/sh /usr/bin/sdl-config'
+(例)SDL_CONFIG_PATH='sdl-config'
 
 # お手数とは思いますが、LinuxやMacOSXなどで設定した方法をフィードバックしていただけると大いに助かります。
 # フィードバックは次期バージョンに反映いたします。
@@ -830,7 +830,7 @@ v1.5.0a(2008.07.21)
 ・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
 ・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
 
-v2.0.0(2008.12.20)
+v2.0.0(2009.2.20)
 ・Ruby/SDL2.0準拠に変更
 ・対象Rubyランタイムを、Ruby1.9.1以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
