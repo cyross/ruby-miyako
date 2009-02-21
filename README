@@ -904,6 +904,7 @@ v2.0.0(2009.2.20)
 ・Yuki#release_checks、ok_checks、cansel_checksアクセサを追加
 ・Yuki#reset_release_checks、reset_ok_checks、reset_cansel_checksメソッドを追加
 ・Yuki#release_checks_during、ok_checks_during、cansel_checks_duringメソッドを追加
+・Yuki#update_cr、update_clearメソッドを追加
 ・Yuki#pre_pause、Yuki#pre_command、Yuki#pre_cancel、Yuki#post_pause、Yuki#post_command、Yuki#post_cancelメソッドを追加
 ・Yuki#textbox、Yuki#commandbox、Yuki#selecting_procsメソッドを追加
 ・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
