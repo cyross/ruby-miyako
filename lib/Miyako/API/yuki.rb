@@ -168,7 +168,7 @@ module Miyako
       @plot_result = nil
 
       @update_inner = lambda{|yuki|}
-      @update_text   = lambda{|yuki|}
+      @update_text   = lambda{|yuki, ch|}
       
       @parts = {}
       @visible = []
@@ -203,6 +203,20 @@ module Miyako
       @is_outer_height = self.method(:is_outer_height)
     end
 
+    #===Yuki#update実行中に行わせる処理を実装するテンプレートメソッド
+    #_yuki_:: 実行中のYukiクラスインスタンス
+    def update_inner(yuki)
+    end
+
+    #===Yuki#text実行中に行わせる処理を実装するテンプレートメソッド
+    #update_textテンプレートメソッドは、textメソッドで渡した文字列全体ではなく、
+    #内部で１文字ずつ分割して、その字が処理されるごとに呼ばれる。
+    #そのため、引数chで入ってくるのは、分割された１文字となる。
+    #_yuki_:: 実行中のYukiクラスインスタンス
+    #_ch_:: textメソッドで処理中の文字(分割済みの１文字)
+    def update_text(yuki, ch)
+    end
+    
     #===Yuki#showで表示指定した画像を描画する
     #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
     #返却値:: 自分自身を返す
@@ -640,7 +654,7 @@ module Miyako
           next nil
         end
         @text_box.draw_text(ch)
-        @update_text.call(self)
+        @update_text.call(self, ch)
         Fiber.yield
       }
       return self
