@@ -900,6 +900,7 @@ v2.0.0(2009.2.20)
 ・Yuki#sizeメソッドのインタフェースを変更(valignを追加)
 ・Yuki#valign,valign=,valign_duringメソッドの追加
 ・Yuki#buttonメソッドの廃止
+・Yuki#update_textメソッドの引数インタフェースを変更(処理中の文字も取得できる様になった)
 ・Yuki#release_checks、ok_checks、cansel_checksアクセサを追加
 ・Yuki#reset_release_checks、reset_ok_checks、reset_cansel_checksメソッドを追加
 ・Yuki#release_checks_during、ok_checks_during、cansel_checks_duringメソッドを追加
