@@ -307,7 +307,7 @@ class MainScene
     reset_wait
   end
   
-  def update_text(yuki)
+  def update_text(yuki, ch)
     yuki.wait @wait # １文字ずつ表示させる
   end
 
