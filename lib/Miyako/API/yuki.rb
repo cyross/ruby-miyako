@@ -125,8 +125,36 @@ module Miyako
     #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
     #ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはnil
     CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc)
-    
-    attr_accessor :update_inner, :update_text
+
+    #===Yuki#update実行中に行わせる処理を実装するテンプレートメソッド
+    #但し、メソッド本体は、update_inner=メソッドで設定する必要がある
+    #_yuki_:: 実行中のYukiクラスインスタンス
+    def update_inner(yuki)
+    end
+
+    #===Yuki#text実行中に行わせる処理を実装するテンプレートメソッド
+    #update_textテンプレートメソッドは、textメソッドで渡した文字列全体ではなく、
+    #内部で１文字ずつ分割して、その字が処理されるごとに呼ばれる。
+    #そのため、引数chで入ってくるのは、分割された１文字となる。
+    #但し、メソッド本体は、update_text=メソッドで設定する必要がある
+    #_yuki_:: 実行中のYukiクラスインスタンス
+    #_ch_:: textメソッドで処理中の文字(分割済みの１文字)
+    def update_text(yuki, ch)
+    end
+
+    #===Yuki#cr呼び出し時に行わせる処理を実装するテンプレートメソッド
+    #但し、メソッド本体は、update_cr=メソッドで設定する必要がある
+    #_yuki_:: 実行中のYukiクラスインスタンス
+    def update_cr(yuki)
+    end
+
+    #===Yuki#clear呼び出し時に行わせる処理を実装するテンプレートメソッド
+    #但し、メソッド本体は、update_clear=メソッドで設定する必要がある
+    #_yuki_:: 実行中のYukiクラスインスタンス
+    def update_clear(yuki)
+    end
+
+    attr_accessor :update_inner, :update_text, :update_cr, :update_clear
     attr_reader :parts, :vars, :valign
     #release_checks:: ポーズ解除を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
@@ -168,7 +196,9 @@ module Miyako
       @plot_result = nil
 
       @update_inner = lambda{|yuki|}
-      @update_text   = lambda{|yuki, ch|}
+      @update_text  = lambda{|yuki, ch|}
+      @update_cr    = lambda{|yuki|}
+      @update_clear = lambda{|yuki|}
       
       @parts = {}
       @visible = []
@@ -201,20 +231,6 @@ module Miyako
       @selecting_procs = []
       
       @is_outer_height = self.method(:is_outer_height)
-    end
-
-    #===Yuki#update実行中に行わせる処理を実装するテンプレートメソッド
-    #_yuki_:: 実行中のYukiクラスインスタンス
-    def update_inner(yuki)
-    end
-
-    #===Yuki#text実行中に行わせる処理を実装するテンプレートメソッド
-    #update_textテンプレートメソッドは、textメソッドで渡した文字列全体ではなく、
-    #内部で１文字ずつ分割して、その字が処理されるごとに呼ばれる。
-    #そのため、引数chで入ってくるのは、分割された１文字となる。
-    #_yuki_:: 実行中のYukiクラスインスタンス
-    #_ch_:: textメソッドで処理中の文字(分割済みの１文字)
-    def update_text(yuki, ch)
     end
     
     #===Yuki#showで表示指定した画像を描画する
@@ -641,6 +657,8 @@ module Miyako
     end
   
     #===テキストボックスに文字を表示する
+    #引数txtの値は、内部で１文字ずつ分割され、１文字描画されるごとに、
+    #update_textメソッドが呼び出され、続けてYuki#start_plotもしくはYuki#updateメソッド呼び出し直後に戻る
     #_txt_:: 表示させるテキスト
     #返却値:: 自分自身を返す
     def text(txt)
@@ -728,16 +746,20 @@ module Miyako
     end
 
     #===改行を行う
+    #開業後にupdate_crテンプレートメソッドが１回呼ばれる
     #返却値:: 自分自身を返す
     def cr
       @text_box.cr
+      @update_cr.call(self)
       return self
     end
 
     #===テキストボックスの内容を消去する
+    #開業後にupdate_clearテンプレートメソッドが１回呼ばれる
     #返却値:: 自分自身を返す
     def clear 
       @text_box.clear
+      @update_clear.call(self)
       return self
     end
 
@@ -746,6 +768,8 @@ module Miyako
     #所定のボタンを押すとポーズが解除され、カーソルが消える
     #解除後は、プロットの続きを処理する
     #引数無しのブロックを渡せば、ポーズ開始前に行いたい処理を施すことが出来る
+    #ポーズ中、update_innerメソッドを呼び出し、続けて、処理をYuki#startもしくはYuki#update呼び出し直後に戻す
+    #Yuki#updateが呼び出されてもポーズ中の場合は、再び上記の処理を繰り返す
     #(たとえば、一定時間後に自動的にポーズ解除する場合、そのタイマーを開始させるなど)
     #返却値:: 自分自身を返す
     def pause
@@ -781,6 +805,8 @@ module Miyako
     #body_selectedをnilにした場合は、bodyと同一となる
     #body_selectedを文字列を指定した場合は、文字色が赤色になることに注意
     #引数無しのブロックを渡せば、コマンド選択開始前に、決定判別・キャンセル判別に必要な前処理を施すことが出来る
+    #選択中、update_innerメソッドを呼び出し、続けて、処理をYuki#startもしくはYuki#update呼び出し直後に戻す
+    #Yuki#updateが呼び出されても選択中の場合は、再び上記の処理を繰り返す
     #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
     #_cancel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
@@ -863,6 +889,8 @@ module Miyako
 
     #===プロットの処理を待機する
     #指定の秒数（少数可）、プロットの処理を待機する。
+    #待機中、update_innerメソッドを呼び出し、続けて、処理をYuki#startもしくはYuki#update呼び出し直後に戻す
+    #Yuki#updateが呼び出されても待機中の場合は、再び上記の処理を繰り返す
     #_length_:: 待機する長さ。単位は秒。少数可。
     #返却値:: 自分自身を返す
     def wait(length)
@@ -883,8 +911,10 @@ module Miyako
 
     #===インスタンスで使用しているオブジェクトを解放する
     def dispose
-      @update_inner = nil
+      @update_inner  = nil
       @update_text   = nil
+      @update_cr     = nil
+      @update_clear  = nil
       
       @executing_fiber = nil
       
