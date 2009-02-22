@@ -219,6 +219,30 @@ module Miyako
 
     attr_accessor :visible
 
+    #=== 現在表示しているスプライトの x 座標の値を取得する
+    #返却値:: x 座標の値
+    def x
+      return @now.x
+    end
+
+    #=== 現在表示しているスプライトの y 座標の値を取得する
+    #返却値:: y 座標の値
+    def y
+      return @now.y
+    end
+
+    #=== 現在表示しているスプライトの幅を取得する
+    #返却値:: 現在表示しているスプライトの幅(ピクセル単位)
+    def w
+      return @now.ow
+    end
+
+    #=== 現在表示しているスプライトの高さを取得する
+    #返却値:: 現在表示しているスプライトの高さ(ピクセル単位)
+    def h
+      return @now.oh
+    end
+
     def update_layout_position #:nodoc:
       @units.each{|u| u.move_to(*@layout.pos)}
     end
@@ -405,7 +429,13 @@ module Miyako
       return @slist[@plist[@pnum]].to_sprite(&block)
     end
 
-    #===現在の画面の最大の大きさを矩形で取得する
+    #===現在表示しているスプライトの大きさを矩形で取得する
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def rect
+      return Rect.new(@now.x, @now.y, @now.ow, @now.oh)
+    end
+
+    #===現在表示しているスプライトの最大の大きさを矩形で取得する
     #現在のパターンの大きさと同じため、rectメソッドの値と同一となる
     #返却値:: 生成された矩形(Rect構造体のインスタンス)
     def broad_rect
