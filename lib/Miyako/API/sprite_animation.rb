@@ -89,6 +89,7 @@ module Miyako
 
       @slist = Array.new
       if s.kind_of?(Sprite)
+        @now = s.to_unit unless @now
         set_layout_size(s.ow, s.oh)
         move_to(s.x, s.y)
         s.snap(self)
@@ -101,6 +102,7 @@ module Miyako
         @pats     = @pat_len / @pat_olen
       elsif s.kind_of?(Array)
         first = s[0]
+        @now = first.to_unit unless @now
         set_layout_size(first.ow, first.oh)
         move_to(first.x, first.y)
         @slist = s.map{|ss|
