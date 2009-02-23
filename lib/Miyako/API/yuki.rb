@@ -20,10 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
+#lambdaの別名として、yuki_plotメソッドを追加
+alias :yuki_plot :lambda
+
 #=シナリオ言語Yuki実装モジュール
 module Miyako
-  #lambdaの別名として、yuki_plotメソッドを追加
-  alias :yuki_plot :lambda
 
   #==Yuki本体クラス
   #Yukiの内容をオブジェクト化したクラス
