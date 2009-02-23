@@ -22,93 +22,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #=シナリオ言語Yuki実装モジュール
 module Miyako
+  #lambdaの別名として、yuki_plotメソッドを追加
+  alias_method(:yuki_plot, :lambda)
+
   #==Yuki本体クラス
   #Yukiの内容をオブジェクト化したクラス
   #Yukiのプロット処理を外部メソッドで管理可能
   #プロットは、引数を一つ（Yuki2クラスのインスタンス）を取ったメソッドもしくはブロック
   #として記述する。
   class Yuki
+  
     #==キャンセルを示す構造体
     #コマンド選択がキャンセルされたときに生成される構造体
     Canceled = Struct.new(:dummy)
-
-    #==Yuki実行管理クラス(外部クラスからの管理用)
-    #実行中のYukiの管理を行うためのクラス
-    #インスタンスは、Yuki#getmanager メソッドを呼ぶことで取得する
-    class Manager
-      #===インスタンスの作成
-      #実際にインスタンスを生成するときは、Yuki#manager メソッドを呼ぶこと
-      #_yuki_:: 管理対象の Yuki モジュールを mixin したクラスのインスタンス
-      #_plot_proc_:: プロットメソッド・プロシージャインスタンス。デフォルトは nil
-      #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
-      def initialize(yuki, plot_proc, with_update_input = true)
-        @with_update_input = with_update_input
-        @yuki_instance = yuki
-        @yuki_plot = plot_proc
-      end
-
-      #===プロット処理を開始する
-      def start
-        @yuki_instance.start_plot(@yuki_plot, @with_update_input)
-      end
-
-      #===入力更新処理を呼び出す
-      def update_input
-        @yuki_instance.update_plot_input
-      end
-
-      #===更新処理を呼び出す
-      def update
-        @yuki_instance.update
-      end
-
-      #===描画処理を呼び出す
-      def render
-        @yuki_instance.render
-      end
-
-      #===プロットの実行結果を返す
-      #返却値:: 実行結果を示すインスタンス。デフォルトは、現在実行しているシーンのインスタンス
-      def result
-        @yuki_instance.result
-      end
-
-      #===コマンド選択がキャンセルされたときの結果を返す
-      #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
-      def canceled?
-        return @yuki_instance.canceled?
-      end
-      
-      #===プロット処理が実行中かの問い合わせメソッド
-      #返却値:: 実行中の時は true を返す
-      def executing?
-        return @yuki_instance.executing?
-      end
-
-      #===コマンド選択中の問い合わせメソッド
-      #返却値:: コマンド選択中の時はtrueを返す
-      def selecting?
-        return @yuki_instance.selecting?
-      end
-
-      #===Yuki#waitメソッドによる処理待ちの問い合わせメソッド
-      #返却値:: 処理待ちの時はtrueを返す
-      def waiting?
-        return @yuki_instance.waiting?
-      end
-
-      #===メッセージ送り待ちの問い合わせメソッド
-      #返却値:: メッセージ送り待ちの時はtrueを返す
-      def pausing?
-        return @yuki_instance.pausing?
-      end
-  
-      #===Yukiオブジェクトが使用しているオブジェクトを解放する
-      def dispose
-        @yuki_instance.dispose
-        @yuki_instance = nil
-      end
-    end
   
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
@@ -174,7 +100,11 @@ module Miyako
     attr_reader :selecting_procs
     
     #===Yukiを初期化する
-    def initialize
+    #
+    #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
+    #引数の数とブロック引数の数が違っていれば例外が発生する
+    #_params_:: ブロックに渡す引数リスト
+    def initialize(*params, &proc)
       @yuki = { }
       @text_box = nil
       @command_box = nil
@@ -182,6 +112,8 @@ module Miyako
       @executing = false
       @with_update_input = true
 
+      @exec_plot = nil
+      
       @pausing = false
       @selecting = false
       @waiting = false
@@ -231,6 +163,9 @@ module Miyako
       @selecting_procs = []
       
       @is_outer_height = self.method(:is_outer_height)
+
+      raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
+      instance_exec(*params, &proc) if block_given?
     end
     
     #===Yuki#showで表示指定した画像を描画する
@@ -363,8 +298,12 @@ module Miyako
     #===シーンのセットアップ時に実行する処理
     #
     #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
+    #引数の数とブロック引数の数が違っていれば例外が発生する
+    #_params_:: ブロックに渡す引数リスト
     #返却値:: 自分自身を返す
-    def setup
+    def setup(*params, &proc)
+      @exec_plot = nil
+
       @executing = false
 
       @pausing = false
@@ -380,28 +319,38 @@ module Miyako
       @result = nil
       @plot_result = nil
       
-      yield self if block_given?
+      raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
+      instance_exec(*params, &proc) if block_given?
       
       return self
     end
   
+    #===実行するプロットと登録する
+    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
+    #返却値:: 自分自身を返す
+    def select_plot(plot_proc)
+      @exec_plot = plot_proc
+      return self
+    end
+
     #===プロット処理を実行する(明示的に呼び出す必要がある場合)
     #引数もしくはブロックで指定したプロット処理を非同期に実行する。
     #呼び出し可能なプロットは以下の3種類。(上から優先度が高い順）
+    #プロットが見つからなければ例外が発生する
     #
     #1)引数prot_proc(Procクラスのインスタンス)
     #
-    #2)ブロック引数
+    #2)引数として渡したブロック
     #
-    #3)Yuki#plotメソッド
+    #3)select_plotメソッドで登録したブロック(Procクラスのインスタンス)
     #
     #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
     #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
-    #返却値:: あとで書く
+    #返却値:: 自分自身を返す
     def start_plot(plot_proc = nil, with_update_input = true, &plot_block)
       raise MiyakoError, "Yuki Error! Textbox is not selected!" unless @text_box
-      raise MiyakoError, "Yuki Error! Plot must have one parameter!" if plot_proc && plot_proc.arity != 1
-      raise MiyakoError, "Yuki Error! Plot must have one parameter!" if plot_block && plot_block.arity != 1
+      raise MiyakoError, "Yuki Error! Plot must not have any parameters!" if plot_proc && plot_proc.arity != 0
+      raise MiyakoError, "Yuki Error! Plot must not have any parameters!" if plot_block && plot_block.arity != 0
       @with_update_input = with_update_input
       @executing_fiber = Fiber.new{ plot_facade(plot_proc, &plot_block) }
       @executing_fiber.resume
@@ -424,15 +373,12 @@ module Miyako
       @executing_fiber.resume
     end
   
-    #===プロット用メソッドをYukiへ渡すためのインスタンスを作成する
-    #プロット用に用意したメソッド（引数一つのメソッド）を、Yukiでの選択結果や移動先として利用できる
+    #===プロット用ブロックをYukiへ渡すためのインスタンスを作成する
+    #プロット用に用意したブロック(ブロック引数無し)を、Yukiでの選択結果や移動先として利用できる
     #インスタンスに変換する
-    #（指定のメソッドをMethodクラスのインスタンスに変換する）
-    #_instance_:: 対象のメソッドが含まれているインスタンス(レシーバ)
-    #_method_:: メソッド名(シンボルまたは文字列)
-    #返却値:: 生成したインスタンスを返す
-    def to_plot(instance, method)
-      return instance.method(method.to_sym)
+    #返却値:: ブロックをオブジェクトに変換したものを返す
+    def to_plot(&plot)
+      return plot
     end
 
     #===プロット処理に使用する入力情報を更新する
@@ -454,27 +400,29 @@ module Miyako
       return nil
     end
 
-    #===プロット処理を外部クラスから管理するインスタンスを取得する
-    #
-    #1)引数prot_proc(Procクラスのインスタンス)
-    #
-    #2)ブロック引数
-    #
-    #3)Yuki#plotメソッド
-    #
-    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
-    #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
-    #_use_thread_:: スレッドを使ったポーズやタイマー待ちの監視を行うかを示すフラグ。デフォルトはfalse
-    #返却値:: YukiManager クラスのインスタンス
-    def manager(plot_proc = nil, with_update_input = true, &plot_block)
-      return Manager.new(self, plot_proc || plot_block, with_update_input)
-    end
-  
     def plot_facade(plot_proc = nil, &plot_block) #:nodoc:
       @plot_result = nil
       @executing = true
-      @plot_result = plot_proc ? plot_proc.call(self) : plot_block.call(self)
+      exec_plot = @exec_plot
+      @plot_result = plot_proc ? self.instance_exec(&plot_proc) :
+                     block_given? ? self.instance_exec(&plot_block) :
+                     exec_plot ? self.instance_exec(&exec_plot) :
+                     raise(MiyakoError, "Cannot find plot!")
       @executing = false
+    end
+
+    #===プロット処理中に別のプロットを呼び出す
+    #呼び出し可能なプロットは以下の2種類。(上から優先度が高い順）
+    #
+    #1)引数prot_proc(Procクラスのインスタンス)
+    #
+    #2)引数として渡したブロック
+    #
+    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
+    #返却値:: プロットの実行結果を返す
+    def call_plot(plot_proc = nil, &plot_block)
+      return plot_proc ? self.instance_exec(&plot_proc) :
+                         self.instance_exec(&plot_block)
     end
   
     #===プロット処理が実行中かどうかを確認する
@@ -747,10 +695,13 @@ module Miyako
 
     #===改行を行う
     #開業後にupdate_crテンプレートメソッドが１回呼ばれる
+    #_tm_:: 改行回数。デフォルトは1
     #返却値:: 自分自身を返す
-    def cr
-      @text_box.cr
-      @update_cr.call(self)
+    def cr(tm = 1)
+      tm.times{|n|
+        @text_box.cr
+        @update_cr.call(self)
+      }
       return self
     end
 

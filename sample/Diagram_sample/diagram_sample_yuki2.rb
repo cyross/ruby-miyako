@@ -150,7 +150,7 @@ class StartPlot
   end
 
   def update
-    @manager.start
+    @manager.start_plot
     @parts.start
     @finished = true
   end
@@ -193,7 +193,6 @@ class Plotting
 
   def update_input
     @set.call(0.0) if (Input.pushed_any?(:btn1) || Input.click?(:left)) # １ボタンを押すor左クリックしたら、表示途中のメッセージをすべて表示
-    @manager.update_input
   end
 
   def render
@@ -240,7 +239,6 @@ class MainScene
 
     @yuki = Yuki.new
     @yuki.update_text = self.method(:update_text)
-    @y_manager = @yuki.manager(@yuki.to_plot(self, :plot), false)
     
     @imgs = {}
     @imgs[:c1] = Sprite.new(:file=>"chr01.png", :type=>:ac).bottom
@@ -250,8 +248,8 @@ class MainScene
     
     @pr = Diagram::Processor.new{|dia|
       dia.add :move,  Moving.new(@imgs, 0.01)
-      dia.add :start, StartPlot.new(@y_manager, @parts, @imgs)
-      dia.add :plot,  Plotting.new(@y_manager, @parts, @imgs, lambda{|w| set_wait(w) })
+      dia.add :start, StartPlot.new(@yuki, @parts, @imgs)
+      dia.add :plot,  Plotting.new(@yuki, @parts, @imgs, lambda{|w| set_wait(w) })
       dia.add_arrow(:move, :start){|from| from.finish? }
       dia.add_arrow(:start, :plot){|from| from.finish? }
       dia.add_arrow(:plot, nil){|from| from.finish? }
@@ -263,8 +261,10 @@ class MainScene
 
   def setup
     @pr.start
-    @yuki.setup
-    @yuki.select_textbox(@box)
+    @yuki.setup(@box, plot){|box, pl|
+      select_textbox(box)
+      select_plot(pl)
+    }
   end
   
   def update
@@ -279,32 +279,28 @@ class MainScene
     @pr.render
   end
   
-  def plot(yuki)
-    yuki.text "「ねえ、あんたの担当のセリフ、ちゃんと覚えてるわよねぇ？"
-    yuki.cr
-    unless @wait == 0
-      yuki.pause
-      reset_wait 
-    end
-    yuki.text "　まさか、忘れてたなんて言わないわよねぇ？」"
-    yuki.cr
-    yuki.pause
-    reset_wait
-    yuki.clear
-    yuki.color(:red){
-      yuki.size(32){
-        yuki.size(24){ "「そんなこと" }
-        yuki.text "ない"
-        yuki.size(24){ "よぉ～" }
+  def plot
+    yuki_plot{
+      text "「ねえ、あんたの担当のセリフ、ちゃんと覚えてるわよねぇ？"
+      cr
+      pause
+      text "　まさか、忘れてたなんて言わないわよねぇ？」"
+      cr
+      pause
+      clear
+      color(:red){
+        size(32){
+          size(24){ "「そんなこと" }
+          text "ない"
+          size(24){ "よぉ～" }
+        }
+        cr
+        pause
+        text "　ちゃんと覚えてるよぉ～」"
+        cr
       }
-      yuki.cr
-      yuki.pause
-      reset_wait
-      yuki.text "　ちゃんと覚えてるよぉ～」"
-      yuki.cr
+      pause
     }
-    yuki.pause
-    reset_wait
   end
   
   def update_text(yuki, ch)

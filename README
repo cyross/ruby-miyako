@@ -883,6 +883,7 @@ v2.0.0(2009.2.20)
 ・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
 ・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
 ・Yuki#is_scene?、Yuki#is_scenario?メソッドの追加
+・Yuki#select_plotメソッドの追加
 ・Yuki#resultメソッドの追加(旧Yuki#resultメソッドはYuki#select_resultメソッドに改名)
 ・Yuki#renderメソッドの追加、Yuki#show、Yuki#hideメソッドインタフェースの変更
 ・Yuki#update、Yuki::Manager#updateメソッドの返却値を変更
@@ -907,8 +908,8 @@ v2.0.0(2009.2.20)
 ・Yuki#update_cr、update_clearメソッドを追加
 ・Yuki#pre_pause、Yuki#pre_command、Yuki#pre_cancel、Yuki#post_pause、Yuki#post_command、Yuki#post_cancelメソッドを追加
 ・Yuki#textbox、Yuki#commandbox、Yuki#selecting_procsメソッドを追加
-・Yuki::Manager#selecting?、Yuki::Manager#waiting?、Yuki::Manager#pausing?メソッドの追加
-・Yuki::Manager#canseled?メソッドの追加
+・yuki_plotメソッドの追加(lambdaの別名)
+・Yuki::Managerクラスの廃止
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
 ・Yuki::Command構造体の仕様を変更(選択時画像・文字を指定するbody_selectedを追加)
 ・Yuki::CommandEX構造体の追加(コマンド選択時、優先的に行う処理のブロックを追加)

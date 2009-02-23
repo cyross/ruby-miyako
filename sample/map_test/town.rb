@@ -24,7 +24,7 @@ class EventTown
 
   # イベントの開始
   def start(param = nil)
-    @yuki.start_plot(self.method(:plot))
+    @yuki.start_plot(plot)
   end
 
   def executing?
@@ -32,14 +32,16 @@ class EventTown
   end
 
   # イベントの実行
-  def plot(yuki)
-    yuki.text "　ここが"
-    yuki.color([255,200,200]){"グリージアの街"}
-    yuki.text "か・・・。"
-    yuki.cr
-    yuki.text "　まぁ、入るつもりは無いが。"
-    yuki.pause
-    yuki.clear
+  def plot
+    yuki_plot do
+      text "　ここが"
+      color([255,200,200]){"グリージアの街"}
+      text "か・・・。"
+      cr
+      text "　まぁ、入るつもりは無いが。"
+      pause
+      clear
+    end
   end
   
   def move(dx, dy)

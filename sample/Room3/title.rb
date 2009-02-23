@@ -72,8 +72,9 @@ class TitleCall
   include MainComponent
 
   def init
-    @yuki = Yuki.new
-    @yuki.select_textbox(message_box[:box])
+    @yuki = Yuki.new(message_box[:box]){|box|
+      select_textbox(box)
+    }
     @man = Sprite.new(:file=>"image/start.png", :type=>:ck)
     @man.center.bottom
     @alpha = 0.0
@@ -82,7 +83,10 @@ class TitleCall
   end
 
   def setup
-    @yuki.setup
+    @yuki.setup(plot){|plot|
+      select_plot(plot)
+    }
+    @yuki.vars[:next] = MainScene
     @wait.start
   end
 
@@ -98,7 +102,7 @@ class TitleCall
   def view_in
     if @wait.finish?
       if @alpha == 1.0
-        @yuki.start_plot(self.method(:plot))
+        @yuki.start_plot
         @exec = self.method(:exec_yuki)
         message_box.start
         return @now
@@ -116,59 +120,61 @@ class TitleCall
     return @yuki.result ? @yuki.result : @now
   end
   
-  def plot(yuki)
-    yuki.text("「レディ〜ス　エ〜ン　ジェントルメ〜ン！」").pause.cr
-    yuki.text("「本日も、視聴者参加バラエティー").cr
-    yuki.text("　『ルーム３』の時間がは〜じまりま〜した〜！」").pause.clear
-    yuki.text("「司会はわたくし、").cr
-    yuki.wait 0.3
-    yuki.text("　サミュエル・ボチボチデンナーが").cr
-    yuki.text("　お送りしま〜す！」").pause.clear
-    yuki.text("「本日も、難関を乗り越え、").cr
-    yuki.text("　豪華賞品をゲットするだけ！").cr
-    yuki.wait 0.5
-    yuki.text("　カンタン！」").pause.clear
-    yuki.text("「ルールもカンタン！").cr
-    yuki.text("　３つの部屋にいる住人からヒントを得て、").pause.cr
-    yuki.text("　合言葉を見つけるだけ！").cr
-    yuki.wait 0.5
-    yuki.text("　ほら、カンタンでしょ？」").pause.clear
-    yuki.text("「でも、これらの部屋にいる住人、").cr
-    yuki.text("　一筋縄じゃ合い言葉を教えてくれない。").cr
-    yuki.wait 0.5
-    yuki.text("　いろいろ話して、").cr
-    yuki.text("　合い言葉をゲットしてくれ！」").pause.clear
-    yuki.text "「さぁ、最初の挑戦者だ。"
-    yuki.wait 0.5
-    yuki.text "お名前は？"
-    yuki.wait 1.5
-    yuki.cr
-    yuki.text "　・・・おおー、元気いいねー！"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　じゃあ、どっから来たの？"
-    yuki.wait 1.0
-    yuki.cr
-    yuki.text("　・・・オーケイ、よくできました！」").pause.clear
-    yuki.text "「じゃ、ルールは分かるよね？"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　・・・よし」"
-    yuki.pause.clear
-    yuki.text "「ドキドキするねぇ、"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　ワクワクするねぇ"
-    yuki.pause.cr
-    yuki.text "　それじゃ、元気よく、"
-    yuki.cr
-    yuki.text "　目の前のドアから入ってみよう。」"
-    yuki.pause.clear
-    yuki.text "「よーい、"
-    yuki.wait 0.5
-    yuki.text "スタート！」"
-    yuki.pause.clear
-    return MainScene
+  def plot
+    yuki_plot do
+      text("「レディ〜ス　エ〜ン　ジェントルメ〜ン！」").pause.cr
+      text("「本日も、視聴者参加バラエティー").cr
+      text("　『ルーム３』の時間がは〜じまりま〜した〜！」").pause.clear
+      text("「司会はわたくし、").cr
+      wait 0.3
+      text("　サミュエル・ボチボチデンナーが").cr
+      text("　お送りしま〜す！」").pause.clear
+      text("「本日も、難関を乗り越え、").cr
+      text("　豪華賞品をゲットするだけ！").cr
+      wait 0.5
+      text("　カンタン！」").pause.clear
+      text("「ルールもカンタン！").cr
+      text("　３つの部屋にいる住人からヒントを得て、").pause.cr
+      text("　合言葉を見つけるだけ！").cr
+      wait 0.5
+      text("　ほら、カンタンでしょ？」").pause.clear
+      text("「でも、これらの部屋にいる住人、").cr
+      text("　一筋縄じゃ合い言葉を教えてくれない。").cr
+      wait 0.5
+      text("　いろいろ話して、").cr
+      text("　合い言葉をゲットしてくれ！」").pause.clear
+      text "「さぁ、最初の挑戦者だ。"
+      wait 0.5
+      text "お名前は？"
+      wait 1.5
+      cr
+      text "　・・・おおー、元気いいねー！"
+      wait 0.5
+      cr
+      text "　じゃあ、どっから来たの？"
+      wait 1.0
+      cr
+      text("　・・・オーケイ、よくできました！」").pause.clear
+      text "「じゃ、ルールは分かるよね？"
+      wait 0.5
+      cr
+      text "　・・・よし」"
+      pause.clear
+      text "「ドキドキするねぇ、"
+      wait 0.5
+      cr
+      text "　ワクワクするねぇ"
+      pause.cr
+      text "　それじゃ、元気よく、"
+      cr
+      text "　目の前のドアから入ってみよう。」"
+      pause.clear
+      text "「よーい、"
+      wait 0.5
+      text "スタート！」"
+      pause.clear
+      vars[:next]
+    end
   end
 
   def render

@@ -6,6 +6,14 @@ class Ending
   
   def init
     @yuki = Yuki.new
+
+    def @yuki.text_wait(*txt)
+      txt.each{|t|
+        text t
+        wait 0.3
+      }
+    end
+
     @yuki.select_textbox(message_box[:box])
     @bg = Sprite.new(:file => "image/congratulation_bg.png", :type => :as)
     @bg.oh = @bg.h / 2
@@ -36,6 +44,7 @@ class Ending
     @end_roll.snap(message_box)
     @end_roll.centering
     @yuki.regist_parts(:end_roll, @end_roll)
+    @yuki.vars[:staff_roll] = self.method(:staff_roll)
     
     @exec = self.method(:view_in1)
   end
@@ -75,7 +84,7 @@ class Ending
   def view_in2
     if @timer.finish?
       @exec = self.method(:plot_executing)
-      @yuki.start_plot(@yuki.to_plot(self, :plot))
+      @yuki.start_plot(plot)
     end
     return @now
   end
@@ -92,68 +101,63 @@ class Ending
     return r
   end
   
-  def plot(yuki)
-    yuki.text "「コ〜ン　"
-    yuki.wait 0.3
-    yuki.text "グラッチュ　"
-    yuki.wait 0.3
-    yuki.text "レ〜ショ〜ン♪」"
-    yuki.pause.cr
-    yuki.text "「いやぁ、"
-    yuki.wait 0.2
-    yuki.text "見事難関をクリアしたとはオドロキだ！"
-    yuki.pause.cr
-    yuki.text "　君には全くもって、感服だ！」"
-    yuki.pause.clear
-    yuki.text "「勿論、クリアしたんだから"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　商品をプレゼントしなくちゃね！」"
-    yuki.pause.clear
-    text_wait "「まずは", "・", "・", "・"
-    yuki.text "「青いはいからうどん」１年分！"
-    yuki.wait 0.5
-    yuki.cr
-    text_wait "　次に", "・", "・", "・"
-    yuki.text "いつも真っ赤「炎天下ツアー」！"
-    yuki.wait 0.5
-    yuki.cr
-    text_wait "　最後に", "・", "・", "・"
-    yuki.text "「緑のバルーン」提供の沖縄旅行！"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　現地集合現地解散！"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　さ、遠慮せずにうけとってくれ！」"
-    yuki.pause.clear
-    yuki.text "「今日は見事クリアされたけど、"
-    yuki.cr
-    yuki.text "　次回はもっと"
-    yuki.color(:red){ "ヒィヒィ"}
-    yuki.text "言わせる"
-    yuki.cr
-    yuki.text "　仕掛けを用意するから覚悟しとけよ〜！」"
-    yuki.pause.clear
-    yuki.text "「次回の挑戦者はキミだ！"
-    yuki.wait 0.5
-    yuki.cr
-    yuki.text "　じゃ、また来週！　"
-    yuki.wait 0.5
-    yuki.text "バイバ〜イ！」"
-    yuki.pause.clear
-    staff_roll
-    yuki.show :end_roll
-    yuki.pause.clear
-    yuki.hide :end_roll
-    return nil
-  end
-  
-  def text_wait(*txt)
-    txt.each{|t|
-      @yuki.text t
-      @yuki.wait 0.3
-    }
+  def plot
+    yuki_plot do
+      text "「コ〜ン　"
+      wait 0.3
+      text "グラッチュ　"
+      wait 0.3
+      text "レ〜ショ〜ン♪」"
+      pause.cr
+      text "「いやぁ、"
+      wait 0.2
+      text "見事難関をクリアしたとはオドロキだ！"
+      pause.cr
+      text "　君には全くもって、感服だ！」"
+      pause.clear
+      text "「勿論、クリアしたんだから"
+      wait 0.5
+      cr
+      text "　商品をプレゼントしなくちゃね！」"
+      pause.clear
+      text_wait "「まずは", "・", "・", "・"
+      text "「青いはいからうどん」１年分！"
+      wait 0.5
+      cr
+      text_wait "　次に", "・", "・", "・"
+      text "いつも真っ赤「炎天下ツアー」！"
+      wait 0.5
+      cr
+      text_wait "　最後に", "・", "・", "・"
+      text "「緑のバルーン」提供の沖縄旅行！"
+      wait 0.5
+      cr
+      text "　現地集合現地解散！"
+      wait 0.5
+      cr
+      text "　さ、遠慮せずにうけとってくれ！」"
+      pause.clear
+      text "「今日は見事クリアされたけど、"
+      cr
+      text "　次回はもっと"
+      color(:red){ "ヒィヒィ"}
+      text "言わせる"
+      cr
+      text "　仕掛けを用意するから覚悟しとけよ〜！」"
+      pause.clear
+      text "「次回の挑戦者はキミだ！"
+      wait 0.5
+      cr
+      text "　じゃ、また来週！　"
+      wait 0.5
+      text "バイバ〜イ！」"
+      pause.clear
+      vars[:staff_roll].call
+      show :end_roll
+      pause.clear
+      hide :end_roll
+      nil
+    end
   end
   
   def staff_roll

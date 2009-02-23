@@ -15,8 +15,9 @@ class EventRouteMarker
     @margin = Size.new(0, 0)
     @parts = CommonParts.instance
     @yuki = Yuki.new
-    @yuki.select_textbox(@parts.box[:box])
-    @yuki.select_commandbox(@parts.cbox[:box])
+    @yuki.setup(@parts.box[:box]){|box|
+      select_textbox(box)
+    }
   end
 
   # キャラとイベントが重なり合っているかの判別
@@ -26,20 +27,22 @@ class EventRouteMarker
 
   # イベントの実行
   def start(param = nil)
-    @yuki.start_plot(self.method(:plot))
+    @yuki.start_plot(plot)
   end
 
   def executing?
     @yuki.executing?
   end
 
-  def plot(yuki)
-    yuki.text "　ここに立て札がある。"
-    yuki.pause
-    yuki.clear
-    yuki.text "　しかし、そこには何も書かれていない。"
-    yuki.pause
-    yuki.clear
+  def plot
+    yuki_plot do
+      text "　ここに立て札がある。"
+      pause
+      clear
+      text "　しかし、そこには何も書かれていない。"
+      pause
+      clear
+    end
   end
   
   def move(dx, dy)
@@ -84,7 +87,9 @@ class EventRouteMarker2
     @margin = Size.new(0, 0)
     @parts = CommonParts.instance
     @yuki = Yuki.new
-    @yuki.select_textbox(@parts.box[:box])
+    @yuki.setup(@parts.box[:box]){|box|
+      select_textbox(box)
+    }
   end
 
   # キャラとイベントが重なり合っているかの判別
@@ -94,27 +99,29 @@ class EventRouteMarker2
 
   # イベントの開始
   def start(param = nil)
-    @yuki.start_plot(self.method(:plot))
+    @yuki.start_plot(plot)
   end
 
   def executing?
     @yuki.executing?
   end
   
-  def plot(yuki)
-    yuki.text "　ここに立て札がある。"
-    yuki.pause
-    yuki.cr
-    yuki.text "　読んでみよう。"
-    yuki.pause
-    yuki.clear
-    yuki.color(:blue){"東"}.text("・・・果て野")
-    yuki.cr
-    yuki.color(:blue){"西"}.text("・・・荒れ海")
-    yuki.cr
-    yuki.color(:blue){"南"}.text("・・・グリージアの街")
-    yuki.pause
-    yuki.clear
+  def plot
+    yuki_plot do
+      text "　ここに立て札がある。"
+      pause
+      cr
+      text "　読んでみよう。"
+      pause
+      clear
+      color(:blue){"東"}.text("・・・果て野")
+      cr
+      color(:blue){"西"}.text("・・・荒れ海")
+      cr
+      color(:blue){"南"}.text("・・・グリージアの街")
+      pause
+      clear
+    end
   end
   
   def move(dx, dy)

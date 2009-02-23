@@ -8,7 +8,7 @@ require 'Miyako/miyako'
 
 include Miyako
 
-#Screen.fps = 60
+Screen.fps = 60
 #Screen.fps_view = true
 
 require 'main_parts'

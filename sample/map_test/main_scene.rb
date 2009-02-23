@@ -56,7 +56,10 @@ class MainScene
         #外れていれば、コマンドウィンドウを開く
         event_flags = @map.events.map{|e| e.met?(:collision => @map.collision)}
         if event_flags.none?
-          @yuki.start_plot(@yuki.to_plot(self, :command_plot))
+          @yuki.vars[:now] = @now
+          @yuki.vars[:talk] = talk
+          @yuki.vars[:check] = check
+          @yuki.start_plot(command_plot)
         else
           @map.events.zip(event_flags){|ef| ef[0].start(@parts) if ef[1]}
         end
@@ -104,28 +107,34 @@ class MainScene
     end
   end
 
-  def command_plot(yuki)
-      yuki.command([Yuki::Command.new("話す", "話す", nil, yuki.to_plot(self, :talk)),
-                    Yuki::Command.new("調べる", "調べる", nil, yuki.to_plot(self, :check))], @now)
-      yuki.select_result.call(yuki) if yuki.is_scenario?(yuki.select_result)
-      return @now
+  def command_plot
+    yuki_plot do
+      command([Yuki::Command.new("話す", "話す", nil, vars[:talk]),
+               Yuki::Command.new("調べる", "調べる", nil, vars[:check])], vars[:now])
+      call_plot(select_result) if is_scenario?(select_result)
+      vars[:now]
+    end
   end
   #コマンドウィンドウの「調べる」を選んだときの処理
-  def check(yuki)
-    yuki.text "あなたは、足下を調べた。\n"
-    yuki.pause
-    yuki.text "しかし、何も無かった。"
-    yuki.pause
-    yuki.clear
+  def check
+    yuki_plot do
+      text "あなたは、足下を調べた。"
+      pause
+      text "しかし、何も無かった。"
+      pause
+      clear
+    end
   end
   
   #コマンドウィンドウの「話す」を選んだときの処理
-  def talk(yuki)
-    yuki.text "話をしようとしたが"
-    yuki.cr
-    yuki.text "あなたの周りには誰もいない。"
-    yuki.pause
-    yuki.clear
+  def talk
+    yuki_plot do
+      text "話をしようとしたが"
+      cr
+      text "あなたの周りには誰もいない。"
+      pause
+      clear
+    end
   end
   
   def final

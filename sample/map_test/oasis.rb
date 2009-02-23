@@ -24,19 +24,21 @@ class EventOasis
 
   # イベントの実行
   def start(param = nil)
-    @yuki.start_plot(self.method(:plot))
+    @yuki.start_plot(plot)
   end
 
   def executing?
     @yuki.executing?
   end
 
-  def plot(yuki)
-    yuki.text "　ここは"
-    yuki.color(:cyan){"オアシス"}
-    yuki.text "のようだ。\n　しかし、普通は砂漠にあるはずなのに・・・。"
-    yuki.pause
-    yuki.clear
+  def plot
+    yuki_plot do
+      text "　ここは"
+      color(:cyan){"オアシス"}
+      text "のようだ。\n　しかし、普通は砂漠にあるはずなのに・・・。"
+      pause
+      clear
+    end
   end
 
   def move(dx, dy)
