@@ -943,6 +943,7 @@ v2.0.0(2009.2.20)
 ・Screen.center_x,center_x=,center_y,center_y=メソッドの追加
 ・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
 ・Screen.broad_rectメソッドの追加
+・Screen.auto_render_array,Screen.pre_render_array,Screen.pre_renderメソッドの追加
 ・Layout#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
 　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
 　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?

@@ -79,6 +79,9 @@ module Miyako
     @@screen = nil
     @@viewport = nil
     
+    @@pre_render_array = []
+    @@auto_render_array = []
+    
     #===画面の状態(ウインドウモードとフルスクリーンモード)を設定する
     #_v_:: ウィンドウモードのときは、Screen::WINDOW_MODE、 フルスクリーンモードのときはScreen::FULLSCREEN_MODE
     def Screen::set_mode(v)
@@ -86,6 +89,27 @@ module Miyako
         @@mode = v.to_i
         Screen::check_mode_error
       end
+    end
+
+    #=== 事前描画インスタンス配列を取得する
+    #Screenモジュールに属している事前レンダー(プリレンダー)配列にアクセス可能
+    #この配列に取り込んだインスタンスは、配列インデックスの順に描画される
+    #また、配列の要素は、必ずrenderメソッドを実装していなければならない(renderメソッドで描画するため)
+    #但し、配列の要素が配列のときは、再帰的に描画が可能
+    #描画は、Screen.pre_renderメソッドの明示的呼び出しで実行される
+    #返却値:: 自動描画配列
+    def Screen::pre_render_array
+      @@pre_render_array
+    end
+
+    #=== 自動描画インスタンス配列を取得する
+    #Screenモジュールに属しているオートレンダー(自動描画)配列にアクセス可能
+    #この配列に取り込んだインスタンスは、配列インデックスの順に描画される
+    #また、配列の要素は、必ずrenderメソッドを実装していなければならない(renderメソッドで描画するため)
+    #但し、配列の要素が配列のときは、再帰的に描画が可能
+    #返却値:: 自動描画配列
+    def Screen::auto_render_array
+      @@auto_render_array
     end
 
     #===ウインドウモードとフルスクリーンモードを切り替える
@@ -259,9 +283,16 @@ module Miyako
       @@screen.fillRect(0, 0, @@screen.w, @@screen.h, [0, 0, 0, 0])
     end
     
+    #===プリレンダー配列に登録されたインスタンスを画面に描画する
+    #Screen.pre_render_arrayに登録したインスタンスを描画する
+    def Screen::pre_render
+    end
+    
     #===画面を更新する
     #描画した画面を、実際にミニ見える形に反映させる
-    #呼び出し時に画面の消去は行われないため、明示的にScreen.clearメソッドを呼び出す必要がある
+    #呼び出し時に画面の消去は行われないため、消去が必要なときは明示的にScreen.clearメソッドを呼び出す必要がある
+    #また、自動描画配列にインスタンスを入れているときは、このメソッドを呼び出した時に描画されるため
+    #(つまり、表示の最後に描画される)、描画の順番に注意して配列を利用すること
     def Screen::render
       Shape.text({:text => (FpsMax/(@@interval == 0 ? 1 : @@interval)).to_s() + " fps", :font => Font.sans_serif}).render  if @@fpsView
       Screen::update_tick

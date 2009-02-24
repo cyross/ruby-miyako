@@ -80,6 +80,7 @@ static VALUE nOne = Qnil;
 static VALUE use_opengl = Qnil;
 static volatile ID id_update = Qnil;
 static volatile ID id_kakko = Qnil;
+static volatile ID id_render = Qnil;
 static volatile int zero = Qnil;
 static volatile int one = Qnil;
 static volatile double div255[256];
@@ -2437,6 +2438,46 @@ static VALUE screen_update_tick(VALUE self)
 }
 
 /*
+:nodoc:
+*/
+static VALUE render_auto_render_array(VALUE array)
+{
+  int len = RARRAY_LEN(array);
+  if(len == 0){ return Qnil; }
+  VALUE *ptr = RARRAY_PTR(array);
+
+  int i;
+  for(i=0; i<len; i++)
+  {
+    VALUE v = *ptr;
+    if(TYPE(v) == T_ARRAY)
+    {
+      render_auto_render_array(v);
+    }
+    else
+    {
+      rb_funcall(v, id_render, 0);
+    }
+    ptr++;
+  }
+  
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE screen_pre_render(VALUE self)
+{
+  VALUE pre_render_array = rb_iv_get(mScreen, "@@pre_render_array");
+  if(RARRAY_LEN(pre_render_array) > 0)
+  {
+    render_auto_render_array(pre_render_array);
+  }
+  return Qnil;
+}
+
+/*
 ===画面を更新する
 画面に画像を貼り付けた時は、実際の描画領域は隠れているため、このメソッドを呼び出して、実際の画面表示に反映させる。
 */
@@ -2445,7 +2486,13 @@ static VALUE screen_render(VALUE self)
   VALUE dst = rb_iv_get(mScreen, "@@unit");
 	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
-
+  
+  VALUE auto_render_array = rb_iv_get(mScreen, "@@auto_render_array");
+  if(RARRAY_LEN(auto_render_array) > 0)
+  {
+    render_auto_render_array(auto_render_array);
+  }
+  
   if(fps_view == Qtrue){
     char str[256];
     int interval = NUM2INT(rb_iv_get(mScreen, "@@interval"));
@@ -3209,7 +3256,7 @@ static VALUE parts_render(VALUE self)
   for(i=0; i<RARRAY_LEN(parts_list); i++)
   {
     VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
-    rb_funcall(parts, rb_intern("render"), 0);
+    rb_funcall(parts, id_render, 0);
   }
   
   return Qnil;
@@ -4198,6 +4245,7 @@ void Init_miyako_no_katana()
 
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");
+  id_render = rb_intern("render");
 
   zero = 0;
   nZero = INT2NUM(zero);
@@ -4233,6 +4281,7 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(cBitmap, "hsv!", bitmap_miyako_hsv, 5);
 
   rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
+  rb_define_module_function(mScreen, "pre_render", screen_pre_render, 0);
   rb_define_module_function(mScreen, "render", screen_render, 0);
   rb_define_module_function(mScreen, "render_screen", screen_render_screen, 1);
 
