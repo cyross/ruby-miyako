@@ -2452,6 +2452,7 @@ static VALUE render_auto_render_array(VALUE array)
     VALUE v = *ptr;
     if(v == Qnil)
     {
+      ptr++;
       continue;
     }
     else if(TYPE(v) == T_ARRAY)
