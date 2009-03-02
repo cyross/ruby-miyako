@@ -138,7 +138,11 @@ module Miyako
       @vars = {}
 
       @executing_fiber = nil
-      
+
+      @text_methods = {:char => self.method(:text_by_char), 
+                      :string => self.method(:text_by_str) }
+      @text_method_name = :char
+
       @valign = :middle
 
       @release_checks_default = [lambda{ Input.pushed_all?(:btn1) }, lambda{ Input.click?(:left) } ]
@@ -605,12 +609,48 @@ module Miyako
       return self
     end
   
+    #===テキストボックスに文字を表示する方法を指定する
+    #引数に、:charを渡すと１文字ごと、:stringを渡すと文字列ごとに表示される。それ以外を指定したときは例外が発生
+    #ブロックを渡せば、ブロックの評価中のみ設定が有効になる。
+    #ブロック評価終了後、呼び出し前の設定に戻る
+    #_mode_:: テキストの表示方法。:charのときは文字ごと、:stringのときは文字列ごとに表示される。それ以外を指定したときは例外が発生
+    #返却値:: 自分自身を返す
+    def text_method(mode)
+      raise MiyakoError, "undefined text_mode! #{mode}" unless [:char,:string].include?(mode)
+      backup = @text_method_name
+      @text_method_name = mode
+      if block_given?
+        yield
+        @text_method_name = backup
+      end
+      return self
+    end
+  
     #===テキストボックスに文字を表示する
+    #テキストボックスとして用意している画像に文字を描画する。
+    #描画する単位(文字単位、文字列単位)によって、挙動が違う。
+    #(文字単位の時)
+    #Yuki#text_by_charメソッドと同じ挙動。
+    #(文字列単位の時)
+    #Yuki#text_by_strメソッドと同じ挙動。
+    #デフォルトは文字単位。
     #引数txtの値は、内部で１文字ずつ分割され、１文字描画されるごとに、
     #update_textメソッドが呼び出され、続けてYuki#start_plotもしくはYuki#updateメソッド呼び出し直後に戻る
     #_txt_:: 表示させるテキスト
     #返却値:: 自分自身を返す
     def text(txt)
+      return self if txt.eql?(self)
+      return self if txt.empty?
+      return @text_methods[@text_method_name].call(txt)
+    end
+  
+    #===テキストボックスに文字を1文字ずつ表示する
+    #引数txtの値は、内部で１文字ずつ分割され、１文字描画されるごとに、
+    #update_textメソッドが呼び出され、続けてYuki#start_plotもしくはYuki#updateメソッド呼び出し直後に戻る
+    #注意として、改行が文字列中にあれば改行、タブやフィードが文字列中にあれば、nilを返す。
+    #_txt_:: 表示させるテキスト
+    #返却値:: 自分自身を返す
+    def text_by_char(txt)
       return self if txt.eql?(self)
       txt.chars{|ch|
         if /[\n\r]/.match(ch)
@@ -624,6 +664,39 @@ module Miyako
         @update_text.call(self, ch)
         Fiber.yield
       }
+      return self
+    end
+  
+    #===テキストボックスに文字を表示する
+    #文字列が描画されるごとに、update_textメソッドが呼び出され、
+    #続けてYuki#start_plotもしくはYuki#updateメソッド呼び出し直後に戻る
+    #注意として、改行が文字列中にあれば改行、タブやフィードが文字列中にあれば、nilを返す。
+    #_txt_:: 表示させるテキスト
+    #返却値:: 自分自身を返す
+    def text_by_str(txt)
+      return self if txt.eql?(self)
+      use_cr = false
+      until txt.empty? do
+        if /[\n\r]/.match(txt)
+          tmp = Regexp.last_match.pre_match
+          txt = Regexp.last_match.post_match
+          use_cr = true
+        elsif @text_box.locate.x + @text_box.font.text_size(txt)[0] >= @text_box.textarea.w
+          w = (@text_box.textarea.w - @text_box.locate.x) / @text_box.font.size
+          tmp = txt.slice!(0,w)
+          use_cr = true
+        elsif /[\t\f]/.match(txt)
+          next nil
+        else
+          tmp = txt
+          txt = ""
+        end
+        @text_box.draw_text(tmp)
+        self.cr if use_cr
+        @update_text.call(self, tmp)
+        Fiber.yield
+        use_cr = false
+      end
       return self
     end
 

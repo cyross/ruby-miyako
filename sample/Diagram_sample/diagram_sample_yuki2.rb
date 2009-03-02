@@ -216,7 +216,7 @@ class MainScene
 
   TEXTBOX_MARGIN = 16
   TEXTBOX_BOTTOM = 24
-  
+
   def init
     ws = Sprite.new(:file=>"wait_cursor.png", :type=>:ac)
     ws.oh = ws.ow
@@ -257,6 +257,7 @@ class MainScene
 
     @base_wait = 0.1 # ウェイト基本値
     @wait = @base_wait # ウェイト
+    @exed = false
   end
 
   def setup
@@ -269,6 +270,10 @@ class MainScene
   
   def update
     return nil if Input.quit_or_escape?
+    unless @exed
+      @exed = true
+      return OverScene
+    end
     @pr.update_input
     @pr.update
     return nil if @pr.finish?
@@ -281,6 +286,7 @@ class MainScene
   
   def plot
     yuki_plot{
+      text_method :string do
       text "「ねえ、あんたの担当のセリフ、ちゃんと覚えてるわよねぇ？"
       cr
       pause
@@ -300,6 +306,7 @@ class MainScene
         cr
       }
       pause
+      end
     }
   end
   
@@ -317,6 +324,59 @@ class MainScene
   
   def final
     @pr.stop
+  end
+end
+
+class OverScene
+  include Story::Scene
+
+  def OverScene.scene_type
+    :over_scene
+  end
+  
+  def init
+    @spr = Shape.text(:font=>Font.serif){ text "あいうえお" }
+    @max_count = 2000
+    @count = 0
+    @exed = false
+  end
+
+  def update
+    unless @exed
+      @exed = true
+      return OverScene2
+    end
+    return nil if @count == @max_count
+    @count = @count.succ
+    return @now
+  end
+  
+  def render
+    @spr.render
+  end
+end
+
+class OverScene2
+  include Story::Scene
+
+  def OverScene2.scene_type
+    :over_scene
+  end
+  
+  def init
+    @spr = Shape.text(:font=>Font.serif){ text "かきくけこ" }
+    @max_count = 1000
+    @count = 0
+  end
+
+  def update
+    return nil if @count == @max_count
+    @count = @count.succ
+    return @now
+  end
+  
+  def render
+    @spr.render
   end
 end
 

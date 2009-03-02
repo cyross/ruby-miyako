@@ -908,6 +908,7 @@ v2.0.0(2009.2.20)
 ・Yuki#update_cr、update_clearメソッドを追加
 ・Yuki#pre_pause、Yuki#pre_command、Yuki#pre_cancel、Yuki#post_pause、Yuki#post_command、Yuki#post_cancelメソッドを追加
 ・Yuki#textbox、Yuki#commandbox、Yuki#selecting_procsメソッドを追加
+・Yuki#textメソッドの内容を修正、Yuki#text_by_char、Yuki#text_by_str、Yuki#text_methodメソッドを追加
 ・yuki_plotメソッドの追加(lambdaの別名)
 ・Yuki::Managerクラスの廃止
 ・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
@@ -949,6 +950,10 @@ v2.0.0(2009.2.20)
 　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?
 　round_rev2、round_rev2_x、round_rev2_yの各メソッドを廃止(Viewportクラスのインスタンスメソッドに変更)
 ・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
+・Story#execute_over_scene?メソッド、Scene#execute_over_scene?メソッドの追加
+・Scene#scene_typeメソッドのインクルードから、各シーンクラスのscene_typeクラスメソッドのオーバーライドに変更
+・各シーンクラスのscene_typeクラスメソッドの返却値に:over_sceneを追加
+・scene_typeメソッドの返却値":sub_routne"を":sub_scene"に変更
 ・LayoutSpace#broad_rectメソッドを追加
 ・LayoutSpace#rectメソッドがnilを返すバグを修正
 ・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)

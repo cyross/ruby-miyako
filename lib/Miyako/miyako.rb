@@ -63,6 +63,8 @@ else
   SDL.init(SDL::INIT_VIDEO | SDL::INIT_AUDIO | SDL::INIT_JOYSTICK)
 end
 
+Thread.abort_on_exception = true
+
 #==Miyako基幹モジュール
 module Miyako
 

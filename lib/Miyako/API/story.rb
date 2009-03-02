@@ -26,6 +26,9 @@ module Miyako
   #==シーン実行クラス
   #用意したシーンインスタンスを実行
   class Story
+    @@sub_scenes = [:sub_scene, :sub_routine]
+    @@over_scenes = [:over_scene]
+  
     def prev_label #:nodoc:
       return @prev_label
     end
@@ -45,11 +48,44 @@ module Miyako
       @prev_label = nil
       @next_label = nil
 
-      @stack = Array.new
-
+      @stack = []
+      @fibers = [nil]
+      
       @scene_cache = Hash.new
       @scene_cache_list = Array.new
       @scene_cache_max = 20
+
+      @fiber = Proc.new{|sc, num|
+        raise MiyakoError, "Illegal Script-label name! : #{sc}" unless Scene.has_scene?(sc.to_s)
+        fnum = nil
+        bk_nn = sc
+        uu = sc.new(self)
+        uu.init_inner(@prev_label, self.upper_label)
+        uu.setup
+        ret = true
+        while ret do
+          nn = uu.update
+          uu.render
+          if fnum && @fibers[fnum]
+            @fibers[fnum].resume(true)
+          elsif nn && !(nn.eql?(uu.class)) && @@over_scenes.include?(nn.scene_type)
+            @fibers << Fiber.new(&@fiber)
+            fnum = @fibers.length-1
+            @fibers[fnum].resume(nn, fnum)
+            n = bk_nn
+          end
+          break unless nn
+          ret = Fiber.yield
+        end
+        uu.final
+        uu.dispose
+        if (fnum && @fibers[fnum])
+          @fibers[fnum].resume(nil)
+          @fibers[fnum] = nil
+          fnum = nil
+        end
+        @fibers[num] = nil
+      }
     end
     
     def get_scene(n, s) #:nodoc:
@@ -78,6 +114,7 @@ module Miyako
         on = n
 
         raise MiyakoError, "Illegal Script-label name! : #{n}" unless Scene.has_scene?(n.to_s)
+        raise MiyakoError, "This scene cannot use for Standard Scene! : #{n}" if n.scene_type != :scene
         u = get_scene(n, @stack.size) if u == nil
         u.init_inner(@prev_label, self.upper_label)
         u.setup
@@ -85,30 +122,48 @@ module Miyako
         loop do
           Input.update
           Screen.clear
+          bk_n = on
           n = u.update
-          break unless n && on.eql?(n)
           u.render
+          if @fibers.first
+            @fibers.first.resume(true, 0)
+          elsif n && @@over_scenes.include?(n.scene_type)
+            @fibers.clear
+            @fibers << Fiber.new(&@fiber)
+            @fibers.first.resume(n, 0)
+            n = bk_n
+          end
           Screen.render
+          break unless n && on.eql?(n)
         end
         u.next = n
         @next_label = n
         u.final
         if n == nil
-          if u.scene_type == :sub_routine && @stack.empty? == false
+          if @@sub_scenes.include?(u.class.scene_type) && @stack.empty? == false
             n, u = @stack.pop
             next
           end
           break
-        elsif n.new(self, false).scene_type == :sub_routine
+        elsif @@sub_scenes.include?(n.scene_type)
           @stack.push([on, u])
           u = nil
         else
           u = nil
         end
       end
+      if @fibers.length > 0
+        @fibers.each{|fiber| fiber.resume(nil) if fiber }
+      end
       @scene_cache_list.each{|sy| @scene_cache[sy].dispose }
       @scene_cache.clear
       @scene_cache_list.clear
+    end
+    
+    #==="over_scene"形式のシーンが実行中かどうか判別する
+    #返却値:: "over_scene"形式のシーンが実行中の時はtrueを返す
+    def over_scene_execute?
+      return @now_fiber != nil
     end
     
     #===内部の情報を解放する
@@ -123,10 +178,24 @@ module Miyako
     #@@scenesモジュール変数(シーンクラス一覧が入っている配列)、@storyインスタンス変数(シーンを呼び出したStoryクラスインスタンス)
     #@nowインスタンス変数(現在評価しているシーンクラス)、@preインスタンス変数(一つ前に評価していたシーンクラス)
     #@upperインスタンス変数(sub_routineの呼び元シーンクラス)、@nextインスタンス変数(移動先のシーンクラス)
+    #また、シーンには「シーン形式」がある。
+    #種類は、シーケンスな移動が出来る「通常シーン」、終了したときに移動元に戻る「サブシーン」、
+    #現在実行中のシーン上で並行に実行する「オーバーシーン」の3種類。
+    #デフォルトは「通常シーン」となっている。
+    #判別は、scene_typeクラスメソッドを呼び出すことで可能。デフォルトは、通常シーンを示すシンボル":scene"が返る。
+    #形式を変えるには、scene_typeクラスメソッドをオーバーライドし、返却値を変える。
+    #サブシーンの時はシンボル":sub_scene"、オーバーシーンのときはシンボル":over_scene"を返すように実装する
+    #(注1)同じクラス名のシーンを繰り返し実行したいときは、いったん別のダミーシーンを介してから元のシーンへ移動する必要がある
+    #(注2)オーバーシーン内では、シーンの移動が出来ないが、入れ子形式で別のオーバーシーンを積み上げる形なら移動可能。
     module Scene
 	  @@scenes = {}
 
       def Scene.included(c) #:nodoc:
+        unless c.singleton_methods.include?(:scene_type)
+          def c.scene_type
+            return :scene
+          end
+        end
         @@scenes[c.to_s] = c
       end
 
@@ -138,14 +207,6 @@ module Miyako
         return @@scenes.has_key?(s)
       end
 
-      #===シーン形式を示すテンプレートメソッド
-      #シーンには、シーケンスな移動が出来る"scene"形式と、終了したときに移動元に戻る"sub_routine"形式がある。
-      #"scene"形式の時はシンボル":scene"、"sub_routine"形式の時はシンボル":sub_routine"を返す様に実装する
-      #返却値:: "scene"形式の時はシンボル:scene、"sub_routine"形式の時はシンボル:sub_routineを返す(デフォルトは:sceneを返す)
-      def scene_type
-        return :scene
-      end
-      
       def initialize(story, check_only=false) #:nodoc:
         return if check_only
         @story = story
@@ -201,6 +262,12 @@ module Miyako
         @next = label
       end
 
+      #==="over_scene"形式のシーンが実行中かどうか判別する
+      #返却値:: "over_scene"形式のシーンが実行中の時はtrueを返す
+      def over_scene_execute?
+        return @story.over_scene_execute?
+      end
+    
       #===シーンの解説を返す(テンプレートメソッド)
       #Sceneモジュールをmixinしたとき、解説文を返す実装をしておくと、
       #Scene.#lisutupメソッドを呼び出したときに、noticeメソッドの結果を取得できる
