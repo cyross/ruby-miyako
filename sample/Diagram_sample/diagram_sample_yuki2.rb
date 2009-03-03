@@ -263,8 +263,9 @@ class MainScene
   def setup
     @pr.start
     @yuki.setup(@box, plot){|box, pl|
-      select_textbox(box)
-      select_plot(pl)
+      select_textbox box
+      select_plot pl
+      select_first_page nil # nil, :page1, :page2が選択可能
     }
   end
   
@@ -287,25 +288,26 @@ class MainScene
   def plot
     yuki_plot{
       text_method :string do
-      text "「ねえ、あんたの担当のセリフ、ちゃんと覚えてるわよねぇ？"
-      cr
-      pause
-      text "　まさか、忘れてたなんて言わないわよねぇ？」"
-      cr
-      pause
-      clear
-      color(:red){
-        size(32){
-          size(24){ "「そんなこと" }
-          text "ない"
-          size(24){ "よぉ～" }
-        }
-        cr
-        pause
-        text "　ちゃんと覚えてるよぉ～」"
-        cr
-      }
-      pause
+        page :page1 do
+          text "「ねえ、あんたの担当のセリフ、ちゃんと覚えてるわよねぇ？"
+          cr
+          pause
+          text "　まさか、忘れてたなんて言わないわよねぇ？」"
+        end
+        clear
+        page :page2 do
+          color :red do
+            size 32 do
+              size(24){ "「そんなこと" }
+              text "ない"
+              size(24){ "よぉ～" }
+            end
+            cr
+            pause
+            text "　ちゃんと覚えてるよぉ～」"
+            cr
+          end
+        end
       end
     }
   end

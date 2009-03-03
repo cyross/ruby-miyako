@@ -169,6 +169,9 @@ module Miyako
       
       @is_outer_height = self.method(:is_outer_height)
 
+      @now_page = nil
+      @first_page = nil
+      
       raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
@@ -323,6 +326,9 @@ module Miyako
 
       @result = nil
       @plot_result = nil
+
+      @now_page = nil
+      @first_page = nil
       
       raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
@@ -934,6 +940,40 @@ module Miyako
       @waiting = false
     end
 
+    #===シナリオ上の括り(ページ)を実装する
+    #シナリオ上、「このプロットの明示的な範囲」を示すために使用する(セーブ時の再現位置の指定など)
+    #Yuki#select_first_pageメソッドで開始位置が指定されている場合、以下の処理を行う。
+    #(1)select_first_pageメソッドで指定されたページから処理する。それまでのページは無視される
+    #(2)開始ページを処理する前に、select_first_pageメソッドの内容をクリアする(nilに変更する)
+    #このメソッドはブロックが必須。ブロックがないと例外が発生する。
+    #_name_:: ページ名。select_first_pageメソッドは、この名前を検索する。また、now_pageメソッドの返却値でもある
+    #_use_pause_::ページの処理が終了した後、必ずpauseメソッドを呼び出すかどうかのフラグ。デフォルトはtrue
+    #返却値:: select_first_pageメソッドで指定されていないページのときはnil、指定されているページの場合は引数nameの値
+    def page(name, use_pause = true)
+      raise MiyakoError, "Yuki#page needs block!" unless block_given?
+      return nil if (@first_page && name != @first_page)
+      @first_page = nil
+      @now_page = name
+      yield
+      pause if use_pause
+      @now_page = nil
+      return name
+    end
+    
+    #===シナリオ上の現在のページを返す
+    #呼び出し当時、シナリオ上、pageメソッドでくくられていない場合は、nilを返す
+    #返却値:: ページ名
+    def now_page
+      return @now_page
+    end
+    
+    #===プロット上の最初に実行するページを指定知る
+    #但し、ページ名を指定しないときはnilを指定する。
+    #_name_:: 最初に実行するページ名
+    def select_first_page(name)
+      @first_page = name
+    end
+    
     #===インスタンスで使用しているオブジェクトを解放する
     def dispose
       @update_inner  = nil
