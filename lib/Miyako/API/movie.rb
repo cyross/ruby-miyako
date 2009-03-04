@@ -29,6 +29,8 @@ module Miyako
     extend Forwardable
 
     @@movie_list = []
+
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
     
     #===動画のインスタンスを作成する
     #(但し、現在の所、loopパラメータは利用できない)
@@ -45,6 +47,7 @@ module Miyako
       @size = Size.new(@movie.info.width, @movie.info.height)
       set_layout_size(*(@size.to_a))
 
+      @visible = true
       @sprite = Sprite.new({:size=>@size , :type=>:movie})
       @sprite.snap(self)
       
@@ -132,11 +135,10 @@ module Miyako
 
     #===画面に描画を指示する
     #現在表示できる選択肢を、現在の状態で描画するよう指示する
-    #--
-    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-    #++
+    #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render
+      return slef nless @visible
       @sprite.render
       return self
     end

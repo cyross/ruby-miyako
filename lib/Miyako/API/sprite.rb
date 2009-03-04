@@ -30,6 +30,7 @@ module Miyako
     include SingleEnumerable
     extend Forwardable
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
     attr_reader :tr_color  #カラーキーが有向になっている場合のRGB値。[R,G,B]の配列(各要素は0～255の整数)
     attr_reader :type      #画像の透明度・透過タイプを取得する(詳細はSprite.newメソッドを参照)
 
@@ -43,6 +44,7 @@ module Miyako
       @w = 0
       @h = 0
       @draw_list = nil
+      @visible = true
     end
 
     private :setup
@@ -309,6 +311,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render
     end
@@ -319,6 +322,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 自分自身を返す
     def render_to(dst)
@@ -334,10 +338,11 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
-    #返却値:: 自分自身を返す
+    #visibleメソッドの値がfalseのときは描画されない。
     #_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
     #_xscale_:: 拡大率(x方向)
     #_yscale_:: 拡大率(y方向)
+    #返却値:: 自分自身を返す
     def render_transform(radian, xscale, yscale)
     end
 
@@ -351,6 +356,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
     #_xscale_:: 拡大率(x方向)

@@ -409,13 +409,18 @@ module Miyako
     #Processor#render メソッドのみを呼び出せる
     #インスタンス生成は、Processor#renderer メソッドを呼び出して行う
     class Renderer
+      attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+
       def initialize(obj) #:nodoc:
         @renderer = obj
+        @visible = true
       end
 
       #===レンダリングを行う
       #Processor#render メソッドを呼び出す
+      #visibleメソッドの値がfalseのときは描画されない。
       def render
+        return unless @visible
         @renderer.call
       end
     end
@@ -425,6 +430,7 @@ module Miyako
     class Processor
       #遷移図本体。Manager クラスのインスタンス
       attr_reader :diagram
+      attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
 
       #===インスタンスを生成する
       #遷移図形式のインスタンス群を生成する
@@ -435,6 +441,7 @@ module Miyako
         @loop = self.method(:main_loop)
         @states = {:execute => false, :pause => false, :type1 => false }
         @diagram = Miyako::Diagram::Manager.new
+        @visible = true
         yield @diagram if block_given?
       end
 
@@ -467,12 +474,14 @@ module Miyako
       end
 
       #===入力デバイスに関わる処理を行う
+      #現在処理中のノードのupdate_inputメソッドを呼び出す。
       def update_input
         return if @states[:pause]
         @diagram.update_input
       end
     
       #===処理の更新を行う
+      #現在処理中のノードupdateメソッドを呼び出す。
       def update
         return if @states[:pause]
         @diagram.update
@@ -480,8 +489,10 @@ module Miyako
       end
     
       #===レンダリング処理を行う
-      #Screen.update メソッドを使用している場合は使う必要はない
+      #現在処理中のノードのrenderメソッドを呼び出す。
+      #visibleメソッドの値がfalseのときは描画されない。
       def render
+        return unless @visible
         @diagram.render
       end
 

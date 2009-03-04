@@ -2347,6 +2347,8 @@ static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 */
 static VALUE sprite_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, mScreen, sunit, dunit);
   render_inner(sunit, dunit);
   return self;
@@ -2364,6 +2366,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, vdst, sunit, dunit);
   render_to_inner(sunit, dunit);
   return self;
@@ -2387,6 +2391,8 @@ _yscale_:: 拡大率(y方向)
 */
 static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VALUE yscale)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, mScreen, sunit, dunit);
   transform_inner(sunit, dunit, radian, xscale, yscale);
   return self;
@@ -2411,6 +2417,8 @@ _yscale_:: 拡大率(y方向)
 */
 static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_2(self, vdst, sunit, dunit);
   transform_inner(sunit, dunit, radian, xscale, yscale);
   return self;
@@ -2834,9 +2842,11 @@ static void fixedmaplayer_render_to_inner(VALUE self, VALUE dunit)
 */
 static VALUE maplayer_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(mScreen, dunit);
   maplayer_render_inner(self, dunit);
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2849,9 +2859,11 @@ static VALUE maplayer_render(VALUE self)
 */
 static VALUE fixedmaplayer_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(mScreen, dunit);
   fixedmaplayer_render_inner(self, dunit);
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2865,9 +2877,11 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
   maplayer_render_to_inner(self, dunit);
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2881,9 +2895,11 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
   fixedmaplayer_render_to_inner(self, dunit);
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2898,6 +2914,8 @@ static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE map_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(mScreen, dunit);
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
@@ -2905,7 +2923,7 @@ static VALUE map_render(VALUE self)
     maplayer_render_inner(*(RARRAY_PTR(map_layers) + i), dunit);
   }
   
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2920,6 +2938,8 @@ static VALUE map_render(VALUE self)
 */
 static VALUE fixedmap_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(mScreen, dunit);
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
@@ -2927,7 +2947,7 @@ static VALUE fixedmap_render(VALUE self)
     fixedmaplayer_render_inner(*(RARRAY_PTR(map_layers) + i), dunit);
   }
 
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2943,6 +2963,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
 
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -2951,7 +2973,7 @@ static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
     maplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), dunit);
   }
 
-  return Qnil;
+  return self;
 }
 
 /*
@@ -2967,6 +2989,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   MIYAKO_GET_UNIT_NO_SURFACE_1(vdst, dunit);
 
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -2975,7 +2999,7 @@ static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
     fixedmaplayer_render_to_sprite(*(RARRAY_PTR(map_layers) + i), dunit);
   }
 
-  return Qnil;
+  return self;
 }
 
 /*
@@ -3085,6 +3109,8 @@ static VALUE sa_update(VALUE self)
 */
 static VALUE sa_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   VALUE vsrc = rb_iv_get(self, "@now");
   VALUE *runit = RSTRUCT_PTR(vsrc);
   VALUE polist = rb_iv_get(self, "@pos_offset");
@@ -3128,6 +3154,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   VALUE vsrc = rb_iv_get(self, "@now");
   VALUE *runit = RSTRUCT_PTR(vsrc);
   VALUE polist = rb_iv_get(self, "@pos_offset");
@@ -3167,6 +3195,8 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE plane_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   VALUE sprite = rb_iv_get(self, "@sprite");
   MIYAKO_GET_UNIT_NO_SURFACE_2(sprite, mScreen, sunit, dunit);
 
@@ -3209,6 +3239,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   VALUE sprite = rb_iv_get(self, "@sprite");
   MIYAKO_GET_UNIT_NO_SURFACE_2(sprite, vdst, sunit, dunit);
 
@@ -3254,6 +3286,8 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE parts_render(VALUE self)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   VALUE parts_list = rb_iv_get(self, "@parts_list");
   VALUE parts_hash = rb_iv_get(self, "@parts");
 
@@ -3279,6 +3313,8 @@ _dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが�
 */
 static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
 {
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
   VALUE parts_list = rb_iv_get(self, "@parts_list");
   VALUE parts_hash = rb_iv_get(self, "@parts");
 

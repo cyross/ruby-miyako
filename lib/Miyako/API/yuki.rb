@@ -134,7 +134,7 @@ module Miyako
       @update_clear = lambda{|yuki|}
       
       @parts = {}
-      @visible = []
+      @visibles = []
       @vars = {}
 
       @executing_fiber = nil

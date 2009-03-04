@@ -52,6 +52,8 @@ module Miyako
     include Enumerable
     extend Forwardable
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+
     # インスタンスを生成する
     # 返却値:: 生成された Choices クラスのインスタンス
     def initialize
@@ -59,6 +61,7 @@ module Miyako
       @now = nil
       @non_select = false
       @last_selected = nil
+      @visible = true
     end
 
     # 選択肢を作成する
@@ -247,8 +250,10 @@ module Miyako
     #現在表示できる選択肢を、現在の状態で描画するよう指示する
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
     #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render(&block)
+      return unless @visible
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
           c.body_selected.render(&block) :
@@ -261,9 +266,11 @@ module Miyako
     #現在表示できる選択肢を、現在の状態で描画するよう指示する
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
     #ブロックの引数は、|インスタンスのSpriteUnit, 画像のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 描画対象の画像インスタンス
     #返却値:: 自分自身を返す
     def render_to(dst, &block)
+      return unless @visible
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
           c.body_selected.render_to(dst, &block) :

@@ -50,6 +50,7 @@ module Miyako
     #返却値:: TextBoxクラスのインスタンス
     def initialize(params = {})
       init_layout
+      @visible = true
       @font = params[:font] || Font.sans_serif
       @max_height = @font.line_height
       @locate     = Point.new(0, 0)
@@ -219,8 +220,10 @@ module Miyako
     #現在のテキストエリア・カーソルを、現在の状態で描画する
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
     #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render(&block)
+      return unless @visible
       @textarea.render(&block)
       @wait_cursor.render(&block) if (@wait_cursor && @waiting)
       if @selecting 
@@ -234,8 +237,10 @@ module Miyako
     #現在のテキストエリア・カーソルを、現在の状態で描画する
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
     #ブロックの引数は、|インスタンスのSpriteUnit, 転送先のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render_to(dst, &block)
+      return unless @visible
       @textarea.render_to(dst, &block)
       @wait_cursor.render(dst, &block) if (@wait_cursor && @waiting)
       if @selecting 

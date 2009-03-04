@@ -29,6 +29,8 @@ module Miyako
     include Layout
     include SingleEnumerable
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+    
     #===インスタンスの作成
     #アニメーションを行うための初期設定を行う。
     #アニメーションは２種類の方法があり、
@@ -65,6 +67,7 @@ module Miyako
       init_layout
       @units = Array.new
       @slist = nil
+      @visible = true
 
       hash[:dir] ||= :h
       @dir   = hash[:dir]
@@ -461,6 +464,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|インスタンスのSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     def render
     end
 
@@ -470,6 +474,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     def render_to(dst)
     end

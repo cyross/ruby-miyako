@@ -33,11 +33,14 @@ module Miyako
     include Layout
     extend Forwardable
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+
     #===Partsクラスインスタンスを生成
     #_size_:: パーツ全体の大きさ。Size構造体のインスタンスもしくは要素数が2の配列
     def initialize(size)
       @parts = {}
       @parts_list = []
+      @visible = true
 
       init_layout
       set_layout_size(size[0], size[1])
@@ -165,6 +168,7 @@ module Miyako
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|パーツのSpriteUnit|となる。
     #デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
+    #visibleメソッドの値がfalseのときは描画されない。
     def render
     end
 
@@ -175,6 +179,7 @@ module Miyako
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|パーツのSpriteUnit|となる。
     #デフォルトでは、描画順は登録順となる。順番を変更したいときは、render_toメソッドをオーバーライドする必要がある
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     def render_to(dst)
     end

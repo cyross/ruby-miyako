@@ -45,6 +45,7 @@ module Miyako
       end
       resize
       @pos = Point.new(0, 0)
+      @visible = true
     end
 
     #===プレーン画像左上の x 座標の値を取得する
@@ -146,12 +147,14 @@ module Miyako
     #===プレーンを画面に描画する
     #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
     #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+    #visibleメソッドの値がfalseのときは描画されない。
     def render
     end
 
     #===プレーンを画像に描画する
     #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
     #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     def render_to(dst)
     end

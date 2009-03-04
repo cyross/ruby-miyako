@@ -58,11 +58,13 @@ module Miyako
     @@idx_ix = [-1, 2, 4]
     @@idx_iy = [-1, 0, 6]
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
     attr_reader :map_layers, :pos, :margin, :size, :w, :h
 
     class MapLayer #:nodoc: all
       extend Forwardable
 
+      attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
       attr_reader :mapchip_units, :pos, :margin, :size
 
       def round(v, max) #:nodoc:
@@ -107,6 +109,7 @@ module Miyako
                                    :ow => @ow,
                                    :oh => @oh)
         }
+        @visible = true
         resize
       end
 
@@ -142,6 +145,7 @@ module Miyako
       #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
       #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
       #ブロックの引数は、|画面のSpriteUnit|となる。
+      #visibleメソッドの値がfalseのときは描画されない。
       #返却値:: 自分自身を返す
       def render
       end
@@ -151,6 +155,7 @@ module Miyako
       #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
       #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
       #ブロックの引数は、|転送先のSpriteUnit|となる。
+      #visibleメソッドの値がfalseのときは描画されない。
       #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
       #返却値:: 自分自身を返す
       def render_to(dst)
@@ -166,7 +171,7 @@ module Miyako
       @em = event_manager.dup
       @em.set(self)
       @mapchip = mapchip
-      @visible = false
+      @visible = true
       @pos = Point.new(0, 0)
       @margin = Size.new(0, 0)
       @coll = Collision.new(Rect.new(0, 0, 0, 0), Point.new(0, 0))
@@ -465,6 +470,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|画面のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render
     end
@@ -476,6 +482,7 @@ module Miyako
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|転送先のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 自分自身を返す
     def render_to(dst)

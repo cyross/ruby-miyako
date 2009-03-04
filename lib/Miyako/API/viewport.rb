@@ -38,6 +38,8 @@ module Miyako
                     lambda{|vp, rect, dy| self.move_to(rect[0],vp[1])}
                    ]
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+
     #===ビューポートのインスタンスを生成する
     #_x_,_y_: ビューポートの左上位置
     #_w_,_h_: ビューポートの大きさ(共に0以上、マイナスのときはエラーが出る)
@@ -45,6 +47,7 @@ module Miyako
       raise MiyakoError, "Illegal size! w:#{w} h:#{h}" if (w < 0 || h < 0)
       @rect = Rect.new(x, y, w, h)
       @sq = Rect.new(x, y, x+w-1, y+h-1)
+      @visible = true
     end
 
     #===ビューポートの内容を画面に反映する
@@ -52,6 +55,7 @@ module Miyako
     #ブロックの引数は、|Rect構造体|が渡される。
     #_block_:: 呼び出し時にブロック付き呼び出しが行われたときのブロック本体。呼び先に渡すことが出来る。ブロックがなければnilが入る
     def render(&block)
+      return unless @visible
       if block_given?
         rect = @rect.dup
         yield rect
