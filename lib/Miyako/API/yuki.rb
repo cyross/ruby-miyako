@@ -81,6 +81,7 @@ module Miyako
     def update_clear(yuki)
     end
 
+    attr_accessor :visible
     attr_accessor :update_inner, :update_text, :update_cr, :update_clear
     attr_reader :parts, :vars, :valign
     #release_checks:: ポーズ解除を問い合わせるブロックの配列。
@@ -134,8 +135,9 @@ module Miyako
       @update_clear = lambda{|yuki|}
       
       @parts = {}
-      @visible = []
+      @visibles = []
       @vars = {}
+      @visible = true
 
       @executing_fiber = nil
 
@@ -178,9 +180,11 @@ module Miyako
     
     #===Yuki#showで表示指定した画像を描画する
     #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
+    #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render
-      @visible.each{|name|
+      return self unless @visible
+      @visibles.each{|name|
         @parts[name].render if @parts.has_key?(name)
       }
       return self
@@ -247,8 +251,8 @@ module Miyako
     #返却値:: 自分自身を返す
     def show(*names)
       names.each{|name|
-        @visible.delete(name)
-        @visible << name
+        @visibles.delete(name)
+        @visibles << name
       }
       return self
     end
@@ -258,7 +262,7 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能
     #返却値:: 自分自身を返す
     def hide(*names)
-      names.each{|name| @visible.delete(name) }
+      names.each{|name| @visibles.delete(name) }
       return self
     end
   
@@ -985,8 +989,8 @@ module Miyako
       
       @parts.clear
       @parts = nil
-      @visible.clear
-      @visible = nil
+      @visibles.clear
+      @visibles = nil
       @vars.clear
       @vars = nil
 

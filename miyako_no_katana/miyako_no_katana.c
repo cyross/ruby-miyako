@@ -4307,7 +4307,7 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(cBitmap, "dec_alpha!", bitmap_miyako_dec_alpha, 3);
   rb_define_singleton_method(cBitmap, "black_out!", bitmap_miyako_black_out, 3);
   rb_define_singleton_method(cBitmap, "white_out!", bitmap_miyako_white_out, 3);
-  rb_define_singleton_method(cBitmap, "inverse!", bitmap_miyako_inverse, 3);
+  rb_define_singleton_method(cBitmap, "inverse!", bitmap_miyako_inverse, 2);
   rb_define_singleton_method(cBitmap, "additive!", bitmap_miyako_additive_synthesis, 2);
   rb_define_singleton_method(cBitmap, "subtraction!", bitmap_miyako_subtraction_synthesis, 2);
   rb_define_singleton_method(cBitmap, "subtraction!", bitmap_miyako_subtraction_synthesis, 2);

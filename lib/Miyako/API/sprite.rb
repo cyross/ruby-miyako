@@ -364,5 +364,267 @@ module Miyako
     #返却値:: 自分自身を返す
     def render_to_transform(dst, radian, xscale, yscale)
     end
+
+    #===２つの画像のandを取り、別の画像へ転送する
+    #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
+    #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の新しい画像インスタンス
+    def and(src)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.blit_and!(self, src, dst)
+      return dst
+    end
+
+    #===２つの画像のorを破壊的に行う
+    #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
+    #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の自分自身を返す
+    def and!(src)
+      Bitmap.blit_and!(self, src, self)
+      return self
+    end
+
+    #===２つの画像のorを取り、別の画像へ転送する
+    #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
+    #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の新しい画像インスタンス
+    def or(src)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.blit_or!(self, src, dst)
+      return dst
+    end
+
+    #===２つの画像のorを破壊的に行う
+    #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
+    #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の自分自身を返す
+    def or!(src)
+      Bitmap.blit_or!(self, src, self)
+      return self
+    end
+
+    #===２つの画像のxorを取り、別の画像へ転送する
+    #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
+    #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の新しい画像インスタンス
+    def xor(src)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.blit_xor!(self, src, dst)
+      return dst
+    end
+
+    #===２つの画像のxorを破壊的に行う
+    #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
+    #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の自分自身を返す
+    def xor!(src)
+      Bitmap.blit_xor!(self, src, self)
+      return self
+    end
+
+    #===画像のαチャネルの値を一定の割合で変化させて転送する
+    #degreeの値が1.0に近づけば近づくほど透明に近づき、
+    #degreeの値が-1.0に近づけば近づくほど不透明に近づく(値が-1.0のときは完全不透明、値が0.0のときは変化なし、1.0のときは完全に透明になる)
+    #但し、元々αの値がゼロの時は変化しない
+    #_degree_:: 減少率。-1.0<=degree<=1.0までの実数
+    #返却値:: 変更後の新しい画像インスタンス
+    def dec_alpha(degree)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.dec_alpha!(self, dst, degree)
+      return dst
+    end
+
+    #===画像のαチャネルの値を一定の割合で破壊的に変化させる
+    #degreeの値が1.0に近づけば近づくほど透明に近づき、
+    #degreeの値が-1.0に近づけば近づくほど不透明に近づく(値が-1.0のときは完全不透明、値が0.0のときは変化なし、1.0のときは完全に透明になる)
+    #但し、元々αの値がゼロの時は変化しない
+    #_degree_:: 減少率。-1.0<=degree<=1.0までの実数
+    #返却値:: 変更後の自分自身を返す
+    def dec_alpha!(degree)
+      Bitmap.dec_alpha!(self, self, degree)
+      return self
+    end
+
+    #===画像の色を一定の割合で黒に近づける(ブラックアウト)
+    #赤・青・緑・αの各要素を一定の割合で下げ、黒色に近づける。
+    #degreeの値が1.0に近づけば近づくほど黒色に近づく(値が0.0のときは変化なし、1.0のときは真っ黒になる)
+    #αの値が0のときは変わらないことに注意！
+    #_degree_:: 変化率。0.0<=degree<=1.0までの実数
+    #返却値:: 変更後の新しい画像インスタンス
+    def black_out(degree)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.black_out!(self, dst, degree)
+      return dst
+    end
+
+    #===画像の色を一定の割合で黒に近づける(ブラックアウト)
+    #赤・青・緑・αの各要素を一定の割合で下げ、黒色に近づける。
+    #degreeの値が1.0に近づけば近づくほど黒色に近づく(値が0.0のときは変化なし、1.0のときは真っ黒になる)
+    #αの値が0のときは変わらないことに注意！
+    #_degree_:: 変化率。0.0<=degree<=1.0までの実数
+    #返却値:: 変更後の自分自身を返す
+    def black_out!(degree)
+      Bitmap.black_out!(self, self, degree)
+      return self
+    end
+
+    #===画像の色を一定の割合で白に近づける(ホワイトアウト)
+    #赤・青・緑・αの各要素を一定の割合で上げ、白色に近づける。
+    #degreeの値が1.0に近づけば近づくほど白色に近づく(値が0.0のときは変化なし、1.0のときは真っ白になる)
+    #αの値が0のときは変わらないことに注意！
+    #_degree_:: 変化率。0.0<=degree<=1.0までの実数
+    #返却値:: 変更後の新しい画像インスタンス
+    def white_out(degree)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.white_out!(self, dst, degree)
+      return dst
+    end
+
+    #===画像の色を一定の割合で白に近づける(ホワイトアウト)
+    #赤・青・緑・αの各要素を一定の割合で上げ、白色に近づける。
+    #degreeの値が1.0に近づけば近づくほど白色に近づく(値が0.0のときは変化なし、1.0のときは真っ白になる)
+    #αの値が0のときは変わらないことに注意！
+    #_degree_:: 変化率。0.0<=degree<=1.0までの実数
+    #返却値:: 変更後の自分自身を返す
+    def white_out!(degree)
+      Bitmap.white_out!(self, self, degree)
+      return self
+    end
+
+    #===画像のRGB値を反転させる
+    #αチャネルの値は変更しない
+    #返却値:: 変更後の新しい画像インスタンス
+    def inverse
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.inverse!(self, dst)
+      return dst
+    end
+
+    #===画像のRGB値を反転させる
+    #αチャネルの値は変更しない
+    #返却値:: 変更後の自分自身を返す
+    def inverse!
+      Bitmap.inverse!(self, self)
+      return self
+    end
+
+    #===2枚の画像の加算合成を行う
+    #範囲は、src側の(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側の(x,y)を左上とする。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の新しい画像インスタンス
+    def additive(src)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      self.render_to(dst)
+      Bitmap.additive!(src, dst)
+      return dst
+    end
+
+    #===2枚の画像の加算合成を行う
+    #範囲は、src側の(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側の(x,y)を左上とする。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の自分自身を返す
+    def additive!(src)
+      Bitmap.additive!(src, self)
+      return self
+    end
+
+    #===2枚の画像の減算合成を行う
+    #範囲は、src側の(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側の(x,y)を左上とする。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の新しい画像インスタンス
+    def subtraction(src)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      self.render_to(dst)
+      Bitmap.subtraction!(src, dst)
+      return dst
+    end
+
+    #===2枚の画像の減算合成を行う
+    #範囲は、src側の(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側の(x,y)を左上とする。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 変更後の自分自身を返す
+    def subtraction!(src)
+      Bitmap.subtraction!(src, self)
+      return self
+    end
+
+    #===画像の色相を変更する
+    #_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
+    #返却値:: 変更後の新しい画像インスタンス
+    def hue(degree)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.hue!(self, dst, degree)
+      return dst
+    end
+
+    #===画像の色相を変更する
+    #_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
+    #返却値:: 変更後の画像インスタンス
+    #返却値:: 変更後の自分自身を返す
+    def hue!(degree)
+      Bitmap.hue!(self, self, degree)
+      return self
+    end
+
+    #===画像の彩度を変更する
+    #_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
+    #返却値:: 変更後の新しい画像インスタンス
+    def saturation(saturation)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.saturation!(self, dst, saturation)
+      return dst
+    end
+
+    #===画像の彩度を変更する
+    #_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
+    #返却値:: 変更後の自分自身を返す
+    def saturation!(saturation)
+      Bitmap.saturation!(self, self, saturation)
+      return self
+    end
+
+    #===画像の明度を変更する
+    #_value_:: 明度の変更量。範囲は0.0〜1.0の実数
+    #返却値:: 変更後の新しい画像インスタンス
+    def value(value)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.value!(self, dst, value)
+      return dst
+    end
+
+    #===画像の明度を変更する
+    #_value_:: 明度の変更量。範囲は0.0〜1.0の実数
+    #返却値:: 変更後の画像インスタンス
+    def value!(value)
+      Bitmap.value!(self, self, value)
+      return self
+    end
+
+    #===画像の色相・彩度・明度を変更する
+    #_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
+    #_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
+    #_value_:: 明度の変更量。範囲は0.0〜1.0の実数
+    #返却値:: 変更後の新しい画像インスタンス
+    def hsv(degree, saturation, value)
+      dst = Sprite.new(:size=>self.size, :type=>:ac)
+      Bitmap.hsv!(self, dst, degree, saturation, value)
+      return dst
+    end
+
+    #===画像の色相・彩度・明度を変更する
+    #_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
+    #_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
+    #_value_:: 明度の変更量。範囲は0.0〜1.0の実数
+    #返却値:: 変更後の画像インスタンス
+    def hsv!(degree, saturation, value)
+      Bitmap.hsv!(self, self, degree, saturation, value)
+      return self
+    end
   end
 end

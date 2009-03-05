@@ -837,7 +837,8 @@ v2.0.0(2009.2.20)
 ・グローバル変数$miyako_use_wait、$miyako_wait_time、$miyako_use_openglを追加
 　(フレームバッファ:32bit(赤、青、緑、αともに8bit)、デプスバッファ:32bit、ステンシルバッファ:32bit)
 ・visible/visible=メソッドの復活。render・render_toメソッドに影響
-　(Sprite/Choices/Diagram::Processor/Diagram::Renderer/FixedMap/FixeｄMapLayer/Map/MapLayer/Movie/Parts/Plane/SpriteAnimation/TextBox/ViewPort)
+　(Sprite/Choices/Diagram::Processor/Diagram::Renderer/FixedMap/FixeｄMapLayer/
+　 Map/MapLayer/Movie/Parts/Plane/SpriteAnimation/TextBox/ViewPort/Yuki)
 ・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
 ・Input.updateで、マウスのボタンを押したままなのに、Input.clicked?の値がtrueになっていたバグを修正
 ・Input.get_mouse_positionメソッドの返却値を変更(ハッシュ→Point構造体)
@@ -864,7 +865,7 @@ v2.0.0(2009.2.20)
 ・Sprite#center_x,center_x=,center_y,center_y=メソッドの追加
 ・Sprite#broad_rectメソッドの追加
 ・Sprite.newメソッドに:unitハッシュキーを追加(SpriteUnitから生成)
-・Spriteクラスの各種画像変換メソッド(scale、rotate、hsvなど)を廃止
+・Spriteクラスの各種画像変換メソッド(scale、rotate、transform)を廃止
 ・Animation.update_animationメソッドの戻り値仕様を変更(self→falseへ変更)
 ・SpriteAnimation#update_animatioメソッドの戻り値仕様を変更(パターンが変更されたときtrueを返す)
 ・SpriteAnimation#render_toメソッドの追加

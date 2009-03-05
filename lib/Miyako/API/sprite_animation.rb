@@ -67,7 +67,6 @@ module Miyako
       init_layout
       @units = Array.new
       @slist = nil
-      @visible = true
 
       hash[:dir] ||= :h
       @dir   = hash[:dir]
@@ -215,7 +214,7 @@ module Miyako
       @pnum  = 0
       @cnt   = 0
       @exec  = false
-      @visible = false
+      @visible = true
 
       @now = @units[0]
       @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
