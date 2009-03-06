@@ -89,7 +89,7 @@ class Slime < Monster
       data = @ary[val-1]
       @coll.direction.move_to(*(data[0..1]))
       
-      ret = map.get_amount_by_rect(0, @spr.rect, @coll)
+      ret = map.get_amount_by_rect(0, 0, @spr.rect, @coll)
       
       if (ret.amount[0] | ret.amount[1]) != 0
         @interval_x, @interval_y = data[2..3]

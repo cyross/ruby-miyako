@@ -144,17 +144,22 @@ module Miyako
 
 
     #===インスタンスを生成する
-    #_mapchip_:: マップチップ構造体群
+    #各レイヤにMapChip構造体を渡す
+    #但し、すべてのレイヤーに同一のMapChip構造体を使うときは、単体で渡すことも可能
+    #第1引数にto_aメソッドが実装されていれば、配列化した要素をMapChip構造体として各レイヤに渡す
+    #また、各レイヤにMapChip構造体を渡すとき、レイヤ数より要素数が少ないときは、先頭に戻って繰り返し渡す仕様になっている
+    #各MapChip構造体のマップチップの大きさを同じにしておく必要がある
+    #_mapchips_:: マップチップ構造体群(MapChip構造体単体もしくは配列)
     #_layer_csv_:: レイヤーファイル(CSVファイル)
     #_event_manager_:: MapEventManagerクラスのインスタンス
     #_pos_:: マップを表示する左上座標(Position構造体)
     #返却値:: 生成したインスタンス
-    def initialize(mapchip, layer_csv, event_manager, pos = Point.new(0, 0))
+    def initialize(mapchips, layer_csv, event_manager, pos = Point.new(0, 0))
       init_layout
       @visible = true
       @em = event_manager.dup
       @em.set(self)
-      @mapchip = mapchip
+      @mapchips = mapchips.to_a
       @pos = Point.new(*(pos.to_a))
       @coll = Collision.new(Rect.new(0, 0, 0, 0), Point.new(0, 0))
       layer_data = CSV.readlines(layer_csv)
@@ -164,8 +169,8 @@ module Miyako
       tmp = layer_data.shift # 空行の空読み込み
 
       layer_size = Size.new(tmp[0].to_i, tmp[1].to_i)
-      @w = layer_size.w * @mapchip.chip_size.w
-      @h = layer_size.h * @mapchip.chip_size.h
+      @w = layer_size.w * @mapchips.first.chip_size.w
+      @h = layer_size.h * @mapchips.first.chip_size.h
 
       layers = layer_data.shift[0].to_i
 
@@ -192,15 +197,17 @@ module Miyako
         brlist[:event].each_with_index{|ly, y|
           ly.each_with_index{|code, x|
             next unless @em.include?(code)
-            @event_layer.push(@em.create(code, x * @mapchip.chip_size.w, y * @mapchip.chip_size.h))
+            @event_layer.push(@em.create(code, x * @mapchips.first.chip_size.w, y * @mapchips.first.chip_size.h))
           }
         }
         layers -= 1
       end
+      mc = @mapchips.cycle
+      @mapchips = mc.take(layers)
       @map_layers = []
       layers.times{|i|
-        br = brlist[i].map{|b| b.map{|bb| bb >= @mapchip.chips ? -1 : bb } }
-        @map_layers.push(FixedMapLayer.new(@mapchip, br, layer_size, pos))
+        br = brlist[i].map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
+        @map_layers.push(FixedMapLayer.new(mc.next, br, layer_size, pos))
       }
       set_layout_size(@w, @h)
     end
@@ -234,7 +241,7 @@ module Miyako
     #_y_:: マップチップ単位での位置(ピクセル単位）
     #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
     def get_code_real(idx, x, y)
-      code = @map_layers[idx].get_code((x-@pos[0]) / @mapchip.chip_size[0], (y-@pos[1]) / @mapchip.chip_size[1])
+      code = @map_layers[idx].get_code((x-@pos[0]) / @mapchips.first.chip_size[0], (y-@pos[1]) / @mapchips.first.chip_size[1])
       yield code if block_given?
       return code
     end
@@ -268,28 +275,30 @@ module Miyako
     #マップ上の位置、マップの大きさ(pixel)：第２引数(Rect構造体)
     #マップチップの大きさ(pixel)：Mapインスタンス生成時に設定したMapChipインスタンス
     #キャラクタの当たり判定、移動量：第３引数(Collisionクラスインスタンス)
+    #_layer_:: レイヤー番号(０以上の整数)
     #_type_:: 移動タイプ(０以上の整数)
     #_rect_:: 位置・大きさを設定したRect構造体
     #_collision_:: 移動するキャラクタのコリジョン情報(Collosionクラス)
     #返却値:: 許容できる移動量(MapMoveAmount構造体)
-    def get_amount_by_rect(type, rect, collision)
+    def get_amount_by_rect(layer, type, rect, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
+      mc = @mapchips[layer]
       dx, dy = collision.direction[0]*collision.amount[0], collision.direction[1]*collision.amount[1]
       x, y = rect[0]-@pos[0], rect[1]-@pos[1]
       collision.pos.move_to(x, y){
-        px1, px2 = (x+dx) / @mapchip.chip_size[0], (x+rect[2]-1+dx) / @mapchip.chip_size[0]
-        py1, py2 = (y+dy) / @mapchip.chip_size[1], (y+rect[3]-1+dy) / @mapchip.chip_size[1]
+        px1, px2 = (x+dx) / mc.chip_size[0], (x+rect[2]-1+dx) / mc.chip_size[0]
+        py1, py2 = (y+dy) / mc.chip_size[1], (y+rect[3]-1+dy) / mc.chip_size[1]
         (py1..py2).each{|py|
-          rpy = py * @mapchip.chip_size[1]
+          rpy = py * mc.chip_size[1]
           (px1..px2).each{|px|
-            rpx = px * @mapchip.chip_size[0]
+            rpx = px * mc.chip_size[0]
             @map_layers.each_with_index{|ml, idx|
               code = ml.get_code(px, py)
               next if code == -1 # not use chip
-              @coll = @mapchip.collision_table[type][code]
+              @coll = mc.collision_table[type][code]
               @coll.pos.move_to(rpx, rpy){
-                atable = @mapchip.access_table[type][code]
+                atable = mc.access_table[type][code]
                 if @coll.into?(collision)
                   mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
                   mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
@@ -336,7 +345,7 @@ module Miyako
     #マップチップの大きさが32×32ピクセルの場合は、[32,32]のSize構造体が返る
     #返却値:: マップチップのサイズ(Size構造体)
     def chipSize
-      return @mapchip.chip_size
+      return @mapchips.first.chip_size
     end
 
     #===すべてのマップイベントを終了させる
@@ -356,6 +365,8 @@ module Miyako
         @event_layer.each{|e| e.dispose }
         @event_layer = nil
       end
+      @mapchips.clear
+      @mapchips = nil
     end
 
     def re_size #:nodoc:

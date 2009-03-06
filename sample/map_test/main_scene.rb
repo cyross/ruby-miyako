@@ -72,7 +72,7 @@ class MainScene
         #キャラクタの向きを変更
         @chr.turn(@d)
         #マップの移動量を求める
-        @a = @map.get_amount(0, @map.size, @map.collision).amount.to_a
+        @a = @map.get_amount(1, 0, @map.size, @map.collision).amount.to_a
         # 方向ボタンを押したときは、１チップサイズ単位で移動する
         # @cntはその移動量(幅と高さでサイズが違う場合アリ)
         @cnt = @a[0] > 0 ? @size[0] : @size[1]

@@ -979,6 +979,7 @@ v2.0.0(2009.2.20)
 ・Collision#move、Collision#move_toメソッドを追加
 ・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_sprite、Plane#to_unitメソッドの追加
 ・Effectクラスを廃止
+・Map.new,FixedMap.newメソッドのインタフェース変更(第1引数にto_aメソッドが存在すれば配列化して各レイヤ単位で構造体を渡せるように変更)
 ・Map#update、FixedMap#updateメソッドの内容変更(MapEventのupdateは行われず、明示的に呼び出すことに注意)
 ・Map#render、FixedMap#renderメソッドの追加(MapEventはrenderされず、明示的に呼び出すことに注意)
 ・Map#view_posメソッドを廃止、Map#marginメソッドを追加
@@ -986,6 +987,8 @@ v2.0.0(2009.2.20)
 ・Map#render_toメソッドの追加
 ・Map#render、Map#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
 ・Map#rect、Map#broad_rect、Map#to_sprite、Map#to_unitメソッドの追加
+・Map#get_amount、Map#get_amount_by_rect、FixedMap#get_amount_by_rectメソッドの引数変更
+・MapChipStructクラスの追加
 ・FixedMap#render_toメソッドの追加
 ・FixedMap#render、FixedMap#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
 ・FixedMap#rect、FixedMap#broad_rect、FixedMap#to_sprite、FixedMap#to_unitメソッドの追加
