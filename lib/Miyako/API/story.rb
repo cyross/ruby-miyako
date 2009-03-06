@@ -126,6 +126,7 @@ module Miyako
           n = u.update
           u.render
           if @fibers.first
+            raise MiyakoError, "Double over scene from root!" if n && @@over_scenes.include?(n.scene_type)
             @fibers.first.resume(true, 0)
           elsif n && @@over_scenes.include?(n.scene_type)
             @fibers.clear
