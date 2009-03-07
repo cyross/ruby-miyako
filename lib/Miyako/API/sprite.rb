@@ -195,7 +195,7 @@ module Miyako
     #値が画像の高さの範囲外(値がマイナス、画像の高さを超える値)のときは例外が発生する
     #_v_:: 表示開始位置。整数で指定
     def oy=(v)
-      raise MiyakoError, "Illegal ox parameter! : #{v}" if (v < 0 || (v+@unit.oh) > @h)
+      raise MiyakoError, "Illegal oy parameter! : #{v}" if (v < 0 || (v+@unit.oh) > @h)
       @unit.oy = v
     end
     

@@ -8,7 +8,7 @@ class EventOasis
   def init(map, x, y)
     # イベント用チップを取得
     @spr = Sprite.new({:filename => "map2.png", :type => :color_key})
-    @spr.ow = @spr.oh = @spr.oy = 32
+    @spr.oy = @spr.ow = @spr.oh = 32
     @spr.move_to(x, y)
     @coll = Collision.new([0, 0, @spr.ow, @spr.oh], [@spr.x, @spr.y])
     @margin = Size.new(0, 0)
