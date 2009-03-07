@@ -381,7 +381,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def and(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.blit_and!(src, self, dst)
+      raise MiyakoError, "illegal range!" unless Bitmap.blit_and!(src, self, dst)
       return dst
     end
 
@@ -392,7 +392,7 @@ module Miyako
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def and!(src)
-      Bitmap.blit_and!(src, self, self)
+      raise MiyakoError, "illegal range!" unless Bitmap.blit_and!(src, self, self)
       return self
     end
 
@@ -404,7 +404,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def or(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.blit_or!(src, self, dst)
+      raise MiyakoError, "illegal range!" unless Bitmap.blit_or!(src, self, dst)
       return dst
     end
 
@@ -415,7 +415,7 @@ module Miyako
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def or!(src)
-      Bitmap.blit_or!(src, self, self)
+      raise MiyakoError, "illegal range!" unless Bitmap.blit_or!(src, self, self)
       return self
     end
 
@@ -427,7 +427,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def xor(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.blit_xor!(src, self, dst)
+      raise MiyakoError, "illegal range!" unless Bitmap.blit_xor!(src, self, dst)
       return dst
     end
 
@@ -438,7 +438,7 @@ module Miyako
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def xor!(src)
-      Bitmap.blit_xor!(src, self, self)
+      raise MiyakoError, "illegal range!" unless Bitmap.blit_xor!(src, self, self)
       return self
     end
 
@@ -450,7 +450,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def dec_alpha(degree)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.dec_alpha!(self, dst, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.dec_alpha!(self, dst, degree)
       return dst
     end
 
@@ -461,7 +461,7 @@ module Miyako
     #_degree_:: 減少率。-1.0<=degree<=1.0までの実数
     #返却値:: 変更後の自分自身を返す
     def dec_alpha!(degree)
-      Bitmap.dec_alpha!(self, self, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.dec_alpha!(self, self, degree)
       return self
     end
 
@@ -473,7 +473,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def black_out(degree)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.black_out!(self, dst, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.black_out!(self, dst, degree)
       return dst
     end
 
@@ -484,7 +484,7 @@ module Miyako
     #_degree_:: 変化率。0.0<=degree<=1.0までの実数
     #返却値:: 変更後の自分自身を返す
     def black_out!(degree)
-      Bitmap.black_out!(self, self, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.black_out!(self, self, degree)
       return self
     end
 
@@ -496,7 +496,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def white_out(degree)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.white_out!(self, dst, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.white_out!(self, dst, degree)
       return dst
     end
 
@@ -507,7 +507,7 @@ module Miyako
     #_degree_:: 変化率。0.0<=degree<=1.0までの実数
     #返却値:: 変更後の自分自身を返す
     def white_out!(degree)
-      Bitmap.white_out!(self, self, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.white_out!(self, self, degree)
       return self
     end
 
@@ -516,7 +516,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def inverse
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.inverse!(self, dst)
+      raise MiyakoError, "illegal range!" unless Bitmap.inverse!(self, dst)
       return dst
     end
 
@@ -524,7 +524,7 @@ module Miyako
     #αチャネルの値は変更しない
     #返却値:: 変更後の自分自身を返す
     def inverse!
-      Bitmap.inverse!(self, self)
+      raise MiyakoError, "illegal range!" unless Bitmap.inverse!(self, self)
       return self
     end
 
@@ -535,7 +535,7 @@ module Miyako
     def additive(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
       self.render_to(dst)
-      Bitmap.additive!(src, dst)
+      raise MiyakoError, "illegal range!" unless Bitmap.additive!(src, dst)
       return dst
     end
 
@@ -544,7 +544,7 @@ module Miyako
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def additive!(src)
-      Bitmap.additive!(src, self)
+      raise MiyakoError, "illegal range!" unless Bitmap.additive!(src, self)
       return self
     end
 
@@ -555,7 +555,7 @@ module Miyako
     def subtraction(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
       self.render_to(dst)
-      Bitmap.subtraction!(src, dst)
+      raise MiyakoError, "illegal range!" unless Bitmap.subtraction!(src, dst)
       return dst
     end
 
@@ -564,7 +564,7 @@ module Miyako
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def subtraction!(src)
-      Bitmap.subtraction!(src, self)
+      raise MiyakoError, "illegal range!" unless Bitmap.subtraction!(src, self)
       return self
     end
 
@@ -573,7 +573,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def hue(degree)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.hue!(self, dst, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.hue!(self, dst, degree)
       return dst
     end
 
@@ -582,7 +582,7 @@ module Miyako
     #返却値:: 変更後の画像インスタンス
     #返却値:: 変更後の自分自身を返す
     def hue!(degree)
-      Bitmap.hue!(self, self, degree)
+      raise MiyakoError, "illegal range!" unless Bitmap.hue!(self, self, degree)
       return self
     end
 
@@ -591,7 +591,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def saturation(saturation)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.saturation!(self, dst, saturation)
+      raise MiyakoError, "illegal range!" unless Bitmap.saturation!(self, dst, saturation)
       return dst
     end
 
@@ -599,7 +599,7 @@ module Miyako
     #_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
     #返却値:: 変更後の自分自身を返す
     def saturation!(saturation)
-      Bitmap.saturation!(self, self, saturation)
+      raise MiyakoError, "illegal range!" unless Bitmap.saturation!(self, self, saturation)
       return self
     end
 
@@ -608,7 +608,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def value(value)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.value!(self, dst, value)
+      raise MiyakoError, "illegal range!" unless Bitmap.value!(self, dst, value)
       return dst
     end
 
@@ -616,7 +616,7 @@ module Miyako
     #_value_:: 明度の変更量。範囲は0.0〜1.0の実数
     #返却値:: 変更後の画像インスタンス
     def value!(value)
-      Bitmap.value!(self, self, value)
+      raise MiyakoError, "illegal range!" unless Bitmap.value!(self, self, value)
       return self
     end
 
@@ -627,7 +627,7 @@ module Miyako
     #返却値:: 変更後の新しい画像インスタンス
     def hsv(degree, saturation, value)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.hsv!(self, dst, degree, saturation, value)
+      raise MiyakoError, "illegal range!" unless Bitmap.hsv!(self, dst, degree, saturation, value)
       return dst
     end
 
@@ -637,7 +637,7 @@ module Miyako
     #_value_:: 明度の変更量。範囲は0.0〜1.0の実数
     #返却値:: 変更後の画像インスタンス
     def hsv!(degree, saturation, value)
-      Bitmap.hsv!(self, self, degree, saturation, value)
+      raise MiyakoError, "illegal range!" unless Bitmap.hsv!(self, self, degree, saturation, value)
       return self
     end
   end
