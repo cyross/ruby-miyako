@@ -355,23 +355,62 @@ module Miyako
       return self
     end
 
-    #===現在の位置、指定の大きさから、移動する方向・移動量・マップの移動許可などをもとに、最終的な移動量を求める
+    #===現在の位置が当たり判定に当たっているかどうかを問い合わせる
     #本メソッドでは、以下の情報をもとに移動量を取得する
-    #移動形式：第１引数(０以上の整数)
-    #マップの大きさ(pixel)：第２引数(Size構造体)
+    #レイヤー番号：第１引数(０以上の整数)
+    #移動形式：第２引数(０以上の整数)
+    #キャラクタの大きさ(pixel)：第３引数(Size構造体)
     #マップチップの大きさ(pixel)：Mapインスタンス生成時に設定したMapChipインスタンス
     #マップ上の位置：Mapインスタンス
-    #キャラクタの当たり判定、移動量：第３引数(Collisionクラスインスタンス)
+    #キャラクタの当たり判定：第４引数(Collisionクラスインスタンス)
+    #_layer_:: レイヤー番号(０以上の整数)
+    #_type_:: 移動形式(０以上の整数)
+    #_size_:: キャラクタの大きさ
+    #_collision_:: キャラクタのコリジョン情報(Collosionクラス)
+    #返却値:: マップチップの当たり判定に当たっていればtrueを返す
+    def collision?(layer, type, size, collision)
+      mc = @mapchips[layer]
+      mlayer = @map_layers[layer]
+      flag = false
+      collision.move_to(*@pos.to_a[0..1]){
+        px1, px2 = @pos[0] / mc.chip_size[0], (@pos[0]+size[0]-1) / mc.chip_size[0]
+        py1, py2 = @pos[1] / mc.chip_size[1], (@pos[1]+size[1]-1) / mc.chip_size[1]
+        (py1..py2).each{|py|
+          rpy = py * mc.chip_size[1]
+          (px1..px2).each{|px|
+            rpx = px * mc.chip_size[0]
+            code = mlayer.get_code(px, py)
+            next if code == -1 # not use chip
+            @coll = mc.collision_table[type][code]
+            @coll.pos.move_to(rpx, rpy){
+              atable = mc.access_table[type][code]
+              flag |= @coll.collision?(collision)
+            }
+          }
+        }
+      }
+      return flag
+    end
+
+    #===現在の位置、指定の大きさから、移動する方向・移動量・マップの移動許可などをもとに、最終的な移動量を求める
+    #本メソッドでは、以下の情報をもとに移動量を取得する
+    #レイヤー番号：第１引数(Size構造体)
+    #移動形式：第２引数(０以上の整数)
+    #マップの大きさ(pixel)：第３引数(Size構造体)
+    #マップチップの大きさ(pixel)：Mapインスタンス生成時に設定したMapChipインスタンス
+    #マップ上の位置：Mapインスタンス
+    #キャラクタの当たり判定、移動量：第４引数(Collisionクラスインスタンス)
     #移動量・キャラクタの
     #_layer_:: レイヤー番号(０以上の整数)
     #_type_:: 移動形式(０以上の整数)
-    #_size_:: マップの大きさ
+    #_size_:: キャラクタの大きさ
     #_collision_:: 移動するキャラクタのコリジョン情報(Collosionクラス)
     #返却値:: 許容できる移動量(MapMoveAmount構造体)
     def get_amount(layer, type, size, collision)
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
       mc = @mapchips[layer]
+      mlayer = @map_layers[layer]
       collision.move_to(*@pos.to_a[0..1]){
         dx, dy = collision.direction[0]*collision.amount[0], collision.direction[1]*collision.amount[1]
         px1, px2 = (@pos[0]+dx) / mc.chip_size[0], (@pos[0]+size[0]-1+dx) / mc.chip_size[0]
@@ -380,18 +419,16 @@ module Miyako
           rpy = py * mc.chip_size[1]
           (px1..px2).each{|px|
             rpx = px * mc.chip_size[0]
-            @map_layers.each_with_index{|ml, idx|
-              code = ml.get_code(px, py)
-              next if code == -1 # not use chip
-              @coll = mc.collision_table[type][code]
-              @coll.pos.move_to(rpx, rpy){
-                atable = mc.access_table[type][code]
-                if @coll.into?(collision)
-                  mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
-                  mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
-                  mma.collisions << [idx, code, :into]
-                end
-              }
+            code = mlayer.get_code(px, py)
+            next if code == -1 # not use chip
+            @coll = mc.collision_table[type][code]
+            @coll.pos.move_to(rpx, rpy){
+              atable = mc.access_table[type][code]
+              if @coll.into?(collision)
+                mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
+                mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
+                mma.collisions << [layer, code, :into]
+              end
             }
           }
         }
@@ -404,10 +441,11 @@ module Miyako
 
     #===現在の位置、指定の大きさから、移動する方向・移動量・マップの移動許可などをもとに、最終的な移動量を求める
     #本メソッドでは、以下の情報をもとに移動量を取得する
-    #移動形式：第１引数(０以上の整数)
-    #マップ上の位置、マップの大きさ(pixel)：第２引数(Rect構造体)
+    #レイヤー番号：第１引数(Size構造体)
+    #移動形式：第２引数(０以上の整数)
+    #キャラクタの位置(マップ上位置とは独立)、キャラクタの大きさ(pixel)：第３引数(Rect構造体)
     #マップチップの大きさ(pixel)：Mapインスタンス生成時に設定したMapChipインスタンス
-    #キャラクタの当たり判定、移動量：第３引数(Collisionクラスインスタンス)
+    #キャラクタの当たり判定、移動量：第４引数(Collisionクラスインスタンス)
     #_layer_:: レイヤー番号(０以上の整数)
     #_type_:: 移動タイプ(０以上の整数)
     #_rect_:: 位置・大きさを設定したRect構造体
@@ -417,6 +455,7 @@ module Miyako
       mma = MapMoveAmount.new([], collision.direction.dup)
       return mma if(mma.amount[0] == 0 && mma.amount[1] == 0)
       mc = @mapchips[layer]
+      mlayer = @map_layers[layer]
       dx, dy = collision.direction[0]*collision.amount[0], collision.direction[1]*collision.amount[1]
       x, y = rect.to_a[0..1]
       collision.pos.move_to(x, y){
@@ -426,18 +465,16 @@ module Miyako
           rpy = py * mc.chip_size[1]
           (px1..px2).each{|px|
             rpx = px * mc.chip_size[0]
-            @map_layers.each_with_index{|ml, idx|
-              code = ml.get_code(px, py)
-              next if code == -1 # not use chip
-              @coll = mc.collision_table[type][code]
-              @coll.pos.move_to(rpx, rpy){
-                atable = mc.access_table[type][code]
-                if @coll.into?(collision)
-                  mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
-                  mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
-                  mma.collisions << [idx, code, :into]
-                end
-              }
+            code = mlayer.get_code(px, py)
+            next if code == -1 # not use chip
+            @coll = mc.collision_table[type][code]
+            @coll.pos.move_to(rpx, rpy){
+              atable = mc.access_table[type][code]
+              if @coll.into?(collision)
+                mma.amount[0] = mma.amount[0] & atable[@@idx_ix[collision.direction[0]]]
+                mma.amount[1] = mma.amount[1] & atable[@@idx_iy[collision.direction[1]]]
+                mma.collisions << [layer, code, :into]
+              end
             }
           }
         }
