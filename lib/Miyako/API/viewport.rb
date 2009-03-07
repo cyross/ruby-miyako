@@ -59,9 +59,9 @@ module Miyako
       if block_given?
         rect = @rect.dup
         yield rect
-        Screen.screen.set_clip_rect(rect)
+        Screen.screen.set_clip_rect(rect.to_a)
       else
-        Screen.screen.set_clip_rect(@rect)
+        Screen.screen.set_clip_rect(@rect.to_a)
       end
     end
 
