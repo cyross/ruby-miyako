@@ -183,30 +183,38 @@ module Miyako
 
     #===画像の表示開始位置(X座標)を指定する
     #oxを指定すると、表示の左上位置が変更される。
+    #値が画像の幅の範囲外(値がマイナス、画像の幅を超える値)のときは例外が発生する
     #_v_:: 表示開始位置。整数で指定
     def ox=(v)
+      raise MiyakoError, "Illegal ox parameter! : #{v}" if (v < 0 || (v+@unit.ow) > @w)
       @unit.ox = v
     end
     
     #===画像の表示開始位置(Y座標)を指定する
     #oyを指定すると、表示の左上位置が変更される。
+    #値が画像の高さの範囲外(値がマイナス、画像の高さを超える値)のときは例外が発生する
     #_v_:: 表示開始位置。整数で指定
     def oy=(v)
+      raise MiyakoError, "Illegal ox parameter! : #{v}" if (v < 0 || (v+@unit.oh) > @h)
       @unit.oy = v
     end
     
     #===画像の表示幅を指定する
     #owを指定すると、横方向の一部のみ表示される。
+    #値が画像の幅の範囲外(値がマイナス、画像の幅を超える値)のときは例外が発生する
     #_v_:: 表示幅。整数で指定
     def ow=(v)
+      raise MiyakoError, "Illegal ox parameter! : #{v}" if (v < 0 || (@unit.ox+v) > @w)
       @unit.ow = v
       set_layout_size(v, @unit.oh)
     end
 
     #===画像の表示高を指定する
     #ohを指定すると、縦方向の一部のみ表示される。
+    #値が画像の高さの範囲外(値がマイナス、画像の高さを超える値)のときは例外が発生する
     #_v_:: 表示高。整数で指定
     def oh=(v)
+      raise MiyakoError, "Illegal ox parameter! : #{v}" if (v < 0 || (@unit.oy+v) > @h)
       @unit.oh = v
       set_layout_size(@unit.ow, v)
     end
@@ -240,8 +248,8 @@ module Miyako
     end
 
     #===画像の表示矩形を取得する
-    #画像が表示されているときの矩形を取得する。矩形は、[x,y,ow,oh]で取得する。
-    #返却値:: 生成された矩形
+    #画像が表示されているときの矩形(Rect構造体)を取得する
+    #返却値:: 生成された矩形(Rect構造体インスタンス)
     def rect
       return Rect.new(@unit.x, @unit.y, @unit.ow, @unit.oh)
     end
@@ -366,65 +374,71 @@ module Miyako
     end
 
     #===２つの画像のandを取り、別の画像へ転送する
+    #重ね合わせの式は、"src and self -> dst"で表される。自分自身と転送先画像は同じ大きさとなる。
     #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
     #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の新しい画像インスタンス
     def and(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.blit_and!(self, src, dst)
+      Bitmap.blit_and!(src, self, dst)
       return dst
     end
 
-    #===２つの画像のorを破壊的に行う
+    #===２つの画像のandを破壊的に行う
+    #重ね合わせの式は、"src and self -> self"で表される。
     #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
     #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def and!(src)
-      Bitmap.blit_and!(self, src, self)
+      Bitmap.blit_and!(src, self, self)
       return self
     end
 
     #===２つの画像のorを取り、別の画像へ転送する
+    #重ね合わせの式は、"src or self -> dst"で表される。自分自身と転送先画像は同じ大きさとなる。
     #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
     #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の新しい画像インスタンス
     def or(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.blit_or!(self, src, dst)
+      Bitmap.blit_or!(src, self, dst)
       return dst
     end
 
     #===２つの画像のorを破壊的に行う
+    #重ね合わせの式は、"src or self -> self"で表される。
     #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
     #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def or!(src)
-      Bitmap.blit_or!(self, src, self)
+      Bitmap.blit_or!(src, self, self)
       return self
     end
 
     #===２つの画像のxorを取り、別の画像へ転送する
+    #重ね合わせの式は、"src xor self -> dst"で表される。自分自身と転送先画像は同じ大きさとなる。
     #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
     #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の新しい画像インスタンス
     def xor(src)
       dst = Sprite.new(:size=>self.size, :type=>:ac)
-      Bitmap.blit_xor!(self, src, dst)
+      Bitmap.blit_xor!(src, self, dst)
       return dst
     end
 
     #===２つの画像のxorを破壊的に行う
+    #重ね合わせの式は、"src xor self -> self"で表される。
     #範囲は、インスタンス側とsrc側との(ow,oh)の小さい方の範囲で転送する。
     #src側の(x,y)をインスタンス側の起点として、src側の(ow,oh)の範囲で転送する。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 変更後の自分自身を返す
     def xor!(src)
-      Bitmap.blit_xor!(self, src, self)
+      Bitmap.blit_xor!(src, self, self)
       return self
     end
 

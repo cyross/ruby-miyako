@@ -864,6 +864,7 @@ v2.0.0(2009.2.20)
 ・Sprite#to_spriteメソッドの処理変更(selfを返す→複製して返す)
 ・Sprite#center_x,center_x=,center_y,center_y=メソッドの追加
 ・Sprite#broad_rectメソッドの追加
+・Sprite#ox=,oy=,ow=,oh=メソッドの修正(画像の幅・高さを超える設定をすると例外が発生)
 ・Sprite.newメソッドに:unitハッシュキーを追加(SpriteUnitから生成)
 ・Spriteクラスの各種画像変換メソッド(scale、rotate、transform)を廃止
 ・Animation.update_animationメソッドの戻り値仕様を変更(self→falseへ変更)

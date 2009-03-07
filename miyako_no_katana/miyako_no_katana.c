@@ -227,72 +227,29 @@ GLOBAL_DEFINE_GET_STRUCT(TTF_Font, Get_TTF_Font, cTTFFont, "SDL::TT::Font");
 	int dly = drect.y + y; \
 	int dmx = dlx + (srect.w < drect.w ? srect.w : drect.w); \
 	int dmy = dly + (srect.h < drect.h ? srect.h : drect.h); \
-	int rx = dst->clip_rect.x + dst->clip_rect.w; \
-	int ry = dst->clip_rect.y + dst->clip_rect.h; \
-	if(dmx > drect.w) dmx = drect.w; \
-	if(dmy > drect.h) dmy = drect.h; \
-	if(dlx < dst->clip_rect.x) \
-	{ \
-		srect.x += (dst->clip_rect.x - dlx); \
-		dlx = dst->clip_rect.x; \
-	} \
-	if(dly < dst->clip_rect.y) \
-	{ \
-		srect.y += (dst->clip_rect.y - dly); \
-		dly = dst->clip_rect.y; \
-	} \
-	if(dmx > rx){ dmx = rx; } \
-	if(dmy > ry){ dmy = ry; }
   
 #define MIYAKO_INIT_RECT2 \
 	int dlx = drect.x; \
 	int dly = drect.y; \
 	int dmx = dlx + drect.w; \
 	int dmy = dly + drect.h; \
-	int rx = dst->clip_rect.x + dst->clip_rect.w; \
-	int ry = dst->clip_rect.y + dst->clip_rect.h; \
-	if(dlx < dst->clip_rect.x) \
-	{ \
-		srect.x += (dst->clip_rect.x - dlx); \
-		dlx = dst->clip_rect.x; \
-	} \
-	if(dly < dst->clip_rect.y) \
-	{ \
-		srect.y += (dst->clip_rect.y - dly); \
-		dly = dst->clip_rect.y; \
-	} \
-	if(dmx > rx){ dmx = rx; } \
-	if(dmy > ry){ dmy = ry; }
 
 #define MIYAKO_INIT_RECT3 \
-	int dlx = drect.x + x1; \
-	int dly = drect.y + y1; \
+  if(s2rect.w != drect.w){ return Qnil; } \
+  if(s2rect.h != drect.h){ return Qnil; } \
+  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5)); \
+  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6)); \
+  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5)); \
+  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6)); \
+  if(s1rect.x < 0 || s1rect.y < 0 || s2rect.x < 0 || s2rect.y < 0){ return Qnil; } \
+  if(s1rect.w < s2rect.w && (x1+s1rect.x+s1rect.w > s2rect.w)){ return Qnil; } \
+  if(s2rect.w < s1rect.w && (x2+s2rect.x+s2rect.w > s1rect.w)){ return Qnil; } \
+  if(s1rect.h < s2rect.h && (y1+s1rect.y+s1rect.h > s2rect.h)){ return Qnil; } \
+  if(s2rect.h < s1rect.h && (y2+s2rect.y+s2rect.h > s1rect.h)){ return Qnil; } \
+	int dlx = drect.x; \
+	int dly = drect.y; \
 	int dmx = dlx + (s1rect.w < s2rect.w ? s1rect.w : s2rect.w); \
-	int dmy = dly + (s1rect.h < s2rect.h ? s2rect.h : s2rect.h); \
-  if(x2 + s2rect.w > s1rect.x + s1rect.w) \
-  { \
-    dmx -= x2 + s2rect.w - (s1rect.x + s1rect.w); \
-  } \
-  if(y2 + s2rect.h > s1rect.y + s1rect.h) \
-  { \
-    dmy -= y2 + s2rect.h - (s1rect.y + s1rect.h); \
-  } \
-	int rx = dst->clip_rect.x + dst->clip_rect.w; \
-	int ry = dst->clip_rect.y + dst->clip_rect.h; \
-	if(dlx < dst->clip_rect.x) \
-	{ \
-		s1rect.x += (dst->clip_rect.x - dlx); \
-		s2rect.x += (dst->clip_rect.x - dlx); \
-		dlx = dst->clip_rect.x; \
-	} \
-	if(dly < dst->clip_rect.y) \
-	{ \
-		s1rect.y += (dst->clip_rect.y - dly); \
-		s2rect.y += (dst->clip_rect.y - dly); \
-		dly = dst->clip_rect.y; \
-	} \
-	if(dmx > rx){ dmx = rx; } \
-	if(dmy > ry){ dmy = ry; }
+	int dmy = dly + (s1rect.h < s2rect.h ? s1rect.h : s2rect.h); \
   
 #define MIYAKO_PSET(XX,YY) \
         pixel = 0; \
@@ -318,17 +275,7 @@ GLOBAL_DEFINE_GET_STRUCT(TTF_Font, Get_TTF_Font, cTTFFont, "SDL::TT::Font");
         }
   
 /*
-===画像をαチャネル付き画像へ転送する
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。
-src==dstの場合、何も行わない
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
-_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
-返却値:: なし
+画像をαチャネル付き画像へ転送する
 */
 static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx, VALUE vy)
 {
@@ -395,24 +342,11 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===２つの画像のandを取り、別の画像へ転送する
-範囲は、src1側SpriteUnitとsrc2側との(ow,oh)の小さい方の範囲で転送する。
-src1とsrc2の合成は、src2側SpriteUnitの(x,y)をsrc1側の起点として、src2側SpriteUnitの(ow,oh)の範囲で転送する。
-dst側は、src1側SpriteUnitの(x,y)を起点に転送する。
-src1==src2の場合、何も行わない
-ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src1側SpriteUnit,src2側SpriteUnit,dst側SpriteUnit|となる。
-_src1_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_src2_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
-_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
-返却値:: なし
+２つの画像のandを取り、別の画像へ転送する
 */
 static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE vdst)
 {
@@ -444,10 +378,6 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	MIYAKO_SET_RECT(s2rect, s2unit);
 	MIYAKO_SET_RECT(drect, dunit);
 
-  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5));
-  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6));
-  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5));
-  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
   MIYAKO_INIT_RECT3;
 
 	SDL_LockSurface(src1);
@@ -455,10 +385,10 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	SDL_LockSurface(dst);
   
 	int px, py, sy1, sy2;
-	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y; py < dmy; py++, sy1++, sy2++)
+	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y + y1; py < dmy; py++, sy1++, sy2++)
 	{
     Uint32 *ppsrc1 = psrc1 + sy1 * src1->w + s1rect.x + x2;
-    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x;
+    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x + x1;
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
@@ -490,25 +420,12 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	SDL_UnlockSurface(src2);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 
 /*
-===２つの画像のorを取り、別の画像へ転送する
-範囲は、src1側SpriteUnitとsrc2側との(ow,oh)の小さい方の範囲で転送する。
-src1とsrc2の合成は、src2側SpriteUnitの(x,y)をsrc1側の起点として、src2側SpriteUnitの(ow,oh)の範囲で転送する。
-dst側は、src1側SpriteUnitの(x,y)を起点に転送する。
-src1==src2の場合、何も行わない
-ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src1側SpriteUnit,src2側SpriteUnit,dst側SpriteUnit|となる。
-_src1_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_src2_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
-_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
-返却値:: なし
+２つの画像のorを取り、別の画像へ転送する
 */
 static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE vdst)
 {
@@ -540,10 +457,6 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 	MIYAKO_SET_RECT(s2rect, s2unit);
 	MIYAKO_SET_RECT(drect, dunit);
 
-  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5));
-  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6));
-  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5));
-  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
   MIYAKO_INIT_RECT3;
 
   Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
@@ -553,10 +466,10 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 	SDL_LockSurface(dst);
   
 	int px, py, sy1, sy2;
-	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y; py < dmy; py++, sy1++, sy2++)
+	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y + y1; py < dmy; py++, sy1++, sy2++)
 	{
     Uint32 *ppsrc1 = psrc1 + sy1 * src1->w + s1rect.x + x2;
-    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x;
+    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x + x1;
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
@@ -588,25 +501,12 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE v
 	SDL_UnlockSurface(src2);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 
 /*
-===２つの画像のxorを取り、別の画像へ転送する
-範囲は、src1側SpriteUnitとsrc2側との(ow,oh)の小さい方の範囲で転送する。
-src1とsrc2の合成は、src2側SpriteUnitの(x,y)をsrc1側の起点として、src2側SpriteUnitの(ow,oh)の範囲で転送する。
-dst側は、src1側SpriteUnitの(x,y)を起点に転送する。
-src1==src2の場合、何も行わない
-ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src1側SpriteUnit,src2側SpriteUnit,dst側SpriteUnit|となる。
-_src1_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_src2_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_x_:: 転送先の転送開始位置(x方向・単位：ピクセル)
-_y_:: 転送先の転送開始位置(y方向・単位：ピクセル)
-返却値:: なし
+２つの画像のxorを取り、別の画像へ転送する
 */
 static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE vdst)
 {
@@ -638,10 +538,6 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	MIYAKO_SET_RECT(s2rect, s2unit);
 	MIYAKO_SET_RECT(drect, dunit);
 
-  int x1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 5));
-  int y1 = NUM2INT(*(RSTRUCT_PTR(s1unit) + 6));
-  int x2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 5));
-  int y2 = NUM2INT(*(RSTRUCT_PTR(s2unit) + 6));
   MIYAKO_INIT_RECT3;
 
   Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
@@ -651,10 +547,10 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	SDL_LockSurface(dst);
   
 	int px, py, sy1, sy2;
-	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y; py < dmy; py++, sy1++, sy2++)
+	for(py = dly, sy1 = s1rect.y + y2, sy2 = s2rect.y + y1; py < dmy; py++, sy1++, sy2++)
 	{
     Uint32 *ppsrc1 = psrc1 + sy1 * src1->w + s1rect.x + x2;
-    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x;
+    Uint32 *ppsrc2 = psrc2 + sy2 * src2->w + s2rect.x + x1;
     Uint32 *ppdst = pdst + py * dst->w + dlx;
 		for(px = dlx; px < dmx; px++)
 		{
@@ -686,21 +582,11 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc1, VALUE vsrc2, VALUE 
 	SDL_UnlockSurface(src2);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像をαチャネル付き画像へ転送する
-引数で渡ってきた特定の色に対して、α値をゼロにする画像を生成する
-src==dstの場合、何も行わずすぐに呼びだし元に戻る
-範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_color_key_:: 透明にしたい色(各要素がr,g,bに対応している整数の配列(0～255))
-返却値:: なし
+画像をαチャネル付き画像へ転送する
 */
 static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst, VALUE vcolor_key)
 {
@@ -749,19 +635,11 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像のαチャネルを255に拡張する
-αチャネルの値を255に拡張する(α値をリセットする)
-範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: なし
+画像のαチャネルを255に拡張する
 */
 static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
 {
@@ -801,19 +679,11 @@ static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像をαチャネル付き画像へ変換する
-２４ビット画像(αチャネルがゼロの画像)に対して、すべてのα値を255にする画像を生成する
-範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: なし
+画像をαチャネル付き画像へ変換する
 */
 static VALUE bitmap_miyako_normal_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
 {
@@ -853,21 +723,11 @@ static VALUE bitmap_miyako_normal_to_alphachannel(VALUE self, VALUE vsrc, VALUE 
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画面(αチャネル無し32bit画像)をαチャネル付き画像へ転送する
-α値がゼロの画像から、α値を255にする画像を生成する
-src==dstの場合、何も行わずすぐに呼びだし元に戻る
-範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_color_key_:: 透明にしたい色(各要素がr,g,bに対応している整数の配列(0～255))
-返却値:: なし
+画面(αチャネル無し32bit画像)をαチャネル付き画像へ転送する
 */
 static VALUE bitmap_miyako_screen_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
 {
@@ -909,24 +769,11 @@ static VALUE bitmap_miyako_screen_to_alphachannel(VALUE self, VALUE vsrc, VALUE 
 	SDL_UnlockSurface(src);
 	SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像のαチャネルの値を一定の割合で変化させて転送する
-degreeの値が1.0に近づけば近づくほど透明に近づき、
-degreeの値が-1.0に近づけば近づくほど不透明に近づく(値が-1.0のときは完全不透明、値が0.0のときは変化なし、1.0のときは完全に透明になる)
-但し、元々αの値がゼロの時は変化しない
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_degree_:: 減少率。-1.0<=degree<=1.0までの実数
+画像のαチャネルの値を一定の割合で変化させて転送する
 */
 static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
@@ -1012,24 +859,11 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     SDL_UnlockSurface(src);
   }
 
-	return Qnil;
+	return vdst;
 }
 
 /*
-===画像の色を一定の割合で黒に近づける(ブラックアウト)
-赤・青・緑・αの各要素を一定の割合で下げ、黒色に近づける。
-degreeの値が1.0に近づけば近づくほど黒色に近づく(値が0.0のときは変化なし、1.0のときは真っ黒になる)
-αの値が0のときは変わらないことに注意！
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_degree_:: 変化率。0.0<=degree<=1.0までの実数
+画像の色を一定の割合で黒に近づける(ブラックアウト)
 */
 static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
@@ -1130,24 +964,11 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     SDL_UnlockSurface(src);
   }
 
-	return Qnil;
+	return vdst;
 }
 
 /*
-===画像の色を一定の割合で白に近づける(ホワイトアウト)
-赤・青・緑・αの各要素を一定の割合で上げ、白色に近づける。
-degreeの値が1.0に近づけば近づくほど白色に近づく(値が0.0のときは変化なし、1.0のときは真っ白になる)
-αの値が0のときは変わらないことに注意！
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_degree_:: 変化率。0.0<=degree<=1.0までの実数
+画像の色を一定の割合で白に近づける(ホワイトアウト)
 */
 static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
@@ -1247,21 +1068,11 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     SDL_UnlockSurface(src);
   }
 
-	return Qnil;
+	return vdst;
 }
 
 /*
-===画像のRGB値を反転させる
-αチャネルの値は変更しない
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+画像のRGB値を反転させる
 */
 static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 {
@@ -1337,17 +1148,11 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
     SDL_UnlockSurface(src);
   }
 
-	return Qnil;
+	return vdst;
 }
 
 /*
-===2枚の画像の加算合成を行う
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+2枚の画像の加算合成を行う
 */
 static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst)
 {
@@ -1402,38 +1207,22 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 	
-	return Qnil;
+	return vdst;
 }
 
 /*
-===2枚の画像の減算合成を行う
-範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+2枚の画像の減算合成を行う
 */
 static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE dst)
 {
   bitmap_miyako_inverse(self, dst, dst);
   bitmap_miyako_additive_synthesis(self, src, dst);
   bitmap_miyako_inverse(self, dst, dst);
-  return Qnil;
+  return dst;
 }
 
 /*
-===画像を回転させて貼り付ける
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
-転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度が正だと右回り、負だと左回りに回転する
-src==dstの場合、何も行わない
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
+画像を回転させて貼り付ける
 */
 static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radian)
 {
@@ -1508,23 +1297,11 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 	
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像を拡大・縮小・鏡像(ミラー反転)させて貼り付ける
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
-転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
-度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
-但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
-src==dstの場合、何も行わない
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_xscale_:: 拡大率(x方向)
-_yscale_:: 拡大率(y方向)
+画像を拡大・縮小・鏡像(ミラー反転)させて貼り付ける
 */
 static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscale, VALUE yscale)
 {
@@ -1606,7 +1383,7 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
   SDL_UnlockSurface(src);
   SDL_UnlockSurface(dst);
 
-  return Qnil;
+  return vdst;
 }
 
 /*
@@ -1699,29 +1476,13 @@ static void transform_inner(VALUE sunit, VALUE dunit, VALUE radian, VALUE xscale
 }
 
 /*
-===画像を変形(回転・拡大・縮小・鏡像)させて貼り付ける
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
-転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度は、src側SpriteUnitのangleを使用する
-回転角度が正だと右回り、負だと左回りに回転する
-変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
-度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
-但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
-src==dstの場合、何も行わない
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
-_xscale_:: 拡大率(x方向)
-_yscale_:: 拡大率(y方向)
+画像を変形(回転・拡大・縮小・鏡像)させて貼り付ける
 */
 static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, vdst, sunit, dunit);
   transform_inner(sunit, dunit, radian, xscale, yscale);
-  return Qnil;
+  return vdst;
 }
 
 #define MIYAKO_RGB2HSV(RGBSTRUCT, HSVH, HSVS, HSVV) \
@@ -1776,17 +1537,7 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst, VALUE r
   }
 
 /*
-===画像の色相を変更する
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
-返却値:: 変更後の画像インスタンス
+画像の色相を変更する
 */
 static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
@@ -1883,20 +1634,11 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
     SDL_UnlockSurface(src);
   }
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像の彩度を変更する
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
+画像の彩度を変更する
 */
 static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE saturation)
 {
@@ -1990,21 +1732,11 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
     SDL_UnlockSurface(src);
   }
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像の明度を変更する
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_value_:: 明度の変更量。範囲は0.0〜1.0の実数
-返却値:: 変更後の画像インスタンス
+画像の明度を変更する
 */
 static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value)
 {
@@ -2098,23 +1830,11 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
     SDL_UnlockSurface(src);
   }
 
-  return Qnil;
+  return vdst;
 }
 
 /*
-===画像の色相・彩度・明度を変更する
-範囲は、srcの(ow,oh)の範囲で転送する。転送先の描画開始位置は、srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
-src == dst : 元の画像を変換した画像に置き換える
-src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_degree_:: 色相の変更量。単位は度(実数)。範囲は、-360.0<degree<360.0
-_saturation_:: 彩度の変更量。範囲は0.0〜1.0の実数
-_value_:: 明度の変更量。範囲は0.0〜1.0の実数
-返却値:: 変更後の画像インスタンス
+画像の色相・彩度・明度を変更する
 */
 static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree, VALUE saturation, VALUE value)
 {
@@ -2225,7 +1945,7 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
     SDL_UnlockSurface(src);
   }
 
-  return Qnil;
+  return vdst;
 }
 
 /*
@@ -2320,15 +2040,7 @@ static void render_inner(VALUE sunit, VALUE dunit)
 }
 
 /*
-===インスタンスの内容を別のインスタンスに描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-ブロックの引数は、|転送元のSpriteUnit,転送先のSpriteUnit|となる。
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+インスタンスの内容を別のインスタンスに描画する
 */
 static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 {
@@ -2338,12 +2050,7 @@ static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 }
 
 /*
-===インスタンスの内容を画面に描画する
-現在の画像を、現在の状態で描画するよう指示する
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
-返却値:: 自分自身を返す
+インスタンスの内容を画面に描画する
 */
 static VALUE sprite_render(VALUE self)
 {
@@ -2355,14 +2062,7 @@ static VALUE sprite_render(VALUE self)
 }
 
 /*
-===インスタンスの内容を別のインスタンスに描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+インスタンスの内容を別のインスタンスに描画する
 */
 static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -2374,20 +2074,7 @@ static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
-===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度が正だと右回り、負だと左回りに回転する
-変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
-度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
-また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
-返却値:: 自分自身を返す
-_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
-_xscale_:: 拡大率(x方向)
-_yscale_:: 拡大率(y方向)
+インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
 */
 static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VALUE yscale)
 {
@@ -2399,21 +2086,7 @@ static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VAL
 }
 
 /*
-===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、画面側SpriteUnitの(cx,cy)が中心になるように設定にする。
-回転角度が正だと右回り、負だと左回りに回転する
-変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
-度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
-また、変形元の幅・高さのいずれかが32768以上の時は回転・転送を行わない
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-_radian_:: 回転角度。単位はラジアン。値の範囲は0<=radian<2pi
-_xscale_:: 拡大率(x方向)
-_yscale_:: 拡大率(y方向)
-返却値:: 自分自身を返す
+インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
 */
 static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
@@ -2491,8 +2164,7 @@ static VALUE screen_pre_render(VALUE self)
 }
 
 /*
-===画面を更新する
-画面に画像を貼り付けた時は、実際の描画領域は隠れているため、このメソッドを呼び出して、実際の画面表示に反映させる。
+画面を更新する
 */
 static VALUE screen_render(VALUE self)
 {
@@ -2535,14 +2207,7 @@ static VALUE screen_render(VALUE self)
 }
 
 /*
-===インスタンスの内容を画面に描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit,画面のSpriteUnit|となる。
-_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+インスタンスの内容を画面に描画する
 */
 static VALUE screen_render_screen(VALUE self, VALUE vsrc)
 {
@@ -2833,12 +2498,7 @@ static void fixedmaplayer_render_to_inner(VALUE self, VALUE dunit)
 }
 
 /*
-===マップレイヤーを画面に描画する
-転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|画面のSpriteUnit|となる。
-返却値:: 自分自身を返す
+マップレイヤーを画面に描画する
 */
 static VALUE maplayer_render(VALUE self)
 {
@@ -2850,12 +2510,7 @@ static VALUE maplayer_render(VALUE self)
 }
 
 /*
-===マップレイヤーを画面に描画する
-すべてのマップチップを画面に描画する
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|画面のSpriteUnit|となる。
-返却値:: 自分自身を返す
+マップレイヤーを画面に描画する
 */
 static VALUE fixedmaplayer_render(VALUE self)
 {
@@ -2867,13 +2522,7 @@ static VALUE fixedmaplayer_render(VALUE self)
 }
 
 /*
-===マップレイヤーを画像に転送する
-転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+マップレイヤーを画像に転送する
 */
 static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -2885,13 +2534,7 @@ static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
-===マップレイヤーを画像に転送する
-すべてのマップチップを画像に描画する
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+マップレイヤーを画像に転送する
 */
 static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -2903,14 +2546,7 @@ static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
-===マップを画面に描画する
-転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
-各レイヤ－を、レイヤーインデックス番号の若い順に描画する
-但し、マップイベントは描画しない
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|画面のSpriteUnit|となる。
-返却値:: 自分自身を返す
+マップを画面に描画する
 */
 static VALUE map_render(VALUE self)
 {
@@ -2927,14 +2563,7 @@ static VALUE map_render(VALUE self)
 }
 
 /*
-===マップを画面に描画する
-すべてのマップチップを画面に描画する
-各レイヤ－を、レイヤーインデックス番号の若い順に描画する
-但し、マップイベントは描画しない
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|画面のSpriteUnit|となる。
-返却値:: 自分自身を返す
+マップを画面に描画する
 */
 static VALUE fixedmap_render(VALUE self)
 {
@@ -2951,15 +2580,7 @@ static VALUE fixedmap_render(VALUE self)
 }
 
 /*
-===マップを画像に描画する
-転送する画像は、マップ上のから(-margin.x, -margin.y)(単位：ピクセル)の位置に対応するチップを左上にして描画する
-各レイヤ－を、レイヤーインデックス番号の若い順に描画する
-但し、マップイベントは描画しない
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+マップを画像に描画する
 */
 static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -2977,15 +2598,7 @@ static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
-===マップを画像に描画する
-すべてのマップチップを画像に描画する
-各レイヤ－を、レイヤーインデックス番号の若い順に描画する
-但し、マップイベントは描画しない
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-返却値:: 自分自身を返す
+マップを画像に描画する
 */
 static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -3100,12 +2713,7 @@ static VALUE sa_update(VALUE self)
 }
 
 /*
-===アニメーションの現在の画像を画面に描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit|となる。
+アニメーションの現在の画像を画面に描画する
 */
 static VALUE sa_render(VALUE self)
 {
@@ -3144,13 +2752,7 @@ static VALUE sa_render(VALUE self)
 }
 
 /*
-===アニメーションの現在の画像を画像に描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
-転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+アニメーションの現在の画像を画像に描画する
 */
 static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -3189,9 +2791,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
-===プレーンを画面に描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
+プレーンを画面に描画する
 */
 static VALUE plane_render(VALUE self)
 {
@@ -3232,10 +2832,7 @@ static VALUE plane_render(VALUE self)
 }
 
 /*
-===プレーンを画像に描画する
-転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点にする。
-転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+プレーンを画像に描画する
 */
 static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 {
@@ -3276,13 +2873,7 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
-===パーツを画面に描画する
-各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
-画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、各パーツを貼り付ける。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|パーツのSpriteUnit|となる。
-デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
+パーツを画面に描画する
 */
 static VALUE parts_render(VALUE self)
 {
@@ -3302,14 +2893,7 @@ static VALUE parts_render(VALUE self)
 }
 
 /*
-===パーツを画面に描画する
-各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
-転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
-ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-ブロックの引数は、|パーツのSpriteUnit|となる。
-デフォルトでは、描画順は登録順となる。順番を変更したいときは、render_toメソッドをオーバーライドする必要がある
-_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+パーツを画面に描画する
 */
 static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
 {
