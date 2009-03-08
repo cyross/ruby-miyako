@@ -196,7 +196,7 @@ module Miyako
 
       tmp = layer_data.shift # 空行の空読み込み
 
-      layer_size = Size.new(*(tmp.map{|v| v.to_i}))
+      layer_size = Size.new(*(tmp[0..1].map{|v| v.to_i}))
       @w = layer_size.w
       @h = layer_size.h
       
