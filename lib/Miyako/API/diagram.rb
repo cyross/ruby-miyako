@@ -188,9 +188,9 @@ module Miyako
     end
 
     #==遷移図クラス本体
-    #但し、実質的にメソッドを呼び出すのはDiagramFacadeクラスから呼び出す
+    #但し、実質的にメソッドを呼び出すのはManagerクラスから呼び出す
     class DiagramBody
-      attr_reader :name #:nodoc:
+      attr_reader :name, :node #:nodoc:
       TRIGGER_TYPES=[:immediate, :next]
 
       def initialize(name, body, trigger = nil) #:nodoc:
@@ -361,7 +361,7 @@ module Miyako
       end
 
       def now_node #:nodoc:
-        return @ptr
+        return @ptr ? @ptr.node : nil
       end
 
       def nodes
