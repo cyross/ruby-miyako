@@ -32,7 +32,7 @@ module Miyako
     @@idx_iy = [-1, 0, 6]
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
-    attr_reader :name, :map_layers, :pos, :w, :h
+    attr_reader :name, :map_layers, :pos, :size, :w, :h
 
     #==あとで書く
     class FixedMapLayer #:nodoc: all
@@ -168,9 +168,9 @@ module Miyako
 
       tmp = layer_data.shift # 空行の空読み込み
 
-      layer_size = Size.new(tmp[0].to_i, tmp[1].to_i)
-      @w = layer_size.w * @mapchips.first.chip_size.w
-      @h = layer_size.h * @mapchips.first.chip_size.h
+      @size = Size.new(tmp[0].to_i, tmp[1].to_i)
+      @w = @size.w * @mapchips.first.chip_size.w
+      @h = @size.h * @mapchips.first.chip_size.h
 
       layers = layer_data.shift[0].to_i
 
@@ -183,7 +183,7 @@ module Miyako
           name = /\<(\d+)\>/.match(name).to_a[1].to_i
         end
         values = []
-        layer_size.h.times{|y|
+        @size.h.times{|y|
           values << layer_data.shift.map{|m| m.to_i}
         }
         brlist[name] = values
@@ -207,7 +207,7 @@ module Miyako
       @map_layers = []
       layers.times{|i|
         br = brlist[i].map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
-        @map_layers.push(FixedMapLayer.new(mc.next, br, layer_size, pos))
+        @map_layers.push(FixedMapLayer.new(mc.next, br, @size, pos))
       }
       set_layout_size(@w, @h)
     end

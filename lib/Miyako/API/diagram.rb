@@ -299,6 +299,8 @@ module Miyako
       end
 
       #===遷移図にノードを追加する
+      #状態遷移図のノードに対応するオブジェクト(NodeBaseモジュールをmixinしたクラス)を登録する
+      #名前が重複している場合は、後に登録したノードが採用される。
       #_name_:: ノード名。文字列かシンボルを使用
       #_body_:: ノード本体。DiagramNodeBase モジュールを mixin したクラスのインスタンス
       #_trigger_:: NodeTriggerBase モジュールを mixin したクラスのインスタンス。デフォルトは NpdeTrogger クラスのインスタンス
@@ -310,8 +312,15 @@ module Miyako
       end
 
       #===ノード間移動のアローを追加する
-      #trigger のブロックを実行した結果、true のときは、to_name で示したノードへ移動する。
-      #false のときは、ノード間移動をせずに直前に実行したノードを再実行する
+      #移動元ノードと移動先ノードの名前を指定し、条件にかなえばノードを移動する矢印を設定する。
+      #Processor#updateメソッドを呼び出した時、移動条件を確認して移動するかどうかを判断する。
+      #デフォルトでは、ノードのfinish?メソッドがtrueのときにto_nameで示したノードへ移動する。
+      #結果がfalse のときは、from_nameで示したノードを継続して使用する(stopメソッドは呼ばれない)。
+      #また、引数が一つのブロックを渡すことができる。
+      #引数には、現在評価中のノード(from_nameで示したノードのインスタンス)が渡される。
+      #評価の結果、true のときは、to_name で示したノードへ移動する。
+      #結果がfalse のときは、from_nameで示したノードを継続して使用する(stopメソッドは呼ばれない)。
+      #同じ移動元のアローが複数登録されているときは、先に登録したノードの移動条件を確認する。
       #_from_name_:: 移動元ノード名。文字列かシンボルを使用
       #_to_name_:: 移動先ノード名。文字列かシンボルを使用
       #_trigger_:: ノード間移動するかどうかを返すブロック。ブロックは引数を一つ取る(from_name で示したノードのインスタンス)
@@ -345,14 +354,18 @@ module Miyako
         @ptr = @first
       end
 
-      def now #:nodoc
+      def now #:nodoc:
         return @ptr ? @ptr.name : nil
       end
 
-      def now_node #:nodoc
+      def now_node #:nodoc:
         return @ptr
       end
 
+      def nodes
+        return @name2idx.keys
+      end
+      
       def start #:nodoc:
         @ptr = @first unless @ptr
         return unless @ptr
@@ -532,6 +545,12 @@ module Miyako
       #返却値:: ノードのインスタンス
       def now_node
         return @diagram.now_node
+      end
+
+      #===登録しているノード名のリストを取得する
+      #返却値:: ノード名リスト
+      def nodes
+        return @diagram.nodes
       end
     end
   end
