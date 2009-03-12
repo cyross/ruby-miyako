@@ -65,12 +65,14 @@ module Miyako
       #===ノードでの入力デバイス処理を実装する
       #入力デバイス処理が必要ないときは、本メソッドを実装する必要はない
       #Processor#update_input メソッドが呼ばれたときの処理を実装する
-      def update_input
+      #_params_:: Processor::update_inputメソッドが呼ばれた時のパラメータ群。オーバーライドするときに省略可能
+      def update_input(*params)
       end
     
       #===ノードでの更新処理を実装する
       #Processor#update メソッドが呼ばれたときの処理を実装する
-      def update
+      #_params_:: Processor::updateメソッドが呼ばれた時のパラメータ群。オーバーライドするときに省略可能
+      def update(*params)
       end
 
       #===ノードでの入力デバイス処理の後始末を実装する
@@ -221,13 +223,13 @@ module Miyako
         @node.resume
       end
 
-      def update_input #:nodoc:
-        @node.update_input
+      def update_input(*params) #:nodoc:
+        @node.update_input(*params)
       end
     
-      def update #:nodoc:
+      def update(*params) #:nodoc:
         if @trigger.update?
-          @node.update
+          @node.update(*params)
           @trigger.post_update
           @node.reset_input
           if @next_trigger
@@ -387,13 +389,13 @@ module Miyako
         @ptr.resume if @ptr
       end
 
-      def update_input #:nodoc:
-        @ptr.update_input if @ptr
+      def update_input(*params) #:nodoc:
+        @ptr.update_input(*params) if @ptr
       end
     
-      def update #:nodoc:
+      def update(*params) #:nodoc:
         return unless @ptr
-        @ptr.update
+        @ptr.update(*params)
         nxt = @ptr.go_next
         unless @ptr.equal?(nxt)
           @ptr.stop
@@ -488,16 +490,18 @@ module Miyako
 
       #===入力デバイスに関わる処理を行う
       #現在処理中のノードのupdate_inputメソッドを呼び出す。
-      def update_input
+      #_params_:: パラメータ群。省略可能
+      def update_input(*params)
         return if @states[:pause]
-        @diagram.update_input
+        @diagram.update_input(*params)
       end
     
       #===処理の更新を行う
       #現在処理中のノードupdateメソッドを呼び出す。
-      def update
+      #_params_:: パラメータ群。省略可能
+      def update(*params)
         return if @states[:pause]
-        @diagram.update
+        @diagram.update(*params)
         @states[:execute] = false if @diagram.finish?
       end
     
