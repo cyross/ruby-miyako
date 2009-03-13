@@ -3280,50 +3280,12 @@ static VALUE processor_mainloop(VALUE self)
   return self;
 }
 
-static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
-{
-  VALUE *off = RSTRUCT_PTR(*(RSTRUCT_PTR(rb_iv_get(self, "@layout")) + 3));
-  VALUE *pox = off+0;
-  VALUE *poy = off+1;
-  VALUE tx = *pox;
-  VALUE ty = *poy;
-  *pox = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
-  *poy = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
-  layout_calc_layout(self);
-  if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
-    *pox = tx;
-    *poy = ty;
-    layout_calc_layout(self);
-  }
-  return Qnil;
-}
-
-static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
-{
-  VALUE *layout = RSTRUCT_PTR(rb_iv_get(self, "@layout"));
-  VALUE *off = RSTRUCT_PTR(*(layout + 3));
-  VALUE *pos = RSTRUCT_PTR(*(layout + 0));
-  VALUE tx = *(off+0);
-  VALUE ty = *(off+1);
-  *(off+0) = INT2NUM(NUM2INT(tx)+NUM2INT(x)-NUM2INT(*(pos+0)));
-  *(off+1) = INT2NUM(NUM2INT(ty)+NUM2INT(y)-NUM2INT(*(pos+1)));
-  layout_calc_layout(self);
-  if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
-    *(off+0) = tx;
-    *(off+1) = ty;
-    layout_calc_layout(self);
-  }
-  return Qnil;
-}
 
 static VALUE layout_calc_layout(VALUE self)
 {
   VALUE layout   = rb_iv_get(self, "@layout");
   VALUE pos     = *(RSTRUCT_PTR(layout)+0);
-  VALUE loc     = *(RSTRUCT_PTR(layout)+10);
-  VALUE off     = *(RSTRUCT_PTR(layout)+3);
+  VALUE loc     = *(RSTRUCT_PTR(layout)+8);
   VALUE *base   = RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+2));
   
   VALUE old_pos_x = *(RSTRUCT_PTR(pos)+0);
@@ -3333,16 +3295,13 @@ static VALUE layout_calc_layout(VALUE self)
   rb_ary_push(arg1, nZero);
   if(*(base+2) == Qnil){ rb_ary_push(arg1, *(RSTRUCT_PTR(rb_iv_get(mScreen, "@@size"))+0)); }
   else{ rb_ary_push(arg1, *(base+2)); }
-  VALUE lx = rb_proc_call(*(RARRAY_PTR(loc)+0), arg1);
+  VALUE new_pos_x = rb_proc_call(*(RARRAY_PTR(loc)+0), arg1);
 
   VALUE arg2 = rb_ary_new();
   rb_ary_push(arg2, nOne);
   if(*(base+3) == Qnil){ rb_ary_push(arg2, *(RSTRUCT_PTR(rb_iv_get(mScreen, "@@size"))+1)); }
   else{ rb_ary_push(arg2, *(base+3)); }
-  VALUE ly = rb_proc_call(*(RARRAY_PTR(loc)+1), arg2);
-
-  VALUE new_pos_x = INT2NUM(NUM2INT(lx)+NUM2INT(*(RSTRUCT_PTR(off)+0)));
-  VALUE new_pos_y = INT2NUM(NUM2INT(ly)+NUM2INT(*(RSTRUCT_PTR(off)+1)));
+  VALUE new_pos_y = rb_proc_call(*(RARRAY_PTR(loc)+1), arg2);
 
   if(old_pos_x == new_pos_x && old_pos_y == new_pos_y){ return Qnil; }
 
@@ -3351,7 +3310,7 @@ static VALUE layout_calc_layout(VALUE self)
   
   rb_funcall(self, rb_intern("update_layout_position"), 0);
 
-  VALUE snap     = *(RSTRUCT_PTR(layout)+4);
+  VALUE snap     = *(RSTRUCT_PTR(layout)+3);
   VALUE children = *(RSTRUCT_PTR(snap)+1);
   int i;
   for(i=0; i<RARRAY_LEN(children); i++)
@@ -3361,10 +3320,62 @@ static VALUE layout_calc_layout(VALUE self)
   return Qnil;
 }
 
+static VALUE layout_update_layout(VALUE self)
+{
+  rb_funcall(self, rb_intern("update_layout_position"), 0);
+  VALUE layout   = rb_iv_get(self, "@layout");
+  VALUE snap     = *(RSTRUCT_PTR(layout)+3);
+  VALUE children = *(RSTRUCT_PTR(snap)+1);
+  int i;
+  for(i=0; i<RARRAY_LEN(children); i++)
+  {
+    layout_snap(0, NULL, *(RARRAY_PTR(children) + i));
+  }
+  return Qnil;
+}
+
+static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
+{
+  VALUE *pos = RSTRUCT_PTR(*(RSTRUCT_PTR(rb_iv_get(self, "@layout"))));
+  VALUE *pox = pos+0;
+  VALUE *poy = pos+1;
+  VALUE tx = *pox;
+  VALUE ty = *poy;
+  *pox = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
+  *poy = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
+  layout_update_layout(self);
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pox = tx;
+    *poy = ty;
+    layout_update_layout(self);
+  }
+  return Qnil;
+}
+
+static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
+{
+  VALUE *pos = RSTRUCT_PTR(*(RSTRUCT_PTR(rb_iv_get(self, "@layout"))));
+  VALUE *pox = pos+0;
+  VALUE *poy = pos+1;
+  VALUE tx = *pox;
+  VALUE ty = *poy;
+  *pox = x;
+  *poy = y;
+  layout_update_layout(self);
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(Qnil);
+    *pox = tx;
+    *poy = ty;
+    layout_update_layout(self);
+  }
+  return Qnil;
+}
+
 static VALUE layout_add_snap_child(VALUE self, VALUE spr)
 {
   VALUE layout   = rb_iv_get(self, "@layout");
-  VALUE snap     = *(RSTRUCT_PTR(layout)+4);
+  VALUE snap     = *(RSTRUCT_PTR(layout)+3);
   VALUE children = *(RSTRUCT_PTR(snap)+1);
   if(rb_ary_includes(children, spr)==Qfalse){ rb_ary_push(children, spr); }
   layout_calc_layout(self);
@@ -3374,7 +3385,7 @@ static VALUE layout_add_snap_child(VALUE self, VALUE spr)
 static VALUE layout_delete_snap_child(VALUE self, VALUE spr)
 {
   VALUE layout   = rb_iv_get(self, "@layout");
-  VALUE snap     = *(RSTRUCT_PTR(layout)+4);
+  VALUE snap     = *(RSTRUCT_PTR(layout)+3);
   VALUE children = *(RSTRUCT_PTR(snap)+1);
   if(TYPE(spr) == T_ARRAY)
   {
@@ -3394,7 +3405,7 @@ static VALUE layout_snap(int argc, VALUE *argv, VALUE self)
   VALUE spr = Qnil;
   rb_scan_args(argc, argv, "01", &spr);
   VALUE layout = rb_iv_get(self, "@layout");
-  VALUE snap   = *(RSTRUCT_PTR(layout)+4);
+  VALUE snap   = *(RSTRUCT_PTR(layout)+3);
   VALUE *sprite = RSTRUCT_PTR(snap);
   if(spr != Qnil)
   {
@@ -3913,6 +3924,7 @@ void Init_miyako_no_katana()
 	rb_define_method(mLayout, "move", layout_move, 2);
 	rb_define_method(mLayout, "move_to", layout_move_to, 2);
 	rb_define_method(mLayout, "calc_layout", layout_calc_layout, 0);
+	rb_define_method(mLayout, "update_layout", layout_update_layout, 0);
 	rb_define_method(mLayout, "snap", layout_snap, -1);
 	rb_define_method(mLayout, "add_snap_child", layout_add_snap_child, 1);
 	rb_define_method(mLayout, "delete_snap_child", layout_delete_snap_child, 1);

@@ -49,7 +49,7 @@ end
 module Miyako
 
   #==レイアウト情報を示す構造体
-  LayoutStruct = Struct.new(:pos, :size, :base, :off, :snap, :zero, :margin, :lower, :middle, :upper, :loc)
+  LayoutStruct = Struct.new(:pos, :size, :base, :snap, :margin, :lower, :middle, :upper, :loc)
   #==スナップ構造体
   LayoutSnapStruct = Struct.new(:sprite, :children)
   #==レイアウト表示位置ラムダ構造体
@@ -64,6 +64,8 @@ module Miyako
   #なお、本モジュールをmixinした場合は、インスタンス変数 @layout が予約される。
   #@layoutへのユーザアクセスは参照のみ許される。
   module Layout
+		ZeroLambda = lambda{|data| 0}
+	
     #===現在の位置情報を別のインスタンス変数に反映させるためのテンプレートメソッド
     #move や centering などのメソッドを呼び出した際に@layout［:pos］の値を反映させるときに使う
     #(例)@sprite.move(*@layout［:pos］)
@@ -77,23 +79,21 @@ module Miyako
       @layout.pos     = Point.new(0, 0)
       @layout.size    = Size.new(0, 0)
       @layout.base    = Rect.new(0, 0, nil, nil)
-      @layout.off     = Point.new(0, 0)
       @layout.snap   = LayoutSnapStruct.new(nil, Array.new)
-      @layout.zero   = lambda{|data| 0 }
-      @layout.margin  = [@layout.zero,   @layout.zero]
+      @layout.margin  = [ZeroLambda, ZeroLambda]
 
-      @layout.lower               = LayoutSideStruct.new
-      @layout.lower.inside     = lambda{|pos, base_size| @layout.base[pos]                                       + @layout.margin[pos][base_size].to_i}
-      @layout.lower.between = lambda{|pos, base_size| @layout.base[pos]               - @layout.size[pos]/2 + @layout.margin[pos][base_size].to_i}
-      @layout.lower.outside   = lambda{|pos, base_size| @layout.base[pos]               - @layout.size[pos]   + @layout.margin[pos][base_size].to_i}
-      @layout.middle              = LayoutSideStruct.new
-      @layout.middle.inside    = lambda{|pos, base_size| @layout.base[pos] + base_size/2 - @layout.size[pos]   + @layout.margin[pos][base_size].to_i}
-      @layout.middle.between= lambda{|pos, base_size| @layout.base[pos] + base_size/2 - @layout.size[pos]/2 + @layout.margin[pos][base_size].to_i}
-      @layout.middle.outside =  lambda{|pos, base_size| @layout.base[pos] + base_size/2                         + @layout.margin[pos][base_size].to_i}
-      @layout.upper               = LayoutSideStruct.new
-      @layout.upper.inside    = lambda{|pos, base_size| @layout.base[pos] + base_size   - @layout.size[pos]   - @layout.margin[pos][base_size].to_i}
-      @layout.upper.between = lambda{|pos, base_size| @layout.base[pos] + base_size   - @layout.size[pos]/2 - @layout.margin[pos][base_size].to_i}
-      @layout.upper.outside = lambda{|pos, base_size| @layout.base[pos] + base_size                           + @layout.margin[pos][base_size].to_i}
+      @layout.lower          = LayoutSideStruct.new
+      @layout.lower.inside   = lambda{|pos, base_size| @layout.base[pos]                                     + @layout.margin[pos][base_size].to_i}
+      @layout.lower.between  = lambda{|pos, base_size| @layout.base[pos]               - @layout.size[pos]/2 + @layout.margin[pos][base_size].to_i}
+      @layout.lower.outside  = lambda{|pos, base_size| @layout.base[pos]               - @layout.size[pos]   + @layout.margin[pos][base_size].to_i}
+      @layout.middle         = LayoutSideStruct.new
+      @layout.middle.inside  = lambda{|pos, base_size| @layout.base[pos] + base_size/2 - @layout.size[pos]   + @layout.margin[pos][base_size].to_i}
+      @layout.middle.between = lambda{|pos, base_size| @layout.base[pos] + base_size/2 - @layout.size[pos]/2 + @layout.margin[pos][base_size].to_i}
+      @layout.middle.outside = lambda{|pos, base_size| @layout.base[pos] + base_size/2                       + @layout.margin[pos][base_size].to_i}
+      @layout.upper          = LayoutSideStruct.new
+      @layout.upper.inside   = lambda{|pos, base_size| @layout.base[pos] + base_size   - @layout.size[pos]   - @layout.margin[pos][base_size].to_i}
+      @layout.upper.between  = lambda{|pos, base_size| @layout.base[pos] + base_size   - @layout.size[pos]/2 - @layout.margin[pos][base_size].to_i}
+      @layout.upper.outside  = lambda{|pos, base_size| @layout.base[pos] + base_size                         + @layout.margin[pos][base_size].to_i}
 
       @layout.loc     = [@layout.lower.inside,   @layout.lower.inside]
     end
@@ -104,8 +104,7 @@ module Miyako
     #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
     #返却値:: 自分自身
     def left(side=:inside,   &margin)
-      set_layout_inner(0, @layout.lower[side],  margin)
-      return self
+      return set_layout_inner(0, @layout.lower[side],  margin)
     end
 
     #===mixinしたインスタンスの位置を中間(ｘ軸)に移動させる
@@ -114,8 +113,7 @@ module Miyako
     #_side_:: 設置する側。但し機能するのは :between のみ。デフォルトは :between
     #返却値:: 自分自身
     def center(side=:between, &margin)
-      set_layout_inner(0, @layout.middle[side], margin)
-      return self
+      return set_layout_inner(0, @layout.middle[side], margin)
     end
 
     #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させる
@@ -124,8 +122,7 @@ module Miyako
     #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
     #返却値:: 自分自身
     def right(side=:inside,  &margin)
-      set_layout_inner(0, @layout.upper[side],  margin) 
-      return self
+      return set_layout_inner(0, @layout.upper[side],  margin) 
     end
 
     #===mixinしたインスタンスの位置を上端(y軸)に移動させる
@@ -134,8 +131,7 @@ module Miyako
     #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
     #返却値:: 自分自身
     def top(side=:inside,    &margin)
-      set_layout_inner(1, @layout.lower[side],  margin)
-      return self
+      return set_layout_inner(1, @layout.lower[side],  margin)
     end
 
     #===mixinしたインスタンスの位置を中間(y軸)に移動させる
@@ -144,8 +140,7 @@ module Miyako
     #_side_:: 設置する側。但し機能するのは :between のみ。デフォルトは :between
     #返却値:: 自分自身
     def middle(side=:between, &margin)
-      set_layout_inner(1, @layout.middle[side], margin)
-      return self
+      return set_layout_inner(1, @layout.middle[side], margin)
     end
 
     #===mixinしたインスタンスの位置を下端(y軸)に移動させる
@@ -154,16 +149,14 @@ module Miyako
     #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
     #返却値:: 自分自身
     def bottom(side=:inside, &margin)
-      set_layout_inner(1, @layout.upper[side],  margin)
-      return self
+      return set_layout_inner(1, @layout.upper[side],  margin)
     end
 
     def set_layout_inner(pos, lambda, margin) #:nodoc:
       @layout.loc[pos] = lambda
-      @layout.margin[pos] = margin || @layout.zero
-      @layout.off.x = 0 if pos == 0
-      @layout.off.y = 0 if pos == 1
+      @layout.margin[pos] = margin || ZeroLambda
       calc_layout
+			return self
     end
 
     private :set_layout_inner
@@ -244,56 +237,20 @@ module Miyako
 
     private :get_base_width, :get_base_height
 
-    #===レイアウト情報の値を更新する
+    #===レイアウト情報の値を更新する(位置情報の更新も行う)
+    #このメソッドを呼び出す前に、left、bottom、centeringなどの、位置指定メソッドを使用している場合、
+    #これらの呼び出しを元に位置情報を再計算する
     def calc_layout
-      @layout.pos[0] = @layout.loc[0][0, get_base_width]  + @layout.off[0]
-      @layout.pos[1] = @layout.loc[1][1, get_base_height] + @layout.off[1]
+      @layout.pos[0] = @layout.loc[0][0, get_base_width]
+      @layout.pos[1] = @layout.loc[1][1, get_base_height]
+      update_layout
+    end
+
+    #===レイアウト情報の値を更新する(位置情報は更新しない)
+    #calc_layoutメソッドとは違い、位置指定メソッドの内容にかかわらず、位置情報を再計算しない
+    def update_layout
       update_layout_position
-      @layout.snap.children.each{|sc|
-        sc.snap
-      }
-    end
-
-    def set_base_size(w, h) #:nodoc:
-      @layout.base[2] = w
-      @layout.base[3] = h
-      calc_layout
-      return self
-    end
-
-    def reset_base_size #:nodoc:
-      @layout.base[2] = nil
-      @layout.base[3] = nil
-      calc_layout
-      return self
-    end
-
-    def set_base_point(x, y) #:nodoc:
-      @layout.base[0], @layout.base[1] = [x, y]
-      calc_layout
-      return self
-    end
-
-    def set_base(x, y, w, h) #:nodoc:
-      @layout.base[0] = x
-      @layout.base[1] = y
-      @layout.base[2] = w
-      @layout.base[3] = h
-      calc_layout
-      return self
-    end
-
-    def reset_base #:nodoc:
-      @layout.base[0] = 0
-      @layout.base[1] = 0
-      @layout.base[2] = nil
-      @layout.base[3] = nil
-      calc_layout
-      return self
-    end
-    
-    def get_base #:nodoc:
-      return @layout.base
+      @layout.snap.children.each{|sc| sc.snap }
     end
 
     #===インスタンスの位置・大きさを求める
@@ -386,14 +343,14 @@ module Miyako
     #_y_:: y 座標の移動量
     #返却値:: 自分自身を返す
     def move(x, y)
-      o = @layout.off.dup
-      @layout.off[0] = @layout.off[0] + x
-      @layout.off[1] = @layout.off[1] + y
-      calc_layout
+      o = @layout.pos.dup
+      @layout.pos[0] += x
+      @layout.pos[1] += y
+      update_layout
       if block_given?
         yield
-        @layout.off[0], @layout.off[1] = o
-        calc_layout
+        @layout.pos[0], @layout.pos[1] = o
+        update_layout
       end
       return self
     end

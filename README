@@ -950,10 +950,13 @@ v2.0.0(2009.2.20)
 ・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
 ・Screen.broad_rectメソッドの追加
 ・Screen.auto_render_array,Screen.pre_render_array,Screen.pre_renderメソッドの追加
+・Layout#update_layoutメソッドの追加
 ・Layout#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
 　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
 　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?
 　round_rev2、round_rev2_x、round_rev2_yの各メソッドを廃止(Viewportクラスのインスタンスメソッドに変更)
+・Layout#set_base_size、reset_base_size、set_base_point、set_baseメソッドを廃止
+reset_base #:nodoc:
 ・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
 ・Story#over_scene_execute?メソッド、Scene#over_scene_execute?メソッドの追加
 ・Scene#scene_typeメソッドのインクルードから、各シーンクラスのscene_typeクラスメソッドのオーバーライドに変更

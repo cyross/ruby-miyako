@@ -46,6 +46,7 @@ class MoveFaster
   
   def start
     @spr.move_to(640, @spr.y) # 画面を出たところまで移動
+    puts @spr.pos
   end
 
   def update
