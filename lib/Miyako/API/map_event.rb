@@ -151,7 +151,7 @@ module Miyako
     #イベント発生が可能なときはtrueを返す(その後、startメソッドを呼び出す)処理を実装する
     #_param_:: 問い合わせに使用するパラメータ群。デフォルトはnil
     #返却値:: イベント発生可能ならばtrue
-    def met?(params = nil)
+    def met?(*params)
       return false
     end
     
@@ -165,7 +165,7 @@ module Miyako
     #ここに、イベント発生イベントを実装する。更新はupdateメソッドに実装する
     #_param_:: イベント発生に必要なパラメータ群。デフォルトはnil
     #返却値:: 自分自身を返す
-    def start(params = nil)
+    def start(*params)
       return self
     end
     
@@ -173,7 +173,7 @@ module Miyako
     #ここに、イベント停止・終了イベントを実装する。更新はupdateメソッドに実装する
     #_param_:: イベント発生に必要なパラメータ群。デフォルトはnil
     #返却値:: 自分自身を返す
-    def stop(params = nil)
+    def stop(*params)
       return self
     end
     

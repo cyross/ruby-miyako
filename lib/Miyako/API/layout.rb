@@ -49,11 +49,9 @@ end
 module Miyako
 
   #==レイアウト情報を示す構造体
-  LayoutStruct = Struct.new(:pos, :size, :base, :snap, :margin, :lower, :middle, :upper, :loc)
+  LayoutStruct = Struct.new(:pos, :size, :base, :snap)
   #==スナップ構造体
   LayoutSnapStruct = Struct.new(:sprite, :children)
-  #==レイアウト表示位置ラムダ構造体
-  LayoutSideStruct = Struct.new(:inside, :between, :outside)
 
   #==レイアウト管理モジュール
   #位置情報やスナップ、座標丸めなどを管理する
@@ -64,8 +62,6 @@ module Miyako
   #なお、本モジュールをmixinした場合は、インスタンス変数 @layout が予約される。
   #@layoutへのユーザアクセスは参照のみ許される。
   module Layout
-		ZeroLambda = lambda{|data| 0}
-	
     #===現在の位置情報を別のインスタンス変数に反映させるためのテンプレートメソッド
     #move や centering などのメソッドを呼び出した際に@layout［:pos］の値を反映させるときに使う
     #(例)@sprite.move(*@layout［:pos］)
@@ -76,90 +72,136 @@ module Miyako
     #mixin したクラスの initialize メソッド内で必ず呼び出しておくこと
     def init_layout
       @layout = LayoutStruct.new
-      @layout.pos     = Point.new(0, 0)
-      @layout.size    = Size.new(0, 0)
-      @layout.base    = Rect.new(0, 0, nil, nil)
-      @layout.snap   = LayoutSnapStruct.new(nil, Array.new)
-      @layout.margin  = [ZeroLambda, ZeroLambda]
-
-      @layout.lower          = LayoutSideStruct.new
-      @layout.lower.inside   = lambda{|pos, base_size| @layout.base[pos]                                     + @layout.margin[pos][base_size].to_i}
-      @layout.lower.between  = lambda{|pos, base_size| @layout.base[pos]               - @layout.size[pos]/2 + @layout.margin[pos][base_size].to_i}
-      @layout.lower.outside  = lambda{|pos, base_size| @layout.base[pos]               - @layout.size[pos]   + @layout.margin[pos][base_size].to_i}
-      @layout.middle         = LayoutSideStruct.new
-      @layout.middle.inside  = lambda{|pos, base_size| @layout.base[pos] + base_size/2 - @layout.size[pos]   + @layout.margin[pos][base_size].to_i}
-      @layout.middle.between = lambda{|pos, base_size| @layout.base[pos] + base_size/2 - @layout.size[pos]/2 + @layout.margin[pos][base_size].to_i}
-      @layout.middle.outside = lambda{|pos, base_size| @layout.base[pos] + base_size/2                       + @layout.margin[pos][base_size].to_i}
-      @layout.upper          = LayoutSideStruct.new
-      @layout.upper.inside   = lambda{|pos, base_size| @layout.base[pos] + base_size   - @layout.size[pos]   - @layout.margin[pos][base_size].to_i}
-      @layout.upper.between  = lambda{|pos, base_size| @layout.base[pos] + base_size   - @layout.size[pos]/2 - @layout.margin[pos][base_size].to_i}
-      @layout.upper.outside  = lambda{|pos, base_size| @layout.base[pos] + base_size                         + @layout.margin[pos][base_size].to_i}
-
-      @layout.loc     = [@layout.lower.inside,   @layout.lower.inside]
+      @layout.pos  = Point.new(0, 0)
+      @layout.size = Size.new(0, 0)
+      @layout.base = Screen
+      @layout.snap = LayoutSnapStruct.new(nil, Array.new)
     end
 
     #===mixinしたインスタンスの位置を左端(x軸)に移動させる
-    #ブロックでは、数値を返却することで、左端からのマージンを設定できる
+		#設置するとき、基準となる空間の内側に設置される
+    #ブロックでは、数値を返却することで、左端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
-    #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
     #返却値:: 自分自身
-    def left(side=:inside,   &margin)
-      return set_layout_inner(0, @layout.lower[side],  margin)
-    end
-
-    #===mixinしたインスタンスの位置を中間(ｘ軸)に移動させる
-    #ブロックでは、数値を返却することで、真ん中からのマージンを設定できる
-    #ブロック引数は、自分自身の幅
-    #_side_:: 設置する側。但し機能するのは :between のみ。デフォルトは :between
-    #返却値:: 自分自身
-    def center(side=:between, &margin)
-      return set_layout_inner(0, @layout.middle[side], margin)
-    end
-
-    #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させる
-    #ブロックでは、数値を返却することで、右端からのマージンを設定できる
-    #ブロック引数は、自分自身の幅
-    #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
-    #返却値:: 自分自身
-    def right(side=:inside,  &margin)
-      return set_layout_inner(0, @layout.upper[side],  margin) 
-    end
-
-    #===mixinしたインスタンスの位置を上端(y軸)に移動させる
-    #ブロックでは、数値を返却することで、上端からのマージンを設定できる
-    #ブロック引数は、自分自身の幅
-    #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
-    #返却値:: 自分自身
-    def top(side=:inside,    &margin)
-      return set_layout_inner(1, @layout.lower[side],  margin)
-    end
-
-    #===mixinしたインスタンスの位置を中間(y軸)に移動させる
-    #ブロックでは、数値を返却することで、真ん中からのマージンを設定できる
-    #ブロック引数は、自分自身の幅
-    #_side_:: 設置する側。但し機能するのは :between のみ。デフォルトは :between
-    #返却値:: 自分自身
-    def middle(side=:between, &margin)
-      return set_layout_inner(1, @layout.middle[side], margin)
-    end
-
-    #===mixinしたインスタンスの位置を下端(y軸)に移動させる
-    #ブロックでは、数値を返却することで、下端からのマージンを設定できる
-    #ブロック引数は、自分自身の幅
-    #_side_:: 設置する側。:inside、:between、:outside の3種類ある。デフォルトは :inside
-    #返却値:: 自分自身
-    def bottom(side=:inside, &margin)
-      return set_layout_inner(1, @layout.upper[side],  margin)
-    end
-
-    def set_layout_inner(pos, lambda, margin) #:nodoc:
-      @layout.loc[pos] = lambda
-      @layout.margin[pos] = margin || ZeroLambda
-      calc_layout
+    def left(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[0]
+			@layout.pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
+      @layout.snap.children.each{|c| c.left(&margin) }
+      update_layout(@layout.pos[0]-t, 0)
 			return self
     end
 
-    private :set_layout_inner
+    #===mixinしたインスタンスの位置を左端(x軸)に移動させる
+		#設置するとき、基準となる空間の外側に設置される
+    #ブロックでは、数値を返却することで、左端からのマージンを設定できる(負の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def outside_left(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[0]
+			@layout.pos[0] = base[0] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
+      update_layout(@layout.pos[0]-t, 0)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を中間(ｘ軸)に移動させる
+    #返却値:: 自分自身
+    def center
+			base = @layout.base.rect
+			t = @layout.pos[0]
+			@layout.pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
+      update_layout(@layout.pos[0]-t, 0)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させる
+		#設置するとき、基準となる空間の内側に設置される
+    #ブロックでは、数値を返却することで、右端からのマージンを設定できる(負の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def right(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[0]
+			@layout.pos[0] = base[0] + base[2] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
+      update_layout(@layout.pos[0]-t, 0)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させる
+		#設置するとき、基準となる空間の外側に設置される
+    #ブロックでは、数値を返却することで、右端からのマージンを設定できる(正の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def outside_right(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[0]
+			@layout.pos[0] = base[0] + base[2] + (margin ? margin[base[2]].to_i : 0)
+      update_layout(@layout.pos[0]-t, 0)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を上端(y軸)に移動させる
+		#設置するとき、基準となる空間の内側に設置される
+    #ブロックでは、数値を返却することで、上端からのマージンを設定できる(正の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def top(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[1]
+			@layout.pos[1] = base[1] + (margin ? margin[base[3]].to_i : 0)
+      update_layout(0, @layout.pos[1]-t)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を上端(y軸)に移動させる
+		#設置するとき、基準となる空間の内側に設置される
+    #ブロックでは、数値を返却することで、上端からのマージンを設定できる(負の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def outside_top(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[1]
+			@layout.pos[1] = base[1] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
+      update_layout(0, @layout.pos[1]-t)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を中間(y軸)に移動させる
+    #返却値:: 自分自身
+    def middle
+			base = @layout.base.rect
+			t = @layout.pos[1]
+			@layout.pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
+      update_layout(0, @layout.pos[1]-t)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を下端(y軸)に移動させる
+		#設置するとき、基準となる空間の内側に設置される
+    #ブロックでは、数値を返却することで、下端からのマージンを設定できる(負の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def bottom(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[1]
+			@layout.pos[1] = base[1] + base[3] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
+      update_layout(0, @layout.pos[1]-t)
+			return self
+    end
+
+    #===mixinしたインスタンスの位置を下端(y軸)に移動させる
+		#設置するとき、基準となる空間の外側に設置される
+    #ブロックでは、数値を返却することで、下端からのマージンを設定できる(正の方向へ移動)
+    #ブロック引数は、自分自身の幅
+    #返却値:: 自分自身
+    def outside_bottom(&margin)
+			base = @layout.base.rect
+			t = @layout.pos[1]
+			@layout.pos[1] = base[1] + base[3] + (margin ? margin[base[3]].to_i : 0)
+      update_layout(0, @layout.pos[1]-t)
+			return self
+    end
     
     #===レイアウトに関するインスタンスを解放する
     #インスタンス変数 @layout 内のインスタンスを解放する
@@ -217,40 +259,22 @@ module Miyako
     end
 
     #===インスタンスのサイズをレイアウト情報に反映させる
+		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #_w_:: インスタンスの幅(たとえば、Sprite#ow の値)
     #_h_:: インスタンスの幅(たとえば、Sprite#oh の値)
     #返却値:: 自分自身を返す
     def set_layout_size(w, h)
       @layout.size[0] = w
       @layout.size[1] = h
-      calc_layout
       return self
     end
 
-    def get_base_width #:nodoc:
-      return @layout.base[2] || Screen.w
-    end
-
-    def get_base_height #:nodoc:
-      return @layout.base[3] || Screen.h
-    end
-
-    private :get_base_width, :get_base_height
-
-    #===レイアウト情報の値を更新する(位置情報の更新も行う)
-    #このメソッドを呼び出す前に、left、bottom、centeringなどの、位置指定メソッドを使用している場合、
-    #これらの呼び出しを元に位置情報を再計算する
-    def calc_layout
-      @layout.pos[0] = @layout.loc[0][0, get_base_width]
-      @layout.pos[1] = @layout.loc[1][1, get_base_height]
-      update_layout
-    end
-
-    #===レイアウト情報の値を更新する(位置情報は更新しない)
-    #calc_layoutメソッドとは違い、位置指定メソッドの内容にかかわらず、位置情報を再計算しない
-    def update_layout
+    #===レイアウト情報の値を更新する
+    #_dx_:: 位置の変化量(x方向)
+    #_dx_:: 位置の変化量(y方向)
+    def update_layout(dx, dy)
       update_layout_position
-      @layout.snap.children.each{|sc| sc.snap }
+      @layout.snap.children.each{|sc| sc.update_layout(dx, dy) }
     end
 
     #===インスタンスの位置・大きさを求める
@@ -271,35 +295,27 @@ module Miyako
         @layout.snap.sprite = spr
         spr.add_snap_child(self)
       end
-      if @layout.snap.sprite
-        rect = @layout.snap.sprite.rect
-        @layout.base[0] = rect[0]
-        @layout.base[1] = rect[1]
-        @layout.base[2] = rect[2]
-        @layout.base[3] = rect[3]
-      end
-      calc_layout
+      @layout.base = @layout.snap.sprite || Screen
       return self
     end
     
     #===すべてのインスタンスとの依存関係を解消する
+		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #返却値:: 自分自身を返す
     def reset_snap
       @layout.snap.sprite =nil
+      @layout.base = Screen
       @layout.snap.children = Array.new
-      calc_layout
       return self
     end
     
     def add_snap_child(spr) #:nodoc:
       @layout.snap.children << spr unless @layout.snap.children.include?(spr)
-      calc_layout
       return self
     end
     
     def delete_snap_child(spr) #:nodoc:
       spr.each{|s| @layout.snap.children.delete(s) }
-      calc_layout
       return self
     end
     
@@ -310,10 +326,7 @@ module Miyako
     def set_snap_children(cs) #:nodoc:
       @layout.snap.children.each{|c| c.set_snap_sprite(nil) }
       @layout.snap.children = cs
-      @layout.snap.children.each{|c|
-        c.set_snap_sprite(self)
-      }
-      calc_layout
+      @layout.snap.children.each{|c| c.set_snap_sprite(self) }
       return self
     end
 
@@ -325,7 +338,6 @@ module Miyako
       @layout.snap.sprite.delete_snap_child(self) if @layout.snap.sprite
       @layout.snap.sprite = ss
       @layout.snap.sprite.add_snap_child(self) if @layout.snap.sprite
-      calc_layout
       return self
     end
 
@@ -346,11 +358,11 @@ module Miyako
       o = @layout.pos.dup
       @layout.pos[0] += x
       @layout.pos[1] += y
-      update_layout
+      update_layout(x, y)
       if block_given?
         yield
         @layout.pos[0], @layout.pos[1] = o
-        update_layout
+        update_layout(-x, -y)
       end
       return self
     end

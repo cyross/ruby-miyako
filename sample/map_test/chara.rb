@@ -28,7 +28,7 @@ class PChara # Player Character
   end
 
   def turn(d)
-    @anim.character(@@amt2dir[d])
+    @anim.character = @@amt2dir[d]
   end
 
   def start

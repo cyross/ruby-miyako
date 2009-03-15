@@ -46,7 +46,6 @@ class MoveFaster
   
   def start
     @spr.move_to(640, @spr.y) # 画面を出たところまで移動
-    puts @spr.pos
   end
 
   def update
@@ -222,6 +221,7 @@ class MainScene
     ws = Sprite.new(:file=>"wait_cursor.png", :type=>:ac)
     ws.oh = ws.ow
     ws = SpriteAnimation.new(:sprite=>ws, :wait=>0.2, :pattern_list=>[0,1,2,3,2,1])
+		@ws = ws
     cs = Sprite.new(:file=>"cursor.png", :type=>:ac)
     cs.oh = cs.ow
     cs = SpriteAnimation.new(:sprite=>cs, :wait=>0.2, :pattern_list=>[0,1,2,3,2,1])

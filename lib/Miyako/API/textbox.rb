@@ -29,8 +29,6 @@ module Miyako
     include Layout
     extend Forwardable
 
-    @@windows = Array.new
-
     attr_accessor :textarea
     attr_accessor :select_type, :waiting, :selecting
     attr_accessor :font, :margin
@@ -67,13 +65,12 @@ module Miyako
 
       @textarea = Sprite.new({:size => @size, :type => :ac, :is_fill => true})
 
+      @default_wait_cursor_position = lambda{|wcursor, tbox| wcursor.center.outside_bottom}
+      @default_select_cursor_position = lambda{|scursor, tbox| scursor.outside_left.middle}
+
       @wait_cursor = params[:wait_cursor] || params[:wc] || nil
-      @wait_cursor.snap(@textarea) if @wait_cursor
-      @default_wait_cursor_position = lambda{|wcursor, tbox| wcursor.center.bottom(:inside)}
       @wait_cursor_position = @default_wait_cursor_position
       @select_cursor = params[:select_cursor] || params[:sc] || nil
-      @select_cursor.snap(@textarea) if @select_cursor
-      @default_select_cursor_position = lambda{|scursor, tbox| scursor.left(:outside).middle}
       @select_cursor_position = @default_select_cursor_position
 
       @on_pause = lambda{}
@@ -95,7 +92,11 @@ module Miyako
       @textarea.snap(self)
       @textarea.centering
 
-      @@windows.push(self)
+      if @wait_cursor
+				@wait_cursor.snap(self)
+				@default_wait_cursor_position.call(@wait_cursor, self)
+			end
+			@select_cursor.snap(self) if @select_cursor
 
       @move_list = [[lambda{               },
                      lambda{ @choices.right },
@@ -507,6 +508,7 @@ module Miyako
       raise MiyakoError, "Can't find block!" unless proc
       raise MiyakoError, "This method must have two parameters!" unless proc.arity == 2
       @wait_cursor_position = proc
+      @wait_cursor_position.call(@wait_cursor, self) if @wait_cursor
       return self
     end
 
@@ -515,6 +517,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def reset_wait_cursor_position
       @wait_cursor_position = @default_wait_cursor_position
+      @wait_cursor_position.call(@wait_cursor, self) if @wait_cursor
       return self
     end
 
@@ -530,6 +533,7 @@ module Miyako
       raise MiyakoError, "Can't find block!" unless proc
       raise MiyakoError, "This method must have two parameters!" unless proc.arity == 2
       @select_cursor_position = proc
+      @select_cursor_position.call(@select_cursor, @choices.body) if (@select_cursor && @choices.body)
       return self
     end
 
@@ -538,6 +542,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def reset_select_cursor_position
       @select_cursor_position = @default_select_cursor_position
+      @select_cursor_position.call(@select_cursor, @choices.body) if (@select_cursor && @choices.body)
       return self
     end
 
@@ -646,7 +651,6 @@ module Miyako
     def dispose
       @textarea.dispose
       @textarea = nil
-      @@windows.delete(self)
     end
 
     def_delegators(:@pos, :x, :y)

@@ -265,8 +265,7 @@ module Miyako
 
     #===表示するパターンの番号を変更する
     #_pnum_:: パターン番号
-    #返却値:: 自分自身
-    def pattern(pnum)
+    def pattern=(pnum)
       @pnum = pnum if pnum < @pats
       set_pat
       @cnt = @waits[@plist[@pnum]] if @exec
@@ -275,18 +274,18 @@ module Miyako
 
     #===現在表示しているパターンを取得する
     #返却値:: 現在表示しているスプライトのインスタンス
-    def get_pattern
+    def pattern
       return @plist[@pnum]
     end
 
-    #===あとで書く
-    #_cnum_:: あとで書く
-    #返却値:: あとで書く
-    def character(cnum)
-      return self if cnum >= @chrs
+    #===キャラクター番号を設定する
+		#キャラクター番号(アニメーションさせるときに表示させるパターン群インデックス)
+		#を設定する。範囲外のキャラクター番号が設定された時は何も行わない
+    #_cnum_:: キャラクター番号
+    def character=(cnum)
+      return self if (cnum < 0 || cnum >= @chrs)
       @cnum = cnum
       set_chr
-      return self
     end
 
     #===あとで書く
@@ -299,7 +298,9 @@ module Miyako
       return self
     end
 
-    def get_character #:nodoc:
+		#===現在のキャラクター番号を取得する
+		#返却値:: キャラクター番号（0以上の整数）
+    def character
       return @cnum
     end
     
