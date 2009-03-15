@@ -874,6 +874,10 @@ v2.0.0(2009.2.20)
 ・SpriteAnimation#rect、broad_rectメソッドの追加
 ・SpriteAnimation#to_spriteメソッドの処理を変更（元になったインスタンスのto_spriteメソッドを呼び出した時の値となる）
 ・SpriteAnimation#renderメソッドの既存のバグを修正
+・SpriteAnimation#pattern -> pattern=に変更
+・SpriteAnimation#get_pattern -> patternに変更
+・SpriteAnimation#character -> character=に変更
+・SpriteAnimation#get_character -> characterに変更
 ・TextBox#marginアクセサ、TextBox#margin_duringメソッドを追加（set_marginメソッドは、ブロックを渡すと、そのブロックが評価されている間だけマージンが有効）
 ・TextBox#font_size_during、font_bold、font_italic、font_under_line、color_during、margin_heightメソッドを追加
 　（ブロックを渡すと、そのブロックが評価されている間だけフォントの属性が変更）
@@ -1003,6 +1007,7 @@ v2.0.0(2009.2.20)
 ・MapEvent#initメソッドのインタフェース変更(引数として、登録もとMap/FixedMapクラスのインスタンス・マップ上の位置を取得)
 ・MapEvent#execメソッドをMapEvent#startメソッドに改名
 ・MapEvent#move、MapEvent#move_toメソッドを追加
+・MapEvent#start,stopメソッドの引数インタフェースの変更(params=nil -> *paramsに変更)
 ・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
 ・Movie#playメソッドをMovie#startメソッドに変更
 ・Movie#moveメソッドが機能しないバグを修正

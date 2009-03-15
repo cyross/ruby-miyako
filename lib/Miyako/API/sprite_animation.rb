@@ -310,8 +310,6 @@ module Miyako
     def start
       return self if @exec
       set_pat
-      @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
-                   @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
       if @dir == :h
         @now.oy += @pos_offset[@pnum]
       else
