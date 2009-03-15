@@ -79,8 +79,9 @@ static VALUE nZero = Qnil;
 static VALUE nOne = Qnil;
 static VALUE use_opengl = Qnil;
 static volatile ID id_update = Qnil;
-static volatile ID id_kakko = Qnil;
+static volatile ID id_kakko  = Qnil;
 static volatile ID id_render = Qnil;
+static volatile ID id_to_a   = Qnil;
 static volatile int zero = Qnil;
 static volatile int one = Qnil;
 static volatile double div255[256];
@@ -2726,8 +2727,7 @@ static VALUE sa_render(VALUE self)
   
   int num = NUM2INT(rb_iv_get(self, "@pnum"));
 
-  VALUE molist = rb_iv_get(self, "@move_offset");
-  VALUE move_off = *(RARRAY_PTR(molist) + num);
+  VALUE *move_off = RARRAY_PTR(rb_funcall(*(RARRAY_PTR(rb_iv_get(self, "@move_offset")) + num), id_to_a, 0));
 
   int pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
 
@@ -2738,8 +2738,8 @@ static VALUE sa_render(VALUE self)
   VALUE tmp_y = *(runit + 6);
 
   *(runit + didx) = INT2NUM(NUM2INT(tmp_oxy) - pos_off);
-  *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
-  *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne )));
+  *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(*(move_off+0)));
+  *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(*(move_off+1)));
 
   MIYAKO_GET_UNIT_NO_SURFACE_2(vsrc, mScreen, sunit, dunit);
   render_inner(sunit, dunit);
@@ -3839,6 +3839,7 @@ void Init_miyako_no_katana()
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");
   id_render = rb_intern("render");
+  id_to_a   = rb_intern("to_a");
 
   zero = 0;
   nZero = INT2NUM(zero);
