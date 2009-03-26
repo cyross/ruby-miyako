@@ -38,19 +38,17 @@ osn = Config::CONFIG["target_os"].downcase
 if osn =~ /mswin|mingw|cygwin|bccwin/
   ext_dir = "win/"
 elsif osn =~ /darwin/ # Mac OS X
-  unless ENV['SDL_CONFIG_PATH'] 
-    puts 'Please set SDL_CONFIG_PATH environment variable...'
-    puts "USAGE: SDL_CONFIG_PATH='sdl-config'"
-    exit
+  if ENV['SDL_CONFIG_PATH'] 
+    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
+  else
+    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl-config'; make")
   end
-  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make ; cp miyako_no_katana.bundle ../")
 else # linux, U*IX...
-  unless ENV['SDL_CONFIG_PATH'] 
-    puts 'Please set SDL_CONFIG_PATH environment variable...'
-    puts "USAGE: SDL_CONFIG_PATH='sdl-config"
-    exit
+  if ENV['SDL_CONFIG_PATH'] 
+    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
+  else
+    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl-config'; make")
   end
-  system("cd miyako_no_katana/ ; " + Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make ; cp miyako_no_katana.so ../")
 end
 
 sitelibdir = Config::CONFIG["sitelibdir"] + "/Miyako"

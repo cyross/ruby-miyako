@@ -9,6 +9,8 @@ Gem::Specification.new do |s|
   s.has_rdoc = true
   s.rdoc_options = "-c utf-8"
   s.authors = ["Cyross Makoto"]
+  s.test_files = []
+  s.extensions = ["extconf.rb"]
   s.files = ["img/cursor.png", "img/cursors.png", "img/dice.png", "img/wait_cursor.png",
 "img/window.png", "img/win_base.png", "lib/Miyako", "lib/Miyako/API", "lib/Miyako/API/audio.rb",
 "lib/Miyako/API/basic_data.rb", "lib/Miyako/API/bitmap.rb", "lib/Miyako/API/choices.rb",
