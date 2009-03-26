@@ -35,6 +35,10 @@ module Miyako
     attr_reader :direction
     # 移動量([w,h])
     attr_reader :amount
+    # 移動時イベントブロック配列
+    # move、move_toメソッドが呼ばれた時、自動的にブロックが評価される。
+    # 引数のインタフェースは、|レシーバ,移動後x,移動後y,x移動量,y移動量|
+    attr_reader :on_move
     
     #===コリジョンのインスタンスを作成する
     #_rect_:: コリジョンを設定する範囲
@@ -45,6 +49,7 @@ module Miyako
       @pos = Point.new(*(pos.to_a[0..1]))
       @direction = Point.new(0, 0)
       @amount = Size.new(0, 0)
+      @on_move = []
     end
 
     #===コリジョンの方向を転換する
@@ -107,6 +112,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def move(x, y)
       @pos.move(x, y)
+      @on_move.each{|blk| blk.call(self, @pos.x, @pos.y, x, y)}
       if block_given?
         yield
         @pos.move(-x, -y)
@@ -122,6 +128,7 @@ module Miyako
     def move_to(x, y)
       ox, oy = @pos.to_a
       @pos.move_to(x, y)
+      @on_move.each{|blk| blk.call(self, @pos.x, @pos.y, x-ox, y-oy)}
       if block_given?
         yield
         @pos.move_to(ox, oy)
