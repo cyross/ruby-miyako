@@ -65,7 +65,23 @@ module Miyako
     #_w_:: 幅変更。単位はピクセル
     #_h_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
-    def resize(w, h)
+    def resize(dw, dh)
+      o = self.to_a
+      self[0]+=dw
+      self[1]+=dh
+      if block_given?
+        yield
+        self[0], self[1] = o
+      end
+      return self
+    end
+
+    #===サイズを変更する
+    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #_w_:: 幅変更。単位はピクセル
+    #_h_:: 高さ変更。単位はピクセル
+    #返却値:: 自分自身を返す
+    def resize_to(w, h)
       o = self.to_a
       self[0]=w
       self[1]=h

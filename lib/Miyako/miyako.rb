@@ -128,6 +128,7 @@ module Miyako
   end
 end
 
+require 'Miyako/API/utility'
 require 'Miyako/API/yuki'
 require 'Miyako/API/basic_data'
 require 'Miyako/API/modules'

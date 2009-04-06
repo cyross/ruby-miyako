@@ -2,10 +2,10 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.0
-【   作成日   】　2009/2/20
+【   作成日   】　2009/4/5
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1-RC1
-【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.0～,SDL
+【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
 【  対応機種  】　Windows 2000/XP/Vista、Linux、MacOSX
 【   再配布   】　GNU LGPL 2.1に基く
 【    転載    】　GNU LGPL 2.1に基く
@@ -91,8 +91,8 @@ PAD : BUFFALO BGC-FC802
       Logicool G-UF13
 OS  : Microsoft WindowsXp SP3
       Microsoft WindowsVista Ultimate(x64) SP1
-DEV : Notepad++ v5.1.5 +EUC-JP
-      ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
+DEV : Notepad++ v5.3.1-6
+      mswin32版Ruby 1.9.1-p0 + Ruby/SDL 2.1
       MinGW+MSYS(miyako_no_katanaビルド)
       rcairo-1.8.0(miyako-cairo検証用)
 
@@ -102,8 +102,8 @@ CPU : PentiumM 1.1GHz
 MEM : 784(256+512)MB
 PAD : SANWA SUPPLY JY-P1W
 OS  : Microsoft WindowsXp SP3
-DEV : Notepad++ v5.1.5 +EUC-JP
-      ActiveRuby 1.8.7-p22 + Ruby/SDL 2.0b
+DEV : Notepad++ v5.3.1-6
+      mswin32版Ruby 1.9.1-p0 + Ruby/SDL 2.1
       MinGW+MSYS(miyako_no_katanaビルド)
 
 【 動作環境  】
@@ -118,7 +118,7 @@ WindowsXp Home/Pro、WindowsVista、Linux、MacOSX等、Ruby/SDLが動作する�
 サウンドカード：必須(出来ればSoundBlaster Live!クラス)
 
 Ruby1.9.1以降
-Ruby/SDL 2.0＋対応SDLライブラリ群
+Ruby/SDL 2.1＋対応SDLライブラリ群
 (SDL、SDL_ttf、SDL_image、SDL_Mixer、SGE、smpeg)
 rcairo 1.8.0以降(miyako-cairo使用時)
 
@@ -830,209 +830,13 @@ v1.5.0a(2008.07.21)
 ・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
 ・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
 
-v2.0.0(2009.2.20)
-・Ruby/SDL2.0準拠に変更
+v2.0.0(2009.4.5)
+・Ruby/SDL2.1準拠に変更
 ・対象Rubyランタイムを、Ruby1.9.1以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加
 ・グローバル変数$miyako_use_wait、$miyako_wait_time、$miyako_use_openglを追加
 　(フレームバッファ:32bit(赤、青、緑、αともに8bit)、デプスバッファ:32bit、ステンシルバッファ:32bit)
-・visible/visible=メソッドの復活。render・render_toメソッドに影響
-　(Sprite/Choices/Diagram::Processor/Diagram::Renderer/FixedMap/FixeｄMapLayer/
-　 Map/MapLayer/Movie/Parts/Plane/SpriteAnimation/TextBox/ViewPort/Yuki)
-・to_unitメソッドをStructクラスのメソッドに変更(SpriteUnitクラスは構造体に変更)
-・Input.updateで、マウスのボタンを押したままなのに、Input.clicked?の値がtrueになっていたバグを修正
-・Input.get_mouse_positionメソッドの返却値を変更(ハッシュ→Point構造体)
-・Input.get_mouse_amountメソッドの返却値を変更(ハッシュ→Size構造体)
-・Font#text_sizeメソッドの内容の変更(2バイト以上の文字の幅が実際の文字の幅よりも大きくなっているため)
-・Font#bold、italic、under_lineメソッドの内容の変更(ブロックを渡すと、ブロック評価中のみ効果がある仕様を追加)
-・Font#margin_height、size_during、color_during、shadow_duringメソッドの追加
-・Font#sans_serifの優先度をメイリオ優先からMSゴシック優先に変更（メイリオは最後に、等幅フォント奨励へ変更）
-・Font#hspaceプロパティの追加
-・Font#draw_typeプロパティの廃止(アンチエイシアリングのみ有効)
-・SpriteBase#render、rect、broad_rectメソッドの追加、dp,dp=,show,hideメソッドの廃止
-・SpriteBase.ox,oy,ow,ohメソッドの戻り値仕様を変更(nil→0へ変更)
-・SpriteBase.to_spriteメソッドの戻り値仕様を変更(nil→selfへ変更)
-・SpriteUnit構造体にprocessアクセサを追加
-・SpriteUnit構造体にdx,dyアクセサを追加
-・SpriteUnitFactoryクラスの追加
-・Sprite#effect、effect=メソッドを廃止(Effectクラスの独立化)
-・Sprite#render_to、Sprite#render_transform、Sprite#render_to_transformメソッドの追加
-・Sprite#render、Sprite#render_to、Sprite#render_transform、Sprite#render_to_transformにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
-・Sprite.render_spriteメソッドの追加(スプライト同士の転送に対応)
-・Sprite#to_spriteメソッドにブロック対応の追加(複製したスプライトに補正・画像処理を加えられる)
-・Sprite#collisionメソッドの廃止(コリジョンの独立化)
-・Sprite#to_spriteメソッドの処理変更(selfを返す→複製して返す)
-・Sprite#center_x,center_x=,center_y,center_y=メソッドの追加
-・Sprite#broad_rectメソッドの追加
-・Sprite#ox=,oy=,ow=,oh=メソッドの修正(画像の幅・高さを超える設定をすると例外が発生)
-・Sprite.newメソッドに:unitハッシュキーを追加(SpriteUnitから生成)
-・Spriteクラスの各種画像変換メソッド(scale、rotate、transform)を廃止
-・Animation.update_animationメソッドの戻り値仕様を変更(self→falseへ変更)
-・SpriteAnimation#update_animatioメソッドの戻り値仕様を変更(パターンが変更されたときtrueを返す)
-・SpriteAnimation#render_toメソッドの追加
-・SpriteAnimation#render、SpriteAnimation#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
-・SpriteAnimation#rect、broad_rectメソッドの追加
-・SpriteAnimation#to_spriteメソッドの処理を変更（元になったインスタンスのto_spriteメソッドを呼び出した時の値となる）
-・SpriteAnimation#renderメソッドの既存のバグを修正
-・SpriteAnimation#pattern -> pattern=に変更
-・SpriteAnimation#get_pattern -> patternに変更
-・SpriteAnimation#character -> character=に変更
-・SpriteAnimation#get_character -> characterに変更
-・TextBox#marginアクセサ、TextBox#margin_duringメソッドを追加（set_marginメソッドは、ブロックを渡すと、そのブロックが評価されている間だけマージンが有効）
-・TextBox#font_size_during、font_bold、font_italic、font_under_line、color_during、margin_heightメソッドを追加
-　（ブロックを渡すと、そのブロックが評価されている間だけフォントの属性が変更）
-・TextBox#start、TextBox#stop、TextBox#resetメソッドの追加
-・TextBox#attach_cursor、TextBox#attach_any_command?メソッドの追加
-・TextBox#set_wait_cursor_position、TextBox#reset_wait_cursor_position、TextBox#set_select_cursor_position、TextBox#reset_select_cursor_positionメソッドの追加
-・TextBox#on_pause=, TextBox#on_release=, TextBox#on_draw=メソッドを追加
-・Textbox#execメソッドの廃止
-・Yukiモジュールの廃止（Yuki::Yuki2クラスはMiyako::Yukiクラスに変更）
-・Yukiの実行をFiberに変更
-・Yuki#dispose、Yuki::Manager#disposeメソッドの追加
-・Yuki#selecting?、Yuki#waiting?、Yuki#pausing?メソッドの追加
-・Yuki#is_scene?、Yuki#is_scenario?メソッドの追加
-・Yuki#select_plotメソッドの追加
-・Yuki#resultメソッドの追加(旧Yuki#resultメソッドはYuki#select_resultメソッドに改名)
-・Yuki#renderメソッドの追加、Yuki#show、Yuki#hideメソッドインタフェースの変更
-・Yuki#update、Yuki::Manager#updateメソッドの返却値を変更
-　（引数：デフォルトシーン名→なし
-　　結果インスタンス→返却値無し（Yuki#result、Yuki::Manager#resultの確認で代用））
-・Yuki#update_plotメソッドをYuki#updateメソッドに改名
-・Yuki#plot_executing?メソッドをYuki#executing?に改名
-・Yuki#canseled?メソッドの追加
-・Yuki#to_plotメソッドの追加
-・Yuki#resultメソッドをYuki#select_resultメソッドに改名
-・Yuki#scenarioメソッドの廃止
-・Yuki#get_plot_resultメソッドの廃止
-・Yuki#result_is_scene?、Yuki#result_is_scenario?メソッドの廃止
-・Yuki#exec_plotメソッドをYuki#start_plotメソッドに変更
-・Yuki#sizeメソッドのインタフェースを変更(valignを追加)
-・Yuki#valign,valign=,valign_duringメソッドの追加
-・Yuki#buttonメソッドの廃止
-・Yuki#update_textメソッドの引数インタフェースを変更(処理中の文字も取得できる様になった)
-・Yuki#release_checks、ok_checks、cansel_checksアクセサを追加
-・Yuki#reset_release_checks、reset_ok_checks、reset_cansel_checksメソッドを追加
-・Yuki#release_checks_during、ok_checks_during、cansel_checks_duringメソッドを追加
-・Yuki#update_cr、update_clearメソッドを追加
-・Yuki#pre_pause、Yuki#pre_command、Yuki#pre_cancel、Yuki#post_pause、Yuki#post_command、Yuki#post_cancelメソッドを追加
-・Yuki#textbox、Yuki#commandbox、Yuki#selecting_procsメソッドを追加
-・Yuki#textメソッドの内容を修正、Yuki#text_by_char、Yuki#text_by_str、Yuki#text_methodメソッドを追加
-・Yuki#page,now_page,select_first_pageメソッドの追加
-・yuki_plotメソッドの追加(lambdaの別名)
-・Yuki::Managerクラスの廃止
-・Yuki::Canseled構造体の追加(コマンドキャンセル判別用)
-・Yuki::Command構造体の仕様を変更(選択時画像・文字を指定するbody_selectedを追加)
-・Yuki::CommandEX構造体の追加(コマンド選択時、優先的に行う処理のブロックを追加)
-・Viewportクラスの追加(viewport.rbの追加)
-・Viewport#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
-　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
-　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?
-　round_rev2、round_rev2_x、round_rev2_yの各メソッドを追加(Layoutモジュールから移動)
-・Bitmap.caceheメソッドの廃止(画像データのキャッシュの廃止)
-・Bitmap.miyako_blit_aaメソッドを廃止
-・Bitmap.miyako_blit_aa2メソッドをBitmap.blit_aa!メソッドに改名・インタフェース変更
-・Bitmapクラスの各種画像変換メソッドの最後に!を追加(rotate, scale, transformは除く)
-・Bitmap.dec_alpha!メソッドの変化率の仕様を変更(1.0・・・完全な透明、-1.0・・・完全な不透明)
-・Bitmap.black_out!、Bitmap.white_out!メソッドの追加
-・Bitmap.reset_ac!メソッドを追加(αチャネルのリセット(αが0以外のときは255に変更)
-・Bitmap.blit_and!、Bitmap.blit_or!、Bitmap.blit_xor!メソッドを追加(r,g,b,aの各値のand、or、xorを取って転送)
-・Bitmap.hue、Bitmap.hsvメソッドのradianパラメータをdegreeパラメータ(度単位)に変更
-・Bitmap.ck_to_acメソッドの追加(特定カラーのα値をゼロにした、αチャネル付き画像を生成する。Sprite.newのカラーキー透明画像はこれに置き換えられる)
-・Bitmap.normal_to_acメソッドの追加(すべての画素のα値を２５５にした、αチャネル付き画像を生成する。Sprite.newの未設定画像はこれに置き換えられる)
-・Bitmap.scale、Bitmap.transformメソッドの高速化(拡大/縮小の係数を4096分割した整数計算(近似計算)に変更)
-・Sprite#alpha/alpha=メソッドの廃止(Bitmap.dec_alphaメソッドで代用)
-・Shape#text/takahashiメソッドのハッシュ引数に:vlianを追加(小さい文字を描くときの上付・中間・下付を指定)
-・Shape#takahashiメソッドのハッシュ引数に:linesを追加(指定の行数を基準に文字サイズを計算。但し、行数・１行の文字数が多ければそちらを優先)
-・Parts#main_partsを廃止(インスタンス生成時にParts自身の大きさを指定する方式に変更)
-・Parts#[]=メソッドのインタフェース変更(すべてPartsインスタンス本体へのsnapとして設定)
-・Parts#broad_rect、to_sprite、to_unitメソッドの追加
-・Screen.updateメソッドの廃止(Screen.renderに統一)
-・Screen.renderメソッドのインタフェース変更(is_clear引数の廃止)
-・Screen.sizeメソッドの追加
-・Screen.to_unitメソッドの追加
-・Screen.center_x,center_x=,center_y,center_y=メソッドの追加
-・Screen.set_sizeメソッドの仕様変更(画面の大きさを変更しても、レイアウトの自動変更は行わない)
-・Screen.broad_rectメソッドの追加
-・Screen.auto_render_array,Screen.pre_render_array,Screen.pre_renderメソッドの追加
-・Layout#update_layoutメソッドの追加、Layou#calc_layoutメソッドの廃止
-・Layout#in_bounds?、in_bounds_x?、in_bounds_y?、in_bounds_ex?、in_bounds_ex_x?、in_bounds_ex_y?
-　round、round_x、round_y、in_bounds_rev?、in_bounds_rev_x?、in_bounds_rev_y?
-　round_rev、round_rev_x、round_rev_y、in_bounds_rev2?、in_bounds_rev2_x?、in_bounds_rev2_y?
-　round_rev2、round_rev2_x、round_rev2_yの各メソッドを廃止(Viewportクラスのインスタンスメソッドに変更)
-・Layout#set_base_size、reset_base_size、set_base_point、set_base、reset_baseメソッドを廃止
-・Layout#outside_left,outside_right,outside_top,outside_bottomメソッドの追加
-・Layout#left,center,right,top,middle,bottomメソッドの引数インタフェースの変更(side引数の廃止)
-・Layout#snap等の処理の変更(自動的再計算を行わないようにした)
-　再計算を行うのは、Layout#move,move_to,left,outside_left,center,right,outside_right,top,outside_top,middle,bottom,outside_bottomのみ
-・Storyクラスのview_inメソッド、view_outメソッドの廃止、renderメソッドの追加、描画の実装方法を変更
-・Story#over_scene_execute?メソッド、Scene#over_scene_execute?メソッドの追加
-・Scene#scene_typeメソッドのインクルードから、各シーンクラスのscene_typeクラスメソッドのオーバーライドに変更
-・各シーンクラスのscene_typeクラスメソッドの返却値に:over_sceneを追加
-・scene_typeメソッドの返却値":sub_routne"を":sub_scene"に変更
-・LayoutSpace#broad_rectメソッドを追加
-・LayoutSpace#rectメソッドがnilを返すバグを修正
-・Textbox#renderメソッドのインタフェース変更(text_renderの廃止、paramsの追加)
-・Textbox#columns、rows、text_size、font_size、update_animationメソッドの追加
-・Textbox#broad_rect、to_sprite、to_unitメソッドの追加
-・Diagram::Processor#sync?メソッドの追加
-・SingleEnumerable.sizeメソッドの廃止(弊害が大きいため(Sprite#sizeメソッドのバグなど)。lengthのみ用意)
-・Choice#body_selected, Choice#selectedメソッドの追加(選択時に表示を変える方式を実装)
-・Choice#attributeメソッドの追加(選択時に何らかの属性を加えるときに使用。Yukiでは、選択してもコマンド選択を終了しない)
-・Choice#end_selectメソッドの追加(この選択肢を選択すると、コマンドを終了かどうかを設定(true/false)。デフォルトはtrue
-・Choice#end_select_procメソッドの追加(end_select=falseのときに、この選択肢を選択したときに行う処理をブロックで指定。
-　ブロックは1つの引数を取る(コマンド選択テキストボックス))
-・Choices#start_choiceメソッド引数インタフェースの変更(第1引数にnilを渡すと、最後に選択した選択肢が自動的に選択される)
-・Choices#non_select,selectメソッドの追加
-・Choices#sizeメソッドの廃止(弊害が大きいため。lengthのみ用意)
-・Choices#rect、broad_rect、to_sprite、attach、attach?、any_select?メソッドの追加
-・Choices#attribute、end_select?、call_end_select_procメソッドの追加
-・Collision#pos,Collision#rect,Collision#direction,Collision#amountアクセサをreaderに変更
-・Collision#move、Collision#move_toメソッドを追加
-・Plane#rect、Plane#broad_rect、Plane#render_to、Plane#to_sprite、Plane#to_unitメソッドの追加
-・Effectクラスを廃止
-・Map.new,FixedMap.newメソッドのインタフェース変更(第1引数にto_aメソッドが存在すれば配列化して各レイヤ単位で構造体を渡せるように変更)
-・Map#update、FixedMap#updateメソッドの内容変更(MapEventのupdateは行われず、明示的に呼び出すことに注意)
-・Map#render、FixedMap#renderメソッドの追加(MapEventはrenderされず、明示的に呼び出すことに注意)
-・Map#view_posメソッドを廃止、Map#marginメソッドを追加
-・Map#syncメソッドを廃止、Map#sync_marginメソッドを追加(margin変更後、各レイヤへ同期させるために呼び出す)
-・Map#render_toメソッドの追加
-・Map#render、Map#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
-・Map#rect、Map#broad_rect、Map#to_sprite、Map#to_unitメソッドの追加
-・Map#get_amount、Map#get_amount_by_rect、FixedMap#get_amount_by_rectメソッドの引数変更
-・MapChipStructクラスの追加
-・FixedMap#render_toメソッドの追加
-・FixedMap#render、FixedMap#render_toにブロックを渡すことでrender対象のSpriteUnitを調整することができる処理を追加
-・FixedMap#rect、FixedMap#broad_rect、FixedMap#to_sprite、FixedMap#to_unitメソッドの追加
-・MapEvent.newメソッドのインタフェース変更
-・MapEvent#initメソッドのインタフェース変更(引数として、登録もとMap/FixedMapクラスのインスタンス・マップ上の位置を取得)
-・MapEvent#execメソッドをMapEvent#startメソッドに改名
-・MapEvent#move、MapEvent#move_toメソッドを追加
-・MapEvent#start,stopメソッドの引数インタフェースの変更(params=nil -> *paramsに変更)
-・MapEventManagerクラスの追加。MapEvent管理(イベントIDとの関連づけ)は全マップからMap/FixedMapインスタンス単位に変更
-・Movie#playメソッドをMovie#startメソッドに変更
-・Movie#moveメソッドが機能しないバグを修正
-・Diagram::Processor#nodesメソッドの追加
-・MiyakoTapモジュールの廃止(tapメソッドが使えるようになったため)
-・Rect,Square構造体に#in_range?メソッドを追加
-・drawing.rb追加
-・Drawingモジュール追加（画像・画面への線形描画用、引数をSDL::Surfaceからスプライトに変更）
-・これにより、Spriteクラスの各種線形描画メソッドを廃止
-・bitmap.rb追加（Bitmapクラスをここに移動）
-・spriteunit.rb追加（SpriteUnit構造体関連をここに移動）
-・choices.rb追加
-・fixedmap.rb追加
-・map_event.rb追加
-・viewport.rb追加
-・miyako_no_katanaから、SDLのサーフェスを直接アクセスする方法に変更
-・idaten_miyakoとmiyako_no_katanaの統合(ライブラリはmiyako_no_katanaに統一)
-・miyako_no_katanaの、SpriteAnimation#update_animationが仕様通りになっていなかった問題を修正
-・EXT/miyako_cairo.rb追加
-・MiyakoCairoモジュールを追加
-・MiyakoCairo.to_cairo_surface、MiyakoCairo.to_spriteメソッドの追加
-・RasterScrollクラスの修正(render/render_toメソッド追加など)
-・Slideの初期化方法の変更(スライド本体(背景)は、slide[:___base___]で参照可能に)
-・Slide#render、render_to、update、update_animation、slide_render、slide_render_toメソッド追加
-・Slide[]で利用できるテンプレートに"white","black","half-white"を追加
+・メソッド群の大幅な見直し
 ・miyako_ext.rb削除
 ・install_miyaok.rbの修正(旧バージョンのディレクトリを削除、miyako_no_katanaビルド時に環境変数SDL_CONFIG_PATHを参照する様にした)
 ・リファレンス(RDoc)の拡充

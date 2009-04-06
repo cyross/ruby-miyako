@@ -106,7 +106,7 @@ static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
   *px = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
   *py = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *px = tx;
     *py = ty;
   }
@@ -123,7 +123,7 @@ static VALUE su_move_to(VALUE self, VALUE x, VALUE y)
   *px = x;
   *py = y;
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *px = tx;
     *py = ty;
   }
@@ -140,7 +140,7 @@ static VALUE point_move(VALUE self, VALUE dx, VALUE dy)
   *px = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
   *py = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *px = tx;
     *py = ty;
   }
@@ -157,14 +157,31 @@ static VALUE point_move_to(VALUE self, VALUE x, VALUE y)
   *px = x;
   *py = y;
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *px = tx;
     *py = ty;
   }
   return Qnil;
 }
 
-static VALUE size_resize(VALUE self, VALUE w, VALUE h)
+static VALUE size_resize(VALUE self, VALUE dw, VALUE dh)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pw = st+0;
+  VALUE *ph = st+1;
+  VALUE tw = *pw;
+  VALUE th = *ph;
+  *pw = INT2NUM(NUM2INT(tw)+NUM2INT(dw));
+  *ph = INT2NUM(NUM2INT(th)+NUM2INT(dh));
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(self);
+    *pw = tw;
+    *ph = th;
+  }
+  return Qnil;
+}
+
+static VALUE size_resize_to(VALUE self, VALUE w, VALUE h)
 {
   VALUE *st = RSTRUCT_PTR(self);
   VALUE *pw = st+0;
@@ -174,7 +191,7 @@ static VALUE size_resize(VALUE self, VALUE w, VALUE h)
   *pw = w;
   *ph = h;
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pw = tw;
     *ph = th;
   }
@@ -191,7 +208,7 @@ static VALUE rect_resize(VALUE self, VALUE w, VALUE h)
   *pw = w;
   *ph = h;
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pw = tw;
     *ph = th;
   }
@@ -228,7 +245,7 @@ static VALUE square_move(VALUE self, VALUE dx, VALUE dy)
   *pr = INT2NUM(NUM2INT(tr)+NUM2INT(dx));
   *pb = INT2NUM(NUM2INT(tb)+NUM2INT(dy));
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pl = tl;
     *pt = tt;
     *pr = tr;
@@ -255,7 +272,7 @@ static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
   *pr = INT2NUM(NUM2INT(x)+w);
   *pb = INT2NUM(NUM2INT(y)+h);
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pl = tl;
     *pt = tt;
     *pr = tr;
@@ -264,7 +281,24 @@ static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
   return Qnil;
 }
 
-static VALUE square_resize(VALUE self, VALUE w, VALUE h)
+static VALUE square_resize(VALUE self, VALUE dw, VALUE dh)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pr = st+2;
+  VALUE *pb = st+3;
+  VALUE tr = *pr;
+  VALUE tb = *pb;
+  *pr = INT2NUM(NUM2INT(*pr) + NUM2INT(dw));
+  *pb = INT2NUM(NUM2INT(*pb) + NUM2INT(dh));
+  if(rb_block_given_p() == Qtrue){
+    rb_yield(self);
+    *pr = tr;
+    *pb = tb;
+  }
+  return Qnil;
+}
+
+static VALUE square_resize_to(VALUE self, VALUE w, VALUE h)
 {
   VALUE *st = RSTRUCT_PTR(self);
   VALUE *pl = st+0;
@@ -276,7 +310,7 @@ static VALUE square_resize(VALUE self, VALUE w, VALUE h)
   *pr = INT2NUM(NUM2INT(*pl) + NUM2INT(w) - 1);
   *pb = INT2NUM(NUM2INT(*pt) + NUM2INT(h) - 1);
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pr = tr;
     *pb = tb;
   }
@@ -327,6 +361,7 @@ void Init_miyako_basicdata()
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
   cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
+  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
   cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
@@ -362,6 +397,7 @@ void Init_miyako_basicdata()
   rb_define_method(sPoint, "move", point_move, 2);
   rb_define_method(sPoint, "move_to", point_move_to, 2);
   rb_define_method(sSize, "resize", size_resize, 2);
+  rb_define_method(sSize, "resize_to", size_resize_to, 2);
   rb_define_method(sRect, "move", point_move, 2);
   rb_define_method(sRect, "move_to", point_move_to, 2);
   rb_define_method(sRect, "resize", rect_resize, 2);
@@ -369,5 +405,6 @@ void Init_miyako_basicdata()
   rb_define_method(sSquare, "move", square_move, 2);
   rb_define_method(sSquare, "move_to", square_move_to, 2);
   rb_define_method(sSquare, "resize", square_resize, 2);
+  rb_define_method(sSquare, "resize_to", square_resize_to, 2);
   rb_define_method(sSquare, "in_range?", square_in_range, 2);
 }

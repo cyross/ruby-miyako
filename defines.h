@@ -54,6 +54,7 @@ static VALUE cMapLayer = Qnil;
 static VALUE cFixedMap = Qnil;
 static VALUE cFixedMapLayer = Qnil;
 static VALUE cCollision = Qnil;
+static VALUE cCircleCollision = Qnil;
 static VALUE cCollisions = Qnil;
 static VALUE cMovie = Qnil;
 static VALUE cProcessor = Qnil;

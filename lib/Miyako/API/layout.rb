@@ -382,7 +382,7 @@ module Miyako
       @layout.pos[1] += y
       update_layout(x, y)
       if block_given?
-        yield
+        yield self
         @layout.pos[0], @layout.pos[1] = o
         update_layout(-x, -y)
       end

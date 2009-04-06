@@ -77,7 +77,7 @@ module Miyako
       @rect.move(dx,dy)
       @sq.move(dx, dy)
       if block_given?
-        yield
+        yield self
         @rect.move_to(*orect)
         @sq.move_to(*osq)
       end
@@ -96,7 +96,7 @@ module Miyako
       @rect.move_to(x,y)
       @sq.move_to(x, y)
       if block_given?
-        yield
+        yield self
         @rect.move_to(*orect)
         @sq.move_to(*osq)
       end

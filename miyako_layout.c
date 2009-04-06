@@ -61,7 +61,7 @@ static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
   }
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pox = tx;
     *poy = ty;
     layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
@@ -88,7 +88,7 @@ static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
   }
   if(rb_block_given_p() == Qtrue){
-    rb_yield(Qnil);
+    rb_yield(self);
     *pox = tx;
     *poy = ty;
     layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
@@ -176,6 +176,7 @@ void Init_miyako_layout()
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
   cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
+  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
   cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);

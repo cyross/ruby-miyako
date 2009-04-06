@@ -349,6 +349,7 @@ void Init_miyako_transform()
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
   cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
+  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
   cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);

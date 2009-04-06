@@ -296,10 +296,9 @@ static void maplayer_render_inner(VALUE self, VALUE dunit)
   int ow = NUM2INT(rb_iv_get(self, "@ow"));
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
-  VALUE pos = rb_iv_get(self, "@pos");
   VALUE margin = rb_iv_get(self, "@margin");
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0)) + NUM2INT(*(RSTRUCT_PTR(margin) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1)) + NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(margin) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(margin) + 1));
 
   VALUE size = rb_iv_get(self, "@size");
   int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
@@ -402,10 +401,9 @@ static void maplayer_render_to_inner(VALUE self, VALUE dunit)
   int ow = NUM2INT(rb_iv_get(self, "@ow"));
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
-  VALUE pos = rb_iv_get(self, "@pos");
   VALUE margin = rb_iv_get(self, "@margin");
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0)) + NUM2INT(*(RSTRUCT_PTR(margin) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1)) + NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+  int pos_x = NUM2INT(*(RSTRUCT_PTR(margin) + 0));
+  int pos_y = NUM2INT(*(RSTRUCT_PTR(margin) + 1));
 
   VALUE size = rb_iv_get(self, "@size");
   int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
@@ -972,6 +970,7 @@ void Init_miyako_no_katana()
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
   cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
+  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
   cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);

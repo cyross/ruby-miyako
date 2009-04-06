@@ -23,201 +23,236 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =拡張ライブラリmiyako_no_katana
 Authors:: サイロス誠
 Version:: 2.0
-Copyright:: 2007-2008 Cyross Makoto
+Copyright:: 2007-2009 Cyross Makoto
 License:: LGPL2.1
  */
 #include "defines.h"
 
+/*
+:nodoc:
+*/
+static VALUE collision_get_position(VALUE pos, VALUE *x, VALUE *y)
+{
+  VALUE *tmp;
+  switch(TYPE(pos))
+  {
+  case T_ARRAY:
+    tmp = RARRAY_PTR(pos);
+    *x = *tmp++;
+    *y = *tmp;
+    break;
+  case T_STRUCT:
+    tmp = RSTRUCT_PTR(pos);
+    *x = *tmp++;
+    *y = *tmp;
+    break;
+  default:
+    *x = rb_funcall(pos, rb_intern("x"), 0);
+    *y = rb_funcall(pos, rb_intern("y"), 0);
+    break;
+  }
+  return Qnil;
+}
 
 /*
 :nodoc:
 */
-static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE c2)
+static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
   VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
   VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
-  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
-  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
-  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1);
-  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1));
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  int l1 = NUM2INT(x1) + NUM2INT(*prect1);
+  int t1 = NUM2INT(y1) + NUM2INT(*(prect1+1));
   int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
   int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
-  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2);
-  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1));
+  int l2 = NUM2INT(x2) + NUM2INT(*prect2);
+  int t2 = NUM2INT(y2) + NUM2INT(*(prect2+1));
   int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
   int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
 
-  int v = 0;
-  if(l1 <= l2 && l2 <= r1) v |= 1;
-  if(l1 <= r2 && r2 <= r1) v |= 1;
-  if(t1 <= t2 && t2 <= b1) v |= 2;
-  if(t1 <= b2 && b2 <= b1) v |= 2;
-
-  if(v == 3) return Qtrue;
+  if(l1 <= l2 && l2 <= r1 && t1 <= t2 && t2 <= b1) return Qtrue;
+  if(l1 <= r2 && r2 <= r1 && t1 <= b2 && b2 <= b1) return Qtrue;
   return Qfalse;
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_c_collision_with_move(VALUE self, VALUE c1, VALUE c2)
+static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
   VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
   VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
-  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
-  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
-  VALUE *pdir1 = RSTRUCT_PTR(rb_iv_get(c1, "@direction"));
-  VALUE *pdir2 = RSTRUCT_PTR(rb_iv_get(c2, "@direction"));
-  VALUE *pamt1 = RSTRUCT_PTR(rb_iv_get(c1, "@amount"));
-  VALUE *pamt2 = RSTRUCT_PTR(rb_iv_get(c2, "@amount"));
-  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1) + NUM2INT(*pdir1) * NUM2INT(*pamt1);
-  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1)) + NUM2INT(*(pdir1+1)) * NUM2INT(*(pamt1+1));
-  int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
-  int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
-  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2) + NUM2INT(*pdir2) * NUM2INT(*pamt2);
-  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1)) + NUM2INT(*(pdir2+1)) * NUM2INT(*(pamt2+1));
-  int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
-  int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
-
-  int v = 0;
-  if(l1 <= l2 && l2 <= r1) v |= 1;
-  if(l1 <= r2 && r2 <= r1) v |= 1;
-  if(t1 <= t2 && t2 <= b1) v |= 2;
-  if(t1 <= b2 && b2 <= b1) v |= 2;
-
-  if(v == 3) return Qtrue;
-  return Qfalse;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE c2)
-{
-  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
-  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
-  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
-  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
-  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1);
-  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1));
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  int l1 = NUM2INT(x1) + NUM2INT(*prect1);
+  int t1 = NUM2INT(y1) + NUM2INT(*(prect1+1));
   int r1 = l1 + NUM2INT(*(prect1+2));
   int b1 = t1 + NUM2INT(*(prect1+3));
-  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2);
-  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1));
+  int l2 = NUM2INT(x2) + NUM2INT(*prect2);
+  int t2 = NUM2INT(y2) + NUM2INT(*(prect2+1));
   int r2 = l2 + NUM2INT(*(prect2+2));
   int b2 = t2 + NUM2INT(*(prect2+3));
 
-  int v = 0;
-  if(r1 == l2) v |= 1;
-  if(b1 == t2) v |= 1;
-  if(l1 == r2) v |= 1;
-  if(t1 == b2) v |= 1;
-
-  if(v == 1) return Qtrue;
+  if(r1 == l2 || b1 == t2 || l1 == r2 || t1 == b2) return Qtrue;
   return Qfalse;
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_c_into(VALUE self, VALUE c1, VALUE c2)
-{
-  VALUE f1 = collision_c_collision(self, c1, c2);
-  VALUE f2 = collision_c_collision_with_move(self, c1, c2);
-  if(f1 == Qfalse && f2 == Qtrue) return Qtrue;
-  return Qfalse;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collision_c_out(VALUE self, VALUE c1, VALUE c2)
-{
-  VALUE f1 = collision_c_collision(self, c1, c2);
-  VALUE f2 = collision_c_collision_with_move(self, c1, c2);
-  if(f1 == Qtrue && f2 == Qfalse) return Qtrue;
-  return Qfalse;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE c2)
+static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
   VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
   VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
-  VALUE *ppos1 = RSTRUCT_PTR(rb_iv_get(c1, "@pos"));
-  VALUE *ppos2 = RSTRUCT_PTR(rb_iv_get(c2, "@pos"));
-  int l1 = NUM2INT(*ppos1) + NUM2INT(*prect1);
-  int t1 = NUM2INT(*(ppos1+1)) + NUM2INT(*(prect1+1));
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  int l1 = NUM2INT(x1) + NUM2INT(*prect1);
+  int t1 = NUM2INT(y1) + NUM2INT(*(prect1+1));
   int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
   int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
-  int l2 = NUM2INT(*ppos2) + NUM2INT(*prect2);
-  int t2 = NUM2INT(*(ppos2+1)) + NUM2INT(*(prect2+1));
+  int l2 = NUM2INT(x2) + NUM2INT(*prect2);
+  int t2 = NUM2INT(y2) + NUM2INT(*(prect2+1));
   int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
   int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
 
-  int v = 0;
-  if(l1 <= l2 && r2 <= r1) v |= 1;
-  if(t1 <= t2 && b2 <= b1) v |= 2;
-  if(l2 <= l1 && r1 <= r2) v |= 4;
-  if(t2 <= t1 && b1 <= b2) v |= 8;
-
-  if(v == 3 || v == 12) return Qtrue;
+  if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
+  if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
   return Qfalse;
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_collision(VALUE self, VALUE c2)
+static VALUE collision_collision(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  return collision_c_collision(cCollision, self, c2);
+  return collision_c_collision(cCollision, self, pos1, c2, pos2);
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_meet(VALUE self, VALUE c2)
+static VALUE collision_meet(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  return collision_c_meet(cCollision, self, c2);
+  return collision_c_meet(cCollision, self, pos1, c2, pos2);
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_into(VALUE self, VALUE c2)
+static VALUE collision_cover(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  return collision_c_into(cCollision, self, c2);
+  return collision_c_cover(cCollision, self, pos1, c2, pos2);
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_out(VALUE self, VALUE c2)
+static VALUE circlecollision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  return collision_c_out(cCollision, self, c2);
+  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
+  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  int r1 = NUM2INT(rb_iv_get(c1, "@radius"));
+  int r2 = NUM2INT(rb_iv_get(c2, "@radius"));
+  int r  = (r1 + r2) * (r1 + r2);
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  int cx1 = NUM2INT(x1) + NUM2INT(*pcenter1);
+  int cy1 = NUM2INT(y1) + NUM2INT(*(pcenter1+1));
+  int cx2 = NUM2INT(x2) + NUM2INT(*pcenter2);
+  int cy2 = NUM2INT(y2) + NUM2INT(*(pcenter2+1));
+  int d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+
+  if(d <= r) return Qtrue;
+  return Qfalse;
 }
 
 /*
 :nodoc:
 */
-static VALUE collision_cover(VALUE self, VALUE c2)
+static VALUE circlecollision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  return collision_c_cover(cCollision, self, c2);
+  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
+  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  int r1 = NUM2INT(rb_iv_get(c1, "@radius"));
+  int r2 = NUM2INT(rb_iv_get(c2, "@radius"));
+  int r  = (r1 + r2) * (r1 + r2);
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  int cx1 = NUM2INT(x1) + NUM2INT(*pcenter1);
+  int cy1 = NUM2INT(y1) + NUM2INT(*(pcenter1+1));
+  int cx2 = NUM2INT(x2) + NUM2INT(*pcenter2);
+  int cy2 = NUM2INT(y2) + NUM2INT(*(pcenter2+1));
+  int d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+
+  if(d == r) return Qtrue;
+  return Qfalse;
 }
 
 /*
 :nodoc:
 */
-static VALUE collisions_collision(VALUE self, VALUE c)
+static VALUE circlecollision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
+  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  int r1 = NUM2INT(rb_iv_get(c1, "@radius"));
+  int r2 = NUM2INT(rb_iv_get(c2, "@radius"));
+  int r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  int cx1 = NUM2INT(x1) + NUM2INT(*pcenter1);
+  int cy1 = NUM2INT(y1) + NUM2INT(*(pcenter1+1));
+  int cx2 = NUM2INT(x2) + NUM2INT(*pcenter2);
+  int cy2 = NUM2INT(y2) + NUM2INT(*(pcenter2+1));
+  int d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+
+  if(d <= r) return Qtrue;
+  return Qfalse;
+}
+
+/*
+:nodoc:
+*/
+static VALUE circlecollision_collision(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return circlecollision_c_collision(cCircleCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE circlecollision_meet(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return circlecollision_c_meet(cCircleCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE circlecollision_cover(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return circlecollision_c_cover(cCircleCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collisions_collision(VALUE self, VALUE c, VALUE pos)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
   int i=0;
   for(i=0; i<RARRAY_LEN(collisions); i++){
     VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_collision(c, cc) == Qtrue){ return cs; }
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_collision(c, pos, *cc, *(cc+1)) == Qtrue){ return cs; }
   }
   return Qnil;
 }
@@ -225,14 +260,14 @@ static VALUE collisions_collision(VALUE self, VALUE c)
 /*
 :nodoc:
 */
-static VALUE collisions_meet(VALUE self, VALUE c)
+static VALUE collisions_meet(VALUE self, VALUE c, VALUE pos)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
   int i=0;
   for(i=0; i<RARRAY_LEN(collisions); i++){
     VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_meet(c, cc) == Qtrue){ return cs; }
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_meet(c, pos, *cc, *(cc+1)) == Qtrue){ return cs; }
   }
   return Qnil;
 }
@@ -240,14 +275,14 @@ static VALUE collisions_meet(VALUE self, VALUE c)
 /*
 :nodoc:
 */
-static VALUE collisions_into(VALUE self, VALUE c)
+static VALUE collisions_cover(VALUE self, VALUE c, VALUE pos)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
   int i=0;
   for(i=0; i<RARRAY_LEN(collisions); i++){
     VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_into(c, cc) == Qtrue){ return cs; }
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_cover(c, pos, *cc, *(cc+1)) == Qtrue){ return cs; }
   }
   return Qnil;
 }
@@ -255,45 +290,15 @@ static VALUE collisions_into(VALUE self, VALUE c)
 /*
 :nodoc:
 */
-static VALUE collisions_out(VALUE self, VALUE c)
-{
-  VALUE collisions = rb_iv_get(self, "@collisions");
-  int i=0;
-  for(i=0; i<RARRAY_LEN(collisions); i++){
-    VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_out(c, cc) == Qtrue){ return cs; }
-  }
-  return Qnil;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collisions_cover(VALUE self, VALUE c)
-{
-  VALUE collisions = rb_iv_get(self, "@collisions");
-  int i=0;
-  for(i=0; i<RARRAY_LEN(collisions); i++){
-    VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_cover(c, cc) == Qtrue){ return cs; }
-  }
-  return Qnil;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collisions_collision_all(VALUE self, VALUE c)
+static VALUE collisions_collision_all(VALUE self, VALUE c, VALUE pos)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
   VALUE ret = rb_ary_new();
   int i=0;
   for(i=0; i<RARRAY_LEN(collisions); i++){
     VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_collision(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_collision(c, pos, *cc, *(cc+1)) == Qtrue){ rb_ary_push(ret, cs); }
   }
   if(RARRAY_LEN(ret) == 0){ return Qnil; }
   return ret;
@@ -302,15 +307,15 @@ static VALUE collisions_collision_all(VALUE self, VALUE c)
 /*
 :nodoc:
 */
-static VALUE collisions_meet_all(VALUE self, VALUE c)
+static VALUE collisions_meet_all(VALUE self, VALUE c, VALUE pos)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
   VALUE ret = rb_ary_new();
   int i=0;
   for(i=0; i<RARRAY_LEN(collisions); i++){
     VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_meet(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_meet(c, pos, *cc, *(cc+1)) == Qtrue){ rb_ary_push(ret, cs); }
   }
   if(RARRAY_LEN(ret) == 0){ return Qnil; }
   return ret;
@@ -319,49 +324,15 @@ static VALUE collisions_meet_all(VALUE self, VALUE c)
 /*
 :nodoc:
 */
-static VALUE collisions_into_all(VALUE self, VALUE c)
+static VALUE collisions_cover_all(VALUE self, VALUE c, VALUE pos)
 {
   VALUE collisions = rb_iv_get(self, "@collisions");
   VALUE ret = rb_ary_new();
   int i=0;
   for(i=0; i<RARRAY_LEN(collisions); i++){
     VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_into(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
-  }
-  if(RARRAY_LEN(ret) == 0){ return Qnil; }
-  return ret;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collisions_out_all(VALUE self, VALUE c)
-{
-  VALUE collisions = rb_iv_get(self, "@collisions");
-  VALUE ret = rb_ary_new();
-  int i=0;
-  for(i=0; i<RARRAY_LEN(collisions); i++){
-    VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_out(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
-  }
-  if(RARRAY_LEN(ret) == 0){ return Qnil; }
-  return ret;
-}
-
-/*
-:nodoc:
-*/
-static VALUE collisions_cover_all(VALUE self, VALUE c)
-{
-  VALUE collisions = rb_iv_get(self, "@collisions");
-  VALUE ret = rb_ary_new();
-  int i=0;
-  for(i=0; i<RARRAY_LEN(collisions); i++){
-    VALUE cs = *(RARRAY_PTR(collisions) + i);
-    VALUE cc = *(RARRAY_PTR(cs) + 0);
-    if(collision_cover(c, cc) == Qtrue){ rb_ary_push(ret, cs); }
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_cover(c, pos, *cc, *(cc+1)) == Qtrue){ rb_ary_push(ret, cs); }
   }
   if(RARRAY_LEN(ret) == 0){ return Qnil; }
   return ret;
@@ -397,6 +368,7 @@ void Init_miyako_collision()
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
   cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
+  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
   cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
   cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
@@ -419,25 +391,24 @@ void Init_miyako_collision()
   one = 1;
   nOne = INT2NUM(one);
 
-  rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 2);
-  rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 2);
-  rb_define_singleton_method(cCollision, "into?", collision_c_into, 2);
-  rb_define_singleton_method(cCollision, "out?", collision_c_out, 2);
-  rb_define_singleton_method(cCollision, "cover?", collision_c_cover, 2);
-  rb_define_method(cCollision, "collision?", collision_collision, 1);
-  rb_define_method(cCollision, "meet?", collision_meet, 1);
-  rb_define_method(cCollision, "into?", collision_into, 1);
-  rb_define_method(cCollision, "out?", collision_out, 1);
-  rb_define_method(cCollision, "cover?", collision_cover, 1);
+  rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 4);
+  rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 4);
+  rb_define_singleton_method(cCollision, "cover?", collision_c_cover, 4);
+  rb_define_method(cCollision, "collision?", collision_collision, 3);
+  rb_define_method(cCollision, "meet?", collision_meet, 3);
+  rb_define_method(cCollision, "cover?", collision_cover, 3);
 
-  rb_define_method(cCollisions, "collision?", collisions_collision, 1);
-  rb_define_method(cCollisions, "meet?", collisions_meet, 1);
-  rb_define_method(cCollisions, "into?", collisions_into, 1);
-  rb_define_method(cCollisions, "out?", collisions_out, 1);
-  rb_define_method(cCollisions, "cover?", collisions_cover, 1);
-  rb_define_method(cCollisions, "collision_all?", collisions_collision_all, 1);
-  rb_define_method(cCollisions, "meet_all?", collisions_meet_all, 1);
-  rb_define_method(cCollisions, "into_all?", collisions_into_all, 1);
-  rb_define_method(cCollisions, "out_all?", collisions_out_all, 1);
-  rb_define_method(cCollisions, "cover_all?", collisions_cover_all, 1);
+  rb_define_singleton_method(cCircleCollision, "collision?", circlecollision_c_collision, 4);
+  rb_define_singleton_method(cCircleCollision, "meet?", circlecollision_c_meet, 4);
+  rb_define_singleton_method(cCircleCollision, "cover?", circlecollision_c_cover, 4);
+  rb_define_method(cCircleCollision, "collision?", circlecollision_collision, 3);
+  rb_define_method(cCircleCollision, "meet?", circlecollision_meet, 3);
+  rb_define_method(cCircleCollision, "cover?", circlecollision_cover, 3);
+
+  rb_define_method(cCollisions, "collision?", collisions_collision, 2);
+  rb_define_method(cCollisions, "meet?", collisions_meet, 2);
+  rb_define_method(cCollisions, "cover?", collisions_cover, 2);
+  rb_define_method(cCollisions, "collision_all?", collisions_collision_all, 2);
+  rb_define_method(cCollisions, "meet_all?", collisions_meet_all, 2);
+  rb_define_method(cCollisions, "cover_all?", collisions_cover_all, 2);
 }

@@ -9,19 +9,17 @@ class MainScene
     @d = [0,1]
 
     @map = MapManager.new
-    @size = @map.size
-    @map.collision.amount.resize(@amt, @amt)
     @executing_flags = Array.new(@map.events.length){|n| false}
 
     # キャラクタの初期位置を指定([10,10]に位置)
     @chr = PChara.new("./chr1.png", @size)
+    @rect = Rect.new(@size[0]*10, @size[1]*10, *@map.size.to_a)
 
     # マップの表示開始位置を移動させる
     # キャラクタのグラフィックを真ん中に表示させるため
-    @map.margin.resize(*@chr.margin)
-    @map.sync_margin
+    @map.move(*@chr.margin)
     # マップの実座標を設定する
-    @map.move(@size[0] * 10, @size[1] * 10)
+    @map.move(*@rect.to_a[0..1])
     
     @parts = CommonParts.instance
     #Yukiの初期化
@@ -67,15 +65,15 @@ class MainScene
             # 0:down 1:left 2:right 3:up
         @d = Input::trigger_amount
         @d[1] = 0 if @d[0] != 0 && @d[1] != 0 # 移動を横方向優先に
-        # コリジョンの移動量を設定
-        @map.collision.direction.move_to(*@d)
         #キャラクタの向きを変更
         @chr.turn(@d)
         #マップの移動量を求める
-        @a = @map.get_amount(0, 0, @map.size, @map.collision).amount.to_a
+        rect = @rect.dup.move(@d[0]*@rect.w,@d[1]*@rect.h)
+        if @map[0].range(rect).map{|
+        @a = @map.get_amount(0, 0, @rect, @map.collision).amount.to_a
         # 方向ボタンを押したときは、１チップサイズ単位で移動する
         # @cntはその移動量(幅と高さでサイズが違う場合アリ)
-        @cnt = @a[0] > 0 ? @size[0] : @size[1]
+        @cnt = @d[0] > 0 ? @rect.w : @rect.h
       end
     else
     end
