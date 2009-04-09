@@ -25,35 +25,19 @@ module Miyako
   #位置変更メソッドを追加
   class PointStruct < Struct
     #===位置を変更する(変化量を指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_dx_:: 移動量(x方向)。単位はピクセル
     #_dy_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move(dx, dy)
-      o = self.to_a
-      self[0]+=dx
-      self[1]+=dy
-      if block_given?
-        yield
-        self[0], self[1] = o
-      end
-      return self
     end
 
     #===位置を変更する(位置指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_x_:: 移動先位置(x方向)。単位はピクセル
     #_y_:: 移動先位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move_to(x, y)
-      o = self.to_a
-      self[0]=x
-      self[1]=y
-      if block_given?
-        yield
-        self[0], self[1] =o
-      end
-      return self
     end
   end
 
@@ -61,35 +45,19 @@ module Miyako
   #サイズ変更メソッドを追加
   class SizeStruct < Struct
     #===サイズを変更する(変化量を指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_w_:: 幅変更。単位はピクセル
     #_h_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
     def resize(dw, dh)
-      o = self.to_a
-      self[0]+=dw
-      self[1]+=dh
-      if block_given?
-        yield
-        self[0], self[1] = o
-      end
-      return self
     end
 
     #===サイズを変更する
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_w_:: 幅変更。単位はピクセル
     #_h_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
     def resize_to(w, h)
-      o = self.to_a
-      self[0]=w
-      self[1]=h
-      if block_given?
-        yield
-        self[0], self[1] = o
-      end
-      return self
     end
   end
 
@@ -97,51 +65,27 @@ module Miyako
   #矩形変更メソッドを追加
   class RectStruct < Struct
     #===位置を変更する(変化量を指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_dx_:: 移動量(x方向)。単位はピクセル
     #_dy_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move(dx, dy)
-      o = self.to_a
-      self[0]+=dx
-      self[1]+=dy
-      if block_given?
-        yield
-        self[0], self[1] = o
-      end
-      return self
     end
 
     #===位置を変更する(位置指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_x_:: 移動先位置(x方向)。単位はピクセル
     #_y_:: 移動先位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move_to(x, y)
-      o = self.to_a
-      self[0]=x
-      self[1]=y
-      if block_given?
-        yield
-        self[0], self[1] =o
-      end
-      return self
     end
 
     #===サイズを変更する(変化量を指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_w_:: 幅変更。単位はピクセル
     #_h_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
     def resize(w, h)
-      o = self.to_a[2..3]
-      self[2]=w
-      self[3]=h
-      if block_given?
-        yield
-        self[2], self[3] =o
-      end
-      return self
     end
 
     #===指定の座標が矩形の範囲内かを問い合わせる
@@ -157,58 +101,27 @@ module Miyako
   #位置変更メソッドを追加
   class SquareStruct < Struct
     #===位置を変更する(変化量を指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_dx_:: 移動量(x方向)。単位はピクセル
     #_dy_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move(dx, dy)
-      o = self.to_a
-      self[0]+=dx
-      self[1]+=dy
-      self[2]+=dx
-      self[3]+=dy
-      if block_given?
-        yield
-        self[0], self[1], self[2], self[3] = o
-      end
-      return self
     end
 
     #===位置を変更する(位置指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_x_:: 移動先位置(x方向)。単位はピクセル
     #_y_:: 移動先位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move_to(x, y)
-      o = self.to_a
-      w = self[2] - self[0]
-      h = self[3] - self[1]
-      self[0]=x
-      self[1]=y
-      self[2]=x+w
-      self[3]=y+h
-      if block_given?
-        yield
-        self[0], self[1], self[2], self[3] = o
-      end
-      return self
     end
 
     #===サイズを変更する(変化量を指定)
-    #ブロックを渡せば、そのブロックの評価中のみ値を変更する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_w_:: 幅変更。単位はピクセル
     #_h_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
     def resize(w, h)
-      raise MiyakoError, "Illegal size! w:#{w} h:#{h}" if (w < 0 || h < 0)
-      o = self.to_a[2..3]
-      self[2]=self[0] + w - 1
-      self[3]=self[1] + h - 1
-      if block_given?
-        yield
-        self[2], self[3] = o
-      end
-      return self
     end
 
     #===指定の座標が矩形の範囲内かを問い合わせる

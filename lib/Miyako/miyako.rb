@@ -46,11 +46,6 @@ require 'rbconfig'
 #デバッグモードの設定。デバッグモードにするときはtrueを渡す。デフォルトはfalse
 $miyako_debug_mode ||= false
 
-#Miyako.main_loopでウェイトを行うかどうかの設定。デフォルトはtrue
-$miyako_use_wait = true if $miyako_use_wait == nil
-#Miyako.main_loopでかけるウェイト。単位は秒(実数)。デフォルトは0.01秒
-$miyako_wait_time = 0.01 if $miyako_wait_time == nil
-
 #openGLを使う？ openGLを使用するときはtrueを設定する。デフォルトはfalse
 $miyako_use_opengl ||= false
 
@@ -169,7 +164,6 @@ module Miyako
       Screen::clear
       yield
       Screen::render
-      sleep $miyako_wait_time if $miyako_use_wait
     end
   end
 end

@@ -315,7 +315,7 @@ module Miyako
           src2 = @font.renderBlendedUTF8(c, @shadow_color[0], @shadow_color[1], @shadow_color[2])
           if src2
             SpriteUnitFactory.apply(@unit, {:bitmap=>src2, :ow=>src2.w, :oh=>src2.h})
-            Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
+            Miyako::Bitmap.blit_aa(@unit, dst.to_unit, x+@shadow_margin[0], y+@shadow_margin[1])
           else
             break x
           end
@@ -323,7 +323,7 @@ module Miyako
         src = @font.renderBlendedUTF8(c, @color[0], @color[1], @color[2])
         if src
           SpriteUnitFactory.apply(@unit, {:bitmap=>src, :ow=>src.w, :oh=>src.h})
-          Miyako::Bitmap.blit_aa!(@unit, dst.to_unit, x, y)
+          Miyako::Bitmap.blit_aa(@unit, dst.to_unit, x, y)
         else
           break x
         end
@@ -347,7 +347,9 @@ module Miyako
     #_txt_:: 算出したい文字列
     #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
     def text_size(txt)
-      width = txt.chars.inject(0){|r, c| r += (c.bytesize == 1 ? @size >> 1 : @size) } + ((@use_shadow ? @shadow_margin[0] : 0) + @hspace) * (txt.chars.to_a.length - 1)
+      width = txt.chars.inject(0){|r, c|
+        r += (c.bytesize == 1 ? @size >> 1 : @size) } + 
+             ((@use_shadow ? @shadow_margin[0] : 0) + @hspace) * (txt.chars.to_a.length - 1)
       return [width, self.line_height]
     end
     
@@ -377,7 +379,8 @@ module Miyako
     Font.create_font_path
 
     #===Serifフォント(明朝フォント)を取得する
-    #マルチプラットフォームのソフトを作る際、OS間の差異を吸収するため、共通の名称でフォントインスタンスを取得するときに使う(主に明朝フォント)
+    #マルチプラットフォームのソフトを作る際、OS間の差異を吸収するため、
+    #共通の名称でフォントインスタンスを取得するときに使う(主に明朝フォント)
     #返却値:: OSごとに設定されたフォントイン寸タンス(フォントサイズは16)
     def Font::serif
       filename = @@font_base_name[Miyako::getOSName].detect{|base| Font.findFontPath(base[:serif]) }[:serif]
@@ -385,7 +388,8 @@ module Miyako
     end
 
     #===Sans Serifフォント(ゴシックフォント)を取得する
-    #マルチプラットフォームのソフトを作る際、OS間の差異を吸収するため、共通の名称でフォントインスタンスを取得するときに使う(主にゴシックフォント)
+    #マルチプラットフォームのソフトを作る際、OS間の差異を吸収するため、
+    #共通の名称でフォントインスタンスを取得するときに使う(主にゴシックフォント)
     #返却値:: OSごとに設定されたフォントイン寸タンス(フォントサイズは16)
     def Font::sans_serif
       filename = @@font_base_name[Miyako::getOSName].detect{|base| Font.findFontPath(base[:sans_serif]) }[:sans_serif]

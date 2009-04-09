@@ -199,46 +199,47 @@ module Miyako
       #===キャラクタとマップチップが重なっているかどうか問い合わせる
       #指定の矩形のキャラクタが、指定の位置のマップチップのコリジョンと重なっているかどうか問い合わせる
       #引数は、Rect(x,y,w,h)形式(Rect構造体、[x,y,w,h]の配列)で渡す
-      #指定の位置のマップチップ番号が-1(未定義)のときはfalseを返す
+      #指定の位置のマップチップ番号が-1(未定義)のときはnilを返す
       #_type_:: 移動形式(0以上の整数)
       #_pos_:: 調査対象のマップチップの位置
       #_collision_:: キャラクタのコリジョン
       #_rect_:: キャラクタの矩形
-      #返却値:: コリジョンが重なっていればtrueを返す
+      #返却値:: コリジョンが重なっていれば、そのときのマップチップ番号を返す。重なっていなければnilを返す
       def collision?(type, pos, collision, rect)
         code = get_code(*pos.to_a)
-        return false if code == -1
-        return @mapchip.collision_table[type][code].collision?(pos, collision, rect)
+        return nil if code == -1
+        return @mapchip.collision_table[type][code].collision?(pos, collision, rect) ? code : nil
       end
 
       #===キャラクタとマップチップが隣り合っているかどうか問い合わせる
       #指定の矩形のキャラクタが、指定の位置のマップチップのコリジョンと隣り合っているかどうか問い合わせる
       #引数は、Rect(x,y,w,h)形式(Rect構造体、[x,y,w,h]の配列)で渡す
-      #指定の位置のマップチップ番号が-1(未定義)のときはfalseを返す
+      #指定の位置のマップチップ番号が-1(未定義)のときはnilを返す
       #_type_:: 移動形式(0以上の整数)
       #_pos_:: 調査対象のマップチップの位置
       #_collision_:: キャラクタのコリジョン
       #_rect_:: キャラクタの矩形
-      #返却値:: コリジョンが隣り合っていればtrueを返す
+      #返却値:: コリジョンが隣り合っていれば、そのときのマップチップ番号を返す。隣り合っていなければnilを返す
       def meet?(type, pos, collision, rect)
         code = get_code(*pos.to_a)
-        return false if code == -1
-        return @mapchip.collision_table[type][code].meet?(pos, collision, rect)
+        return nil if code == -1
+        return @mapchip.collision_table[type][code].meet?(pos, collision, rect) ? code : nil
       end
 
       #===キャラクタとマップチップが覆い被さっているかどうか問い合わせる
       #指定の矩形のキャラクタが、指定の位置のマップチップのコリジョンを覆い被さっているかどうか問い合わせる
       #引数は、Rect(x,y,w,h)形式(Rect構造体、[x,y,w,h]の配列)で渡す
-      #指定の位置のマップチップ番号が-1(未定義)のときはfalseを返す
+      #指定の位置のマップチップ番号が-1(未定義)のときはnilを返す
       #_type_:: 移動形式(0以上の整数)
       #_pos_:: 調査対象のマップチップの位置
       #_collision_:: キャラクタのコリジョン
       #_rect_:: キャラクタの矩形
-      #返却値:: どちらかのコリジョンが覆い被さっていればtrueを返す
+      #返却値:: どちらかのコリジョンが覆い被さっていれば、そのときのマップチップ番号を返す。
+      #被さっていなければnilを返す
       def cover?(type, pos, collision, rect)
         code = get_code(*pos.to_a)
-        return false if code == -1
-        return @mapchip.collision_table[type][code].cover?(pos, collision, rect)
+        return nil if code == -1
+        return @mapchip.collision_table[type][code].cover?(pos, collision, rect) ? code : nil
       end
 
       def dispose #:nodoc:

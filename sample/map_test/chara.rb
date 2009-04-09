@@ -3,6 +3,7 @@
 class PChara # Player Character
   extend Forwardable
   attr_accessor :dir
+  attr_reader :collision, :position
   @@amt2dir = {[0,1]=>0,[-1,0]=>1,[1,0]=>2,[0,-1]=>3}
   @@amt2dir.default = -1
 

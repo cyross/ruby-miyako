@@ -69,8 +69,7 @@ class MainScene
         @chr.turn(@d)
         #マップの移動量を求める
         rect = @rect.dup.move(@d[0]*@rect.w,@d[1]*@rect.h)
-        if @map[0].range(rect).map{|
-        @a = @map.get_amount(0, 0, @rect, @map.collision).amount.to_a
+#        @a = @map.get_amount(0, 0, @rect, @map.collision).amount.to_a
         # 方向ボタンを押したときは、１チップサイズ単位で移動する
         # @cntはその移動量(幅と高さでサイズが違う場合アリ)
         @cnt = @d[0] > 0 ? @rect.w : @rect.h

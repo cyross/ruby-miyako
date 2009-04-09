@@ -372,31 +372,19 @@ module Miyako
     end
 
     #===インスタンスを指定の移動量で移動させる
-    #ブロックを渡せば、ブロックの評価中のみ移動する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_x_:: x 座標の移動量
     #_y_:: y 座標の移動量
     #返却値:: 自分自身を返す
     def move(x, y)
-      o = @layout.pos.dup
-      @layout.pos[0] += x
-      @layout.pos[1] += y
-      update_layout(x, y)
-      if block_given?
-        yield self
-        @layout.pos[0], @layout.pos[1] = o
-        update_layout(-x, -y)
-      end
-      return self
     end
 
     #===インスタンスを指定の位置に移動させる
-    #ブロックを渡せば、ブロックの評価中のみ移動する
+    #ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_x_:: 移動後の x 座標の位置
     #_y_:: 移動後の y 座標の位置
     #返却値:: 自分自身を返す
     def move_to(x, y, &block)
-      move(x - @layout.pos[0], y - @layout.pos[1], &block)
-      return self
     end
   end
 

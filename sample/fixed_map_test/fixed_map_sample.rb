@@ -17,9 +17,9 @@ class Monster
     @spr = Sprite.new({:filename => name, :type => :color_key})
     @spr.ow = size
     @spr.oh = size
-    @coll= Collision.new(Rect.new(0, 0, @spr.ow, @spr.oh),
-                          Point.new(@spr.x, @spr.y))
-    @coll.amount.resize(1, 1)
+    @coll= Collision.new(Rect.new(0, 0, @spr.ow, @spr.oh))
+    @cpos = Point.new(@spr.x, @spr.y)
+    @amount = Size.new(1, 1)
     ap = { }
     ap[:sprite] = @spr
     ap[:wait] = wait
@@ -75,7 +75,7 @@ class Slime < Monster
     return if @wait.waiting? || @wait0.waiting?
     if @cnt > 0
       @anim.move(@interval_x, @interval_y)
-      @coll.move(@interval_x, @interval_y)
+      @cpos.move(@interval_x, @interval_y)
       @cnt -= @interval
       @wait0.start
       return
@@ -87,14 +87,14 @@ class Slime < Monster
       @wait.start
     else
       data = @ary[val-1]
-      @coll.direction.move_to(*(data[0..1]))
+#      @coll.direction.move_to(*(data[0..1]))
       
-      ret = map.get_amount_by_rect(0, 0, @spr.rect, @coll)
+#      ret = map.get_amount_by_rect(0, 0, @spr.rect, @coll)
       
-      if (ret.amount[0] | ret.amount[1]) != 0
-        @interval_x, @interval_y = data[2..3]
-        @cnt = data[4]
-      end
+#      if (ret.amount[0] | ret.amount[1]) != 0
+#        @interval_x, @interval_y = data[2..3]
+#        @cnt = data[4]
+#      end
     end
   end
 end
@@ -142,8 +142,8 @@ Miyako.main_loop do
   break if Input.quit_or_escape?
 #  @a.update_animation
   dx, dy = Input.trigger_amount.map{|v| v * 4 }
-  dx = 0 unless Screen.viewport.in_bounds_x?(@fmap.rect, dx)
-  dy = 0 unless Screen.viewport.in_bounds_y?(@fmap.rect, dy)
+#  dx = 0 unless Screen.viewport.in_bounds_x?(@fmap.rect, dx)
+#  dy = 0 unless Screen.viewport.in_bounds_y?(@fmap.rect, dy)
   @fmap.move(dx, dy)
   @fmap.events.each{|e| e.update(@fmap, @fmap.events, nil)}
   @fmap.render

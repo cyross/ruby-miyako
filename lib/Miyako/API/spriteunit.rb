@@ -128,9 +128,18 @@ module Miyako
     end
 
     #==SpriteUnitの各アクセサに対応した値を設定する
+    #(注)bitmapアクセサに値を設定する場合、ox,oy,ow,ohの値が自動的に、
+    #bitmapに対応する値(ox=0,oy=0,ow=bitmap.w,oh=bitmap.h)が設定される
     #unit: 設定対象のSpriteUnit構造体
     #params: 設定するSpriteUnit構造体の値。ハッシュ引数。引数のキーは、SpriteUnitのアクセサ名と同一
     def SpriteUnitFactory.apply(unit, params)
+      if params && params.has_key?(:bitmap)
+        unit.bitmap = params[:bitmap]
+        unit.ox = 0
+        unit.oy = 0
+        unit.ow = unit.bitmap.w
+        unit.oh = unit.bitmap.h
+      end
       PARAMS.each{|prm| unit[prm] = params[prm] if params.has_key?(prm) } if params
       return unit 
     end

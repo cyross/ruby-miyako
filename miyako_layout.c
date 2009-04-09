@@ -28,6 +28,19 @@ License:: LGPL2.1
  */
 #include "defines.h"
 
+static VALUE mSDL = Qnil;
+static VALUE mMiyako = Qnil;
+static VALUE mScreen = Qnil;
+static VALUE mLayout = Qnil;
+static VALUE nZero = Qnil;
+static VALUE nOne = Qnil;
+static volatile ID id_update = Qnil;
+static volatile ID id_kakko  = Qnil;
+static volatile ID id_render = Qnil;
+static volatile ID id_to_a   = Qnil;
+static volatile int zero = Qnil;
+static volatile int one = Qnil;
+
 static VALUE layout_snap(int argc, VALUE *argv, VALUE self);
 static VALUE layout_move(VALUE self, VALUE dx, VALUE dy);
 
@@ -61,10 +74,13 @@ static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
   }
   if(rb_block_given_p() == Qtrue){
-    rb_yield(self);
-    *pox = tx;
-    *poy = ty;
-    layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
+    VALUE ret = rb_yield(self);
+    if(ret == Qnil || ret == Qfalse)
+    {
+      *pox = tx;
+      *poy = ty;
+      layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
+    }
   }
   return self;
 }
@@ -88,10 +104,13 @@ static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
   }
   if(rb_block_given_p() == Qtrue){
-    rb_yield(self);
-    *pox = tx;
-    *poy = ty;
-    layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
+    VALUE ret = rb_yield(self);
+    if(ret == Qnil || ret == Qfalse)
+    {
+      *pox = tx;
+      *poy = ty;
+      layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
+    }
   }
   return self;
 }
@@ -151,43 +170,7 @@ void Init_miyako_layout()
   mSDL = rb_define_module("SDL");
   mMiyako = rb_define_module("Miyako");
   mScreen = rb_define_module_under(mMiyako, "Screen");
-  mInput = rb_define_module_under(mMiyako, "Input");
-  mMapEvent = rb_define_module_under(mMiyako, "MapEvent");
   mLayout = rb_define_module_under(mMiyako, "Layout");
-  mDiagram = rb_define_module_under(mMiyako, "Diagram");
-  eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
-  cGL  = rb_define_module_under(mSDL, "GL");
-  cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
-  cTTFFont = rb_define_class_under(mSDL, "TTF", rb_cObject);
-  cEvent2  = rb_define_class_under(mSDL, "Event2", rb_cObject);
-  cJoystick  = rb_define_class_under(mSDL, "Joystick", rb_cObject);
-  cWaitCounter  = rb_define_class_under(mMiyako, "WaitCounter", rb_cObject);
-  cFont  = rb_define_class_under(mMiyako, "Font", rb_cObject);
-  cColor  = rb_define_class_under(mMiyako, "Color", rb_cObject);
-  cBitmap = rb_define_class_under(mMiyako, "Bitmap", rb_cObject);
-  cSprite = rb_define_class_under(mMiyako, "Sprite", rb_cObject);
-  cSpriteAnimation = rb_define_class_under(mMiyako, "SpriteAnimation", rb_cObject);
-  sSpriteUnit = rb_define_class_under(mMiyako, "SpriteUnitBase", rb_cStruct);
-  cPlane = rb_define_class_under(mMiyako, "Plane", rb_cObject);
-  cParts = rb_define_class_under(mMiyako, "Parts", rb_cObject);
-  cTextBox = rb_define_class_under(mMiyako, "TextBox", rb_cObject);
-  cMap = rb_define_class_under(mMiyako, "Map", rb_cObject);
-  cMapLayer = rb_define_class_under(cMap, "MapLayer", rb_cObject);
-  cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
-  cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
-  cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
-  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
-  cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
-  cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
-  cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
-  cYuki = rb_define_class_under(mMiyako, "Yuki", rb_cObject);
-  cThread = rb_define_class("Thread", rb_cObject);
-  cEncoding = rb_define_class("Encoding", rb_cObject);
-  sPoint = rb_define_class_under(mMiyako, "PointStruct", rb_cStruct);
-  sSize = rb_define_class_under(mMiyako, "SizeStruct", rb_cStruct);
-  sRect = rb_define_class_under(mMiyako, "RectStruct", rb_cStruct);
-  sSquare = rb_define_class_under(mMiyako, "SquareStruct", rb_cStruct);
-  cIconv = rb_define_class("Iconv", rb_cObject);
 
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");

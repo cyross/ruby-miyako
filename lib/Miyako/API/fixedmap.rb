@@ -55,9 +55,9 @@ module Miyako
         @ch = @real_size.h % @oh == 0 ? @real_size.h / @oh : (@real_size.h + @oh - 1)/ @oh + 1
       end
 
-      def initialize(mapchip, mapdat, layer_size, pos) #:nodoc:
+      def initialize(mapchip, mapdat, layer_size) #:nodoc:
         @mapchip = mapchip
-        @pos = pos.dup
+        @pos = Point.new(0, 0)
         @size = layer_size.dup
         @ow = @mapchip.chip_size.w
         @oh = @mapchip.chip_size.h
@@ -226,7 +226,8 @@ module Miyako
     #各レイヤにMapChip構造体を渡す
     #但し、すべてのレイヤーに同一のMapChip構造体を使うときは、単体で渡すことも可能
     #第1引数にto_aメソッドが実装されていれば、配列化した要素をMapChip構造体として各レイヤに渡す
-    #また、各レイヤにMapChip構造体を渡すとき、レイヤ数より要素数が少ないときは、先頭に戻って繰り返し渡す仕様になっている
+    #また、各レイヤにMapChip構造体を渡すとき、レイヤ数より要素数が少ないときは、
+    #先頭に戻って繰り返し渡す仕様になっている
     #各MapChip構造体のマップチップの大きさを同じにしておく必要がある
     #_mapchips_:: マップチップ構造体群(MapChip構造体単体もしくは配列)
     #_layer_csv_:: レイヤーファイル(CSVファイル)
@@ -282,7 +283,7 @@ module Miyako
       @map_layers = []
       layers.times{|i|
         br = brlist[i].map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
-        @map_layers.push(FixedMapLayer.new(mc.next, br, @size, pos))
+        @map_layers.push(FixedMapLayer.new(mc.next, br, @size))
       }
       set_layout_size(@w, @h)
     end
@@ -299,7 +300,7 @@ module Miyako
     end
 
     def update_layout_position #:nodoc:
-      @map_layers.each{|ml| ml.pos.move_to(*@pos) }
+      @map_layers.each{|ml| ml.pos.move_to(*@layout.pos) }
     end
 
     def [](idx) #:nodoc:

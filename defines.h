@@ -21,59 +21,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <SDL.h>
 #include <SDL_ttf.h>
+#include <SDL_endian.h>
 #include <stdlib.h>
 #include <math.h>
 #include "ruby.h"
 #include "ruby/encoding.h"
-
-static VALUE mSDL = Qnil;
-static VALUE mMiyako = Qnil;
-static VALUE mScreen = Qnil;
-static VALUE mInput = Qnil;
-static VALUE mMapEvent = Qnil;
-static VALUE mLayout = Qnil;
-static VALUE mDiagram = Qnil;
-static VALUE eMiyakoError = Qnil;
-static VALUE cGL = Qnil;
-static VALUE cSurface = Qnil;
-static VALUE cTTFFont = Qnil;
-static VALUE cEvent2 = Qnil;
-static VALUE cJoystick = Qnil;
-static VALUE cWaitCounter = Qnil;
-static VALUE cColor = Qnil;
-static VALUE cFont = Qnil;
-static VALUE cBitmap = Qnil;
-static VALUE cSprite = Qnil;
-static VALUE cSpriteAnimation = Qnil;
-static VALUE sSpriteUnit = Qnil;
-static VALUE cPlane = Qnil;
-static VALUE cParts = Qnil;
-static VALUE cTextBox = Qnil;
-static VALUE cMap = Qnil;
-static VALUE cMapLayer = Qnil;
-static VALUE cFixedMap = Qnil;
-static VALUE cFixedMapLayer = Qnil;
-static VALUE cCollision = Qnil;
-static VALUE cCircleCollision = Qnil;
-static VALUE cCollisions = Qnil;
-static VALUE cMovie = Qnil;
-static VALUE cProcessor = Qnil;
-static VALUE cYuki = Qnil;
-static VALUE cThread = Qnil;
-static VALUE cEncoding = Qnil;
-static VALUE cIconv = Qnil;
-static VALUE sPoint = Qnil;
-static VALUE sSize = Qnil;
-static VALUE sRect = Qnil;
-static VALUE sSquare = Qnil;
-static VALUE nZero = Qnil;
-static VALUE nOne = Qnil;
-static volatile ID id_update = Qnil;
-static volatile ID id_kakko  = Qnil;
-static volatile ID id_render = Qnil;
-static volatile ID id_to_a   = Qnil;
-static volatile int zero = Qnil;
-static volatile int one = Qnil;
 
 typedef struct
 {
@@ -87,6 +39,25 @@ typedef struct
 	Uint32 b;
 	Uint32 a;
 } MiyakoColor;
+
+typedef struct
+{
+  int w;
+  int h;
+} MiyakoSize;
+
+typedef struct
+{
+  VALUE unit;
+  SDL_Surface *surface;
+  SDL_PixelFormat *fmt;
+  SDL_Rect rect;
+  MiyakoColor color;
+	Uint32 a255;
+  Uint32 *ptr;
+  int x;
+  int y;
+} MiyakoBitmap;
 
 // from rubysdl.h
 #define GLOBAL_DEFINE_GET_STRUCT(struct_name, fun, klass, klassstr) \
@@ -119,88 +90,6 @@ struct_name* fun(VALUE obj) \
   RECT.y = NUM2INT(*(RSTRUCT_PTR(BASE) + 2)); \
   RECT.w = NUM2INT(*(RSTRUCT_PTR(BASE) + 3)); \
   RECT.h = NUM2INT(*(RSTRUCT_PTR(BASE) + 4));
-
-#define MIYAKO_GET_UNIT_1(SRC, SRCUNIT, SRCSURFACE) \
-	VALUE SRCUNIT = SRC; \
-  if(rb_obj_is_kind_of(SRCUNIT, sSpriteUnit)==Qfalse){ \
-    SRCUNIT = rb_funcall(SRCUNIT, rb_intern("to_unit"), 0); \
-    if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
-  } \
-  if(rb_block_given_p() == Qtrue){ SRCUNIT = rb_obj_dup(SRCUNIT); rb_yield(SRCUNIT); } \
-	SDL_Surface *SRCSURFACE = GetSurface(*(RSTRUCT_PTR(SRCUNIT)))->surface;
-
-#define MIYAKO_GET_UNIT_2(SRC, DST, SRCUNIT, DSTUNIT, SRCSURFACE, DSTSURFACE) \
-	VALUE SRCUNIT = SRC; \
-  if(rb_obj_is_kind_of(SRCUNIT, sSpriteUnit)==Qfalse){ \
-    SRCUNIT = rb_funcall(SRCUNIT, rb_intern("to_unit"), 0); \
-    if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
-  } \
-	VALUE DSTUNIT = DST; \
-  if(rb_obj_is_kind_of(DSTUNIT, sSpriteUnit)==Qfalse){ \
-    DSTUNIT = rb_funcall(DSTUNIT, rb_intern("to_unit"), 0); \
-    if(DSTUNIT == Qnil){ rb_raise(eMiyakoError, "Destination instance has not SpriteUnit!"); }\
-  } \
-  if(rb_block_given_p() == Qtrue) \
-  { \
-    SRCUNIT = rb_obj_dup(SRCUNIT); \
-    DSTUNIT = rb_obj_dup(DSTUNIT); \
-    rb_yield_values(2, SRCUNIT, DSTUNIT); \
-  } \
-	SDL_Surface *SRCSURFACE = GetSurface(*(RSTRUCT_PTR(SRCUNIT)))->surface; \
-	SDL_Surface *DSTSURFACE = GetSurface(*(RSTRUCT_PTR(DSTUNIT)))->surface;
-
-#define MIYAKO_GET_UNIT_3(SRC1, SRC2, DST, SRC1UNIT, SRC2UNIT, DSTUNIT, SRC1SURFACE, SRC2SURFACE, DSTSURFACE) \
-	VALUE SRC1UNIT = SRC1; \
-  if(rb_obj_is_kind_of(SRC1UNIT, sSpriteUnit)==Qfalse){ \
-    SRC1UNIT = rb_funcall(SRC1UNIT, rb_intern("to_unit"), 0); \
-    if(SRC1UNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
-  } \
-	VALUE SRC2UNIT = SRC2; \
-  if(rb_obj_is_kind_of(SRC2UNIT, sSpriteUnit)==Qfalse){ \
-    SRC2UNIT = rb_funcall(SRC2UNIT, rb_intern("to_unit"), 0); \
-    if(SRC2UNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
-  } \
-	VALUE DSTUNIT = DST; \
-  if(rb_obj_is_kind_of(DSTUNIT, sSpriteUnit)==Qfalse){ \
-    DSTUNIT = rb_funcall(DSTUNIT, rb_intern("to_unit"), 0); \
-    if(DSTUNIT == Qnil){ rb_raise(eMiyakoError, "Destination instance has not SpriteUnit!"); }\
-  } \
-  if(rb_block_given_p() == Qtrue) \
-  { \
-    SRC1UNIT = rb_obj_dup(SRC1UNIT); \
-    SRC2UNIT = rb_obj_dup(SRC2UNIT); \
-    DSTUNIT = rb_obj_dup(DSTUNIT); \
-    rb_yield_values(3, SRC1UNIT, SRC2UNIT, DSTUNIT); \
-  } \
-	SDL_Surface *SRC1SURFACE = GetSurface(*(RSTRUCT_PTR(SRC1UNIT)))->surface; \
-	SDL_Surface *SRC2SURFACE = GetSurface(*(RSTRUCT_PTR(SRC2UNIT)))->surface; \
-	SDL_Surface *DSTSURFACE = GetSurface(*(RSTRUCT_PTR(DSTUNIT)))->surface;
-
-#define MIYAKO_GET_UNIT_NO_SURFACE_1(SRC, SRCUNIT) \
-	VALUE SRCUNIT = SRC; \
-  if(rb_obj_is_kind_of(SRCUNIT, sSpriteUnit)==Qfalse){ \
-    SRCUNIT = rb_funcall(SRCUNIT, rb_intern("to_unit"), 0); \
-    if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
-  } \
-  if(rb_block_given_p() == Qtrue){ SRCUNIT = rb_obj_dup(SRCUNIT); rb_yield(SRCUNIT); }
-
-#define MIYAKO_GET_UNIT_NO_SURFACE_2(SRC, DST, SRCUNIT, DSTUNIT) \
-	VALUE SRCUNIT = SRC; \
-  if(rb_obj_is_kind_of(SRCUNIT, sSpriteUnit)==Qfalse){ \
-    SRCUNIT = rb_funcall(SRCUNIT, rb_intern("to_unit"), 0); \
-    if(SRCUNIT == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); } \
-  } \
-	VALUE DSTUNIT = DST; \
-  if(rb_obj_is_kind_of(DSTUNIT, sSpriteUnit)==Qfalse){ \
-    DSTUNIT = rb_funcall(DSTUNIT, rb_intern("to_unit"), 0); \
-    if(DSTUNIT == Qnil){ rb_raise(eMiyakoError, "Destination instance has not SpriteUnit!"); }\
-  } \
-  if(rb_block_given_p() == Qtrue) \
-  { \
-    SRCUNIT = rb_obj_dup(SRCUNIT); \
-    DSTUNIT = rb_obj_dup(DSTUNIT); \
-    rb_yield_values(2, SRCUNIT, DSTUNIT); \
-  }
 
 #define MIYAKO_INIT_RECT1 \
 	int dlx = drect.x + x; \

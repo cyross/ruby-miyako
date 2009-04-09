@@ -27,6 +27,21 @@ Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
  */
 #include "defines.h"
+#include "extern.h"
+
+static VALUE mSDL = Qnil;
+static VALUE mMiyako = Qnil;
+static VALUE mScreen = Qnil;
+static VALUE cSurface = Qnil;
+static VALUE cBitmap = Qnil;
+static VALUE nZero = Qnil;
+static VALUE nOne = Qnil;
+static volatile ID id_update = Qnil;
+static volatile ID id_kakko  = Qnil;
+static volatile ID id_render = Qnil;
+static volatile ID id_to_a   = Qnil;
+static volatile int zero = Qnil;
+static volatile int one = Qnil;
 
 // from rubysdl_video.c
 static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
@@ -89,13 +104,17 @@ static volatile double div255[256];
 */
 static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
-  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
-	Uint32 *psrc = (Uint32 *)(src->pixels);
-	Uint32 *pdst = (Uint32 *)(dst->pixels);
-	SDL_PixelFormat *fmt = src->format;
+  MiyakoBitmap src, dst;
+  MiyakoSize   size;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+
+  _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+
+  if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
+  
+	int x, y;
+
   double deg = NUM2DBL(degree);
-	MiyakoColor scolor, dcolor;
-	Uint32 pixel;
   double d_pi = 360.0;
   double ph = 0.0, ps = 0.0, pv = 0.0;
   double r = 0.0, g = 0.0, b = 0.0;
@@ -103,84 +122,83 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 
   if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
   
-  if(src != dst){
-		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, sunit);
-		MIYAKO_SET_RECT(drect, dunit);
-    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
-    MIYAKO_INIT_RECT1;
+	SDL_LockSurface(src.surface);
+	SDL_LockSurface(dst.surface);
   
-		Uint32 src_a = 0;
-		Uint32 dst_a = 0;
+	for(y = 0; y < size.h; y++)
+	{
+		Uint32 *psrc = src.ptr + (src.rect.y         + y) * src.rect.w + src.rect.x;
+		Uint32 *pdst = dst.ptr + (dst.rect.y + src.y + y) * dst.rect.w + dst.rect.x + src.x;
+		for(x = 0; x < size.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      src.color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
+      src.color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
+      src.color.b = (Uint32)(((*psrc))) & 0xff;
+      src.color.a = (Uint32)(((*psrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (dst.color.r) << 16 |
+							  (dst.color.g) << 8 |
+							  (dst.color.b) |
+							  (dst.color.a >> dst.fmt->Aloss) << 24;
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) |
+							(255 >> dst.fmt->Aloss) << 24;
+#else
+      src.color.r = (Uint32)(((*psrc & src.fmt->Rmask) >> src.fmt->Rshift));
+      src.color.g = (Uint32)(((*psrc & src.fmt->Gmask) >> src.fmt->Gshift));
+      src.color.b = (Uint32)(((*psrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      src.color.a = (Uint32)(((*psrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (dst.color.r) << dst.fmt->Rshift |
+							  (dst.color.g) << dst.fmt->Gshift |
+							  (dst.color.b) << dst.fmt->Bshift |
+							  (dst.color.a >> dst.fmt->Aloss);
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+							(255 >> dst.fmt->Aloss);
+#endif
+      psrc++;
+			pdst++;
+		}
+	}
 
-		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
-    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
-
-    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
-
-    SDL_LockSurface(src);
-    SDL_LockSurface(dst);
-  
-    int px, py, sx, sy;
-    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
-    {
-      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
-      {
-        pixel = *(psrc + sy * src->w + sx) | src_a;
-        MIYAKO_GETCOLOR(scolor);
-        if(scolor.a == 0){ continue; }
-        pixel = *(pdst + py * dst->w + px) | dst_a;
-        MIYAKO_GETCOLOR(dcolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        ph += deg;
-        if(ph < 0.0){ ph += d_pi; }
-        if(ph >= d_pi){ ph -= d_pi; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0 || scolor.a == 255){
-          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
-          continue;
-        }
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                     put_a;
-      }
-    }
-
-    SDL_UnlockSurface(src);
-    SDL_UnlockSurface(dst);
-  }
-  else
-  {
-    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
-
-    SDL_LockSurface(src);
-
-    int x, y;
-    for(y = oy; y < ob; y++)
-    {
-      for(x = ox; x < or; x++)
-      {
-        pixel = *(psrc + y * src->w + x);
-        MIYAKO_GETCOLOR(scolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        ph += deg;
-        if(ph < 0.0){ ph += d_pi; }
-        if(ph >= d_pi){ ph -= d_pi; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
-      }
-    }
-
-    SDL_UnlockSurface(src);
-  }
+	SDL_UnlockSurface(src.surface);
+	SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
@@ -190,95 +208,100 @@ static VALUE bitmap_miyako_hue(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 */
 static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE saturation)
 {
-  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
-	Uint32 *psrc = (Uint32 *)(src->pixels);
-	Uint32 *pdst = (Uint32 *)(dst->pixels);
-	SDL_PixelFormat *fmt = src->format;
+  MiyakoBitmap src, dst;
+  MiyakoSize   size;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+
+	int x, y;
+
   double sat = NUM2DBL(saturation);
-	MiyakoColor scolor, dcolor;
-	Uint32 pixel;
   double ph = 0.0, ps = 0.0, pv = 0.0;
   double r = 0.0, g = 0.0, b = 0.0;
   double i = 0.0, f, m, n, k;
 
-  if(src != dst){
-		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, sunit);
-		MIYAKO_SET_RECT(drect, dunit);
-    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
-    MIYAKO_INIT_RECT1;
+  _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+
+  if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
   
-		Uint32 src_a = 0;
-		Uint32 dst_a = 0;
+	SDL_LockSurface(src.surface);
+	SDL_LockSurface(dst.surface);
 
-		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
-    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
-
-    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
-
-    SDL_LockSurface(src);
-    SDL_LockSurface(dst);
-  
-    int px, py, sx, sy;
-    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
-    {
-      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
-      {
-        pixel = *(psrc + sy * src->w + sx) | src_a;
-        MIYAKO_GETCOLOR(scolor);
-        if(scolor.a == 0){ continue; }
-        pixel = *(pdst + py * dst->w + px) | dst_a;
-        MIYAKO_GETCOLOR(dcolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        ps += sat;
-        if(ps < 0.0){ ps = 0.0; }
-        if(ps > 1.0){ ps = 1.0; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0 || scolor.a == 255){
-          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
-          continue;
-        }
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                     put_a;
-      }
+	for(y = 0; y < size.h; y++)
+	{
+		Uint32 *psrc = src.ptr + (src.rect.y + y) * src.rect.w + src.rect.x;
+		Uint32 *pdst = dst.ptr + (dst.rect.y + src.y  + y) * dst.rect.w + dst.rect.x + src.x;
+		for(x = 0; x < size.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      src.color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
+      src.color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
+      src.color.b = (Uint32)(((*psrc))) & 0xff;
+      src.color.a = (Uint32)(((*psrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, src.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (src.color.r) << 16 |
+							  (src.color.g) << 8 |
+							  (src.color.b) |
+							  (src.color.a >> dst.fmt->Aloss) << 24;
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) |
+							(255 >> dst.fmt->Aloss) << 24;
+			psrc++;
+			pdst++;
+#else
+      src.color.r = (Uint32)(((*psrc & src.fmt->Rmask) >> src.fmt->Rshift));
+      src.color.g = (Uint32)(((*psrc & src.fmt->Gmask) >> src.fmt->Gshift));
+      src.color.b = (Uint32)(((*psrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      src.color.a = (Uint32)(((*psrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, src.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (src.color.r >> dst.fmt->Rloss) << dst.fmt->Rshift |
+							  (src.color.g >> dst.fmt->Gloss) << dst.fmt->Gshift |
+							  (src.color.b >> dst.fmt->Bloss) << dst.fmt->Bshift |
+							  (src.color.a >> dst.fmt->Aloss);
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+							(255 >> dst.fmt->Aloss);
+			psrc++;
+			pdst++;
+#endif
     }
+	}
 
-    SDL_UnlockSurface(src);
-    SDL_UnlockSurface(dst);
-  }
-  else
-  {
-    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
-
-    SDL_LockSurface(src);
-
-    int x, y;
-    for(y = oy; y < ob; y++)
-    {
-      for(x = ox; x < or; x++)
-      {
-        pixel = *(psrc + y * src->w + x);
-        MIYAKO_GETCOLOR(scolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        ps += sat;
-        if(ps < 0.0){ ps = 0.0; }
-        if(ps > 1.0){ ps = 1.0; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor)
-      }
-    }
-
-    SDL_UnlockSurface(src);
-  }
+	SDL_UnlockSurface(src.surface);
+	SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
@@ -288,97 +311,99 @@ static VALUE bitmap_miyako_saturation(VALUE self, VALUE vsrc, VALUE vdst, VALUE 
 */
 static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value)
 {
-  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
-	Uint32 *psrc = (Uint32 *)(src->pixels);
-	Uint32 *pdst = (Uint32 *)(dst->pixels);
-	SDL_PixelFormat *fmt = src->format;
+  MiyakoBitmap src, dst;
+  MiyakoSize   size;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   double val = NUM2DBL(value);
-	MiyakoColor scolor, dcolor;
-	Uint32 pixel;
+  
+	int x, y;
   double ph = 0.0, ps = 0.0, pv = 0.0;
   double r = 0.0, g = 0.0, b = 0.0;
   double i = 0.0, f, m, n, k;
 
-  if(src != dst){
-		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, sunit);
-		MIYAKO_SET_RECT(drect, dunit);
-    int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
-    MIYAKO_INIT_RECT1;
+  _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+
+  if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
   
-		Uint32 src_a = 0;
-		Uint32 dst_a = 0;
+  SDL_LockSurface(src.surface);
+	SDL_LockSurface(dst.surface);
 
-		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
-    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	for(y = 0; y < size.h; y++)
+	{
+		Uint32 *psrc = src.ptr + (src.rect.y + y) * src.rect.w + src.rect.x;
+		Uint32 *pdst = dst.ptr + (dst.rect.y + src.y  + y) * dst.rect.w + dst.rect.x + src.x;
+		for(x = 0; x < size.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      src.color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
+      src.color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
+      src.color.b = (Uint32)(((*psrc))) & 0xff;
+      src.color.a = (Uint32)(((*psrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, src.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (src.color.r) << 16 |
+							  (src.color.g) << 8 |
+							  (src.color.b) |
+							  (src.color.a >> dst.fmt->Aloss) << 24;
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) |
+							(255 >> dst.fmt->Aloss) << 24;
+#else
+      src.color.r = (Uint32)(((*psrc & src.fmt->Rmask) >> src.fmt->Rshift));
+      src.color.g = (Uint32)(((*psrc & src.fmt->Gmask) >> src.fmt->Gshift));
+      src.color.b = (Uint32)(((*psrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      src.color.a = (Uint32)(((*psrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, src.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (src.color.r) << dst.fmt->Rshift |
+							  (src.color.g) << dst.fmt->Gshift |
+							  (src.color.b) << dst.fmt->Bshift |
+							  (src.color.a >> dst.fmt->Aloss);
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+							(255 >> dst.fmt->Aloss);
+#endif
+      psrc++;
+			pdst++;
+		}
+	}
 
-    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
+	SDL_UnlockSurface(src.surface);
+	SDL_UnlockSurface(dst.surface);
 
-    SDL_LockSurface(src);
-    SDL_LockSurface(dst);
-  
-    int px, py, sx, sy;
-    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
-    {
-      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
-      {
-        pixel = *(psrc + sy * src->w + sx) | src_a;
-        MIYAKO_GETCOLOR(scolor);
-        if(scolor.a == 0){ continue; }
-        pixel = *(pdst + py * dst->w + px) | dst_a;
-        MIYAKO_GETCOLOR(dcolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        pv += val;
-        if(pv < 0.0){ pv = 0.0; }
-        if(pv > 1.0){ pv = 1.0; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0 || scolor.a == 255){
-          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
-          continue;
-        }
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                     put_a;
-      }
-    }
-
-    SDL_UnlockSurface(src);
-    SDL_UnlockSurface(dst);
-  }
-  else
-  {
-    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
-
-    SDL_LockSurface(src);
-
-    int x, y;
-    for(y = oy; y < ob; y++)
-    {
-      for(x = ox; x < or; x++)
-      {
-        pixel = *(psrc + y * src->w + x);
-        MIYAKO_GETCOLOR(scolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        pv += val;
-        if(pv < 0.0){ pv = 0.0; }
-        if(pv > 1.0){ pv = 1.0; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
-      }
-    }
-
-    SDL_UnlockSurface(src);
-  }
-
-  return vdst;
+	return vdst;
 }
 
 /*
@@ -386,15 +411,133 @@ static VALUE bitmap_miyako_value(VALUE self, VALUE vsrc, VALUE vdst, VALUE value
 */
 static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree, VALUE saturation, VALUE value)
 {
-  MIYAKO_GET_UNIT_2(vsrc, vdst, sunit, dunit, src, dst);
-	Uint32 *psrc = (Uint32 *)(src->pixels);
-	Uint32 *pdst = (Uint32 *)(dst->pixels);
-	SDL_PixelFormat *fmt = src->format;
+  MiyakoBitmap src, dst;
+  MiyakoSize   size;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  
+	int x, y;
+
   double deg = NUM2DBL(degree);
   double sat = NUM2DBL(saturation);
   double val = NUM2DBL(value);
-	MiyakoColor scolor, dcolor;
-	Uint32 pixel;
+  double d_pi = 360.0;
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
+
+  if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
+
+  _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+
+  if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
+  
+	SDL_LockSurface(src.surface);
+	SDL_LockSurface(dst.surface);
+
+	for(y = 0; y < size.h; y++)
+	{
+		Uint32 *psrc = src.ptr + (src.rect.y + y) * src.rect.w + src.rect.x;
+		Uint32 *pdst = dst.ptr + (dst.rect.y + src.y  + y) * dst.rect.w + dst.rect.x + src.x;
+		for(x = 0; x < size.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      src.color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
+      src.color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
+      src.color.b = (Uint32)(((*psrc))) & 0xff;
+      src.color.a = (Uint32)(((*psrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, src.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (src.color.r) << 16 |
+							  (src.color.g) << 8 |
+							  (src.color.b) |
+							  (src.color.a >> dst.fmt->Aloss) << 24;
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) |
+							(255 >> dst.fmt->Aloss) << 24;
+			psrc++;
+			pdst++;
+#else
+      src.color.r = (Uint32)(((*psrc & src.fmt->Rmask) >> src.fmt->Rshift));
+      src.color.g = (Uint32)(((*psrc & src.fmt->Gmask) >> src.fmt->Gshift));
+      src.color.b = (Uint32)(((*psrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      src.color.a = (Uint32)(((*psrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+			if(src.color.a == 0){ psrc++; pdst++; continue; }
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			MIYAKO_RGB2HSV(src.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, src.color);
+			if(dst.color.a == 0 || src.color.a == 255){
+				*pdst = (src.color.r) << dst.fmt->Rshift |
+							  (src.color.g) << dst.fmt->Gshift |
+							  (src.color.b) << dst.fmt->Bshift |
+							  (src.color.a >> dst.fmt->Aloss);
+				psrc++;
+				pdst++;
+				continue;
+			}
+			int a1 = src.color.a + 1;
+			int a2 = 256 - src.color.a;
+			*pdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
+						  (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
+							(((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+							(255 >> dst.fmt->Aloss);
+			psrc++;
+			pdst++;
+#endif
+    }
+	}
+
+	SDL_UnlockSurface(src.surface);
+	SDL_UnlockSurface(dst.surface);
+
+	return vdst;
+}
+
+/*
+画像の色相を変更する
+*/
+static VALUE bitmap_miyako_hue_self(VALUE self, VALUE vdst, VALUE degree)
+{
+  MiyakoBitmap dst;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+
+  _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
+
+	int x, y;
+  double deg = NUM2DBL(degree);
   double d_pi = 360.0;
   double ph = 0.0, ps = 0.0, pv = 0.0;
   double r = 0.0, g = 0.0, b = 0.0;
@@ -402,96 +545,255 @@ static VALUE bitmap_miyako_hsv(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree,
 
   if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
   
-  if(src != dst){
-		SDL_Rect srect, drect;
-		MIYAKO_SET_RECT(srect, sunit);
-		MIYAKO_SET_RECT(drect, dunit);
-		int x   = NUM2INT(*(RSTRUCT_PTR(sunit) + 5));
-    int y   = NUM2INT(*(RSTRUCT_PTR(sunit) + 6));
-    MIYAKO_INIT_RECT1;
-  
-		Uint32 src_a = 0;
-		Uint32 dst_a = 0;
+	SDL_LockSurface(dst.surface);
 
-		SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-    if(src == scr){ src_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
-    if(dst == scr){ dst_a = (0xff >> fmt->Aloss) << fmt->Ashift; }
+	for(y = 0; y < dst.rect.h; y++)
+	{
+		Uint32 *pdst = dst.ptr + (dst.rect.y + y) * dst.rect.w + dst.rect.x;
+		for(x = 0; x < dst.rect.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << 16 |
+							(dst.color.g) << 8 |
+							(dst.color.b) |
+							(dst.color.a >> dst.fmt->Aloss) << 24;
+#else
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << dst.fmt->Rshift |
+							(dst.color.g) << dst.fmt->Gshift |
+							(dst.color.b) << dst.fmt->Bshift |
+							(dst.color.a >> dst.fmt->Aloss);
+#endif
+      pdst++;
+		}
+	}
 
-    Uint32 put_a = (255 >> fmt->Aloss) << fmt->Ashift;
-		
-    SDL_LockSurface(src);
-    SDL_LockSurface(dst);
-  
-    int px, py, sx, sy;
-    for(sy = srect.y, py = dly; py < dmy; sy++, py++)
-    {
-      for(sx = srect.x, px = dlx; px < dmx; sx++, px++)
-      {
-        pixel = *(psrc + sy * src->w + sx) | src_a;
-        MIYAKO_GETCOLOR(scolor);
-        if(scolor.a == 0){ continue; }
-        pixel = *(pdst + py * dst->w + px) | dst_a;
-        MIYAKO_GETCOLOR(dcolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        ph += deg;
-        if(ph < 0.0){ ph += d_pi; }
-        if(ph >= d_pi){ ph -= d_pi; }
-        ps += sat;
-        if(ps < 0.0){ ps = 0.0; }
-        if(ps > 1.0){ ps = 1.0; }
-        pv += val;
-        if(pv < 0.0){ pv = 0.0; }
-        if(pv > 1.0){ pv = 1.0; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        if(dcolor.a == 0 || scolor.a == 255){
-          MIYAKO_SETCOLOR(*(pdst + py * dst->w + px), scolor);
-          continue;
-        }
-        int a1 = scolor.a + 1;
-        int a2 = 256 - scolor.a;
-        *(pdst + py * dst->w + px) = (((scolor.r * a1 + dcolor.r * a2) >> 8) >> fmt->Rloss) << fmt->Rshift |
-                                     (((scolor.g * a1 + dcolor.g * a2) >> 8) >> fmt->Gloss) << fmt->Gshift |
-                                     (((scolor.b * a1 + dcolor.b * a2) >> 8) >> fmt->Bloss) << fmt->Bshift |
-                                     put_a;
-      }
-    }
+	SDL_UnlockSurface(dst.surface);
 
-    SDL_UnlockSurface(src);
-    SDL_UnlockSurface(dst);
-  }
-  else
-  {
-    int ox = NUM2INT(*(RSTRUCT_PTR(sunit) + 1));
-    int oy = NUM2INT(*(RSTRUCT_PTR(sunit) + 2));
-    int or = ox + NUM2INT(*(RSTRUCT_PTR(sunit) + 3));
-    int ob = oy + NUM2INT(*(RSTRUCT_PTR(sunit) + 4));
+  return vdst;
+}
 
-    SDL_LockSurface(src);
+/*
+画像の彩度を変更する
+*/
+static VALUE bitmap_miyako_saturation_self(VALUE self, VALUE vdst, VALUE saturation)
+{
+  MiyakoBitmap dst;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
-    int x, y;
-    for(y = oy; y < ob; y++)
-    {
-      for(x = ox; x < or; x++)
-      {
-        pixel = *(psrc + y * src->w + x);
-        MIYAKO_GETCOLOR(scolor);
-        MIYAKO_RGB2HSV(scolor, ph, ps, pv);
-        ph += deg;
-        if(ph < 0.0){ ph += d_pi; }
-        if(ph >= d_pi){ ph -= d_pi; }
-        ps += sat;
-        if(ps < 0.0){ ps = 0.0; }
-        if(ps > 1.0){ ps = 1.0; }
-        pv += val;
-        if(pv < 0.0){ pv = 0.0; }
-        if(pv > 1.0){ pv = 1.0; }
-        MIYAKO_HSV2RGB(ph, ps, pv, scolor);
-        MIYAKO_SETCOLOR(*(pdst + y * dst->w + x), scolor);
-      }
-    }
+  _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
-    SDL_UnlockSurface(src);
-  }
+  double sat = NUM2DBL(saturation);
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
+
+	SDL_LockSurface(dst.surface);
+
+	int x, y;
+	for(y = 0; y < dst.rect.h; y++)
+	{
+		Uint32 *pdst = dst.ptr + (dst.rect.y + y) * dst.rect.w + dst.rect.x;
+		for(x = 0; x < dst.rect.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << 16 |
+							(dst.color.g) << 8 |
+							(dst.color.b) |
+							(dst.color.a >> dst.fmt->Aloss) << 24;
+#else
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << dst.fmt->Rshift |
+							(dst.color.g) << dst.fmt->Gshift |
+							(dst.color.b) << dst.fmt->Bshift |
+							(dst.color.a >> dst.fmt->Aloss);
+#endif
+      pdst++;
+		}
+	}
+
+	SDL_UnlockSurface(dst.surface);
+
+  return vdst;
+}
+
+/*
+画像の明度を変更する
+*/
+static VALUE bitmap_miyako_value_self(VALUE self, VALUE vdst, VALUE value)
+{
+  MiyakoBitmap dst;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+
+  _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
+
+  double val = NUM2DBL(value);
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
+
+	SDL_LockSurface(dst.surface);
+
+	int x, y;
+	for(y = 0; y < dst.rect.h; y++)
+	{
+		Uint32 *pdst = dst.ptr + (dst.rect.y + y) * dst.rect.w + dst.rect.x;
+		for(x = 0; x < dst.rect.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << 16 |
+							(dst.color.g) << 8 |
+							(dst.color.b) |
+							(dst.color.a >> dst.fmt->Aloss) << 24;
+#else
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << dst.fmt->Rshift |
+							(dst.color.g) << dst.fmt->Gshift |
+							(dst.color.b) << dst.fmt->Bshift |
+							(dst.color.a >> dst.fmt->Aloss);
+#endif
+      pdst++;
+		}
+	}
+
+	SDL_UnlockSurface(dst.surface);
+
+  return vdst;
+}
+
+/*
+画像の色相・彩度・明度を変更する
+*/
+static VALUE bitmap_miyako_hsv_self(VALUE self, VALUE vdst, VALUE degree, VALUE saturation, VALUE value)
+{
+  MiyakoBitmap dst;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+
+  _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
+
+  double deg = NUM2DBL(degree);
+  double sat = NUM2DBL(saturation);
+  double val = NUM2DBL(value);
+  double d_pi = 360.0;
+  double ph = 0.0, ps = 0.0, pv = 0.0;
+  double r = 0.0, g = 0.0, b = 0.0;
+  double i = 0.0, f, m, n, k;
+
+  if(deg <= -360.0 || deg >= 360.0){ return Qnil; }
+
+	SDL_LockSurface(dst.surface);
+
+	int x, y;
+	for(y = 0; y < dst.rect.h; y++)
+	{
+		Uint32 *pdst = dst.ptr + (dst.rect.y + y) * dst.rect.w + dst.rect.x;
+		for(x = 0; x < dst.rect.w; x++)
+		{
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      dst.color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
+      dst.color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
+      dst.color.b = (Uint32)(((*pdst))) & 0xff;
+      dst.color.a = (Uint32)(((*pdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << 16 |
+							(dst.color.g) << 8 |
+							(dst.color.b) |
+							(dst.color.a >> dst.fmt->Aloss) << 24;
+#else
+      dst.color.r = (Uint32)(((*pdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+      dst.color.g = (Uint32)(((*pdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+      dst.color.b = (Uint32)(((*pdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			if(dst.color.a == 0){ pdst++; continue; }
+			MIYAKO_RGB2HSV(dst.color, ph, ps, pv);
+			ph += deg;
+			if(ph < 0.0){ ph += d_pi; }
+			if(ph >= d_pi){ ph -= d_pi; }
+			ps += sat;
+			if(ps < 0.0){ ps = 0.0; }
+			if(ps > 1.0){ ps = 1.0; }
+			pv += val;
+			if(pv < 0.0){ pv = 0.0; }
+			if(pv > 1.0){ pv = 1.0; }
+			MIYAKO_HSV2RGB(ph, ps, pv, dst.color);
+			*pdst = (dst.color.r) << dst.fmt->Rshift |
+							(dst.color.g) << dst.fmt->Gshift |
+							(dst.color.b) << dst.fmt->Bshift |
+							(dst.color.a >> dst.fmt->Aloss);
+#endif
+      pdst++;
+		}
+	}
+
+	SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
@@ -501,43 +803,8 @@ void Init_miyako_hsv()
   mSDL = rb_define_module("SDL");
   mMiyako = rb_define_module("Miyako");
   mScreen = rb_define_module_under(mMiyako, "Screen");
-  mInput = rb_define_module_under(mMiyako, "Input");
-  mMapEvent = rb_define_module_under(mMiyako, "MapEvent");
-  mLayout = rb_define_module_under(mMiyako, "Layout");
-  mDiagram = rb_define_module_under(mMiyako, "Diagram");
-  eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
-  cGL  = rb_define_module_under(mSDL, "GL");
   cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
-  cTTFFont = rb_define_class_under(mSDL, "TTF", rb_cObject);
-  cEvent2  = rb_define_class_under(mSDL, "Event2", rb_cObject);
-  cJoystick  = rb_define_class_under(mSDL, "Joystick", rb_cObject);
-  cWaitCounter  = rb_define_class_under(mMiyako, "WaitCounter", rb_cObject);
-  cFont  = rb_define_class_under(mMiyako, "Font", rb_cObject);
-  cColor  = rb_define_class_under(mMiyako, "Color", rb_cObject);
   cBitmap = rb_define_class_under(mMiyako, "Bitmap", rb_cObject);
-  cSprite = rb_define_class_under(mMiyako, "Sprite", rb_cObject);
-  cSpriteAnimation = rb_define_class_under(mMiyako, "SpriteAnimation", rb_cObject);
-  sSpriteUnit = rb_define_class_under(mMiyako, "SpriteUnitBase", rb_cStruct);
-  cPlane = rb_define_class_under(mMiyako, "Plane", rb_cObject);
-  cParts = rb_define_class_under(mMiyako, "Parts", rb_cObject);
-  cTextBox = rb_define_class_under(mMiyako, "TextBox", rb_cObject);
-  cMap = rb_define_class_under(mMiyako, "Map", rb_cObject);
-  cMapLayer = rb_define_class_under(cMap, "MapLayer", rb_cObject);
-  cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
-  cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
-  cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
-  cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
-  cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
-  cMovie = rb_define_class_under(mMiyako, "Movie", rb_cObject);
-  cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
-  cYuki = rb_define_class_under(mMiyako, "Yuki", rb_cObject);
-  cThread = rb_define_class("Thread", rb_cObject);
-  cEncoding = rb_define_class("Encoding", rb_cObject);
-  sPoint = rb_define_class_under(mMiyako, "PointStruct", rb_cStruct);
-  sSize = rb_define_class_under(mMiyako, "SizeStruct", rb_cStruct);
-  sRect = rb_define_class_under(mMiyako, "RectStruct", rb_cStruct);
-  sSquare = rb_define_class_under(mMiyako, "SquareStruct", rb_cStruct);
-  cIconv = rb_define_class("Iconv", rb_cObject);
 
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");
@@ -549,10 +816,14 @@ void Init_miyako_hsv()
   one = 1;
   nOne = INT2NUM(one);
 
-  rb_define_singleton_method(cBitmap, "hue!", bitmap_miyako_hue, 3);
-  rb_define_singleton_method(cBitmap, "saturation!", bitmap_miyako_saturation, 3);
-  rb_define_singleton_method(cBitmap, "value!", bitmap_miyako_value, 3);
-  rb_define_singleton_method(cBitmap, "hsv!", bitmap_miyako_hsv, 5);
+  rb_define_singleton_method(cBitmap, "hue", bitmap_miyako_hue, 3);
+  rb_define_singleton_method(cBitmap, "saturation", bitmap_miyako_saturation, 3);
+  rb_define_singleton_method(cBitmap, "value", bitmap_miyako_value, 3);
+  rb_define_singleton_method(cBitmap, "hsv", bitmap_miyako_hsv, 5);
+  rb_define_singleton_method(cBitmap, "hue!", bitmap_miyako_hue_self, 2);
+  rb_define_singleton_method(cBitmap, "saturation!", bitmap_miyako_saturation_self, 2);
+  rb_define_singleton_method(cBitmap, "value!", bitmap_miyako_value_self, 2);
+  rb_define_singleton_method(cBitmap, "hsv!", bitmap_miyako_hsv_self, 4);
   
   int i;
   for(i=0; i<256; i++){ div255[i] = (double)i / 255.0; }

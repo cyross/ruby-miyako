@@ -20,7 +20,7 @@ def create_eye(num)
 end
 
 back = Sprite.new(:file=>"m1ku_back.jpg", :type=>:as)
-backs = SpriteAnimation.new(:sprite=>Array.new(12){|n| back.to_sprite{|sprite| Bitmap.hue!(sprite, sprite, 30 * n) }}, :wait => 0.1).start
+backs = SpriteAnimation.new(:sprite=>Array.new(12){|n| back.to_sprite{|sprite| Bitmap.hue(sprite, sprite, 30 * n) }}, :wait => 0.1).start
 
 body = Sprite.new(:file=>"m1ku_body.png", :type=>:ck)
 body.move_to(200, 64)
