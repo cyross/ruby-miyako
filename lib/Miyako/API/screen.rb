@@ -137,7 +137,7 @@ module Miyako
 
     #===画面を管理するインスタンスを取得する
     #返却値:: 画面インスタンス(SDL::Screenクラスのインスタンス)
-    def Screen::screen
+    def Screen::bitmap
       return @@screen
     end
 
@@ -271,7 +271,7 @@ module Miyako
     #返却値:: 取り込んだ画像を含むSpriteクラスのインスタンス
     def Screen::to_sprite
       dst = Sprite.new(:size => Size.new(*(rect[2..3])), :type => :ac)
-      Bitmap.screen_to_ac!(Screen, dst)
+      Bitmap.screen_to_ac(Screen, dst)
       yield dst if block_given?
       return dst
     end
@@ -294,7 +294,12 @@ module Miyako
     #また、自動描画配列にインスタンスを入れているときは、このメソッドを呼び出した時に描画されるため
     #(つまり、表示の最後に描画される)、描画の順番に注意して配列を利用すること
     def Screen::render
-      Shape.text({:text => (FpsMax/(@@interval == 0 ? 1 : @@interval)).to_s() + " fps", :font => Font.sans_serif}).render  if @@fpsView
+      Shape.text(
+        {
+          :text => (FpsMax/(@@interval == 0 ? 1 : @@interval)).to_s() + " fps",
+          :font => Font.sans_serif
+        }
+      ).render if @@fpsView
       Screen::update_tick
       @@screen.flip
     end

@@ -30,11 +30,11 @@ class MapManager
 
   def move(dx, dy)
     @map.move(dx, dy)
-    @map.events.each{|e| e.move(dx, dy) }
+    @map.events[0].each{|e| e.move(dx, dy) }
   end
   
   def move_to(x, y)
-    @map.events.each{|e| e.move(x-@map.margin.x, y-@map.margin.y) }
+    @map.events[0].each{|e| e.move(x-@map.pos.x, y-@map.pos.y) }
     @map.move_to(x, y)
   end
   
@@ -44,7 +44,7 @@ class MapManager
   
   def update
     @ar.update_animation
-    @map.events.each{|e| e.update(@map, @map.events, nil) }
+    @map.events[0].each{|e| e.update(@map, @map.events, nil) }
   end
   
   def render
@@ -52,11 +52,11 @@ class MapManager
   end
 
   def render_event
-    @map.events.each{|e| e.render }
+    @map.events[0].each{|e| e.render }
   end
 
   def render_event_box
-    @map.events.each{|e| e.render_box }
+    @map.events[0].each{|e| e.render_box }
   end
 
   def stop
@@ -69,7 +69,7 @@ class MapManager
     @sp.dispose
   end
     
-  def_delegators(:@map, :w, :h, :get_code, :get_code_real, :margin, :chip_size)
+  def_delegators(:@map, :w, :h, :get_code, :get_code_real, :margin, :mapchips, :[])
   def_delegators(:@map, :collision?, :meet?, :cover?, :events)
   def_delegators(:@mapchip, :collision_table, :access_table)
 end

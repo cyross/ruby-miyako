@@ -2,9 +2,9 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.0
-【   作成日   】　2009/4/5
+【   作成日   】　2009/4/13
 【    種別    】　フリーウェア
-【  開発言語  】　Ruby 1.9.1-RC1
+【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
 【  対応機種  】　Windows 2000/XP/Vista、Linux、MacOSX
 【   再配布   】　GNU LGPL 2.1に基く
@@ -830,7 +830,7 @@ v1.5.0a(2008.07.21)
 ・Layout#round_rev2_x, round_rev2_yメソッドのバグ修正
 ・RDoc形式リファレンスマニュアルを修正(画像キャッシュの説明追加)
 
-v2.0.0(2009.4.5)
+v2.0.0(2009.4.13)
 ・Ruby/SDL2.1準拠に変更
 ・対象Rubyランタイムを、Ruby1.9.1以降に変更(バージョンチェックの追加)
 ・各ファイルの先頭に"# -*- encoding: utf-8 -*-"を追加

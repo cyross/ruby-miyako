@@ -1,63 +1,63 @@
 *******************************************************************************
-y   ìÒ–¼   z@ƒTƒCƒƒX½
-y  ƒ\ƒtƒg–¼  z@Miyako v1.4.4ƒTƒ“ƒvƒ‹(ŒÅ’èƒ}ƒbƒv)
-y ƒo[ƒWƒ‡ƒ“ z@1.0
-y   ì¬“ú   z@2008/01/14
-y    í•Ê    z@ƒtƒŠ[ƒEƒFƒA
-y  ŠJ”­Œ¾Œê  z@Ruby 1.8.6-p111
-y ƒ‰ƒ“ƒ^ƒCƒ€ z@Miyako v1.4.4
-y  ‘Î‰‹@í  z@Windows 2000/XP/VistaALinux
-y   Ä”z•z   z@C³BSDƒ‰ƒCƒZƒ“ƒX‚É‚æ‚é
-y    “]Ú    z@C³BSDƒ‰ƒCƒZƒ“ƒX‚É‚æ‚é
-yƒz[ƒ€ƒy[ƒWz@http://www.twin.ne.jp/~cyross/Miyako/
-y   ˜A—æ   z@cyross@po.twin.ne.jp
+ã€   ä½œè€…å   ã€‘ã€€ã‚µã‚¤ãƒ­ã‚¹èª 
+ã€  ã‚½ãƒ•ãƒˆå  ã€‘ã€€Miyako v2.0ã‚µãƒ³ãƒ—ãƒ«(å›ºå®šãƒãƒƒãƒ—)
+ã€ ãƒãƒ¼ã‚¸ãƒ§ãƒ³ ã€‘ã€€2.0
+ã€   ä½œæˆæ—¥   ã€‘ã€€2009/04/12
+ã€    ç¨®åˆ¥    ã€‘ã€€ãƒ•ãƒªãƒ¼ã‚¦ã‚§ã‚¢
+ã€  é–‹ç™ºè¨€èª  ã€‘ã€€Ruby 1.8.9-p0
+ã€ ãƒ©ãƒ³ã‚¿ã‚¤ãƒ  ã€‘ã€€Miyako v2.0
+ã€  å¯¾å¿œæ©Ÿç¨®  ã€‘ã€€Windows 2000/XP/Vistaã€Linux
+ã€   å†é…å¸ƒ   ã€‘ã€€ä¿®æ­£BSDãƒ©ã‚¤ã‚»ãƒ³ã‚¹ã«ã‚ˆã‚‹
+ã€    è»¢è¼‰    ã€‘ã€€ä¿®æ­£BSDãƒ©ã‚¤ã‚»ãƒ³ã‚¹ã«ã‚ˆã‚‹
+ã€ãƒ›ãƒ¼ãƒ ãƒšãƒ¼ã‚¸ã€‘ã€€http://www.twin.ne.jp/~cyross/Miyako/
+ã€   é€£çµ¡å…ˆ   ã€‘ã€€cyross@po.twin.ne.jp
 *******************************************************************************
 
-EŠT—v
+ãƒ»æ¦‚è¦
 
-@‚±‚ÌƒvƒƒOƒ‰ƒ€‚ÍAMiyako v1.4.4ˆÈ~‚É‘Î‰‚·‚éAMiyakoƒTƒ“ƒvƒ‹ƒvƒƒOƒ‰ƒ€‚Å‚·B
-@ƒXƒNƒ[ƒ‹‚µ‚È‚¢ƒ}ƒbƒvã‚ÅAƒXƒ‰ƒCƒ€‚ª‚¤‚Ë‚­‚Ë‚µ‚È‚ª‚ç“®‚«‰ñ‚Á‚Ä‚¢‚Ü‚·B
+ã€€ã“ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã¯ã€Miyako v2.0ä»¥é™ã«å¯¾å¿œã™ã‚‹ã€Miyakoã‚µãƒ³ãƒ—ãƒ«ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã§ã™ã€‚
+ã€€ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã—ãªã„ãƒãƒƒãƒ—ä¸Šã§ã€ã‚¹ãƒ©ã‚¤ãƒ ãŒã†ã­ãã­ã—ãªãŒã‚‰å‹•ãå›ã£ã¦ã„ã¾ã™ã€‚
 
-EMiyako‚É‚Â‚¢‚Ä
+ãƒ»Miyakoã«ã¤ã„ã¦
 
-@Miyako‚ÉŠÖ‚µ‚Ä‚ÍAˆÈ‰º‚ÌURL‚ğQl‚É‚µ‚Ä‚­‚¾‚³‚¢B
+ã€€Miyakoã«é–¢ã—ã¦ã¯ã€ä»¥ä¸‹ã®URLã‚’å‚è€ƒã«ã—ã¦ãã ã•ã„ã€‚
 http://www.twin.ne.jp/~cyross/Miyako/
 
-@Miyako(RubyARuby/SDLŠÜ‚Ş)‚ÌƒCƒ“ƒXƒg[ƒ‹‚ÉŠÖ‚µ‚Ü‚µ‚Ä‚ÍA
-ã‹LURL‚ğ’H‚Á‚Ä“¾‚ç‚ê‚éƒA[ƒJƒCƒu‚³‚ê‚½Miyakoƒ‰ƒCƒuƒ‰ƒŠ‚ğ
-“WŠJ‚·‚é‚ÆAreadme.txt‚ª“¾‚ç‚ê‚Ü‚·‚Ì‚ÅA‚»‚¿‚ç‚ğ‚²QÆ‰º‚³‚¢B
+ã€€Miyako(Rubyã€Ruby/SDLå«ã‚€)ã®ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã«é–¢ã—ã¾ã—ã¦ã¯ã€
+ä¸Šè¨˜URLã‚’è¾¿ã£ã¦å¾—ã‚‰ã‚Œã‚‹ã‚¢ãƒ¼ã‚«ã‚¤ãƒ–ã•ã‚ŒãŸMiyakoãƒ©ã‚¤ãƒ–ãƒ©ãƒªã‚’
+å±•é–‹ã™ã‚‹ã¨ã€readme.txtãŒå¾—ã‚‰ã‚Œã¾ã™ã®ã§ã€ãã¡ã‚‰ã‚’ã”å‚ç…§ä¸‹ã•ã„ã€‚
 
-@–{ƒTƒ“ƒvƒ‹‚Å‚ÍAMiyako‚ªWindowsã‚Å“®ì‚·‚é‚±‚Æ‚ğ‘O’ñ‚É‚µ‚Ä‚¢‚Ü‚·B
-iƒCƒ“ƒXƒg[ƒ‹‚µ‚½RubyÀsŠÂ‹«‚ªActiveRuby‚Å‚ ‚é‚±‚Æ‚à‘O’ñ‚É
-@‚µ‚Ä‚¢‚Ü‚·j
+ã€€æœ¬ã‚µãƒ³ãƒ—ãƒ«ã§ã¯ã€MiyakoãŒWindowsä¸Šã§å‹•ä½œã™ã‚‹ã“ã¨ã‚’å‰æã«ã—ã¦ã„ã¾ã™ã€‚
+ï¼ˆã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ãŸRubyå®Ÿè¡Œç’°å¢ƒãŒActiveRubyã§ã‚ã‚‹ã“ã¨ã‚‚å‰æã«
+ã€€ã—ã¦ã„ã¾ã™ï¼‰
 
-E‹N“®•û–@
+ãƒ»èµ·å‹•æ–¹æ³•
 
-@ƒGƒNƒXƒvƒ[ƒ‰[‚ğŠJ‚«A–{ƒTƒ“ƒvƒ‹‚ÌƒtƒHƒ‹ƒ_“à‚ÅAum1ku.rbv‚ğ
-ƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚Ü‚·B
-@‚à‚µ‚­‚ÍAƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ã‚Å“®‚©‚·ê‡‚ÍA–{ƒTƒ“ƒvƒ‹‚ÌƒfƒBƒŒƒNƒgƒŠ‚É
-ˆÚ“®‚µ‚ÄAˆÈ‰º‚ÌƒRƒ}ƒ“ƒh‚ğ“ü—Í‚µ‚Ü‚·B
+ã€€ã‚¨ã‚¯ã‚¹ãƒ—ãƒ­ãƒ¼ãƒ©ãƒ¼ã‚’é–‹ãã€æœ¬ã‚µãƒ³ãƒ—ãƒ«ã®ãƒ•ã‚©ãƒ«ãƒ€å†…ã§ã€ã€Œm1ku.rbã€ã‚’
+ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã—ã¾ã™ã€‚
+ã€€ã‚‚ã—ãã¯ã€ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ä¸Šã§å‹•ã‹ã™å ´åˆã¯ã€æœ¬ã‚µãƒ³ãƒ—ãƒ«ã®ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã«
+ç§»å‹•ã—ã¦ã€ä»¥ä¸‹ã®ã‚³ãƒãƒ³ãƒ‰ã‚’å…¥åŠ›ã—ã¾ã™ã€‚
 
-@ruby fixed_map_sample.rb
+ã€€ruby fixed_map_sample.rb
 
-E–ÆÓ–€
+ãƒ»å…è²¬äº‹é …
 
-@–{ƒTƒ“ƒvƒ‹‚Í–³•ÛØ‚Å‚·B‚à‚µ–{ƒTƒ“ƒvƒ‹‚ğg—p‚·‚é‚±‚Æ‚É‚æ‚é•s‹ï‡Eƒgƒ‰ƒuƒ‹
-‚ª‹N‚±‚Á‚½‚Æ‚µ‚Ä‚àA‚¢‚©‚È‚éƒgƒ‰ƒuƒ‹‚É‘Î‚·‚éÓ”C‚ğ•‰‚í‚È‚¢‚±‚Æ‚ğ‚²—¹³‰º‚³‚¢B
+ã€€æœ¬ã‚µãƒ³ãƒ—ãƒ«ã¯ç„¡ä¿è¨¼ã§ã™ã€‚ã‚‚ã—æœ¬ã‚µãƒ³ãƒ—ãƒ«ã‚’ä½¿ç”¨ã™ã‚‹ã“ã¨ã«ã‚ˆã‚‹ä¸å…·åˆãƒ»ãƒˆãƒ©ãƒ–ãƒ«
+ãŒèµ·ã“ã£ãŸã¨ã—ã¦ã‚‚ã€ã„ã‹ãªã‚‹ãƒˆãƒ©ãƒ–ãƒ«ã«å¯¾ã™ã‚‹è²¬ä»»ã‚’è² ã‚ãªã„ã“ã¨ã‚’ã”äº†æ‰¿ä¸‹ã•ã„ã€‚
 
-@–{ƒTƒ“ƒvƒ‹‚ÍAC³BSDƒ‰ƒCƒZƒ“ƒX‚ÉŠî‚Ã‚¢‚½“]ÚEÄ”z•z‚ğ‹–‰Â‚µ‚Ü‚·B
+ã€€æœ¬ã‚µãƒ³ãƒ—ãƒ«ã¯ã€ä¿®æ­£BSDãƒ©ã‚¤ã‚»ãƒ³ã‚¹ã«åŸºã¥ã„ãŸè»¢è¼‰ãƒ»å†é…å¸ƒã‚’è¨±å¯ã—ã¾ã™ã€‚
 
-EBSDƒ‰ƒCƒZƒ“ƒX•¶
+ãƒ»BSDãƒ©ã‚¤ã‚»ãƒ³ã‚¹æ–‡
 
-Copyright (c) 2008, Cyross Makoto
+Copyright (c) 2009, Cyross Makoto
 
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-ERedistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-ERedistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-ENeither the name of the Cyross Makoto nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+ãƒ»Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ãƒ»Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ãƒ»Neither the name of the Cyross Makoto nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT

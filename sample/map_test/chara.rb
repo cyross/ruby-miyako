@@ -4,23 +4,25 @@ class PChara # Player Character
   extend Forwardable
   attr_accessor :dir
   attr_reader :collision, :position
-  @@amt2dir = {[0,1]=>0,[-1,0]=>1,[1,0]=>2,[0,-1]=>3}
-  @@amt2dir.default = -1
+  @@dir2dir = {[0,1]=>0,[-1,0]=>1,[1,0]=>2,[0,-1]=>3}
+  @@dir2dir.default = -1
 
-  def initialize(fname, size, pw = 0.2)
-    @size = size
+  def initialize(fname, pw = 0.2)
     # キャラクタスプライトを作成
-    # コリジョンはスプライトのものを共有して使用
     @spr = Sprite.new({:filename => fname, :type => :color_key})
-    raise MiyakoError, "Character Size is not aligned by Map Chip Size!" unless (@spr.w % @size[0] == 0 && @spr.h % @size[1] == 0)
-    @spr.ow = @size[0]
-    @spr.oh = @size[1]
+    @spr.ow = 32
+    @spr.oh = 32
     param = Hash.new
     param[:sprite] = @spr
     param[:wait] = pw
+    # コリジョン設定
+    @collision = Collision.new(@spr.rect)
+    # キャラクタ位置設定
+    @position = Point.new(0, 0)
     # キャラパターンを表示
     @anim = SpriteAnimation.new(param)
     @anim.centering
+    @dir = :down
   end
 
   # マップの表示座標と実座標とのマージンを設定
@@ -29,7 +31,7 @@ class PChara # Player Character
   end
 
   def turn(d)
-    @anim.character = @@amt2dir[d]
+    @anim.character = @@dir2dir[d]
   end
 
   def start
@@ -46,6 +48,10 @@ class PChara # Player Character
   
   def render
     @anim.render
+  end
+  
+  def size
+    return Size.new(@spr.ow, @spr.oh)
   end
   
   def_delegators(:@spr, :dispose, :rect, :ow, :oh, :x, :y)

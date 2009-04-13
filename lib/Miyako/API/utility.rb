@@ -25,20 +25,15 @@ module Miyako
   module Utility
     def Utility.product_liner_inner(x1, y1, x2, y2, amount) #:nodoc:
       array = nil
-      range_x = x1..x2
-      range_y = y1..y2
+      step_x = x1 < x2 ? x1.step(x2, amount) : x1.step(x2, -amount)
+      step_y = y1 < y2 ? y1.step(y2, amount) : y1.step(y2, -amount)
       dx = x2 - x1
       dy = y2 - y1
       a = dy.to_f / dx.to_f
       b = y1.to_f - a * x1.to_f
-      if a == 0.0
-        array = range_x.step(amount).to_a.map{|x| [x, b.to_i]}
-      else
-        array = (range_x.step(amount).to_a.map{|x| [x, (a * x.to_f + b).to_i]} +
-                 range_y.step(amount).to_a.map{|y| [(y.to_f - b / a).to_i, y]}).
-                 uniq.select{|pos| range_x === pos[0] && range_y === pos[1]}
-      end
-      return array
+      array = [[x1,y1] , [x2,y2]] + step_x.to_a.map{|x| [x, (a * x.to_f + b).to_i]}
+      array += step_y.to_a.map{|y| [((y.to_f - b) / a).to_i, y]} if a != 0.0
+      return array.uniq
     end
 
     #===矩形内の対角線の座標リストを取得する
@@ -46,10 +41,12 @@ module Miyako
     #引数には、Rect(x,y,w,h)形式のインスタンスを渡す
     #幅・高さはマイナスの値の設定が可能。
     #幅・高さのどちらかの値が0の場合は[]が返る
-    #刻みの値は[x,y]の配列もしくはPoint/Rect/Square構造体を渡す。x,yどちらかが0以下の時は例外が発生する
+    #刻みの値は1以上の整数を渡す。0以下の場合は例外が発生する。
+    #結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
+    #(刻みの値より小さいことがある)ことがある
     #_rect_:: 矩形情報
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1
-    #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
+    #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_liner(rect, amount = 1)
       raise MiyakoError, "Illegal amount! #{amount}" if amount <= 0
       return [] if rect[2] == 0 || rect[3] == 0
@@ -57,8 +54,6 @@ module Miyako
       y1 = rect[1]
       x2 = x1 + rect[2] - 1
       y2 = y1 + rect[3] - 1
-      x1, x2 = x2, x1 if x1 > x2 
-      y1, y2 = y2, y1 if y1 > y2 
       return product_liner_inner(x1, y1, x2, y2, amount)
     end
 
@@ -67,17 +62,16 @@ module Miyako
     #引数には、Rect(x,y,w,h)形式のインスタンスを渡す
     #幅・高さはマイナスの値の設定が可能。
     #幅・高さのどちらかの値が0の場合は[]が返る
-    #刻みの値は[x,y]の配列もしくはPoint/Rect/Square構造体を渡す。x,yどちらかが0以下の時は例外が発生する
+    #刻みの値は1以上の整数を渡す。0以下の場合は例外が発生する。
+    #結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
+    #(刻みの値より小さいことがある)ことがある
     #_rect_:: 矩形情報
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1
-    #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
+    #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_liner_by_square(square, amount = 1)
       raise MiyakoError, "Illegal amount! #{amount}" if amount <= 0
       return [] if (square[2] - square[0]) == 0 || (square[3] - square[1]) == 0
-      x1, y1, x2, y2 = *square
-      x1, x2 = x2, x1 if x1 > x2 
-      y1, y2 = y2, y1 if y1 > y2 
-      return product_liner_inner(x1, y1, x2, y2, amount)
+      return product_liner_inner(*square, amount)
     end
 
     def Utility.product_inner(x1, y1, x2, y2, size) #:nodoc:
@@ -86,16 +80,28 @@ module Miyako
       return x_array.product(y_array)
     end
     
-    #===指定の矩形に掛かる、一定サイズの矩形の左上位置の組み合わせを返す
-    #但し、引数には、Rect(x,y,w,h)形式のインスタンスを渡す
+    #===指定の矩形が格子状のどこに重なっているかを返す
+    #position(Point([x,y])形式)を基準として、矩形rect(Rect([x,y,w,h])形式)が、格子状の並べた矩形
+    #(基準を[0,0]とした、大きさ[size,size]の矩形をタイル状に並べた物)にある場合、
+    #どの格子状の矩形が重なっているかを、矩形の左上座標の配列として渡す(x座標とy座標の組み合わせ)。
+    #
+    #_position_:: 基準位置
     #_rect_:: 矩形情報
     #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
-    def Utility.product_position(rect, size)
-      return product_inner(rect[0], rect[1], (rect[0]+rect[2]-1), (rect[1]+rect[3]-1), size)
+    def Utility.product_position(position, rect, size)
+      return product_inner(
+               position[0] + rect[0],
+               position[1] + rect[1],
+               position[0] + rect[0] + rect[2] - 1,
+               position[1] + rect[1] + rect[3] - 1,
+               size
+             )
     end
 
-    #===指定の矩形に掛かる、一定サイズの矩形の左上位置の組み合わせを返す
-    #但し、引数には、Square([x1,y1,x2,y2])形式のインスタンスを渡す
+    #===指定の矩形が格子状のどこに重なっているかを返す
+    #矩形square(Square([x1,y1,x2,y2])形式)が、格子状の並べた矩形
+    #(基準を[0,0]とした、大きさ[size,size]の矩形をタイル状に並べた物)にある場合、
+    #どの格子状の矩形が重なっているかを、矩形の左上座標の配列として渡す(x座標とy座標の組み合わせ)。
     #_square_:: 矩形情報
     #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_position_by_square(square, size)
@@ -104,29 +110,31 @@ module Miyako
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
     #移動後の小線分が大線分の範囲内にあるかどうかをtrue/falseで取得する
-    #_segment1_:: 小線分の矩形。[min,max]で構成された2要素の配列
-    #_segment2_:: 大線分の矩形。[min,max]で構成された2要素の配列
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
     #_d_:: segment1の移動量
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
     def Utility.in_bounds?(segment1, segment2, d, flag = true)
       nx = segment1[0] + d
       nx2 = segment1[1] + d
-      return flag ? (nx >= segment2[0] && nx2 < segment2[1]) : (nx > segment2[0] && (nx2 - 1) < segment2[1])
+      nx, nx2 = nx2, nx if nx > nx2
+      return flag ? (nx >= segment2[0] && nx2 <= segment2[1]) : (nx > segment2[0] && (nx2 - 1) < segment2[1])
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別して、その状態によって値を整数で返す
     #移動後の小線分の範囲が大線分の範囲内のときは0、
     #マイナス方向で範囲外に出るときは-1、
     #プラス方向で出るときは1を返す
-    #_segment1_:: 小線分の矩形。[min,max]で構成された2要素の配列
-    #_segment2_:: 大線分の矩形。[min,max]で構成された2要素の配列
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
     #_d_:: segment1の移動量
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
     def Utility.in_bounds_ex?(segment1, segment2, d, flag = true)
       nx = segment1[0] + d
       nx2 = segment1[1] + d - 1
+      nx, nx2 = nx2, nx if nx > nx2
       return -1 if (nx < segment2[0]) || (flag && (nx == segment2[0]))
       return (nx2 > segment2[1]) || (flag && (nx2 == segment2[1])) ? 1 : 0
     end
@@ -135,14 +143,15 @@ module Miyako
     #移動後の小線分の範囲が大線分の範囲内のときは0、
     #マイナス方向で範囲外に出るときは1、
     #プラス方向で出るときは-1を返す
-    #_segment1_:: 小線分の矩形。[min,max]で構成された2要素の配列
-    #_segment2_:: 大線分の矩形。[min,max]で構成された2要素の配列
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
     #_d_:: segment1の移動量
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
     def Utility.in_bounds_rev?(segment1, segment2, d, flag = true)
       nx = segment1[0] + d
       nx2 = segment1[1] + d - 1
+      nx, nx2 = nx2, nx if nx > nx2
       return 1 if (nx < segment2[0]) || (flag && (nx == segment2[0]))
       return (nx2 > segment2[1]) || (flag && (nx2 == segment2[1])) ? -1 : 0
     end
@@ -151,8 +160,8 @@ module Miyako
     #移動量が0のときは0、
     #移動後の小線分の範囲が大線分の範囲内のときは1、
     #範囲外に出るときは-1を返す
-    #_segment1_:: 小線分の矩形。[min,max]で構成された2要素の配列
-    #_segment2_:: 大線分の矩形。[min,max]で構成された2要素の配列
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
     #_d_:: segment1の移動量
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
     #返却値:: 判別の結果
@@ -161,8 +170,90 @@ module Miyako
       dir = (d <=> 0)
       nx = segment1[0] + d
       nx2 = segment1[1] + d - 1
+      nx, nx2 = nx2, nx if nx > nx2
       return -dir if (nx < segment2[0]) || (flag && (nx == segment2[0]))
       return (nx2 > segment2[1]) || (flag && (nx2 == segment2[1])) ? -dir : dir
+    end
+
+    #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
+    #移動後の小線分が大線分の範囲内にあるかどうかをtrue/falseで取得する
+    #_pos1_:: 小線分の開始点の位置
+    #_size1_:: 小線分の幅。0以上の整数
+    #_pos2_:: 大線分の開始点の位置
+    #_size2_:: 大線分の幅。1以上の整数
+    #_d_:: pos1の移動量。マイナス値の設定も可能
+    #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
+    #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
+    def Utility.in_bounds_by_size?(pos1, size1, pos2, size2, d, flag = true)
+      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      min_x1 = pos1 + d
+      min_x2 = pos1 + size1 + d
+      min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
+      return flag ? (min_x1 >= pos2 && min_x2 <= pos2+size2) : (minx_x1 > pos2 && min_x2 < pos2+size2)
+    end
+
+    #===小線分を移動させたとき、大線分が範囲内かどうかを判別して、その状態によって値を整数で返す
+    #移動後の小線分の範囲が大線分の範囲内のときは0、
+    #マイナス方向で範囲外に出るときは-1、
+    #プラス方向で出るときは1を返す
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
+    #_d_:: segment1の移動量
+    #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
+    #返却値:: 判別の結果
+    def Utility.in_bounds_ex_by_size?(pos1, size1, pos2, size2, d, flag = true)
+      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      min_x1 = pos1 + d
+      min_x2 = pos1 + size1 + d
+      min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
+      return -1 if (min_x1 < pos2) || (flag && (min_x1 == pos2))
+      return (min_x2 > pos2+size2) || (flag && (min_x2 == pos2+size2)) ? 1 : 0
+    end
+
+    #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
+    #移動後の小線分の範囲が大線分の範囲内のときは0、
+    #マイナス方向で範囲外に出るときは1、
+    #プラス方向で出るときは-1を返す
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
+    #_d_:: segment1の移動量
+    #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
+    #返却値:: 判別の結果
+    def Utility.in_bounds_rev_by_size?(pos1, size1, pos2, size2, d, flag = true)
+      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      min_x1 = pos1 + d
+      min_x2 = pos1 + size1 + d
+      min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
+      return 1 if (min_x1 < pos2) || (flag && (min_x1 == pos2))
+      return (min_x2 > pos2+size2) || (flag && (min_x2 == pos2+size2)) ? -1 : 0
+    end
+
+    #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
+    #移動量が0のときは0、
+    #移動後の小線分の範囲が大線分の範囲内のときは1、
+    #範囲外に出るときは-1を返す
+    #_segment1_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_segment2_:: 大線分の範囲。[min,max]で構成された2要素の配列
+    #_d_:: segment1の移動量
+    #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはtrue
+    #返却値:: 判別の結果
+    def Utility.in_bounds_rev_ex_by_size?(pos1, size1, pos2, size2, d, flag = true)
+      return 0 if d == 0
+      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      dir = (d <=> 0)
+      min_x1 = pos1 + d
+      min_x2 = pos1 + size1 + d
+      min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
+      return -dir if (min_x1 < pos2) || (flag && (min_x1 == pos2))
+      return (min_x2 > pos2+size2) || (flag && (min_x2 == pos2+size2)) ? -dir : dir
     end
   end
 end

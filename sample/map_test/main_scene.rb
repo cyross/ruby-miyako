@@ -9,17 +9,17 @@ class MainScene
     @d = [0,1]
 
     @map = MapManager.new
-    @executing_flags = Array.new(@map.events.length){|n| false}
+    @executing_flags = Array.new(@map.events[0].length){|n| false}
 
     # キャラクタの初期位置を指定([10,10]に位置)
-    @chr = PChara.new("./chr1.png", @size)
-    @rect = Rect.new(@size[0]*10, @size[1]*10, *@map.size.to_a)
+    @chr = PChara.new("./chr1.png")
+    @chr.position.move(@chr.size[0]*10, @chr.size[1]*10)
 
     # マップの表示開始位置を移動させる
-    # キャラクタのグラフィックを真ん中に表示させるため
+    # キャラクタのグラフィックを真ん中に表示させるため、マージン分移動させる
     @map.move(*@chr.margin)
     # マップの実座標を設定する
-    @map.move(*@rect.to_a[0..1])
+    @map.move(*@chr.position)
     
     @parts = CommonParts.instance
     #Yukiの初期化
@@ -50,35 +50,41 @@ class MainScene
       @yuki.update
     elsif @executing_flags.none?
       if Input.pushed_any?(:btn1) || Input.click?(:left)
-        #１ボタンを押したとき、イベントに重なっていればマップイベントを実行、
+        #１ボタンを押したとき、キャラの立ち位置が、イベントの位置にに重なっていればマップイベントを実行、
         #外れていれば、コマンドウィンドウを開く
-        event_flags = @map.events.map{|e| e.met?(:collision => @map.collision)}
+        event_flags = @map.events[0].map{|e| e.met?(collision: @chr.collision, pos: @chr.position)}
         if event_flags.none?
+          #標準のコマンドを表示
           @yuki.vars[:now] = @now
           @yuki.vars[:talk] = talk
           @yuki.vars[:check] = check
           @yuki.start_plot(command_plot)
         else
-          @map.events.zip(event_flags){|ef| ef[0].start(@parts) if ef[1]}
+          #キャラの立ち位置が重なっているイベントを起動
+          @map.events[0].zip(event_flags){|ef| ef[0].start(@parts) if ef[1]}
         end
       elsif Input::trigger_any?(:down, :up, :left, :right)
-            # 0:down 1:left 2:right 3:up
+        # 0:down 1:left 2:right 3:up
         @d = Input::trigger_amount
         @d[1] = 0 if @d[0] != 0 && @d[1] != 0 # 移動を横方向優先に
         #キャラクタの向きを変更
         @chr.turn(@d)
-        #マップの移動量を求める
-        rect = @rect.dup.move(@d[0]*@rect.w,@d[1]*@rect.h)
-#        @a = @map.get_amount(0, 0, @rect, @map.collision).amount.to_a
-        # 方向ボタンを押したときは、１チップサイズ単位で移動する
-        # @cntはその移動量(幅と高さでサイズが違う場合アリ)
-        @cnt = @d[0] > 0 ? @rect.w : @rect.h
+        #動けるかどうか判定
+        #(現在の位置から移動したときに、そこが移動可能なマップチップかどうか判別する)
+        if @map[0].can_access?(0, :in, @chr.position, @d[0]*@chr.size.w, @d[1]*@chr.size.h)
+          #移動可能なら、移動量を設定する
+          @a = @d.map{|d| d * @amt}
+          @chr.position.move(@d[0]*@map[0].mapchip.chip_size.w, @d[1]*@map[0].mapchip.chip_size.h)
+          #1フレームごとに一定ピクセル移動する(移動中は操作不可)
+          @cnt = @d[0] != 0 ? @map[0].mapchip.chip_size.w : @map[0].mapchip.chip_size.h
+        end
       end
-    else
     end
 
-    @map.events.zip(@executing_flags){|ef|
+    # イベントの終了チェック
+    @map.events[0].zip(@executing_flags){|ef|
       if ef[1]
+        # 2ボタンを押したときにイベントを中止する
         if Input.pushed_any?(:btn2)
           ef[0].stop
         else
@@ -86,7 +92,7 @@ class MainScene
         end
       end
     }
-    @executing_flags = @map.events.map{|e| e.executing? }
+    @executing_flags = @map.events[0].map{|e| e.executing? }
    
     #コマンド選択の結果、イベントが実行されたときは、結果として@nowを返す
     return @now unless @yuki.is_scene?(@yuki.result)

@@ -106,32 +106,12 @@ module Miyako
                          @modpy2[round(y, @size.h)])
       end
 
-      #===指定の位置のマップチップ番号を取得
-      #_x_:: マップチップ単位での位置(ピクセル単位ではない)
-      #_y_:: マップチップ単位での位置(ピクセル単位ではない)
-      #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
-      def get_code(x, y)
-        pos = convert_position(x, y)
-        return @mapdat[pos.y][pos.x]
-      end
-
-      def product_inner(px1, px2, py1, py2) #:nodoc:
-        x_array = (px1..px2).to_a.map{|e| e * @mapchip.chip_size[0]}
-        y_array = (py1..py2).to_a.map{|e| e * @mapchip.chip_size[1]}
-        return x_array.product(y_array)
-      end
-
-      private :product_inner
-      
       #===指定の矩形のキャラクタに掛かるマップチップの左上位置の組み合わせを返す
       #但し、引数には、Rect(x,y,w,h)形式のインスタンスを渡す
       #_rect_:: キャラクタの矩形
       #返却値:: マップチップ左上位置の配列(キャラクタに掛かる位置の組み合わせ)
       def product_position(rect)
-        return product_inner(rect[0] / @mapchip.chip_size[0],
-                             rect[1] / @mapchip.chip_size[1],
-                             (rect[0]+rect[2]-1) / @mapchip.chip_size[0],
-                             (rect[1]+rect[3]-1) / @mapchip.chip_size[1])
+        return Utility.product_position(rect, @mapchip.chip_size)
       end
 
       #===指定の矩形のキャラクタに掛かるマップチップの左上位置の組み合わせを返す
@@ -139,10 +119,17 @@ module Miyako
       #_square_:: キャラクタの矩形
       #返却値:: マップチップ左上位置の配列(キャラクタに掛かる位置の組み合わせ)
       def product_position_by_square(square)
-        return product_inner(square[0] / @mapchip.chip_size[0],
-                             square[1] / @mapchip.chip_size[1],
-                             square[2] / @mapchip.chip_size[0],
-                             square[3] / @mapchip.chip_size[1])
+        return Utility.product_position_by_square(square, @mapchip.chip_size)
+      end
+
+      #===実座標を使用して、指定のレイヤー・位置のマップチップ番号を取得
+      #イベントレイヤーでの番号はイベント番号と一致する
+      #_x_:: マップチップ単位での位置(ピクセル単位)
+      #_y_:: マップチップ単位での位置(ピクセル単位）
+      #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
+      def get_code(x, y)
+        pos = convert_position(x / @mapchip.chip_size[0], y / @mapchip.chip_size[1])
+        return @mapdat[pos.y][pos.x]
       end
 
       #===キャラクタとマップチップが重なっているかどうか問い合わせる
@@ -188,6 +175,23 @@ module Miyako
         code = get_code(*pos.to_a)
         return false if code == -1
         return @mapchip.collision_table[type][code].cover?(pos, collision, rect)
+      end
+
+      #===キャラクタとマップチップが重なっているかどうか問い合わせる
+      #指定の位置と方向で、指定の位置のマップチップ上で移動できるかどうか問い合わせる
+      #指定の位置のマップチップ番号が-1(未定義)のとき、移動していない(dx==0 and dy==0)ときはtrueを返す
+      #_type_:: 移動形式(0以上の整数)
+      #_inout_:: 入退形式(:in もしくは :out)
+      #_pos_:: 調査対象のマップチップの位置
+      #_dx_:: 移動量(x座標)
+      #_dy_:: 移動量(y座標)
+      #返却値:: 移動可能ならばtrueを返す
+      def can_access?(type, inout, pos, dx, dy)
+        code = get_code(pos[0]+dx, pos[1]+dy)
+        return true if code == -1
+        index = AccessIndex.index2(inout, dx, dy)
+        return true if index == -1
+        return @mapchip.access_table[type][code][index]
       end
 
       def dispose #:nodoc:
@@ -236,6 +240,7 @@ module Miyako
     def initialize(mapchips, layer_csv, event_manager)
       init_layout
       @visible = true
+      @event_layers = []
       @em = event_manager.dup
       @em.set(self)
       @mapchips = mapchips.to_a
@@ -251,51 +256,53 @@ module Miyako
 
       layers = layer_data.shift[0].to_i
 
-      brlist = {}
+      evlist = []
+      brlist = []
       layers.times{|n|
         name = layer_data.shift[0]
-        if name == "<event>"
-          name = :event
-        else
-          name = /\<(\d+)\>/.match(name).to_a[1].to_i
-        end
         values = []
         @size.h.times{|y|
           values << layer_data.shift.map{|m| m.to_i}
         }
-        brlist[name] = values
+        if name == "<event>"
+          evlist << values
+        else
+          brlist << values
+        end
       }
 
       @event_layer = nil
 
-      if brlist.has_key?(:event)
-        @event_layer = Array.new
-        brlist[:event].each_with_index{|ly, y|
+      evlist.each{|events|
+        event_layer = Array.new
+        events.each_with_index{|ly, y|
           ly.each_with_index{|code, x|
             next unless @em.include?(code)
-            @event_layer.push(@em.create(code, x * @mapchips.first.chip_size.w, y * @mapchips.first.chip_size.h))
+            event_layer.push(@em.create(code, x * @mapchips.first.chip_size.w, y * @mapchips.first.chip_size.h))
           }
         }
-        layers -= 1
-      end
+        @event_layers << event_layer
+      }
+
       mc = @mapchips.cycle
       @mapchips = mc.take(layers)
       @map_layers = []
-      layers.times{|i|
-        br = brlist[i].map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
+      brlist.each{|br|
+        br = br.map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
         @map_layers.push(FixedMapLayer.new(mc.next, br, @size))
       }
       set_layout_size(@w, @h)
     end
 
     #===マップにイベントを追加する
-    #_code_:: イベント番号(FixedMap.newメソッドで渡したイベント番号に対応)
+    #_idx_:: 追加するイベントレイヤの指標
+    #_code_:: イベント番号(Map.newメソッドで渡したイベント番号に対応)
     #_x_:: マップ上の位置(x方向)
     #_y_:: マップ常温位置(y方向)
     #返却値:: 自分自身を返す
-    def add_event(code, x, y)
+    def add_event(idx, code, x, y)
       return self unless @em.include?(code)
-      @event_layer.push(@em.create(code, x, y))
+      @event_layers[idx].push(@em.create(code, x, y))
       return self
     end
 
@@ -314,20 +321,7 @@ module Miyako
     #_x_:: マップチップ単位での位置(ピクセル単位)
     #_y_:: マップチップ単位での位置(ピクセル単位）
     #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
-    def get_code_real(idx, x, y)
-      code = @map_layers[idx].get_code((x-@pos[0]) / @mapchips.first.chip_size[0], (y-@pos[1]) / @mapchips.first.chip_size[1])
-      yield code if block_given?
-      return code
-    end
-
-    #===指定のレイヤー・位置のマップチップ番号を取得
-    #イベントレイヤーでの番号はイベント番号と一致する
-    #ブロックを渡すと、求めたマップチップ番号をブロック引数として受け取る評価を行える
-    #_idx_:: マップレイヤー配列のインデックス
-    #_x_:: マップチップ単位での位置(ピクセル単位ではない)
-    #_y_:: マップチップ単位での位置(ピクセル単位ではない)
-    #返却値:: マップチップ番号(マップチップが設定されている時は0以上の整数、設定されていない場合は-1が返る)
-    def get_code(idx, x, y)
+    def get_code(idx, x = 0, y = 0)
       code = @map_layers[idx].get_code(x, y)
       yield code if block_given?
       return code
@@ -379,7 +373,7 @@ module Miyako
     #===すべてのマップイベントを終了させる
     #マップに登録しているイベントすべてのfinalメソッドを呼び出す
     def final
-      @event_layer.each{|e| e.final } if @event_layer
+      @event_layers.each{|ee| ee.each{|e| e.final }}
     end
 
     #===マップ情報を解放する
@@ -389,23 +383,21 @@ module Miyako
         l = nil
       }
       @map_layers = Array.new
-      if @event_layer
-        @event_layer.each{|e| e.dispose }
-        @event_layer = nil
-      end
+
+      @event_layers.each{|ee|
+        ee.each{|e| e.dispose }
+        ee.clear
+      }
+      @event_layers.clear
+
       @mapchips.clear
       @mapchips = nil
-    end
-
-    def re_size #:nodoc:
-      @map_layers.each{|l| l.reSize }
-      return self
     end
 
     #===マップに登録しているイベントインスタンス(マップイベント)を取得する
     #返却値:: マップイベントの配列
     def events
-      return @event_layer || []
+      return @event_layers
     end
 
     #===マップを画面に描画する

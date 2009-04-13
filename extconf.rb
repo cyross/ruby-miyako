@@ -30,10 +30,15 @@ end
 if enable_config("static-libs",false) then
   have_library("SDL")
   have_library("freetype")
+  have_library("SGE")
 end
 
 if have_library("SDL_ttf","TTF_Init") then
   $CFLAGS+= " -D HAVE_SDL_TTF "
+end
+
+if have_library("SGE","sge_Line") then
+  $CFLAGS+= " -D HAVE_SGE "
 end
 
 create_makefile('miyako_no_katana')

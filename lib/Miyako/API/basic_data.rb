@@ -409,9 +409,9 @@ class Array
   end
 end
 
-=begin rdoc
-==１個のインスタンスでイテレータを実装できるモジュール
-=end
+#=begin rdoc
+#==１個のインスタンスでイテレータを実装できるモジュール
+#=end
 module SingleEnumerable
   include Enumerable
 

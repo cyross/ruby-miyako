@@ -26,7 +26,7 @@ module Miyako
   #SDLのSurfaceクラスインスタンスを管理するクラス
   class Bitmap
     def Bitmap.create(w, h, flag=SDL::HWSURFACE | SDL::SRCCOLORKEY | SDL::SRCALPHA) #:nodoc:
-      return SDL::Surface.new(flag, w, h, 32, Screen.screen.Rmask, Screen.screen.Gmask, Screen.screen.Bmask, Screen.screen.Amask)
+      return SDL::Surface.new(flag, w, h, 32, Screen.bitmap.Rmask, Screen.bitmap.Gmask, Screen.bitmap.Bmask, Screen.bitmap.Amask)
     end
 
     def Bitmap.load(filename) #:nodoc:
@@ -36,7 +36,6 @@ module Miyako
     #===画像をαチャネル付き画像へ転送する
     #範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。
     #src==dstの場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -56,7 +55,6 @@ module Miyako
     #1.src1とsrc2のどちらかが、もう一方の内側にない
     #2.src2の大きさとdstの大きさが違う
     #3.src1==src2の場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -74,7 +72,6 @@ module Miyako
     #1.src1とsrc2のどちらかが、もう一方の内側にない
     #2.src2の大きさとdstの大きさが違う
     #3.src1==src2の場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る)
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -92,21 +89,19 @@ module Miyako
     #1.src1とsrc2のどちらかが、もう一方の内側にない
     #2.src2の大きさとdstの大きさが違う
     #3.src1==src2の場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src1,src2,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 転送に成功すればdstを返す。失敗すればnilを返す
-    def Bitmap.blit_xor!(src, dst)
+    def Bitmap.blit_xor(src, dst)
     end
 
     #===画像をαチャネル付き画像へ転送する
     #引数で渡ってきた特定の色に対して、α値をゼロにする画像を生成する
     #src==dstの場合、何も行わずすぐに呼びだし元に戻る
     #範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -120,7 +115,6 @@ module Miyako
     #===画像のαチャネルを255に拡張する
     #αチャネルの値を255に拡張する(α値をリセットする)
     #範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -133,7 +127,6 @@ module Miyako
     #===画像をαチャネル付き画像へ変換する
     #２４ビット画像(αチャネルがゼロの画像)に対して、すべてのα値を255にする画像を生成する
     #範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -143,11 +136,42 @@ module Miyako
     def Bitmap.normal_to_ac(src, dst)
     end
 
+    #===画像をαチャネル付き画像へ破壊的に変更する
+    #引数で渡ってきた特定の色に対して、α値をゼロにする画像を生成する
+    #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|dst側SpriteUnit|となる。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #_color_key_:: 透明にしたい色(各要素がr,g,bに対応している整数の配列(0～255))
+    #返却値:: 転送に成功すればdstを返す。失敗すればnilを返す
+    def Bitmap.ck_to_ac!(dst, color_key)
+    end
+
+    #===画像のαチャネルを255に拡張する(破壊的に変更)
+    #αチャネルの値を255に拡張する(α値をリセットする)
+    #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|dst側SpriteUnit|となる。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 転送に成功すればdstを返す。失敗すればnilを返す
+    def Bitmap.reset_ac!(dst)
+    end
+
+    #===画像をαチャネル付き画像へ破壊的に変換する
+    #２４ビット画像(αチャネルがゼロの画像)に対して、すべてのα値を255にする画像を生成する
+    #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|dst側SpriteUnit|となる。
+    #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 転送に成功すればdstを返す。失敗すればnilを返す
+    def Bitmap.normal_to_ac!(dst)
+    end
+
     #===画面(αチャネル無し32bit画像)をαチャネル付き画像へ転送する
     #α値がゼロの画像から、α値を255にする画像を生成する
     #src==dstの場合、何も行わずすぐに呼びだし元に戻る
     #範囲は、src側SpriteUnitの(w,h)の範囲で転送する。
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -166,7 +190,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -185,7 +208,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -204,7 +226,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -221,7 +242,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -240,7 +260,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -258,7 +277,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -276,7 +294,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -292,7 +309,6 @@ module Miyako
     #但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -303,7 +319,6 @@ module Miyako
 
     #===2枚の画像の加算合成を行う
     #範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -315,7 +330,6 @@ module Miyako
 
     #===2枚の画像の減算合成を行う
     #範囲は、src側SpriteUnitの(ow,oh)の範囲で転送する。転送先の描画開始位置は、src側SpriteUnitの(x,y)を左上とする。
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -326,11 +340,11 @@ module Miyako
     end
 
     #===画像を回転させて貼り付ける
-    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。
+    #回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
     #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
     #回転角度が正だと右回り、負だと左回りに回転する
     #src==dstの場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -342,12 +356,12 @@ module Miyako
     end
 
     #===画像を拡大・縮小・鏡像(ミラー反転)させて貼り付ける
-    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、(ow,oh)の範囲で転送する。
+    #回転の中心は(ox,oy)を起点に、(cx,cy)が中心になるように設定する。
     #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
     #度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
     #但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
     #src==dstの場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -360,15 +374,16 @@ module Miyako
     end
 
     #===画像を変形(回転・拡大・縮小・鏡像)させて貼り付ける
-    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+    #回転の中心はsrc側(ox,oy)を起点に、src側(cx,cy)が中心になるように設定する。
     #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、dst側SpriteUnitの(cx,cy)が中心になるように設定にする。
     #回転角度は、src側SpriteUnitのangleを使用する
     #回転角度が正だと右回り、負だと左回りに回転する
     #変形の度合いは、src側SpriteUnitのxscale, yscaleを使用する(ともに実数で指定する)。それぞれ、x方向、y方向の度合いとなる
-    #度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる(scale == -1.0 のときはミラー反転になる)
+    #度合いが scale > 1.0 だと拡大、 0 < scale < 1.0 だと縮小、scale < 0.0 負だと鏡像の拡大・縮小になる
+    #(scale == -1.0 のときはミラー反転になる)
     #但し、拡大率が4096分の1以下だと、拡大/縮小しない可能性がある
     #src==dstの場合、何も行わない
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -386,7 +401,6 @@ module Miyako
     #srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -402,7 +416,6 @@ module Miyako
     #srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -418,7 +431,6 @@ module Miyako
     #srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -434,7 +446,6 @@ module Miyako
     #srcの(x,y)を左上とする。但しsrc==dstのときはx,yを無視する
     #src == dst : 元の画像を変換した画像に置き換える
     #src != dst : 元の画像を対象の画像に転送する(αチャネルの計算付き)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、src,dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|src側SpriteUnit,dst側SpriteUnit|となる。
@@ -449,7 +460,6 @@ module Miyako
 
     #===画像の色相を破壊的に変更する
     #範囲は、(ow,oh)で転送する。転送先の描画開始位置は(ox,oy)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|dst側SpriteUnit|となる。
@@ -461,7 +471,6 @@ module Miyako
 
     #===画像の彩度を破壊的に変更する
     #範囲は、(ow,oh)で転送する。転送先の描画開始位置は(ox,oy)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|dst側SpriteUnit|となる。
@@ -473,7 +482,6 @@ module Miyako
 
     #===画像の明度を破壊的に変更する
     #範囲は、(ow,oh)で転送する。転送先の描画開始位置は(ox,oy)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|dst側SpriteUnit|となる。
@@ -485,7 +493,6 @@ module Miyako
 
     #===画像の色相・彩度・明度を破壊的に変更する
     #範囲は、(ow,oh)で転送する。転送先の描画開始位置は(ox,oy)
-    #(注)このメソッドは、画面に転送する場合、Viewportを反映しない
     #ブロックを渡すと、dst側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る
     #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
     #ブロックの引数は、|dst側SpriteUnit|となる。

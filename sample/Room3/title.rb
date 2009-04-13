@@ -178,7 +178,7 @@ class TitleCall
   end
 
   def render
-    Bitmap.dec_alpha!(@man, Screen, @alpha)
+    Bitmap.dec_alpha(@man, Screen, @alpha)
     message_box.render if @exec == self.method(:exec_yuki)
   end
 end

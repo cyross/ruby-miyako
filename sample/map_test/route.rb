@@ -11,7 +11,8 @@ class EventRouteMarker
     @spr.ow = @spr.oh = 32
     @spr.ox = 96
     @spr.move_to(x, y)
-    @coll = Collision.new([0, 0, @spr.ow, @spr.oh], [@spr.x, @spr.y])
+    @coll = Collision.new([0, 0, @spr.ow, @spr.oh])
+    @pos  = Point.new(x, y)
     @margin = Size.new(0, 0)
     @parts = CommonParts.instance
     @yuki = Yuki.new
@@ -20,9 +21,9 @@ class EventRouteMarker
     }
   end
 
-  # キャラとイベントが重なり合っているかの判別
+  # キャラの立ち位置とイベントの位置が重なり合っているかの判別
   def met?(param = nil)
-    return @coll.collision?(param[:collision])
+    return @coll.collision?(@pos, param[:collision], param[:pos])
   end
 
   # イベントの実行
@@ -60,12 +61,14 @@ class EventRouteMarker
     end
   end
 
+  # イベントキャラクタの描画
   def render
     @spr.move(-@margin.w, -@margin.h)
     @spr.render
     @spr.move(@margin.w, @margin.h)
   end
 
+  #(Yuki起動時)メッセージボックスの表示
   def render_box
     @parts.box.render if @yuki.executing?
   end
@@ -83,7 +86,8 @@ class EventRouteMarker2
     @spr.ow = @spr.oh = 32
     @spr.ox = 96
     @spr.move(x, y)
-    @coll = Collision.new([0, 0, @spr.ow, @spr.oh], [@spr.x, @spr.y])
+    @coll = Collision.new([0, 0, @spr.ow, @spr.oh])
+    @pos  = Point.new(x, y)
     @margin = Size.new(0, 0)
     @parts = CommonParts.instance
     @yuki = Yuki.new
@@ -92,9 +96,9 @@ class EventRouteMarker2
     }
   end
 
-  # キャラとイベントが重なり合っているかの判別
+  # キャラの立ち位置とイベントの位置が重なり合っているかの判別
   def met?(param = nil)
-    return @coll.collision?(param[:collision])
+    return @coll.collision?(@pos, param[:collision], param[:pos])
   end
 
   # イベントの開始
@@ -139,12 +143,14 @@ class EventRouteMarker2
     end
   end
 
+  # イベントキャラクタの描画
   def render
     @spr.move(-@margin.w, -@margin.h)
     @spr.render
     @spr.move(@margin.w, @margin.h)
   end
 
+  #(Yuki起動時)メッセージボックスの表示
   def render_box
     @parts.box.render if @yuki.executing?
   end

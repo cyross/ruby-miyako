@@ -37,6 +37,7 @@ module Miyako
       @align = parameter[:align] ||= :left
       @valign = parameter[:valign] ||= :middle
 			@lines = parameter[:lines] ||= 2
+      @vertexes = parameter[:vertexes] ||= []
     end
 
     @@shape_executer = Shape.new
@@ -109,6 +110,15 @@ module Miyako
     #返却値:: 描画したスプライト
     def Shape.ellipse(param)
       @@shape_executer.ellipse(param)
+    end
+
+    #===多角形を描画する
+    #_param_:: 設定パラメータ。ハッシュ形式。
+    #:vertexes => 頂点リスト。[x,y]形式の配列の配列,
+    #:color => 円の色[r,g,b(,a)]、デフォルトはColor[:white],
+    #返却値:: 描画したスプライト
+    def Shape.polygon(param)
+      @@shape_executer.polygon(param)
     end
 
     def create_text(param, text_block) #:nodoc:
@@ -320,53 +330,58 @@ module Miyako
     
     def box(param) #:nodoc:
       init_parameter(param)
-      s = Sprite.new({:size => [w, h], :type => :alpha_channel, :is_fill => true})
+      s = Sprite.new(size: [w, h], type: :alpha_channel)
       w = @size[0]
       h = @size[1]
+      Drawing.fill(s, [0, 0, 0])
+      Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
         width = @edge[:width]
-        s.bitmap.fill_rect(0, 0, w-1, h-1, Color.to_rgb(@edge[:color]))
-        s.bitmap.fill_rect(width, width, w-width*2-1, h-width*2-1, Color.to_rgb(@color))
+        Drawing.rect(s, [0, 0, w, h], Color.to_rgb(@edge[:color]), true)
+        Drawing.rect(s, [width, width, w-width*2-1, h-width*2-1], Color.to_rgb(@color), true)
       else
-        s.bitmap.fill_rect(0, 0, w-1, h-1, Color.to_rgb(@color))
+        Drawing.rect(s, [0, 0, w, h], Color.to_rgb(@color), true)
       end
       return s
     end
 
     def roundbox_basic(s, x, y, w, h, r, c) #:nodoc:
       color = Color.to_rgb(c)
-      s.bitmap.draw_aa_filled_circle(r+x, r+y, r, color)
-      s.bitmap.draw_aa_filled_circle(w-r-x-1, r+y, r, color)
-      s.bitmap.draw_aa_filled_circle(r+x, h-r-y-1, r, color)
-      s.bitmap.draw_aa_filled_circle(w-r-x-1, h-r-y-1, r, color)
-      s.bitmap.fill_rect(x, y+r, w-x*2, h-y*2-r*2, color)
-      s.bitmap.fill_rect(x+r, y, w-x*2-r*2, h-x*2, color)
+      Drawing.circle(s, [r+x,     r+y],     r, color, true)
+      Drawing.circle(s, [w-r-x-1, r+y],     r, color, true)
+      Drawing.circle(s, [r+x,     h-r-y-1], r, color, true)
+      Drawing.circle(s, [w-r-x-1, h-r-y-1], r, color, true)
+      Drawing.rect(s, [x, y+r, w-x*2, h-y*2-r*2], color, true)
+      Drawing.rect(s, [x+r, y, w-x*2-r*2, h-x*2], color, true)
     end
 
     def roundbox(param) #:nodoc:
       init_parameter(param)
       w = @size[0]
       h = @size[1]
-      s = Sprite.new(@size, nil, nil)
-      s.fill([0, 0, 0, 0])
+      s = Sprite.new(size: @size, type: :ac)
+      Drawing.fill(s, [0, 0, 0])
+      Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
-        roundbox_basic(s, 0, 0, w, h, @ray, Color.to_rgb(@edge[:color]))
-        roundbox_basic(s, @edge[:width], @edge[:width], w, h, @ray, Color.to_rgb(@color))
+        roundbox_basic(s, [0, 0, w, h], @ray, Color.to_rgb(@edge[:color]))
+        roundbox_basic(s, [@edge[:width], @edge[:width], w, h], @ray, Color.to_rgb(@color))
       else
-        roundbox_basic(s, 0, 0, w, h, @ray, Color.to_rgb(@color))
+        roundbox_basic(s, [0, 0, w, h], @ray, Color.to_rgb(@color))
       end
       return s
     end
 
     def circle(param) #:nodoc:
       init_parameter(param)
-      s = Sprite.new({:size => [@ray*2+1, @ray*2+1], :type => :alpha_channel, :is_fill => true})
+      s = Sprite.new(size: [@ray*2+1, @ray*2+1], type: :alpha_channel)
+      Drawing.fill(s, [0, 0, 0])
+      Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
         et, ec = sp.get_param(:edge)[0..1]
-        s.bitmap.draw_aa_filled_circle(@ray, @ray, @ray, Color.to_rgb(@edge[:color]))
-        s.bitmap.draw_aa_filled_circle(@ray, @ray, @ray-@edge[:width], Color.to_rgb(@color))
+        Drawing.circle(s, [@ray, @ray], @ray, Color.to_rgb(@edge[:color]), true)
+        Drawing.circle(s, [@ray, @ray], @ray-@edge[:width], Color.to_rgb(@color), true)
       else
-        s.bitmap.draw_aa_filled_circle(@ray, @ray, @ray, Color.to_rgb(@color))
+        Drawing.circle(s, [@ray, @ray], @ray, Color.to_rgb(@color), true)
       end
       return s
     end
@@ -377,13 +392,33 @@ module Miyako
       w2 = w * 2 + 1
       h = @size[1]
       h2 = h * 2 + 1
-      s = Sprite.new({:size => [w2, h2], :type => :alpha_channel, :is_fill => true})
+      s = Sprite.new(size: [w2, h2], type: :alpha_channel)
+      Drawing.fill(s, [0, 0, 0])
+      Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
-        s.bitmap.drawAAFilledEllipse(w, h, w, h, Color.to_rgb(@edge[:color]))
-        s.bitmap.drawAAFilledEllipse(w, h, w-@edge[:width], h-@edge[:width], Color.to_rgb(@color))
+        Drawing.ellipse(s, [w, h], w, h, Color.to_rgb(@edge[:color]), true)
+        Drawing.ellipse(s, [w, h], w-@edge[:width], h-@edge[:width], Color.to_rgb(@color), true)
       else
-        s.bitmap.drawAAFilledEllipse(w, h, w, h, Color.to_rgb(@color))
+        Drawing.ellipse(s, [w, h], w, h, Color.to_rgb(@color), true)
       end
+      return s
+    end
+
+    def polygon(param) #:nodoc:
+      init_parameter(param)
+      
+      min_x, max_x = @vertexes.map{|v| v[0]}.minmax
+      min_y, max_y = @vertexes.map{|v| v[1]}.minmax
+      
+      w = max_x - min_x
+      h = max_y - min_y
+      
+      @vertexes = @vertexes.map{|v| [v[0]-min_x, v[1]-min_y]}
+      
+      s = Sprite.new(size: [w, h], type: :alpha_channel)
+      Drawing.fill(s, [0, 0, 0])
+      Bitmap.ck_to_ac!(s, [0, 0, 0])
+      Drawing.polygon(s, @vertexes, Color.to_rgb(@color), true)
       return s
     end
 

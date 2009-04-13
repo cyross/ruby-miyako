@@ -116,7 +116,7 @@ module Miyako
         @size.w.times{|x|
           u = @sprite.to_unit
           u.move_to(x * @sprite.ow + @pos.x, y * @sprite.oh + @pos.y)
-          Screen.render_screen(u) if u.x >= 0 && u.y >= 0 && u.x + u.ow <= Screen.screen.w && u.y + u.oh <= Screen.screen.h
+          Screen.render_screen(u) if u.x >= 0 && u.y >= 0 && u.x + u.ow <= Screen.bitmap.w && u.y + u.oh <= Screen.bitmap.h
         }
       }
       return self

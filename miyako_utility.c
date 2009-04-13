@@ -62,15 +62,37 @@ void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE
 
   if(use_yield) _miyako_yield_unit_1(mb);
 
-	mb->surface = GetSurface(*(RSTRUCT_PTR(mb->unit)))->surface;
-	mb->ptr = (Uint32 *)(mb->surface->pixels);
-	mb->fmt = mb->surface->format;
-
   mb->rect.x = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 1));
   mb->rect.y = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 2));
   mb->rect.w = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 3));
   mb->rect.h = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 4));
+  
+	mb->surface = GetSurface(*(RSTRUCT_PTR(mb->unit)))->surface;
+	mb->ptr = (Uint32 *)(mb->surface->pixels);
+	mb->fmt = mb->surface->format;
 
+  // adjust clip_rect
+  if(mb->surface == screen)
+  {
+    SDL_Rect *crect = &(mb->surface->clip_rect);
+    mb->rect.x += crect->x;
+    if(mb->rect.x < 0){
+      mb->rect.w += mb->rect.x;
+      mb->rect.x = 0;
+    }
+    mb->rect.y += crect->y;
+    if(mb->rect.y < 0){
+      mb->rect.h += mb->rect.y;
+      mb->rect.y = 0;
+    }
+    if(mb->rect.w > crect->w) mb->rect.w = crect->w;
+    if(mb->rect.h > crect->h) mb->rect.h = crect->h;
+    if(mb->rect.x + mb->rect.w > mb->surface->w)
+      mb->rect.w = mb->surface->w - mb->rect.x;
+    if(mb->rect.y + mb->rect.h > mb->surface->h)
+      mb->rect.h = mb->surface->h - mb->rect.y;
+  }
+  
   mb->a255 = (mb->surface == screen) ? 0xff : 0;
   
   mb->x = (x == Qnil ? NUM2INT(*(RSTRUCT_PTR(mb->unit) + 5)) : NUM2INT(x));
@@ -105,6 +127,28 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
   mb_s->rect.w = NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 3));
   mb_s->rect.h = NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 4));
 
+  // adjust clip_rect
+  if(mb_s->surface == screen)
+  {
+    SDL_Rect *crect = &(mb_s->surface->clip_rect);
+    mb_s->rect.x += crect->x;
+    if(mb_s->rect.x < 0){
+      mb_s->rect.w += mb_s->rect.x;
+      mb_s->rect.x = 0;
+    }
+    mb_s->rect.y += crect->y;
+    if(mb_s->rect.y < 0){
+      mb_s->rect.h += mb_s->rect.y;
+      mb_s->rect.y = 0;
+    }
+    if(mb_s->rect.w > crect->w) mb_s->rect.w = crect->w;
+    if(mb_s->rect.h > crect->h) mb_s->rect.h = crect->h;
+    if(mb_s->rect.x + mb_s->rect.w > mb_s->surface->w)
+      mb_s->rect.w = mb_s->surface->w - mb_s->rect.x;
+    if(mb_s->rect.y + mb_s->rect.h > mb_s->surface->h)
+      mb_s->rect.h = mb_s->surface->h - mb_s->rect.y;
+  }
+
   mb_s->a255 = (mb_s->surface == screen) ? 0xff : 0;
   
   mb_s->x = (x == Qnil ? NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 5)) : NUM2INT(x));
@@ -118,6 +162,28 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
   mb_d->rect.y = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 2));
   mb_d->rect.w = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 3));
   mb_d->rect.h = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 4));
+
+  // adjust clip_rect
+  if(mb_d->surface == screen)
+  {
+    SDL_Rect *crect = &(mb_d->surface->clip_rect);
+    mb_d->rect.x += crect->x;
+    if(mb_d->rect.x < 0){
+      mb_d->rect.w += mb_d->rect.x;
+      mb_d->rect.x = 0;
+    }
+    mb_d->rect.y += crect->y;
+    if(mb_d->rect.y < 0){
+      mb_d->rect.h += mb_d->rect.y;
+      mb_d->rect.y = 0;
+    }
+    if(mb_d->rect.w > crect->w) mb_d->rect.w = crect->w;
+    if(mb_d->rect.h > crect->h) mb_d->rect.h = crect->h;
+    if(mb_d->rect.x + mb_d->rect.w > mb_d->surface->w)
+      mb_d->rect.w = mb_d->surface->w - mb_d->rect.x;
+    if(mb_d->rect.y + mb_d->rect.h > mb_d->surface->h)
+      mb_d->rect.h = mb_d->surface->h - mb_d->rect.y;
+  }
 
   mb_d->a255 = (mb_d->surface == screen) ? 0xff : 0;
   

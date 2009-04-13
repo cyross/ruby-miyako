@@ -63,6 +63,7 @@ static VALUE use_opengl = Qnil;
 extern void Init_miyako_bitmap();
 extern void Init_miyako_transform();
 extern void Init_miyako_hsv();
+extern void Init_miyako_drawing();
 extern void Init_miyako_layout();
 extern void Init_miyako_collision();
 extern void Init_miyako_basicdata();
@@ -325,7 +326,7 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
   int ow = NUM2INT(rb_iv_get(self, "@ow"));
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
-  VALUE margin = rb_iv_get(self, "@margin");
+  VALUE margin = rb_iv_get(self, "@pos");
   int pos_x = NUM2INT(*(RSTRUCT_PTR(margin) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(margin) + 1));
 
@@ -435,7 +436,7 @@ static void maplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
   int ow = NUM2INT(rb_iv_get(self, "@ow"));
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
-  VALUE margin = rb_iv_get(self, "@margin");
+  VALUE margin = rb_iv_get(self, "@pos");
   int pos_x = NUM2INT(*(RSTRUCT_PTR(margin) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(margin) + 1));
 
@@ -1064,6 +1065,7 @@ void Init_miyako_no_katana()
   Init_miyako_bitmap();
   Init_miyako_transform();
   Init_miyako_hsv();
+  Init_miyako_drawing();
   Init_miyako_layout();
   Init_miyako_collision();
   Init_miyako_basicdata();

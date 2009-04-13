@@ -1,68 +1,70 @@
 *******************************************************************************
-�y   ��Җ�   �z�@�T�C���X��
-�y  �\�t�g��  �z�@Miyako v1.5�T���v��(�}�b�v�ړ�)
-�y �o�[�W���� �z�@1.0.2
-�y   �쐬��   �z�@2008/06/06
-�y    ���    �z�@�t���[�E�F�A
-�y  �J������  �z�@Ruby 1.8.6-p114
-�y �����^�C�� �z�@Miyako v1.5
-�y  �Ή��@��  �z�@Windows 2000/XP/Vista�ALinux
-�y   �Ĕz�z   �z�@�C��BSD���C�Z���X�ɂ��
-�y    �]��    �z�@�C��BSD���C�Z���X�ɂ��
-�y�z�[���y�[�W�z�@http://www.twin.ne.jp/~cyross/Miyako/
-�y   �A����   �z�@cyross@po.twin.ne.jp
+【   作者名   】　サイロス誠
+【  ソフト名  】　Miyako v2.0サンプル(マップ移動)
+【 バージョン 】　2.0
+【   作成日   】　2009/04/12
+【    種別    】　フリーウェア
+【  開発言語  】　Ruby 1.9.1-p0
+【 ランタイム 】　Miyako v2.0
+【  対応機種  】　Windows 2000/XP/Vista、Linux
+【   再配布   】　修正BSDライセンスによる
+【    転載    】　修正BSDライセンスによる
+【ホームページ】　http://www.twin.ne.jp/~cyross/Miyako/
+【   連絡先   】　cyross@po.twin.ne.jp
 *******************************************************************************
 
-�E�T�v
+・概要
 
-�@���̃v���O�����́AMiyako v1.5�ȍ~�ɑΉ�����AMiyako�T���v���v���O�����ł��B
-�@�t�B�[���h�}�b�v����ړ����܂��B
-�@�{�^�����������ƂŁA������ׁA�X�Ȃǂɑ΂��郁�b�Z�[�W���\�����ꂽ��A
-�@�R�}���h���\�������悤�ɂȂ��Ă��܂��B
+　このプログラムは、Miyako v2.0以降に対応する、Miyakoサンプルプログラムです。
+　フィールドマップ上を移動します。
+　ボタンを押すことで、道しるべ、街などに対するメッセージが表示されたり、
+　コマンドが表示されるようになっています。
 
-�EMiyako�ɂ���
+・Miyakoについて
 
-�@Miyako�Ɋւ��ẮA�ȉ���URL���Q�l�ɂ��Ă��������B
-  (���C���T�C�g)
+　Miyakoに関しては、以下のURLを参考にしてください。
+  (メインサイト)
   http://www.twin.ne.jp/~cyross/Miyako/
   (Wiki)
   http://wiki.fdiary.net/MiyakoDevSrc/
 
-�@Miyako(Ruby�ARuby/SDL�܂�)�̃C���X�g�[���Ɋւ��܂��ẮA
-��LURL��H���ē�����A�[�J�C�u���ꂽMiyako���C�u������
-�W�J����ƁAreadme.txt�������܂��̂ŁA����������Q�Ɖ������B
+　Miyako(Ruby、Ruby/SDL含む)のインストールに関しましては、
+上記URLを辿って得られるアーカイブされたMiyakoライブラリを
+展開すると、readme.txtが得られますので、そちらをご参照下さい。
 
-�@�{�T���v���ł́AMiyako��Windows��œ��삷�邱�Ƃ�O��ɂ��Ă��܂��B
-�i�C���X�g�[������Ruby���s����ActiveRuby�ł��邱�Ƃ��O���
-�@���Ă��܂��j
+　本サンプルでは、MiyakoがWindows上で動作することを前提にしています。
+（インストールしたRuby実行環境がActiveRubyであることも前提に
+　しています）
 
-�E�N�����@
+・起動方法
 
-�@�G�N�X�v���[���[���J���A�{�T���v���̃t�H���_���ŁA�umap_test.rb�v��
-�_�u���N���b�N���܂��B
-�@�������́A�R�}���h���C����œ������ꍇ�́A�{�T���v���̃f�B���N�g����
-�ړ����āA�ȉ��̃R�}���h����͂��܂��B
+　エクスプローラーを開き、本サンプルのフォルダ内で、「map_test.rb」を
+ダブルクリックします。
+　もしくは、コマンドライン上で動かす場合は、本サンプルのディレクトリに
+移動して、以下のコマンドを入力します。
 
-�@ruby map_test.rb
+　ruby map_test.rb
 
-�E�Ɛӎ���
+・免責事項
 
-�@�{�T���v���͖��ۏ؂ł��B�����{�T���v�����g�p���邱�Ƃɂ��s��E�g���u��
-���N�������Ƃ��Ă��A�����Ȃ�g���u���ɑ΂���ӔC�𕉂�Ȃ����Ƃ��������������B
+　本サンプルは無保証です。もし本サンプルを使用することによる不具合・トラブル
+が起こったとしても、いかなるトラブルに対する責任を負わないことをご了承下さい。
 
-�@�{�T���v���́A�C��BSD���C�Z���X�Ɋ�Â����]�ځE�Ĕz�z�������܂��B
+　本サンプルは、修正BSDライセンスに基づいた転載・再配布を許可します。
 
-�E�C������
+・修正履歴
 
-�@(1.0.1)
-�@�E�ړ��L�[���������Ƃ��ɁA��������D�悷��悤�ɏC��
-�@�E�΂ߕ������������Ƃ��ɁA�L�����N�^��������s����C��
-�@�E�R���W������MapManager�N���X�Ɉړ�(�}�b�v�����W�̑��݂�����)
-�@�E�X�N���v�g�𕡐��t�@�C���ɕ���
-�@(1.0.2)
-�@�E1.5RC3�ɑΉ�
+  (2.0)
+  ・2.0に対応
+　(1.0.1)
+　・移動キーを押したときに、横方向を優先するように修正
+　・斜め方向を押したときに、キャラクタが消える不具合を修正
+　・コリジョンをMapManagerクラスに移動(マップ実座標の存在を強調)
+　・スクリプトを複数ファイルに分割
+　(1.0.2)
+　・1.5RC3に対応
 
-�EBSD���C�Z���X��
+・BSDライセンス文
 
 Copyright (c) 2008, Cyross Makoto
 
@@ -70,9 +72,9 @@ All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-�ERedistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-�ERedistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-�ENeither the name of the Cyross Makoto nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+・Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+・Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+・Neither the name of the Cyross Makoto nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT

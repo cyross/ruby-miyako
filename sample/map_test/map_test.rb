@@ -19,6 +19,5 @@ require 'oasis'
 require 'town'
 require 'main_scene'
 
-#Screen.set_size(320, 240)
 mt = Story.new
 mt.run(MainScene)
