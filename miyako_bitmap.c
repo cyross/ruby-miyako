@@ -71,8 +71,8 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
       if(dst.color.a == 0 || src.color.a == 255){
         *ppdst = *ppsrc;
@@ -80,21 +80,21 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
         ppdst++;
         continue;
       }
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      *ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-               (255 >> dst.fmt->Aloss) << 24;
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
+               0xff                                         << 24;
 #else
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
       if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
       if(dst.color.a == 0 || src.color.a == 255){
         *ppdst = *ppsrc;
@@ -102,18 +102,18 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
         ppdst++;
         continue;
       }
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      *ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-               (255 >> dst.fmt->Aloss);
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+               0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -150,14 +150,18 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc, VALUE vdst)
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
 #else
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
 #endif
       if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      *ppdst = (*ppdst | (dst.a255 << 24)) & (*ppsrc | (src.a255 << 24));
+#else
       *ppdst = (*ppdst | dst.a255) & (*ppsrc | src.a255);
+#endif
       ppsrc++;
       ppdst++;
     }
@@ -194,14 +198,18 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc, VALUE vdst)
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
 #else
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
 #endif
       if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
-      *ppdst = (*ppdst | dst.a255) | (*ppsrc | src.a255);
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      *ppdst = (*ppdst | (dst.a255 << 24)) | (*ppsrc | (src.a255 << 24));
+#else
+      *ppdst = (*ppdst | dst.a255) \ (*ppsrc | src.a255);
+#endif
       ppsrc++;
       ppdst++;
     }
@@ -238,14 +246,18 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc, VALUE vdst)
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
 #else
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
 #endif
       if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+      *ppdst = (*ppdst | (dst.a255 << 24)) ^ (*ppsrc | (src.a255 << 24));
+#else
       *ppdst = (*ppdst | dst.a255) ^ (*ppsrc | src.a255);
+#endif
       ppsrc++;
       ppdst++;
     }
@@ -286,17 +298,17 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
       if(src.color.r == color_key.r && src.color.g == color_key.g && src.color.b == color_key.b) *ppdst = 0;
-      else *ppdst = *ppsrc | (0xff >> dst.fmt->Aloss) << 24;
+      else *ppdst = *ppsrc | (0xff << 24);
 #else
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
       if(src.color.r == color_key.r && src.color.g == color_key.g && src.color.b == color_key.b) *ppdst = 0;
-      else *ppdst = *ppsrc | (0xff >> dst.fmt->Aloss);
+      else *ppdst = *ppsrc | 0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -333,9 +345,9 @@ static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      *ppdst = *ppsrc | (0xff >> dst.fmt->Aloss) << 24;
+      *ppdst = *ppsrc | (0xff << 24);
 #else
-      *ppdst = *ppsrc | (0xff >> dst.fmt->Aloss);
+      *ppdst = *ppsrc | 0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -372,17 +384,17 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel_self(VALUE self, VALUE vdst,
 		for(x = 0; x < dst.rect.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
       if(dst.color.r == color_key.r && dst.color.g == color_key.g && dst.color.b == color_key.b) *ppdst = 0;
-      else *ppdst = *ppdst | (0xff >> dst.fmt->Aloss) << 24;
+      else *ppdst = *ppdst | (0xff << 24);
 #else
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
       if(dst.color.r == color_key.r && dst.color.g == color_key.g && dst.color.b == color_key.b) *ppdst = 0;
-      else *ppdst = *ppdst | (0xff >> dst.fmt->Aloss);
+      else *ppdst = *ppdst | 0xff;
 #endif
       ppdst++;
     }
@@ -412,9 +424,9 @@ static VALUE bitmap_miyako_reset_alphachannel_self(VALUE self, VALUE vdst)
 		for(x = 0; x < dst.rect.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      *ppdst = *ppdst | (0xff >> dst.fmt->Aloss) << 24;
+      *ppdst = *ppdst | 0xff << 24;
 #else
-      *ppdst = *ppdst | (0xff >> dst.fmt->Aloss);
+      *ppdst = *ppdst | 0xff;
 #endif
       ppdst++;
     }
@@ -458,56 +470,56 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       src.color.a -= da;
       if(src.color.a > 0x80000000){ src.color.a = 0; }
       if(src.color.a > 255){ src.color.a = 255; }
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       if(dst.color.a == 0 || src.color.a == 255){
-        *ppdst = (src.color.r) << 16 |
-                 (src.color.g) << 8 |
-                 (src.color.b) |
-                 (src.color.a >> dst.fmt->Aloss) << 24;
+        *ppdst = src.color.r << 16 |
+                 src.color.g <<  8 |
+                 src.color.b       |
+                 src.color.a << 24;
         ppsrc++;
         ppdst++;
         continue;
       }
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      *ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-               (255 >> dst.fmt->Aloss);
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
+               (0xff)                                       << 24;
 #else
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
       src.color.a -= da;
       if(src.color.a > 0x80000000){ src.color.a = 0; }
       if(src.color.a > 255){ src.color.a = 255; }
-      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.a = (*pdst & dst.fmt->Amask) | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r ^ 0xff) << dst.fmt->Rshift |
-                 (dst.color.g ^ 0xff) << dst.fmt->Gshift |
-                 (dst.color.b ^ 0xff) << dst.fmt->Bshift |
-                 (dst.color.a >> dst.fmt->Aloss);
+				*ppdst = src.color.r << dst.fmt->Rshift |
+                 src.color.g << dst.fmt->Gshift |
+                 src.color.b << dst.fmt->Bshift |
+                 src.color.a;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-               (255 >> dst.fmt->Aloss);
+			*ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+               0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -553,10 +565,10 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       src.color.r -= d;
       if(src.color.r > 0x80000000){ src.color.r = 0; }
       src.color.g -= d;
@@ -568,27 +580,30 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         src.color.a -= d;
         if(src.color.a > 0x80000000){ src.color.a = 0; }
       }
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r) << 16 |
-                 (dst.color.g) << 8 |
-                 (dst.color.b) |
-                 (dst.color.a >> dst.fmt->Aloss) << 24;
+				*ppdst = src.color.r << 16 |
+                 src.color.g <<  8 |
+                 src.color.b       |
+                 src.color.a << 24;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-               (255 >> dst.fmt->Aloss) << 24;
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
+               (0xff)                                       << 24;
 #else
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
       src.color.r -= d;
       if(src.color.r > 0x80000000){ src.color.r = 0; }
       src.color.g -= d;
@@ -600,22 +615,22 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         src.color.a -= d;
         if(src.color.a > 0x80000000){ src.color.a = 0; }
       }
-      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.a = (*pdst & dst.fmt->Amask) | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r ^ 0xff) << dst.fmt->Rshift |
-                 (dst.color.g ^ 0xff) << dst.fmt->Gshift |
-                 (dst.color.b ^ 0xff) << dst.fmt->Bshift |
-                 (dst.color.a >> dst.fmt->Aloss);
+				*ppdst = src.color.r << dst.fmt->Rshift |
+                 src.color.g << dst.fmt->Gshift |
+                 src.color.b << dst.fmt->Bshift |
+                 src.color.a;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-               (255 >> dst.fmt->Aloss);
+			*ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+               0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -661,10 +676,10 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       src.color.r += d;
       if(src.color.r > 255){ src.color.r = 255; }
       src.color.g += d;
@@ -676,27 +691,30 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         src.color.a += d;
         if(src.color.a > 255){ src.color.a = 255; }
       }
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r) << 16 |
-                 (dst.color.g) << 8 |
-                 (dst.color.b) |
-                 (dst.color.a >> dst.fmt->Aloss) << 24;
+				*ppdst = src.color.r << 16 |
+                 src.color.g << 8 |
+                 src.color.b |
+                 src.color.a << 24;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-               (255 >> dst.fmt->Aloss) << 24;
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
+               (0xff)                                       << 24;
 #else
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
       src.color.r += d;
       if(src.color.r > 255){ src.color.r = 255; }
       src.color.g += d;
@@ -708,22 +726,22 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         src.color.a += d;
         if(src.color.a > 255){ src.color.a = 255; }
       }
-      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.a = (*pdst & dst.fmt->Amask) | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r ^ 0xff) << dst.fmt->Rshift |
-                 (dst.color.g ^ 0xff) << dst.fmt->Gshift |
-                 (dst.color.b ^ 0xff) << dst.fmt->Bshift |
-                 (dst.color.a >> dst.fmt->Aloss);
+				*ppdst = src.color.r << dst.fmt->Rshift |
+                 src.color.g << dst.fmt->Gshift |
+                 src.color.b << dst.fmt->Bshift |
+                 src.color.a;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-               (255 >> dst.fmt->Aloss);
+			*ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+               ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
+               ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+               0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -760,47 +778,51 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
-      src.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
+			if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r ^ 0xff) << 16 |
-                 (dst.color.g ^ 0xff) << 8 |
-                 (dst.color.b ^ 0xff) |
-                 (dst.color.a >> dst.fmt->Aloss) << 24;
+				*ppdst = (src.color.r ^ 0xff) << 16 |
+                 (src.color.g ^ 0xff) <<  8 |
+                 (src.color.b ^ 0xff)       |
+                 (src.color.a       ) << 24;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = ((((src.color.r ^ 0xff) * a1 + dst.color.r * a2) >> 8)) << 16 |
-               ((((src.color.g ^ 0xff) * a1 + dst.color.g * a2) >> 8)) << 8 |
-               ((((src.color.b ^ 0xff) * a1 + dst.color.b * a2) >> 8)) |
-               (255 >> dst.fmt->Aloss) << 24;
+      *ppdst = (((src.color.r ^ 0xff) * a1 + dst.color.r * a2) >> 8) << 16 |
+               (((src.color.g ^ 0xff) * a1 + dst.color.g * a2) >> 8) <<  8 |
+               (((src.color.b ^ 0xff) * a1 + dst.color.b * a2) >> 8)       |
+               (0xff                                               ) << 24;
 #else
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
-      src.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
-      dst.color.a = (Uint32)(((*pdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
 			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (dst.color.r ^ 0xff) << dst.fmt->Rshift |
-                 (dst.color.g ^ 0xff) << dst.fmt->Gshift |
-                 (dst.color.b ^ 0xff) << dst.fmt->Bshift |
-                 (dst.color.a >> dst.fmt->Aloss);
+				*ppdst = (src.color.r ^ 0xff) << dst.fmt->Rshift |
+                 (src.color.g ^ 0xff) << dst.fmt->Gshift |
+                 (src.color.b ^ 0xff) << dst.fmt->Bshift |
+                 src.color.a;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
 			int a1 = src.color.a + 1;
 			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-               (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-               (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-               (255 >> dst.fmt->Aloss);
+			*ppdst = (((src.color.r ^ 0xff) * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+               (((src.color.g ^ 0xff) * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
+               (((src.color.b ^ 0xff) * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+               0xff;
 #endif
       ppsrc++;
       ppdst++;
@@ -841,29 +863,29 @@ static VALUE bitmap_miyako_dec_alpha_self(VALUE self, VALUE vdst, VALUE degree)
 		for(x = 0; x < dst.rect.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       dst.color.a -= da;
       if(dst.color.a > 0x80000000){ dst.color.a = 0; }
       if(dst.color.a > 255){ dst.color.a = 255; }
-      *ppdst = (dst.color.r) << 16 |
-               (dst.color.g) << 8 |
-               (dst.color.b) |
-               (dst.color.a >> dst.fmt->Aloss) << 24;
+      *ppdst = dst.color.r << 16 |
+               dst.color.g <<  8 |
+               dst.color.b       |
+               dst.color.a << 24;
 #else
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
       dst.color.a -= da;
       if(dst.color.a > 0x80000000){ dst.color.a = 0; }
       if(dst.color.a > 255){ dst.color.a = 255; }
-      *ppdst = (dst.color.r) << dst.fmt->Rshift |
-               (dst.color.g) << dst.fmt->Gshift |
-               (dst.color.b) << dst.fmt->Bshift |
-               (dst.color.a >> dst.fmt->Aloss);
+      *ppdst = dst.color.r << dst.fmt->Rshift |
+               dst.color.g << dst.fmt->Gshift |
+               dst.color.b << dst.fmt->Bshift |
+               dst.color.a;
 #endif
       ppdst++;
     }
@@ -902,10 +924,10 @@ static VALUE bitmap_miyako_black_out_self(VALUE self, VALUE vdst, VALUE degree)
 		for(x = 0; x < dst.rect.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       dst.color.r -= d;
       if(dst.color.r > 0x80000000){ dst.color.r = 0; }
       dst.color.g -= d;
@@ -917,15 +939,15 @@ static VALUE bitmap_miyako_black_out_self(VALUE self, VALUE vdst, VALUE degree)
         dst.color.a -= d;
         if(dst.color.a > 0x80000000){ dst.color.a = 0; }
       }
-      *ppdst = (dst.color.r) << 16 |
-               (dst.color.g) << 8 |
-               (dst.color.b) |
-               (dst.color.a >> dst.fmt->Aloss) << 24;
+      *ppdst = dst.color.r << 16 |
+               dst.color.g <<  8 |
+               dst.color.b       |
+               dst.color.a << 24;
 #else
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
       dst.color.r -= d;
       if(dst.color.r > 0x80000000){ dst.color.r = 0; }
       dst.color.g -= d;
@@ -937,10 +959,10 @@ static VALUE bitmap_miyako_black_out_self(VALUE self, VALUE vdst, VALUE degree)
         dst.color.a -= d;
         if(dst.color.a > 0x80000000){ dst.color.a = 0; }
       }
-      *ppdst = (dst.color.r) << dst.fmt->Rshift |
-               (dst.color.g) << dst.fmt->Gshift |
-               (dst.color.b) << dst.fmt->Bshift |
-               (dst.color.a >> dst.fmt->Aloss);
+      *ppdst = dst.color.r << dst.fmt->Rshift |
+               dst.color.g << dst.fmt->Gshift |
+               dst.color.b << dst.fmt->Bshift |
+               dst.color.a;
 #endif
       ppdst++;
     }
@@ -979,10 +1001,10 @@ static VALUE bitmap_miyako_white_out_self(VALUE self, VALUE vdst, VALUE degree)
 		for(x = 0; x < dst.rect.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       dst.color.r += d;
       if(dst.color.r > 255){ dst.color.r = 255; }
       dst.color.g += d;
@@ -994,15 +1016,15 @@ static VALUE bitmap_miyako_white_out_self(VALUE self, VALUE vdst, VALUE degree)
         dst.color.a += d;
         if(dst.color.a > 255){ dst.color.a = 255; }
       }
-      *ppdst = (dst.color.r) << 16 |
-               (dst.color.g) << 8 |
-               (dst.color.b) |
-               (dst.color.a >> dst.fmt->Aloss);
+      *ppdst = dst.color.r << 16 |
+               dst.color.g <<  8 |
+               dst.color.b       |
+               dst.color.a << 24;
 #else
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
       dst.color.r += d;
       if(dst.color.r > 255){ dst.color.r = 255; }
       dst.color.g += d;
@@ -1014,10 +1036,10 @@ static VALUE bitmap_miyako_white_out_self(VALUE self, VALUE vdst, VALUE degree)
         dst.color.a += d;
         if(dst.color.a > 255){ dst.color.a = 255; }
       }
-      *ppdst = (dst.color.r) << dst.fmt->Rshift |
-               (dst.color.g) << dst.fmt->Gshift |
-               (dst.color.b) << dst.fmt->Bshift |
-               (dst.color.a >> dst.fmt->Aloss);
+      *ppdst = dst.color.r << dst.fmt->Rshift |
+               dst.color.g << dst.fmt->Gshift |
+               dst.color.b << dst.fmt->Bshift |
+               dst.color.a;
 #endif
       ppdst++;
     }
@@ -1047,23 +1069,23 @@ static VALUE bitmap_miyako_inverse_self(VALUE self, VALUE vdst)
 		for(x = 0; x < dst.rect.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
-      *ppdst = ((dst.color.r ^ 0xff)) << 16 |
-               ((dst.color.g ^ 0xff)) << 8 |
-               ((dst.color.b ^ 0xff)) |
-               (dst.color.a >> dst.fmt->Aloss) << 24;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
+      *ppdst = (dst.color.r ^ 0xff) << 16 |
+               (dst.color.g ^ 0xff) <<  8 |
+               (dst.color.b ^ 0xff)       |
+                dst.color.a         << 24;
 #else
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
-      *ppdst = ((dst.color.r ^ 0xff)) << dst.fmt->Rshift |
-               ((dst.color.g ^ 0xff)) << dst.fmt->Gshift |
-               ((dst.color.b ^ 0xff)) << dst.fmt->Bshift |
-               (dst.color.a >> dst.fmt->Aloss);
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
+      *ppdst = (dst.color.r ^ 0xff) << dst.fmt->Rshift |
+               (dst.color.g ^ 0xff) << dst.fmt->Gshift |
+               (dst.color.b ^ 0xff) << dst.fmt->Bshift |
+               dst.color.a;
 #endif
       ppdst++;
     }
@@ -1098,14 +1120,14 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*ppsrc))) & 0xff;
-      src.color.a = (Uint32)(((*ppsrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
-      dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-      dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      src.color.r = (*ppsrc >> 16) & 0xff;
+      src.color.g = (*ppsrc >>  8) & 0xff;
+      src.color.b = (*ppsrc      ) & 0xff;
+      src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
+      dst.color.r = (*ppdst >> 16) & 0xff;
+      dst.color.g = (*ppdst >>  8) & 0xff;
+      dst.color.b = (*ppdst      ) & 0xff;
+      dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       dst.color.r += src.color.r;
 			if(dst.color.r > 255){ dst.color.r = 255; }
 			dst.color.g += src.color.g;
@@ -1113,19 +1135,19 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 			dst.color.b += src.color.b;
 			if(dst.color.b > 255){ dst.color.b = 255; }
 			dst.color.a = (dst.color.a > src.color.a ? dst.color.a : src.color.a);
-      *ppdst = (dst.color.r) << 16 |
-               (dst.color.g) << 8 |
-               (dst.color.b) |
-               (dst.color.a >> dst.fmt->Aloss) << 24;
+      *ppdst = dst.color.r << 16 |
+               dst.color.g <<  8 |
+               dst.color.b       |
+               dst.color.a << 24;
 #else
-      src.color.r = (Uint32)(((*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift));
-      src.color.a = (Uint32)(((*ppsrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
-      dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      src.color.r = (*ppsrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*ppsrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
+      dst.color.r = (*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
       dst.color.r += src.color.r;
 			if(dst.color.r > 255){ dst.color.r = 255; }
 			dst.color.g += src.color.g;
@@ -1133,10 +1155,10 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
 			dst.color.b += src.color.b;
 			if(dst.color.b > 255){ dst.color.b = 255; }
 			dst.color.a = (dst.color.a > src.color.a ? dst.color.a : src.color.a);
-      *ppdst = (dst.color.r) << dst.fmt->Rshift |
-               (dst.color.g) << dst.fmt->Gshift |
-               (dst.color.b) << dst.fmt->Bshift |
-               (dst.color.a >> dst.fmt->Aloss);
+      *ppdst = dst.color.r << dst.fmt->Rshift |
+               dst.color.g << dst.fmt->Gshift |
+               dst.color.b << dst.fmt->Bshift |
+               dst.color.a;
 #endif
       ppsrc++;
       ppdst++;

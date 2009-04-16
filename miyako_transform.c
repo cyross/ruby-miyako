@@ -92,12 +92,12 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
       int ny = (x*isin+y*icos) >> 12;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*tp) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*tp) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*tp))) & 0xff;
-      dst.color.a = (Uint32)(((*tp) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*tp >> 16) & 0xff;
+      dst.color.g = (*tp >>  8) & 0xff;
+      dst.color.b = (*tp      ) & 0xff;
+      dst.color.a = (*tp >> 24) & 0xff | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (Uint32)(((*psrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+      src.color.a = (*psrc >> 24) & 0xff | src.a255;
       if(src.color.a == 0){ tp++; continue; }
       if(dst.color.a == 0 || src.color.a == 255)
       {
@@ -107,20 +107,20 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
       }
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      src.color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*psrc))) & 0xff;
-      *tp = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-            (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-            (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-            (255 >> dst.fmt->Aloss) << 24;
+      src.color.r = (*psrc >> 16) & 0xff;
+      src.color.g = (*psrc >>  8) & 0xff;
+      src.color.b = (*psrc      ) & 0xff;
+			*tp = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
+            ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
+						((src.color.b * a1 + dst.color.b * a2) >> 8)       |
+						0xff                                         << 24;
 #else
-      dst.color.r = (Uint32)(((*tp & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*tp & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*tp & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*tp & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.r = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*tp & dst.fmt->Amask) | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (Uint32)(((*psrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+      src.color.a = (*psrc & src.fmt->Amask) | src.a255;
       if(src.color.a == 0){ tp++; continue; }
       if(dst.color.a == 0 || src.color.a == 255)
       {
@@ -130,13 +130,13 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
       }
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      src.color.r = (Uint32)(((*psrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*psrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*psrc & src.fmt->Bmask) >> src.fmt->Bshift));
+      src.color.r = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
       *tp = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
             (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
             (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-            (255 >> dst.fmt->Aloss);
+            0xff;
 #endif
       tp++;
     }
@@ -199,12 +199,12 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
       int ny = (y*scy) >> 12 - off_y;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (Uint32)(((*tp) >> 16)) & 0xff;
-      dst.color.g = (Uint32)(((*tp) >> 8)) & 0xff;
-      dst.color.b = (Uint32)(((*tp))) & 0xff;
-      dst.color.a = (Uint32)(((*tp) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
+      dst.color.r = (*tp >> 16) & 0xff;
+      dst.color.g = (*tp >>  8) & 0xff;
+      dst.color.b = (*tp      ) & 0xff;
+      dst.color.a = (*tp >> 24) & 0xff | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (Uint32)(((*psrc) >> 24) << src.fmt->Aloss) & 0xff | src.a255;
+      src.color.a = (*psrc >> 24) & 0xff | src.a255;
       if(src.color.a == 0){ tp++; continue; }
       if(dst.color.a == 0 || src.color.a == 255)
       {
@@ -214,20 +214,20 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
       }
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      src.color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
-      src.color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
-      src.color.b = (Uint32)(((*psrc))) & 0xff;
-      *tp = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-            (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-            (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-            (255 >> dst.fmt->Aloss) << 24;
+      src.color.r = (*psrc >> 16) & 0xff;
+      src.color.g = (*psrc >>  8) & 0xff;
+      src.color.b = (*psrc      ) & 0xff;
+			*tp = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
+            ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
+            ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
+            0xff                                         << 24;
 #else
-      dst.color.r = (Uint32)(((*tp & dst.fmt->Rmask) >> dst.fmt->Rshift));
-      dst.color.g = (Uint32)(((*tp & dst.fmt->Gmask) >> dst.fmt->Gshift));
-      dst.color.b = (Uint32)(((*tp & dst.fmt->Bmask) >> dst.fmt->Bshift));
-      dst.color.a = (Uint32)(((*tp & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+      dst.color.r = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dst.color.g = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      dst.color.b = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      dst.color.a = (*tp & dst.fmt->Amask) | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (Uint32)(((*psrc & src.fmt->Amask)) << src.fmt->Aloss) | src.a255;
+      src.color.a = (*psrc & src.fmt->Amask) | src.a255;
       if(src.color.a == 0){ tp++; continue; }
       if(dst.color.a == 0 || src.color.a == 255)
       {
@@ -237,13 +237,13 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
       }
       int a1 = src.color.a + 1;
       int a2 = 256 - src.color.a;
-      src.color.r = (Uint32)(((*psrc & src.fmt->Rmask) >> src.fmt->Rshift));
-      src.color.g = (Uint32)(((*psrc & src.fmt->Gmask) >> src.fmt->Gshift));
-      src.color.b = (Uint32)(((*psrc & src.fmt->Bmask) >> src.fmt->Bshift));
-      *tp = (((src.color.r * a1 + dst.color.r * a2) >> 8))<< dst.fmt->Rshift |
-            (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-            (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
-            (255 >> dst.fmt->Aloss);
+      src.color.r = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      src.color.g = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      src.color.b = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      *tp = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+            ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
+            ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+            0xff;
 #endif
       tp++;
     }
@@ -304,12 +304,12 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
       int ny = (((x*isin+y*icos) >> 12) * scy) >> 12 - off_y;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst->color.r = (Uint32)(((*tp) >> 16)) & 0xff;
-      dst->color.g = (Uint32)(((*tp) >> 8))  & 0xff;
-      dst->color.b = (Uint32)(((*tp)))       & 0xff;
-      dst->color.a = (Uint32)(((*tp) >> 24) << dst->fmt->Aloss) & 0xff | dst->a255;
+      dst->color.r = (*tp >> 16) & 0xff;
+      dst->color.g = (*tp >>  8) & 0xff;
+      dst->color.b = (*tp      ) & 0xff;
+      dst->color.a = (*tp >> 24) & 0xff | dst->a255;
 			Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
-      src->color.a = (Uint32)(((*psrc) >> 24) << src->fmt->Aloss) & 0xff | src->a255;
+      src->color.a = (*psrc >> 24) & 0xff | src->a255;
       if(src->color.a == 0){ tp++; continue; }
       if(dst->color.a == 0 || src->color.a == 255)
       {
@@ -319,20 +319,20 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
       }
       int a1 = src->color.a + 1;
       int a2 = 256 - src->color.a;
-      src->color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
-      src->color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
-      src->color.b = (Uint32)(((*psrc))) & 0xff;
-      *tp = (((src->color.r * a1 + dst->color.r * a2) >> 8)) << 16 |
-            (((src->color.g * a1 + dst->color.g * a2) >> 8)) << 8 |
-            (((src->color.b * a1 + dst->color.b * a2) >> 8)) |
-            (255 >> dst->fmt->Aloss) << 24;
+      src->color.r = (*psrc >> 16) & 0xff;
+      src->color.g = (*psrc >>  8) & 0xff;
+      src->color.b = (*psrc      ) & 0xff;
+			*tp = ((src->color.r * a1 + dst->color.r * a2) >> 8) << 16 |
+            ((src->color.g * a1 + dst->color.g * a2) >> 8) <<  8 |
+            ((src->color.b * a1 + dst->color.b * a2) >> 8)       |
+						0xff                                           << 24;
 #else
-      dst->color.r = (Uint32)(((*tp & dst->fmt->Rmask) >> dst->fmt->Rshift));
-      dst->color.g = (Uint32)(((*tp & dst->fmt->Gmask) >> dst->fmt->Gshift));
-      dst->color.b = (Uint32)(((*tp & dst->fmt->Bmask) >> dst->fmt->Bshift));
-      dst->color.a = (Uint32)(((*tp & dst->fmt->Amask)) << dst->fmt->Aloss) | dst->a255;
+      dst->color.r = (*tp & dst->fmt->Rmask) >> dst->fmt->Rshift;
+      dst->color.g = (*tp & dst->fmt->Gmask) >> dst->fmt->Gshift;
+      dst->color.b = (*tp & dst->fmt->Bmask) >> dst->fmt->Bshift;
+      dst->color.a = (*tp & dst->fmt->Amask) | dst->a255;
 			Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
-      src->color.a = (Uint32)(((*psrc & src->fmt->Amask)) << src->fmt->Aloss) | src->a255;
+      src->color.a = (*psrc & src->fmt->Amask) | src->a255;
       if(src->color.a == 0){ tp++; continue; }
       if(dst->color.a == 0 || src->color.a == 255)
       {
@@ -342,13 +342,13 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
       }
       int a1 = src->color.a + 1;
       int a2 = 256 - src->color.a;
-      src->color.r = (Uint32)(((*psrc & src->fmt->Rmask) >> src->fmt->Rshift));
-      src->color.g = (Uint32)(((*psrc & src->fmt->Gmask) >> src->fmt->Gshift));
-      src->color.b = (Uint32)(((*psrc & src->fmt->Bmask) >> src->fmt->Bshift));
-      *tp = (((src->color.r * a1 + dst->color.r * a2) >> 8)) << dst->fmt->Rshift |
-            (((src->color.g * a1 + dst->color.g * a2) >> 8)) << dst->fmt->Gshift |
-            (((src->color.b * a1 + dst->color.b * a2) >> 8)) << dst->fmt->Bshift |
-            (255 >> dst->fmt->Aloss);
+      src->color.r = (*psrc & src->fmt->Rmask) >> src->fmt->Rshift;
+      src->color.g = (*psrc & src->fmt->Gmask) >> src->fmt->Gshift;
+      src->color.b = (*psrc & src->fmt->Bmask) >> src->fmt->Bshift;
+      *tp = ((src->color.r * a1 + dst->color.r * a2) >> 8) << dst->fmt->Rshift |
+            ((src->color.g * a1 + dst->color.g * a2) >> 8) << dst->fmt->Gshift |
+            ((src->color.b * a1 + dst->color.b * a2) >> 8) << dst->fmt->Bshift |
+            0xff;
 #endif
       tp++;
     }

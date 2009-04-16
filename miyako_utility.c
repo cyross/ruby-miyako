@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=�g�����C�u����miyako_no_katana
-Authors:: �T�C���X��
+=拡張ライブラリmiyako_no_katana
+Authors:: サイロス誠
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -193,26 +193,87 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
 
 int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
 {
-  int w, h;
+  int sw = src->rect.w;
+  int sh = src->rect.h;
+  int dw = dst->rect.w;
+  int dh = dst->rect.h;
 
-  if(src->x >= dst->rect.w || src->x <= -(dst->rect.w)) return 0;
-  if(src->y >= dst->rect.h || src->y <= -(dst->rect.h)) return 0;
+  // ox(oy)が画像のw(h)以上の時は転送不可
+  
+  if(src->rect.x >= src->surface->w || src->rect.y >= src->surface->h) return 0;
+  if(dst->rect.x >= dst->surface->w || dst->rect.y >= dst->surface->h) return 0;
 
+  // ox(oy)がマイナスの時は、ow(oh)を減らしておいて、ox, oyをゼロにしておく
+  // 0以下になったら転送不可
+  
+  if(src->rect.x < 0){
+    sw += src->rect.x;
+    src->rect.x = 0;
+    if(sw <= 0) return 0;
+  }
+  if(src->rect.y < 0){
+    sh += src->rect.y;
+    src->rect.y = 0;
+    if(sh <= 0) return 0;
+  }
+  if(dst->rect.x < 0){
+    dw += dst->rect.x;
+    dst->rect.x = 0;
+    if(dw <= 0) return 0;
+  }
+  if(dst->rect.y < 0){
+    dh += dst->rect.y;
+    dst->rect.y = 0;
+    if(dh <= 0) return 0;
+  }
+
+  // ox(oy)+ow(oh)が、w(h)を越える場合は、ow(oh)を減らしておく
+  // 0以下になったら転送不可
+  
+  if(src->rect.x + sw > src->surface->w)
+  {
+    sw += (src->surface->w - src->rect.x - sw);
+    if(sw <= 0) return 0;
+  }
+  if(src->rect.y + sh > src->surface->h)
+  {
+    sh += (src->surface->h - src->rect.y - sh);
+    if(sh <= 0) return 0;
+  }
+  if(dst->rect.x + dw > dst->surface->w)
+  {
+    dw += (dst->surface->w - dst->rect.x - dw);
+    if(dw <= 0) return 0;
+  }
+  if(dst->rect.y + dh > dst->surface->h)
+  {
+    dh += (dst->surface->h - dst->rect.y - dh);
+    if(dh <= 0) return 0;
+  }
+
+  // ox(oy)が画像のw(h)以上、-w(-h)以下の時は転送不可
+  
+  if(src->x >= dw || src->x <= -dw) return 0;
+  if(src->y >= dh || src->y <= -dh) return 0;
+
+  // x(y)がマイナスの時は、ow(oh)を減らしておいて、x, yをゼロにしておく
+  // 0以下になったら転送不可
+  
   if(src->x < 0){
-    w = dst->rect.w + src->x;
+    dw += src->x;
     src->x = 0;
   }
-  else{ w = dst->rect.w - src->x; }
-  if(w <= 0) return 0;
+  else{ dw -= src->x; }
+  if(dw <= 0) return 0;
   if(src->y < 0){
-    h = dst->rect.h + src->y;
+    dh += src->y;
     src->y = 0;
   }
-  else{ h = dst->rect.h - src->y; }
-  if(h <= 0) return 0;
+  else{ dh -= src->y; }
+  if(dh <= 0) return 0;
 
-  size->w = (w > src->rect.w ? src->rect.w : w);
-  size->h = (h > src->rect.h ? src->rect.h : h);
+  size->w = (dw > sw ? sw : dw);
+  size->h = (dh > sh ? sh : dh);
   
   return 1;
 }

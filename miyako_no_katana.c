@@ -91,31 +91,31 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      sb->color.a = (Uint32)(((*psrc) >> 24) << sb->fmt->Aloss) & 0xff | sb->a255;
+      sb->color.a = (*psrc >> 24) & 0xff | sb->a255;
       if(sb->color.a == 0){ psrc++; pdst++; continue; }
-      db->color.a = (Uint32)(((*pdst) >> 24) << db->fmt->Aloss) & 0xff | db->a255;
+      db->color.a = (*pdst >> 24) & 0xff | db->a255;
       if(db->color.a == 0 || sb->color.a == 255){
-        *pdst = *psrc | sb->a255;
+        *pdst = *psrc | (sb->a255 << 24);
         psrc++;
         pdst++;
         continue;
       }
       int a1 = sb->color.a + 1;
       int a2 = 256 - sb->color.a;
-      sb->color.r = (Uint32)(((*psrc) >> 16)) & 0xff;
-      sb->color.g = (Uint32)(((*psrc) >> 8)) & 0xff;
-      sb->color.b = (Uint32)(((*psrc))) & 0xff;
-      db->color.r = (Uint32)(((*pdst) >> 16)) & 0xff;
-      db->color.g = (Uint32)(((*pdst) >> 8)) & 0xff;
-      db->color.b = (Uint32)(((*pdst))) & 0xff;
-			*pdst = (((sb->color.r * a1 + db->color.r * a2) >> 8)) << 16 |
-						  (((sb->color.g * a1 + db->color.g * a2) >> 8)) << 8 |
-							(((sb->color.b * a1 + db->color.b * a2) >> 8)) |
-							(255 >> db->fmt->Aloss) << db->fmt->Ashift;
+      sb->color.r = (*psrc >> 16) & 0xff;
+      sb->color.g = (*psrc >>  8) & 0xff;
+      sb->color.b = (*psrc      ) & 0xff;
+      db->color.r = (*pdst >> 16) & 0xff;
+      db->color.g = (*pdst >>  8) & 0xff;
+      db->color.b = (*pdst      ) & 0xff;
+			*pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << 16 |
+						  ((sb->color.g * a1 + db->color.g * a2) >> 8) <<  8 |
+							((sb->color.b * a1 + db->color.b * a2) >> 8)       |
+							0xff << 24;
 #else
-      sb->color.a = (Uint32)(((*psrc & sb->fmt->Amask)) << sb->fmt->Aloss) | sb->a255;
+      sb->color.a = (*psrc & sb->fmt->Amask) | sb->a255;
       if(sb->color.a == 0){ psrc++; pdst++; continue; }
-      db->color.a = (Uint32)(((*pdst & db->fmt->Amask)) << db->fmt->Aloss) | db->a255;
+      db->color.a = (*pdst & db->fmt->Amask) | db->a255;
       if(db->color.a == 0 || sb->color.a == 255){
         *pdst = *psrc | sb->a255;
         psrc++;
@@ -124,16 +124,16 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
       }
       int a1 = sb->color.a + 1;
       int a2 = 256 - sb->color.a;
-      sb->color.r = (Uint32)(((*psrc & sb->fmt->Rmask) >> sb->fmt->Rshift));
-      sb->color.g = (Uint32)(((*psrc & sb->fmt->Gmask) >> sb->fmt->Gshift));
-      sb->color.b = (Uint32)(((*psrc & sb->fmt->Bmask) >> sb->fmt->Bshift));
-      db->color.r = (Uint32)(((*pdst & db->fmt->Rmask) >> db->fmt->Rshift));
-      db->color.g = (Uint32)(((*pdst & db->fmt->Gmask) >> db->fmt->Gshift));
-      db->color.b = (Uint32)(((*pdst & db->fmt->Bmask) >> db->fmt->Bshift));
-			*pdst = (((sb->color.r * a1 + db->color.r * a2) >> 8)) << db->fmt->Rshift |
-						  (((sb->color.g * a1 + db->color.g * a2) >> 8)) << db->fmt->Gshift |
-							(((sb->color.b * a1 + db->color.b * a2) >> 8)) << db->fmt->Bshift |
-							(255 >> db->fmt->Aloss);
+      sb->color.r = (*psrc & sb->fmt->Rmask) >> sb->fmt->Rshift;
+      sb->color.g = (*psrc & sb->fmt->Gmask) >> sb->fmt->Gshift;
+      sb->color.b = (*psrc & sb->fmt->Bmask) >> sb->fmt->Bshift;
+      db->color.r = (*pdst & db->fmt->Rmask) >> db->fmt->Rshift;
+      db->color.g = (*pdst & db->fmt->Gmask) >> db->fmt->Gshift;
+      db->color.b = (*pdst & db->fmt->Bmask) >> db->fmt->Bshift;
+			*pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << db->fmt->Rshift |
+						  ((sb->color.g * a1 + db->color.g * a2) >> 8) << db->fmt->Gshift |
+							((sb->color.b * a1 + db->color.b * a2) >> 8) << db->fmt->Bshift |
+							0xff;
 #endif
       psrc++;
       pdst++;
