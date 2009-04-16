@@ -849,7 +849,8 @@ v2.0.1(2009.x.x)
 　       inverse, inverse!, additive, additive!, subtraction, subtraction!,
 　       hue, hue!, saturation, saturation!, value, value!, hsv, hsv!の各メソッドに
 　ブロックを渡せるように修正(引数は、Bitmapクラスの各メソッドの内容と同じ)
-・サンプルblit_rop.rbおを追加
+・拡張ライブラリのMSB CPU対応コードにあったコーディングミスを修正
+・サンプルblit_rop.rbを追加
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。
