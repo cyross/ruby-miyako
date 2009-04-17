@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.1
-【   作成日   】　2009/4/xx
+【   作成日   】　2009/4/18
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -842,7 +842,7 @@ v2.0.0(2009.4.13)
 ・リファレンス(RDoc)の拡充
 ・他、細かいバグの修正
 
-v2.0.1(2009.x.x)
+v2.0.1(2009.4.18)
 ・Choices#end_choice,choicing?,move,move_toメソッドを追加
 ・Choices#end_select?,call_end_select_procメソッドを廃止(Choices#end_choiceメソッドに内包)
 ・TextBox#execute,execute?,updateメソッドを追加
