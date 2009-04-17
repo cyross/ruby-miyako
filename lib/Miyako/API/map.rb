@@ -420,6 +420,8 @@ module Miyako
     def to_sprite
       rect = self.broad_rect
       sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
+      Drawing.fill(sprite, [0,0,0])
+      Bitmap.ck_to_ac!(sprite, [0,0,0])
       self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
       yield sprite if block_given?
       return sprite

@@ -22,10 +22,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 module Miyako
   #==選択肢構造体
-  #選択肢を構成する要素の集合
+  # 選択肢を構成する要素の集合
   #
-  #複数のChoice構造体のインスタンスをまとめて、配列として構成されている
-  #選択肢を表示させるときは、body 自体の表示位置を変更させる必要がある
+  # 複数のChoice構造体のインスタンスをまとめて、配列として構成されている
+  # 選択肢を表示させるときは、body 自体の表示位置を変更させる必要がある
   #
   #_body_:: 選択肢を示す画像
   #_body_selected_:: 選択肢を示す画像(選択時) 
@@ -44,7 +44,7 @@ module Miyako
   Choice = Struct.new(:body, :body_selected, :condition, :selected, :result, :left, :right, :up, :down, :base, :attribute, :end_select_proc)
 
   #==選択肢を管理するクラス
-  #選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
+  # 選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
   class Choices
     include Layout
     include SpriteBase
@@ -57,16 +57,17 @@ module Miyako
     # インスタンスを生成する
     # 返却値:: 生成された Choices クラスのインスタンス
     def initialize
+      init_layout
       @choices = []
       @now = nil
       @non_select = false
       @last_selected = nil
+      @result = nil
       @visible = true
     end
 
     # 選択肢を作成する
     # Choice 構造体のインスタンスを作成する
-    # 
     # 構造体には、引数bodyと、必ず true を返す条件ブロックが登録されている。残りは nil
     #_body_:: 選択肢を示す画像
     #_body_selected_:: 選択肢を示す画像(選択時)。デフォルトはnil
@@ -103,13 +104,20 @@ module Miyako
 
     def_delegators(:@choices, :push, :pop, :shift, :unshift, :[], :[]=, :clear, :length)
 
+    #===選択を開始しているかどうかを問い合わせる
+    # start_choiceメソッドを呼び出して、コマンド選択が始まっているかどうかを問い合わせ、始まっているときはtrueを返す
+    #返却値:: 選択を開始しているときはtrueを返す
+    def choicing?
+      return @now != nil
+    end
+
     #===選択を開始する
-    #選択肢の初期位置を指定することができる
-    #第1引数にnilを渡すと、
-    #(例)
-    #choices.start_choice # [0][0]で示す位置の選択肢を選択する
-    #choices.start_choice(5,1) # [5][1]で示す位置の選択肢を選択する
-    #choices.start_choice(nil) # 最後に選択した選択肢を選択する(未選択だったときは全省略時の呼び出しと等価)
+    # 選択肢の初期位置を指定することができる
+    # 第1引数にnilを渡すと、最後に選択した選択肢が最初に選択状態にある選択肢となる
+    # (例)
+    # choices.start_choice # [0][0]で示す位置の選択肢を選択する
+    # choices.start_choice(5,1) # [5][1]で示す位置の選択肢を選択する
+    # choices.start_choice(nil) # 最後に選択した選択肢を選択する(未選択だったときは全省略時の呼び出しと等価)
     #_x_:: 初期位置(x 座標)。規定値は 0。nilを渡すと、最後に選択した選択肢が選ばれる。
     #_y_:: 初期位置(y 座標)。規定値は 0
     def start_choice(x = 0, y = 0)
@@ -118,44 +126,52 @@ module Miyako
       @now.selected = true
       @last_selected = @now
       @non_select = false
+      @result = nil
+    end
+
+    #===選択を終了する
+    # 選択の終了処理を行う
+    # 引数に選択に使用したテキストボックスを渡し、選択状態にあるしたChoice構造体に
+    #end_select_procブロックを渡しているとき、そのブロックを評価する
+    # (そのとき、引数とした渡ってきたテキストボックスをブロック引数に取る)。
+    #
+    #_command_box_:: 選択に使用したテキストボックス。デフォルトはnil
+    def end_choice(command_box = nil)
+      return unless @now
+      return @now.end_select_proc.call(command_box) if (command_box != nil && @now.end_select_proc != nil)
+      @result = @now.result
+      @now.selected = false
+      @last_selected = @now
+      @now = nil
+      @non_select = true
     end
 
     #===選択肢本体を取得する
-    #選択肢の表示対象となる
-    #返却値::
+    # 選択肢の表示対象となるインスタンスを取得する
+    # Choice構造体にbody_selectedが設定されている時はbody_selected、そうでなければbodyを返す
+    # まだ選択が開始されていなければnilが返る
+    #返却値:: 選択肢本体(選択時)
     def body
+      return nil unless @now
       return @now.body_selected ? @now.body_selected : @now.body
     end
 
     #===選択結果を取得する
-    #現在の選択肢が所持している結果インスタンスを返す
+    # 現在の選択肢が所持している結果インスタンスを返す
+    # まだ選択が開始されていなければnilが返る
     #返却値:: 選択結果
     def result
+      return @result unless @now
       return @now.result
     end
 
     #===現在選択している選択肢の属性をアクセスする
-    #属性を編集・参照できるハッシュを取得する
+    # 属性を編集・参照できるハッシュを取得する
+    # まだ選択が開始されていなければnilが返る
     #返却値:: 属性(対応するChoice#attributeメソッドの値)
     def attribute
+      return nil unless @now
       return @now.attribute
-    end
-
-    #===コマンド選択終了可否を問い合わせる
-    #返却値によって、コマンド選択を終了させられるかどうかを問い合わせる。
-    #falseのときは、コマンド選択を終了してはならない(本当にそうかは実装社に委ねる)。
-    #返却値:: true/false(終了可能の時はtrueを返す)
-    def end_select?
-      return @now.end_select_proc != nil
-    end
-
-    #===選択肢に対応したブロックを呼び出す
-    #この選択肢を選択したときは、コマンド選択を終了せずに別の処理を行う(カーソル移動など）ことができる
-    #ブロックの引数は、制御しているテキストボックス(self)が渡される
-    #_command_box_:: この選択肢を制御しているコマンドボックス
-    #返却値:: Choice#select_procメソッド呼び出し後の結果
-    def call_end_select_proc(command_box)
-      return @now.end_select_proc.call(command_box) if @now.end_select_proc
     end
 
     def update_choices(org, nxt) #:nodoc:
@@ -179,7 +195,7 @@ module Miyako
     #現在の選択状態を、全部選択していない状態にする
     #返却値:: 自分自身を返す
     def non_select
-      @now.base.each{|c| c.selected = false }
+      @now.base.each{|c| c.selected = false } if @now
       @non_select = true
       return self
     end
@@ -197,6 +213,7 @@ module Miyako
     #_y_:: y方向位置
     #返却値:: 自分自身を返す
     def select(x, y)
+      raise MiyakoError, "Not select yet!" unless @now
       raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
       @non_select = false
       @last_selected = @now
@@ -210,11 +227,13 @@ module Miyako
 
     #===画面上の座標から、該当する選択肢を変更する
     #マウスカーソル位置などの座標から、座標を含む選択肢を選択状態にする
-    #該当する場所が無ければ何もしない
+    #該当する場所が無ければfalseを返す
+    #まだ選択を開始していないときはfalseを返す
     #_x_:: x方向位置
     #_y_:: y方向位置
     #返却値:: 選択肢が見つかったときはtrue、見つからなかったときはfalseを返す
     def attach(x, y)
+      return false unless @now
       obj = @now.base.detect{|ch| ch.selected ? ch.body_selected.broad_rect.in_range?(x, y) : ch.body.broad_rect.in_range?(x, y) }
       return false unless obj
       @non_select = false
@@ -227,12 +246,13 @@ module Miyako
     end
 
     #===画面上の座標から、該当する選択肢があるかどうかを問い合わせる
-    #マウスカーソル位置などの座標から、座標を含む選択肢があるときはtrue、
-    #無いときはfalseを返す
+    #マウスカーソル位置などの座標から、座標を含む選択肢があるときはtrue、無いときはfalseを返す
+    #まだ選択を開始していないときはfalseを返す
     #_x_:: x方向位置
     #_y_:: y方向位置
     #返却値:: 選択肢が見つかったときはtrue、見つからなかったときはfalseを返す
     def attach?(x, y)
+      return false unless @now
       obj = @now.base.detect{|ch| ch.selected ? ch.body_selected.broad_rect.in_range?(x, y) : ch.body.broad_rect.in_range?(x, y) }
       return obj ? true : false
     end
@@ -241,7 +261,7 @@ module Miyako
     #現在の選択状態を、全部選択していない状態にする
     #返却値:: 自分自身を返す
     def non_select
-      @now.base.each{|c| c.selected = false }
+      @now.base.each{|c| c.selected = false } if @now
       @non_select = true
       return self
     end
@@ -250,10 +270,11 @@ module Miyako
     #現在表示できる選択肢を、現在の状態で描画するよう指示する
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
     #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
-    #visibleメソッドの値がfalseのときは描画されない。
+    #visibleメソッドの値がfalseのとき、選択が開始されていない時は描画されない。
     #返却値:: 自分自身を返す
     def render(&block)
       return unless @visible
+      return self unless @now
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
           c.body_selected.render(&block) :
@@ -266,11 +287,12 @@ module Miyako
     #現在表示できる選択肢を、現在の状態で描画するよう指示する
     #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
     #ブロックの引数は、|インスタンスのSpriteUnit, 画像のSpriteUnit|となる。
-    #visibleメソッドの値がfalseのときは描画されない。
+    #visibleメソッドの値がfalseのとき、選択が開始されていない時は描画されない。
     #_dst_:: 描画対象の画像インスタンス
     #返却値:: 自分自身を返す
     def render_to(dst, &block)
-      return unless @visible
+      return self unless @visible
+      return self unless @now
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
           c.body_selected.render_to(dst, &block) :
@@ -282,10 +304,14 @@ module Miyako
     #===スプライトに変換した画像を表示する
     #すべてのパーツを貼り付けた、１枚のスプライトを返す
     #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
+    #ただし、選択が開始されていなければnilを返す
     #返却値:: 生成したスプライト
     def to_sprite
+      return nil unless @now
       rect = self.broad_rect
       sprite = Sprite.new(:size=>rect.to_a[2,2], :type=>:ac)
+      Drawing.fill(sprite, [0,0,0])
+      Bitmap.ck_to_ac!(sprite, [0,0,0])
       self.render_to(sprite){|sunit, dunit| sunit.x -= rect.x; sunit.y -= rect.y }
       yield sprite if block_given?
       return sprite
@@ -293,9 +319,10 @@ module Miyako
 
     #===現在の画面の最大の大きさを矩形で取得する
     #選択肢の状態により、取得できる矩形の大きさが変わる
-    #但し、選択肢が一つも見つからなかったときはnilを返す
+    #但し、選択肢が一つも見つからなかったとき、選択が開始されていない時はnilを返す
     #返却値:: 生成された矩形(Rect構造体のインスタンス)
     def broad_rect
+      return nil unless @now
       choice_list = @now.base.find_all{|c| c.condition.call }.map{|c| (c.body_selected && c.selected) ? c.body_selected : c.body}
       return nil if choice_list.length == 0
       return Rect.new(*(choice_list[0].rect.to_a)) if choice_list.length == 1
@@ -309,9 +336,11 @@ module Miyako
       return Rect.new(x, y, rect_list[2].max - x, rect_list[3].max - y)
     end
 
-    # 選択肢を左移動させる
+    #===選択肢を左移動させる
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def left
+      return self unless @now
       @last_selected = @now
       @now.selected = false
       obj = @now.left
@@ -321,9 +350,11 @@ module Miyako
       return self
     end
 
-    # 選択肢を右移動させる
+    #===選択肢を右移動させる
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def right
+      return self unless @now
       @last_selected = @now
       @now.selected = false
       obj = @now.right
@@ -333,9 +364,11 @@ module Miyako
       return self
     end
 
-    # 選択肢を上移動させる
+    #===選択肢を上移動させる
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def up
+      return self unless @now
       @last_selected = @now
       @now.selected = false
       obj = @now.up
@@ -345,9 +378,11 @@ module Miyako
       return self
     end
 
-    # 選択肢を下移動させる
+    #===選択肢を下移動させる
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def down
+      return self unless @now
       @last_selected = @now
       @now.selected = false
       obj = @now.down
@@ -357,7 +392,8 @@ module Miyako
       return self
     end
 
-    # 選択肢のアニメーションを開始する
+    #===選択肢のアニメーションを開始する
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def start
       return self unless @now
@@ -370,7 +406,8 @@ module Miyako
       return self
     end
 
-    # 選択肢のアニメーションを終了させる
+    #===選択肢のアニメーションを終了させる
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def stop
       return self unless @now
@@ -383,7 +420,8 @@ module Miyako
       return self
     end
 
-    # 選択肢のアニメーションの再生位置を最初に戻す
+    #===選択肢のアニメーションの再生位置を最初に戻す
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def reset
       return self unless @now
@@ -396,8 +434,9 @@ module Miyako
       return self
     end
 
-    # 選択肢のアニメーションを更新させる
+    #===選択肢のアニメーションを更新させる
     # (手動で更新する必要があるときに呼び出す)
+    # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
     def update_animation
       return self unless @now
@@ -405,6 +444,48 @@ module Miyako
         ((c.body_selected && c.selected) ?
          c.body_selected.update_animation :
          c.body.update_animation) if c.condition.call
+      }
+    end
+
+    #===位置を変更する(変化量を指定)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move(dx, dy)
+      @choices.each{|ch|
+        ch.each{|cc|
+          cc.body.move(dx, dy)
+          cc.body_selected.move(dx, dy) if cc.body_selected && cc.body != cc.body_selected
+        }
+      }
+    end
+
+    #===位置を変更する(位置指定)
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to(x, y)
+      xx = []
+      yy = []
+      @choices.each{|ch|
+        ch.each{|cc|
+          xx << cc.body.x
+          yy << cc.body.y
+          if cc.body_selected
+            xx << cc.body_selected.x
+            yy << cc.body_selected.y
+          end
+        }
+      }
+      min_x = xx.min
+      min_y = yy.min
+      @choices.each{|ch|
+        dx = x - min_x
+        dy = y - min_y
+        ch.each{|cc|
+          cc.body.move(dx, dy)
+          cc.body_selected.move(dx, dy) if cc.body_selected && cc.body != cc.body_selected
+        }
       }
     end
   end

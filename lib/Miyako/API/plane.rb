@@ -127,6 +127,8 @@ module Miyako
     #返却値:: 取り込んだ画像を含むSpriteクラスのインスタンス
     def to_sprite
       sprite = Sprite.new(:size=>self.rect.to_a[2..3], :type=>:ac)
+      Drawing.fill(sprite, [0,0,0])
+      Bitmap.ck_to_ac!(sprite, [0,0,0])
       self.render_to(sprite)
       yield sprite if block_given?
       return sprite

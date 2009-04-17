@@ -129,7 +129,9 @@ module Miyako
       @margins = []
       @heights = []
       area_size = calc(text_block)
-      @sprite = Sprite.new({:size => area_size, :type => :alpha_channel, :is_fill => true})
+      @sprite = Sprite.new({size: area_size, type: :ac})
+      Drawing.fill(@sprite, [0, 0, 0])
+      Bitmap.ck_to_ac!(@sprite, [0, 0, 0])
       case @align
         when :left
           @margins = @margins.map{|v| 0 }
@@ -193,7 +195,9 @@ module Miyako
         when :bottom
           vmargin = @size[1] - @heights.inject(:+)
       end
-      @sprite = Sprite.new({:size => @size, :type => :alpha_channel, :is_fill => true})
+      @sprite = Sprite.new({size: @size, type: :ac})
+      Drawing.fill(@sprite, [0, 0, 0])
+      Bitmap.ck_to_ac!(@sprite, [0, 0, 0])
       @locate = Point.new(@margins.shift, vmargin)
       text instance_eval(&text_block)
       @font.size = org_size

@@ -38,4 +38,5 @@ Screen.auto_render_array << shape2
 
 Miyako.main_loop do
 	break if Input.quit_or_escape?
+  Drawing.fill(Screen, [100,100,100])
 end

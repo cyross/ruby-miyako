@@ -883,10 +883,6 @@ module Miyako
         sp.call(@select_ok, @select_cansel, @select_amount, @mouse_amount)
       }
       if @select_ok
-        if @command_box.choices.end_select?
-          @command_box.choices.call_end_select_proc(@command_box)
-          return
-        end
         @result = @command_box.result
         @command_box.finish_command
         @text_box.release
