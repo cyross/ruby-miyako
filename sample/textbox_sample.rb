@@ -145,8 +145,7 @@ list = [
   box.pause.cr
 
   # params[0] == @choices
-  # 選択肢の位置を最後に文字を描画した位置に変更しておく
-  box.command params[0], *box.locate.to_a
+  box.command params[0]
 
   box.draw_text "選択結果は#{box.result}ですね。"
   box.pause.cr.cr

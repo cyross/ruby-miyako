@@ -64,6 +64,18 @@ module Miyako
       @last_selected = nil
       @result = nil
       @visible = true
+      set_layout_size(1, 1)
+    end
+
+    def update_layout_position #:nodoc:
+      dx = @layout.pos[0] - rect[0]
+      dy = @layout.pos[1] - rect[1]
+      @choices.each{|ch|
+        ch.each{|cc|
+          cc.body.move(dx, dy)
+          cc.body_selected.move(dx, dy) if cc.body_selected && cc.body != cc.body_selected
+        }
+      }
     end
 
     # 選択肢を作成する
@@ -88,6 +100,8 @@ module Miyako
       choices.each{|v| v.base = choices}
       @choices.push(choices)
       @last_selected = @choices[0][0] if (@choices.length == 1 && @last_selcted == nil)
+      rect = self.broad_rect
+      set_layout_size(rect.w, rect.h)
       return self
     end
 
@@ -317,29 +331,40 @@ module Miyako
       return sprite
     end
 
-    #===現在の画面の最大の大きさを矩形で取得する
-    #選択肢の状態により、取得できる矩形の大きさが変わる
-    #但し、選択肢が一つも見つからなかったとき、選択が開始されていない時はnilを返す
+    #===現在登録している選択肢の最大の大きさを矩形で取得する
+    # 現在インスタンスが所持している選択肢全てから左上座標、右下座標を取得し、矩形の形式で返す
+    # 但し、選択肢が一つも登録されていない時はRect(0,0,1,1)を返す
     #返却値:: 生成された矩形(Rect構造体のインスタンス)
     def broad_rect
-      return nil unless @now
-      choice_list = @now.base.find_all{|c| c.condition.call }.map{|c| (c.body_selected && c.selected) ? c.body_selected : c.body}
-      return nil if choice_list.length == 0
-      return Rect.new(*(choice_list[0].rect.to_a)) if choice_list.length == 1
-      rect = choice_list.shift.to_a
-      rect_list = rect.zip(*(choice_list.map{|c| c.broad_rect.to_a}))
-      # width -> right
-      rect_list[2] = rect_list[2].zip(rect_list[0]).map{|xw| xw[0] + xw[1]}
-      # height -> bottom
-      rect_list[3] = rect_list[3].zip(rect_list[1]).map{|xw| xw[0] + xw[1]}
-      x, y = rect_list[0].min, rect_list[1].min
-      return Rect.new(x, y, rect_list[2].max - x, rect_list[3].max - y)
+      return Rect.new(0, 0, 1, 1) if @choices.length == 0
+      xx = []
+      yy = []
+      @choices.each{|ch|
+        ch.each{|cc|
+          xx << cc.body.x
+          yy << cc.body.y
+          if cc.body_selected
+            xx << cc.body_selected.x
+            yy << cc.body_selected.y
+          end
+        }
+      }
+      min_x, max_x = xx.minmax
+      min_y, max_y = yy.minmax
+      return Rect.new(min_x, min_y, max_x-min_x+1, max_y-min_y+1)
+    end
+
+    #===現在登録している選択肢の大きさを矩形で取得する
+    # 内容はbroad_rectメソッドの結果と同じ
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def rect
+      return self.broad_rect
     end
 
     #===選択肢を左移動させる
     # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
-    def left
+    def left_choice
       return self unless @now
       @last_selected = @now
       @now.selected = false
@@ -353,7 +378,7 @@ module Miyako
     #===選択肢を右移動させる
     # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
-    def right
+    def right_choice
       return self unless @now
       @last_selected = @now
       @now.selected = false
@@ -367,7 +392,7 @@ module Miyako
     #===選択肢を上移動させる
     # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
-    def up
+    def up_choice
       return self unless @now
       @last_selected = @now
       @now.selected = false
@@ -381,7 +406,7 @@ module Miyako
     #===選択肢を下移動させる
     # 但し、まだ選択が開始されていなければ何もしない
     # 返却値:: 自分自身を返す
-    def down
+    def down_choice
       return self unless @now
       @last_selected = @now
       @now.selected = false
@@ -444,48 +469,6 @@ module Miyako
         ((c.body_selected && c.selected) ?
          c.body_selected.update_animation :
          c.body.update_animation) if c.condition.call
-      }
-    end
-
-    #===位置を変更する(変化量を指定)
-    #_dx_:: 移動量(x方向)。単位はピクセル
-    #_dy_:: 移動量(y方向)。単位はピクセル
-    #返却値:: 自分自身を返す
-    def move(dx, dy)
-      @choices.each{|ch|
-        ch.each{|cc|
-          cc.body.move(dx, dy)
-          cc.body_selected.move(dx, dy) if cc.body_selected && cc.body != cc.body_selected
-        }
-      }
-    end
-
-    #===位置を変更する(位置指定)
-    #_x_:: 移動先位置(x方向)。単位はピクセル
-    #_y_:: 移動先位置(y方向)。単位はピクセル
-    #返却値:: 自分自身を返す
-    def move_to(x, y)
-      xx = []
-      yy = []
-      @choices.each{|ch|
-        ch.each{|cc|
-          xx << cc.body.x
-          yy << cc.body.y
-          if cc.body_selected
-            xx << cc.body_selected.x
-            yy << cc.body_selected.y
-          end
-        }
-      }
-      min_x = xx.min
-      min_y = yy.min
-      @choices.each{|ch|
-        dx = x - min_x
-        dy = y - min_y
-        ch.each{|cc|
-          cc.body.move(dx, dy)
-          cc.body_selected.move(dx, dy) if cc.body_selected && cc.body != cc.body_selected
-        }
       }
     end
   end
