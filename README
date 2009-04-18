@@ -874,17 +874,7 @@ v2.0.2(2009.4.18)
 ・Choices#end_select?,call_end_select_procメソッドを廃止(Choices#end_choiceメソッドに内包)
 ・TextBox#execute,execute?,updateメソッドを追加
 ・TextBox#commandメソッドのインタフェースを変更(デフォルト付き引数を２つ追加)
-・引数にspriteunitを受け取れるブロックを渡すメソッド(Bitmap.blit_and等)で、ox,oyに変更を与えるとプログラムが止まる問題を修正
-・Bitmap.inverseメソッドで正しく画像が転送されない問題を修正
-・Choicesの各メソッドで、start_choiceで選択を開始していない時にエラーが出るバグを修正
-・TextBox#create_choices_chainメソッドで、引数のto_spriteメソッドが受け持つ引数の数が0個の時の対処が行われていなかった問題を修正
-・各クラスのto_spriteメソッドで、背景が透明になっていなかった問題を修正
-・Sprite#and, or, xor, dec_alpha, dec_alpha!, black_out, black_out!, white_out, white_out!,
-　       inverse, inverse!, additive, additive!, subtraction, subtraction!,
-　       hue, hue!, saturation, saturation!, value, value!, hsv, hsv!の各メソッドに
-　ブロックを渡せるように修正(引数は、Bitmapクラスの各メソッドの内容と同じ)
-・拡張ライブラリのMSB CPU対応コードにあったコーディングミスを修正
-・サンプルblit_rop.rb、textbox_sample.rbを追加
+・サンプルtextbox_sample.rbの修正
 ・ドキュメントの修正
 
 *******************************************************************************
