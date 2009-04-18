@@ -29,7 +29,7 @@ module Miyako
       step_y = y1 < y2 ? y1.step(y2, amount) : y1.step(y2, -amount)
       dx = x2 - x1
       dy = y2 - y1
-      a = dy.to_f / dx.to_f
+      a = dx == 0 ? dy.to_f : dy.to_f / dx.to_f
       b = y1.to_f - a * x1.to_f
       array = [[x1,y1] , [x2,y2]] + step_x.to_a.map{|x| [x, (a * x.to_f + b).to_i]}
       array += step_y.to_a.map{|y| [((y.to_f - b) / a).to_i, y]} if a != 0.0

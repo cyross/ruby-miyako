@@ -89,6 +89,8 @@ static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, V
 
   if(l1 <= l2 && l2 <= r1 && t1 <= t2 && t2 <= b1) return Qtrue;
   if(l1 <= r2 && r2 <= r1 && t1 <= b2 && b2 <= b1) return Qtrue;
+  if(l2 <= l1 && l1 <= r2 && t2 <= t1 && t1 <= b2) return Qtrue;
+  if(l2 <= r1 && r1 <= r2 && t2 <= b1 && b1 <= b2) return Qtrue;
   return Qfalse;
 }
 
@@ -136,6 +138,8 @@ static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE
 
   if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
   if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
+  if(l2 >= l1 && r2 <= r1 && t2 >= t1 && b2 <= b1) return Qtrue;
+  if(l2 <= l1 && r2 >= r1 && t2 <= t1 && b2 >= b1) return Qtrue;
   return Qfalse;
 }
 

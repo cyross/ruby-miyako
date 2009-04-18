@@ -301,7 +301,7 @@ module Miyako
     #注意事項：
     #１．複製のため、呼び出していくとメモリ使用量が著しく上がる
     #２．レイアウト情報がリセットされる(snapの親子関係が解消される)
-    #返却値:: 自分自身を返す
+    #返却値:: 生成したインスタンスを返す
     def to_sprite
       unit = @unit.dup
       unit.bitmap = Bitmap.create(unit.bitmap.w, unit.bitmap.h)
@@ -311,6 +311,19 @@ module Miyako
       Bitmap.blit_aa(self, sprite, 0, 0)
       yield sprite if block_given?
       return sprite
+    end
+
+    #===画像の内容を破壊的に消去する
+    #インスタンスの複製を行う(画像インスタンスも複製)
+    #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
+    #注意事項：
+    #１．複製のため、呼び出していくとメモリ使用量が著しく上がる
+    #２．レイアウト情報がリセットされる(snapの親子関係が解消される)
+    #返却値:: 自分自身を返す
+    def clear!
+      Drawing.fill(self, [0,0,0])
+      Bitmap.ck_to_ac!(self, [0,0,0])
+      return self
     end
 
     #===インスタンスの内容を別のインスタンスに描画する
