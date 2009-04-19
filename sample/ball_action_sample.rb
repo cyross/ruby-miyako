@@ -1,6 +1,6 @@
 # encoding: utf-8
 # 自由落下運動サンプル
-# 2009 Cyross Makoto
+# 2009.4.19 Cyross Makoto
 
 require 'Miyako/miyako'
 
@@ -53,12 +53,12 @@ end
 
 # ボール
 class Ball < Obj
-  FIRST_SPEED = [8.0, 12.0, 16.0, 24.0].cycle
-  X_SPEED = [1, -1].cycle
+  V0 = [4.0, 6.0, 8.0, 12.0].cycle
+  VX = [1, -1].cycle
   G = 9.8
 
   # 初速度の取得
-  attr_reader :first_speed
+  attr_reader :v0
   
   def initialize
     size = Size.new(32, 32)
@@ -69,55 +69,67 @@ class Ball < Obj
                    [255,255,255],
                    true)
 
-    # 床の跳ね返り係数
-    @e = 0.9
     # ジャンプ中？
     @jumping = false
-    # x方向移動量
-    @dx  = 0
+    # y基準位置
+    @by  = 0.0
+    # 元y
+    @oy  = 0.0
+    # 速度
+    @v = 0.0
     # 初速度
-    @first_speed = 0.0
-    # カウント
-    @count = 0.0
-    # カウント刻み
-    @dcount = 0.2
+    @v0 = 0.0
+    # 時間
+    @t = 0.0
+    # 時間刻み
+    @dt = 0.01
+    # 床の跳ね返り係数
+    # 0.9や0.8にすると永遠に跳ねる
+    @e = 0.5
+    # 拡大率
+    @zoom = 1.0 / @dt
     # ウェイト
-    @wait  = WaitCounter.new(0.01)
+    @wait  = WaitCounter.new(@dt)
   end
 
   # ボールの更新
   # 床(floor)を引数に取る
   def update(floor)
     if @jumping
-      # 放物運動の式。間違えてないよね？
-      d = -(@first_speed * @count - (G * (@count ** 2)) / 2).to_i
+      # 放物運動の公式より。
+      # 当たり判定のテストも兼ねていることから、
+      # 整数単位の値が必要だったため、時間刻みを元に値を拡大している
+      y = (@v0 * @t - G * (@t ** 2) / 2) * @zoom
+      # 移動量の算出
+      dy = y - @oy
       # 床とぶつかる？
       # 移動範囲を作成
       rect = Rect.new(@position.x,
                       @position.y,
-                      1, d)
+                      1, -dy)
       # 所定の間隔で床と衝突判定
-      if Utility.product_liner(rect, floor.h).any?{|pos|
+      if Utility.product_liner_f(rect, floor.h).any?{|pos|
         @collision.collision?(pos,
                               floor.collision,
                               floor.position)
       }
-        # 床までの距離を求める
-        d = floor.y - self.h - self.y
         # 床にぶつかれば跳ね返る
-        self.move(@dx, d)
-        @first_speed = @first_speed < d ? @first_speed * @e : d.to_f * @e
-        @first_speed = 0 if @first_speed < 0.0
-        @count = 0.0
+        self.move_to(self.x, @by)
+        # 跳ね返り時の速度を求める。
+        # 実数にすると何故か永遠にはねるため、整数化して強制的に値を少なくしている
+        @v0 = -((@v0 - G * @t) * @e).to_i
+        @t = @dt
+        @oy = 0.0
         @wait.start
       elsif @wait.finish?
         # ぶつからなければ移動
-        self.move(@dx, d)
-        @count = @count + @dcount
+        self.move_to(self.x, @by - y.to_i)
+        @t = @t + @dt
+        @oy = y
         @wait.start
       end
       # 初速度がゼロ？（止まった？）
-      if @first_speed == 0.0
+      if @v0 == 0.0
         # ジャンプの終了
         @wait.stop
         @jumping = false
@@ -128,13 +140,18 @@ class Ball < Obj
   # 飛び上がれ！
   def jumpup
     return if @jumping
-    # x方向移動量
-    @dx = X_SPEED.next
+    # y基準位置の決定
+    @by  = self.y.to_f
     # 初速度の決定
-    @first_speed = FIRST_SPEED.next
+    @v0 = V0.next
     @jumping = true
-    @count = 0
+    @t = @dt
     @wait.start
+  end
+
+  # ジャンプ中？
+  def jumping?
+    return @jumping
   end
 end
 
@@ -162,7 +179,11 @@ end
 # フォントの用意
 @font = Font.serif
 @font.size = 16
+
+# 情報表示用スプライトの用意
 @speed = Sprite.new(size: Size.new(640, 16), type: :ac)
+@info = Shape.text(font: @font, text: "１ボタンを押せばボールが跳ね上がります")
+@info.snap(@speed).left.outside_bottom
 
 Miyako.main_loop do
   break if Input.quit_or_escape?
@@ -172,10 +193,12 @@ Miyako.main_loop do
 
   # 初速度表示スプライトの更新
   @speed.clear!
-  @font.draw_text(@speed, "初速度：#{@ball.first_speed}", 0, 0)
+  @font.draw_text(@speed, "初速度：#{@ball.v0}", 0, 0)
 
   # 画面への描画
   @floor.render
   @ball.render
   @speed.render
+  # ジャンプ中でなければ説明を表示
+  @info.render unless @ball.jumping?
 end

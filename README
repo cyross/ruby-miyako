@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.3
-【   作成日   】　2009/4/xx
+【   作成日   】　2009/4/19
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -877,11 +877,13 @@ v2.0.2(2009.4.18)
 ・サンプルtextbox_sample.rbの修正
 ・ドキュメントの修正
 
-v2.0.3(2009.4.xx)
+v2.0.3(2009.4.19)
+・当たり判定の計算を整数計算から実数計算に変更
 ・Collision.collision?、Collision.cover?メソッドでチェック漏れがあった問題を修正
 ・Utility.product_linerメソッドで、rect.wの値が1の時にエラーが出る問題を修正
 ・Sprite.clear!メソッドの追加
-・サンプルball_action_sample.rbを追加
+・Utility.product_liner_f/product_liner_by_square_f/product_position_f/product_position_by_square_fメソッドを追加
+・サンプルball_action_sample.rb, utility_test3.rbを追加
 ・ドキュメントの修正
 
 *******************************************************************************

@@ -78,14 +78,14 @@ static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, V
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  int l1 = NUM2INT(x1) + NUM2INT(*prect1);
-  int t1 = NUM2INT(y1) + NUM2INT(*(prect1+1));
-  int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
-  int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
-  int l2 = NUM2INT(x2) + NUM2INT(*prect2);
-  int t2 = NUM2INT(y2) + NUM2INT(*(prect2+1));
-  int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
-  int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
+  double l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
+  double t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
+  double r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
+  double b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
+  double l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
+  double t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
+  double r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
+  double b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
 
   if(l1 <= l2 && l2 <= r1 && t1 <= t2 && t2 <= b1) return Qtrue;
   if(l1 <= r2 && r2 <= r1 && t1 <= b2 && b2 <= b1) return Qtrue;
@@ -104,14 +104,14 @@ static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE 
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  int l1 = NUM2INT(x1) + NUM2INT(*prect1);
-  int t1 = NUM2INT(y1) + NUM2INT(*(prect1+1));
-  int r1 = l1 + NUM2INT(*(prect1+2));
-  int b1 = t1 + NUM2INT(*(prect1+3));
-  int l2 = NUM2INT(x2) + NUM2INT(*prect2);
-  int t2 = NUM2INT(y2) + NUM2INT(*(prect2+1));
-  int r2 = l2 + NUM2INT(*(prect2+2));
-  int b2 = t2 + NUM2INT(*(prect2+3));
+  double l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
+  double t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
+  double r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
+  double b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
+  double l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
+  double t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
+  double r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
+  double b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
 
   if(r1 == l2 || b1 == t2 || l1 == r2 || t1 == b2) return Qtrue;
   return Qfalse;
@@ -127,14 +127,14 @@ static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  int l1 = NUM2INT(x1) + NUM2INT(*prect1);
-  int t1 = NUM2INT(y1) + NUM2INT(*(prect1+1));
-  int r1 = l1 + NUM2INT(*(prect1+2)) - 1;
-  int b1 = t1 + NUM2INT(*(prect1+3)) - 1;
-  int l2 = NUM2INT(x2) + NUM2INT(*prect2);
-  int t2 = NUM2INT(y2) + NUM2INT(*(prect2+1));
-  int r2 = l2 + NUM2INT(*(prect2+2)) - 1;
-  int b2 = t2 + NUM2INT(*(prect2+3)) - 1;
+  double l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
+  double t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
+  double r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
+  double b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
+  double l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
+  double t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
+  double r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
+  double b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
 
   if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
   if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
@@ -174,17 +174,17 @@ static VALUE circlecollision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE
 {
   VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
   VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
-  int r1 = NUM2INT(rb_iv_get(c1, "@radius"));
-  int r2 = NUM2INT(rb_iv_get(c2, "@radius"));
-  int r  = (r1 + r2) * (r1 + r2);
+  double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
+  double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
+  double r  = (r1 + r2) * (r1 + r2);
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  int cx1 = NUM2INT(x1) + NUM2INT(*pcenter1);
-  int cy1 = NUM2INT(y1) + NUM2INT(*(pcenter1+1));
-  int cx2 = NUM2INT(x2) + NUM2INT(*pcenter2);
-  int cy2 = NUM2INT(y2) + NUM2INT(*(pcenter2+1));
-  int d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+  double cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
+  double cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
+  double cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
+  double cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  double d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(d <= r) return Qtrue;
   return Qfalse;
@@ -197,17 +197,17 @@ static VALUE circlecollision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, 
 {
   VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
   VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
-  int r1 = NUM2INT(rb_iv_get(c1, "@radius"));
-  int r2 = NUM2INT(rb_iv_get(c2, "@radius"));
-  int r  = (r1 + r2) * (r1 + r2);
+  double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
+  double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
+  double r  = (r1 + r2) * (r1 + r2);
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  int cx1 = NUM2INT(x1) + NUM2INT(*pcenter1);
-  int cy1 = NUM2INT(y1) + NUM2INT(*(pcenter1+1));
-  int cx2 = NUM2INT(x2) + NUM2INT(*pcenter2);
-  int cy2 = NUM2INT(y2) + NUM2INT(*(pcenter2+1));
-  int d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+  double cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
+  double cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
+  double cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
+  double cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  double d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(d == r) return Qtrue;
   return Qfalse;
@@ -220,17 +220,17 @@ static VALUE circlecollision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2,
 {
   VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
   VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
-  int r1 = NUM2INT(rb_iv_get(c1, "@radius"));
-  int r2 = NUM2INT(rb_iv_get(c2, "@radius"));
-  int r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
+  double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
+  double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
+  double r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  int cx1 = NUM2INT(x1) + NUM2INT(*pcenter1);
-  int cy1 = NUM2INT(y1) + NUM2INT(*(pcenter1+1));
-  int cx2 = NUM2INT(x2) + NUM2INT(*pcenter2);
-  int cy2 = NUM2INT(y2) + NUM2INT(*(pcenter2+1));
-  int d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+  double cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
+  double cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
+  double cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
+  double cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  double d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(d <= r) return Qtrue;
   return Qfalse;

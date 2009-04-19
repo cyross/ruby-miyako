@@ -23,6 +23,79 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Miyako
   #==ユーティリティモジュール
   module Utility
+    def Utility.get_step_array_f(v1, v2, amount, skip_even = false) #:nodoc:
+      steps = []
+      amount = amount.abs
+      val = v1
+      if v1 < v2
+        loop do
+          val = val + amount
+          break if (skip_even && (v2-val).abs < Float::EPSILON)
+          break if val > v2
+          steps << val
+        end
+      else
+        loop do
+          val = val - amount
+          break if (skip_even && (v2-val).abs < Float::EPSILON)
+          break if val < v2
+          steps << val
+        end
+      end
+      return steps
+    end
+
+    def Utility.product_liner_inner_f(x1, y1, x2, y2, amount) #:nodoc:
+      array = nil
+      step_x = get_step_array_f(x1, x2, amount)
+      step_y = get_step_array_f(y1, y2, amount)
+      dx = x2 - x1
+      dy = y2 - y1
+      a = dx < Float::EPSILON ? dy.to_f : dy.to_f / dx.to_f
+      b = y1.to_f - a * x1.to_f
+      array = [[x1,y1] , [x2,y2]] + step_x.map{|x| [x, (a * x.to_f + b).to_i]}
+      array += step_y.map{|y| [((y.to_f - b) / a).to_i, y]} if (a <= Float::EPSILON && a >= Float::EPSILON)
+      return array.uniq
+    end
+
+    #===矩形内の対角線の座標リストを実数で取得する
+    #矩形内の対角線の座標リストを取得する
+    #引数には、Rect(x,y,w,h)形式のインスタンスを渡す
+    #幅・高さはマイナスの値の設定が可能。
+    #幅・高さのどちらかの値が0(Float::EPSILON未満)の場合は[]が返る
+    #刻みの値は1以上の整数を渡す。0(Float::EPSILON未満)以下の場合は例外が発生する。
+    #結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
+    #(刻みの値より小さいことがある)ことがある
+    #_rect_:: 矩形情報
+    #_amount_:: 配列を作成する座標の刻み。デフォルトは1.0
+    #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
+    def Utility.product_liner_f(rect, amount = 1.0)
+      raise MiyakoError, "Illegal amount! #{amount}" if amount < Float::EPSILON
+      return [] if rect[2] < Float::EPSILON || rect[3] < Float::EPSILON
+      x1 = rect[0]
+      y1 = rect[1]
+      x2 = x1 + rect[2] - 1
+      y2 = y1 + rect[3] - 1
+      return product_liner_inner_f(x1, y1, x2, y2, amount)
+    end
+
+    #===矩形内の対角線の座標リストを実数で取得する
+    #矩形内の対角線の座標リストを取得する
+    #引数には、Rect(x,y,w,h)形式のインスタンスを渡す
+    #幅・高さはマイナスの値の設定が可能。
+    #幅・高さのどちらかの値が0(Float::EPSILON未満)の場合は[]が返る
+    #刻みの値は1以上の整数を渡す。0(Float::EPSILON未満)以下の場合は例外が発生する。
+    #結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
+    #(刻みの値より小さいことがある)ことがある
+    #_rect_:: 矩形情報
+    #_amount_:: 配列を作成する座標の刻み。デフォルトは1
+    #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
+    def Utility.product_liner_by_square_f(square, amount = 1.0)
+      raise MiyakoError, "Illegal amount! #{amount}" if amount < Float::EPSILON
+      return [] if (square[2] - square[0]) < Float::EPSILON || (square[3] - square[1]) < Float::EPSILON
+      return product_liner_inner_f(*square, amount)
+    end
+
     def Utility.product_liner_inner(x1, y1, x2, y2, amount) #:nodoc:
       array = nil
       step_x = x1 < x2 ? x1.step(x2, amount) : x1.step(x2, -amount)
@@ -106,6 +179,45 @@ module Miyako
     #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_position_by_square(square, size)
       return product_inner(*square.to_a, size)
+    end
+
+    def Utility.product_inner_f(x1, y1, x2, y2, size, skip_even = false) #:nodoc:
+      sz = size[0].to_f
+      min = (x1.to_f/sz).floor.to_f * sz
+      x_array = [min] + get_step_array_f(min, x2.to_f, sz, skip_even)
+      sz = size[1].to_f
+      min = (y1.to_f/sz).floor.to_f * sz
+      y_array = [min] + get_step_array_f(min, y2.to_f, sz, skip_even)
+      return x_array.uniq.product(y_array.uniq)
+    end
+    
+    #===指定の矩形が格子状のどこに重なっているかを返す(実数で指定)
+    #position(Point([x,y])形式)を基準として、矩形rect(Rect([x,y,w,h])形式)が、格子状の並べた矩形
+    #(基準を[0.0,0.0]とした、大きさ[size,size]の矩形をタイル状に並べた物)にある場合、
+    #どの格子状の矩形が重なっているかを、矩形の左上座標の配列として渡す(x座標とy座標の組み合わせ)。
+    #
+    #_position_:: 基準位置
+    #_rect_:: 矩形情報
+    #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
+    def Utility.product_position_f(position, rect, size)
+      return product_inner_f(
+               position[0] + rect[0],
+               position[1] + rect[1],
+               position[0] + rect[0] + rect[2],
+               position[1] + rect[1] + rect[3],
+               size,
+               true
+             )
+    end
+
+    #===指定の矩形が格子状のどこに重なっているかを返す(実数で指定)
+    #矩形square(Square([x1,y1,x2,y2])形式)が、格子状の並べた矩形
+    #(基準を[0.0,0.0]とした、大きさ[size,size]の矩形をタイル状に並べた物)にある場合、
+    #どの格子状の矩形が重なっているかを、矩形の左上座標の配列として渡す(x座標とy座標の組み合わせ)。
+    #_square_:: 矩形情報
+    #返却値:: 矩形左上位置の配列(指定の矩形に掛かる位置の組み合わせ)
+    def Utility.product_position_by_square_f(square, size)
+      return product_inner_f(*square.to_a, size)
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
