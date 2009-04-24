@@ -54,18 +54,19 @@ module Miyako
       a = dx < Float::EPSILON ? dy.to_f : dy.to_f / dx.to_f
       b = y1.to_f - a * x1.to_f
       array = [[x1,y1] , [x2,y2]] + step_x.map{|x| [x, (a * x.to_f + b).to_i]}
-      array += step_y.map{|y| [((y.to_f - b) / a).to_i, y]} if (a <= Float::EPSILON && a >= Float::EPSILON)
+      array += step_y.map{|y| [((y.to_f - b) / a).to_i, y]} if (a.abs >= Float::EPSILON)
       return array.uniq
     end
 
     #===矩形内の対角線の座標リストを実数で取得する
-    #矩形内の対角線の座標リストを取得する
-    #引数には、Rect(x,y,w,h)形式のインスタンスを渡す
-    #幅・高さはマイナスの値の設定が可能。
-    #幅・高さのどちらかの値が0(Float::EPSILON未満)の場合は[]が返る
-    #刻みの値は1以上の整数を渡す。0(Float::EPSILON未満)以下の場合は例外が発生する。
-    #結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
-    #(刻みの値より小さいことがある)ことがある
+    # (互換性維持のために残している)
+    # 矩形内の対角線の座標リストを取得する
+    # 引数には、Rect(x,y,w,h)形式のインスタンスを渡す
+    # 幅・高さはマイナスの値の設定が可能。
+    # 幅・高さのどちらかの値が0(Float::EPSILON未満)の場合は[]が返る
+    # 刻みの値は1以上の整数を渡す。0(Float::EPSILON未満)以下の場合は例外が発生する。
+    # 結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
+    #(刻みの値より小さい)ことがある
     #_rect_:: 矩形情報
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1.0
     #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
@@ -80,13 +81,14 @@ module Miyako
     end
 
     #===矩形内の対角線の座標リストを実数で取得する
-    #矩形内の対角線の座標リストを取得する
-    #引数には、Rect(x,y,w,h)形式のインスタンスを渡す
-    #幅・高さはマイナスの値の設定が可能。
-    #幅・高さのどちらかの値が0(Float::EPSILON未満)の場合は[]が返る
-    #刻みの値は1以上の整数を渡す。0(Float::EPSILON未満)以下の場合は例外が発生する。
-    #結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
-    #(刻みの値より小さいことがある)ことがある
+    # (互換性維持のために残している)
+    # 矩形内の対角線の座標リストを取得する
+    # 引数には、Rect(x,y,w,h)形式のインスタンスを渡す
+    # 幅・高さはマイナスの値の設定が可能。
+    # 幅・高さのどちらかの値が0(Float::EPSILON未満)の場合は[]が返る
+    # 刻みの値は1以上の整数を渡す。0(Float::EPSILON未満)以下の場合は例外が発生する。
+    # 結果は[x,y]の配列となるが、正確さを優先したため、必ず刻みの値の間隔で並んでいない
+    #(刻みの値より小さい)ことがある
     #_rect_:: 矩形情報
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1
     #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
@@ -98,14 +100,23 @@ module Miyako
 
     def Utility.product_liner_inner(x1, y1, x2, y2, amount) #:nodoc:
       array = nil
-      step_x = x1 < x2 ? x1.step(x2, amount) : x1.step(x2, -amount)
-      step_y = y1 < y2 ? y1.step(y2, amount) : y1.step(y2, -amount)
+      step_x = []
+      step_y = []
       dx = x2 - x1
       dy = y2 - y1
-      a = dx == 0 ? dy.to_f : dy.to_f / dx.to_f
+      a  = 0.0
+      if [x1, y1, x2, y2, amount].all?{|v| v.methods.include?(:step)}
+        step_x = x1 < x2 ? x1.step(x2, amount).to_a : x1.step(x2, -amount).to_a
+        step_y = y1 < y2 ? y1.step(y2, amount).to_a : y1.step(y2, -amount).to_a
+        a = dx == 0 ? dy.to_f : dy.to_f / dx.to_f
+      else
+        step_x = get_step_array_f(x1, x2, amount)
+        step_y = get_step_array_f(y1, y2, amount)
+        a = dx < Float::EPSILON ? dy.to_f : dy.to_f / dx.to_f
+      end
       b = y1.to_f - a * x1.to_f
-      array = [[x1,y1] , [x2,y2]] + step_x.to_a.map{|x| [x, (a * x.to_f + b).to_i]}
-      array += step_y.to_a.map{|y| [((y.to_f - b) / a).to_i, y]} if a != 0.0
+      array = [[x1,y1] , [x2,y2]] + step_x.map{|x| [x, (a * x.to_f + b).to_i]}
+      array += step_y.map{|y| [((y.to_f - b) / a).to_i, y]} if (a.abs >= Float::EPSILON)
       return array.uniq
     end
 

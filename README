@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.0.3
-【   作成日   】　2009/4/19
+【 バージョン 】　2.0.4
+【   作成日   】　2009/4/xx
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -79,7 +79,7 @@ Miyakoのタイトルは、以下の事柄に由来しています
 ・ドキュメントが全然整っていない（リファレンスはまだまだ・・・）
 　→各種チュートリアルや「るびま」記事などでドキュメントを拡充する予定
 
-【 開発環境  】
+【 開発環境 】
 
 ＜メイン開発PC＞
 CPU : Core2Duo E6850
@@ -105,6 +105,11 @@ OS  : Microsoft WindowsXp SP3
 DEV : Notepad++ v5.3.1-6
       mswin32版Ruby 1.9.1-p0 + Ruby/SDL 2.1
       MinGW+MSYS(miyako_no_katanaビルド)
+
+【 動作確認環境 】
+
+上記環境に追加して、VMWarePlayer上で動作している
+Ubuntu9.04(x86)+Ruby1.9.1+Ruby/SDL2.1.0で動作確認済み
 
 【 動作環境  】
 
@@ -885,6 +890,20 @@ v2.0.3(2009.4.19)
 ・Utility.product_liner_f/product_liner_by_square_f/product_position_f/product_position_by_square_fメソッドを追加
 ・サンプルball_action_sample.rb, utility_test3.rbを追加
 ・ドキュメントの修正
+
+v2.0.3(2009.4.19)
+・Windows以外のOSで、install_miyako.rbが正しく動作しない問題を修正
+・CircleCollision.intervalとCircleCollision#intervalメソッドを追加
+・CollisionとCircleCollisionとの当たり判定ができるように、共通のデータを持たせた
+　(判定処理は、レシーバのクラスに依る)
+・Collision.newの引数の幅・高さが0以下の時は例外が発生するように変更
+・Utility.product_liner/product_liner_by_squareの引数を、整数・実数両対応にした
+　(引数に実数が含まれる場合は、全て実数として処理する)
+　(Utility.product_liner_f/product_liner_by_square_fは、互換性のために残す)
+・サンプルutility_test4.rb(utility_test.rbの実数版)、collision_test2.rbを追加
+・サンプルcircle_collision_test.rbの内容を変更
+・MANIFESTファイルを追加
+・gemspecファイルの修正
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

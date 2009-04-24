@@ -32,10 +32,21 @@ module Miyako
     # 移動時イベントブロック配列
     
     #===コリジョンのインスタンスを作成する
+    # 幅・高さが0以下のときは例外が発生する
+    # 内部では、矩形当たり判定相手の時でも対応できるように矩形情報に変換して同時に持っている。
+    # そのとき、引数circumがtrueのときは、円を矩形の外接円と認識して、内部の矩形(正方形)の長さを算出する。
+    # circumがfalseのときは、円を矩形の内接円と認識して、内部の矩形(正方形)の長さを算出する。
     #_rect_:: コリジョンを設定する範囲
+    #_circum_:: 矩形当たり判定とみなす時、円を外接円とするときはtrueを設定する。デフォルトはtrue
     #返却値:: 作成されたコリジョン
-    def initialize(rect)
+    def initialize(rect, circum = true)
       @rect = Rect.new(*(rect.to_a[0..3]))
+      raise MiyakoError, "Illegal width! #{@rect[2]}" if @rect[2] < Float::EPSILON
+      raise MiyakoError, "Illegal height! #{@rect[3]}" if @rect[3] < Float::EPSILON
+      w = @rect[2].to_f
+      h = @rect[2].to_f
+      @center = Point.new(@rect[0].to_f + w / 2.0, @rect[1].to_f + h / 2.0)
+      @radius = circum ? Math.sqrt(w ** 2 + h ** 2) / 2.0 : [w, h].min / 2.0
     end
 
     #===当たり判定を行う(領域が重なっている)
@@ -155,14 +166,33 @@ module Miyako
     # 移動時イベントブロック配列
     
     #===コリジョンのインスタンスを作成する
-    #コリジョンの半径が0もしくはマイナスのとき例外が発生する
+    # コリジョンの半径が0もしくはマイナスのとき例外が発生する
+    # 内部では、矩形当たり判定相手の時でも対応できるように矩形情報に変換して同時に持っている。
+    # そのとき、引数circumがtrueのときは、円を矩形の外接円と認識して、内部の矩形(正方形)の長さを算出する。
+    # circumがfalseのときは、円を矩形の内接円と認識して、内部の矩形(正方形)の長さを算出する。
     #_center_:: コリジョンを設定する範囲
     #_radius_:: コリジョンの半径
+    #_circum_:: 矩形当たり判定とみなす時、円を外接円とするときはtrueを設定する。デフォルトはtrue
     #返却値:: 作成されたコリジョン
-    def initialize(center, radius)
-      raise MiyakoError, "illegal radius! #{radius}" if radius <= 0
+    def initialize(center, radius, circum = true)
+      raise MiyakoError, "illegal radius! #{radius}" if radius < Float::EPSILON
       @center = Point.new(*(center.to_a[0..1]))
       @radius = radius
+      if circum
+        rad = @radius.to_f / Math.sqrt(2.0)
+        @rect = Rect.new(@center[0]-rad, @center[1]-rad, rad*2.0, rad*2.0)
+      else
+        @rect = Rect.new(@center[0]-@radius, @center[1]-@radius, @radius*2.0, @radius*2.0)
+      end
+    end
+
+    #===当たり判定間の距離を算出する
+    #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 1ピクセルでも重なっていれば true を返す
+    def interval(pos1, c2, pos2)
+      return CircleCollision.interval(self, pos1, c2, pos2)
     end
 
     #===当たり判定を行う(領域が重なっている)
@@ -190,6 +220,24 @@ module Miyako
     #返却値:: 領域が覆われていれば true を返す
     def cover?(pos1, c2, pos2)
       return CircleCollision.cover?(self, pos1, c2, pos2)
+    end
+
+    #===当たり判定間の距離を算出する
+    # ２つの当たり判定がどの程度離れているかを算出する。
+    # 返ってくる値は、衝突していなければ正の実数、衝突していれば負の実数で返ってくる
+    #_c1_:: 判定対象のコリジョンインスタンス(1)
+    #_pos1_:: c1の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス(2)
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 当たり判定間の距離
+    def CircleCollision.interval(c1, pos1, c2, pos2)
+      #2点間の距離を求める
+      d = Math.sqrt((((c1.center[0].to_f + pos1[0].to_f) - (c2.center[0].to_f + pos2[0].to_f)) ** 2) +
+                    (((c1.center[1].to_f + pos1[1].to_f) - (c2.center[1].to_f + pos2[1].to_f)) ** 2))
+      #半径の和を求める
+      r  = c1.radius.to_f + c2.radius.to_f
+      distance = d - r
+      return distance.abs < Float::EPSILON ? 0.0 : distance
     end
 
     #===当たり判定を行う(領域が重なっている)

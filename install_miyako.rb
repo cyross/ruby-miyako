@@ -75,4 +75,13 @@ Dir.glob("lib/Miyako/*.rb"){|fname| FileUtils.install(fname, sitelibdir, option)
 Dir.glob("lib/Miyako/API/*.rb"){|fname| FileUtils.install(fname, apidir, option)}
 Dir.glob("lib/Miyako/EXT/*.rb"){|fname| FileUtils.install(fname, extdir, option)}
 
-FileUtils.chmod_R(0644, sitelibdir) unless osn =~ /mswin|mingw|cygwin|bccwin/
+unless osn =~ /mswin|mingw|cygwin|bccwin/
+  FileUtils.chmod(0755, sitelibdir)
+  FileUtils.chmod(0755, apidir)
+  FileUtils.chmod(0755, extdir)
+  FileUtils.chmod(0644, sitelibdir+'/miyako.rb')
+  Dir.glob(sitelibdir+"/*.so"){|fname| FileUtils.chmod(0644, fname)} # for linux,bsd
+  Dir.glob(sitelibdir+"/*.bundle"){|fname| FileUtils.chmod(0644, fname)} # for macosx
+  Dir.glob(apidir+"/*.rb"){|fname| FileUtils.chmod(0644, fname)}
+  Dir.glob(extdir+"/*.rb"){|fname| FileUtils.chmod(0644, fname)}
+end
