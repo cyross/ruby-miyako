@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.0.4
-【   作成日   】　2009/4/xx
+【   作成日   】　2009/4/25
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -891,7 +891,7 @@ v2.0.3(2009.4.19)
 ・サンプルball_action_sample.rb, utility_test3.rbを追加
 ・ドキュメントの修正
 
-v2.0.3(2009.4.19)
+v2.0.4(2009.4.25)
 ・Windows以外のOSで、install_miyako.rbが正しく動作しない問題を修正
 ・CircleCollision.intervalとCircleCollision#intervalメソッドを追加
 ・CollisionとCircleCollisionとの当たり判定ができるように、共通のデータを持たせた
