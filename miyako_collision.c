@@ -30,6 +30,7 @@ License:: LGPL2.1
 
 static VALUE mSDL = Qnil;
 static VALUE mMiyako = Qnil;
+static VALUE eMiyakoError = Qnil;
 static VALUE cCollision = Qnil;
 static VALUE cCircleCollision = Qnil;
 static VALUE cCollisions = Qnil;
@@ -51,11 +52,15 @@ static VALUE collision_get_position(VALUE pos, VALUE *x, VALUE *y)
   switch(TYPE(pos))
   {
   case T_ARRAY:
+    if(RARRAY_LEN(pos) < 2)
+      rb_raise(eMiyakoError, "pairs have illegal array!");
     tmp = RARRAY_PTR(pos);
     *x = *tmp++;
     *y = *tmp;
     break;
   case T_STRUCT:
+    if(RSTRUCT_LEN(pos) < 2)
+      rb_raise(eMiyakoError, "pairs have illegal struct!");
     tmp = RSTRUCT_PTR(pos);
     *x = *tmp++;
     *y = *tmp;
@@ -360,6 +365,7 @@ void Init_miyako_collision()
 {
   mSDL = rb_define_module("SDL");
   mMiyako = rb_define_module("Miyako");
+  eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
   cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);

@@ -70,7 +70,7 @@ static void get_position(VALUE pos, Sint16 *x, Sint16 *y)
     break;
   case T_STRUCT:
     if(RSTRUCT_LEN(pos) < 2)
-      rb_raise(eMiyakoError, "pairs have illegal array!");
+      rb_raise(eMiyakoError, "pairs have illegal struct!");
     tmp = RSTRUCT_PTR(pos);
     *x = (Sint16)(NUM2INT(*tmp++));
     *y = (Sint16)(NUM2INT(*tmp));

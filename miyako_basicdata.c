@@ -30,12 +30,14 @@ License:: LGPL2.1
 
 static VALUE mSDL = Qnil;
 static VALUE mMiyako = Qnil;
+static VALUE eMiyakoError = Qnil;
 static VALUE cWaitCounter = Qnil;
 static VALUE sSpriteUnit = Qnil;
 static VALUE sPoint = Qnil;
 static VALUE sSize = Qnil;
 static VALUE sRect = Qnil;
 static VALUE sSquare = Qnil;
+static VALUE sSegment = Qnil;
 static VALUE nZero = Qnil;
 static VALUE nOne = Qnil;
 static volatile ID id_update = Qnil;
@@ -44,6 +46,35 @@ static volatile ID id_render = Qnil;
 static volatile ID id_to_a   = Qnil;
 static volatile int zero = Qnil;
 static volatile int one = Qnil;
+
+/*
+:nodoc:
+*/
+static void get_min_max(VALUE segment, VALUE *min, VALUE *max)
+{
+  VALUE *tmp;
+  switch(TYPE(segment))
+  {
+  case T_ARRAY:
+    if(RARRAY_LEN(segment) < 2)
+      rb_raise(eMiyakoError, "pairs have illegal array! (above 2 elements)");
+    tmp = RARRAY_PTR(segment);
+    *min = *tmp++;
+    *max = *tmp;
+    break;
+  case T_STRUCT:
+    if(RSTRUCT_LEN(segment) < 2)
+      rb_raise(eMiyakoError, "pairs have illegal struct! (above 2 attributes)");
+    tmp = RSTRUCT_PTR(segment);
+    *min = *tmp++;
+    *max = *tmp;
+    break;
+  default:
+    *min = rb_funcall(segment, rb_intern("min"), 0);
+    *max = rb_funcall(segment, rb_intern("max"), 0);
+    break;
+  }
+}
 
 /*
 :nodoc:
@@ -233,7 +264,27 @@ static VALUE size_resize_to(VALUE self, VALUE w, VALUE h)
   return self;
 }
 
-static VALUE rect_resize(VALUE self, VALUE w, VALUE h)
+static VALUE rect_resize(VALUE self, VALUE dw, VALUE dh)
+{
+  VALUE *st = RSTRUCT_PTR(self);
+  VALUE *pw = st+2;
+  VALUE *ph = st+3;
+  VALUE tw = *pw;
+  VALUE th = *ph;
+  *pw = INT2NUM(NUM2INT(*pw) + NUM2INT(dw));
+  *ph = INT2NUM(NUM2INT(*pw) + NUM2INT(dh));
+  if(rb_block_given_p() == Qtrue){
+    VALUE ret = rb_yield(self);
+    if(ret == Qfalse || ret == Qnil)
+    {
+      *pw = tw;
+      *ph = th;
+    }
+  }
+  return self;
+}
+
+static VALUE rect_resize_to(VALUE self, VALUE w, VALUE h)
 {
   VALUE *st = RSTRUCT_PTR(self);
   VALUE *pw = st+2;
@@ -381,16 +432,122 @@ static VALUE square_in_range(VALUE self, VALUE vx, VALUE vy)
   return Qfalse;
 }
 
+static VALUE segment_move(VALUE self, VALUE dx, VALUE dy)
+{
+  VALUE min_x, max_x, min_y, max_y;
+  VALUE *st = RSTRUCT_PTR(self);
+  
+  get_min_max(*(st+0), &min_x, &max_x);
+  get_min_max(*(st+1), &min_y, &max_y);
+  
+  rb_funcall(self, rb_intern("reset"), 4, INT2NUM(NUM2INT(min_x)+NUM2INT(dx)),
+                                          INT2NUM(NUM2INT(min_y)+NUM2INT(dy)),
+                                          INT2NUM(NUM2INT(max_x)+NUM2INT(dx)),
+                                          INT2NUM(NUM2INT(max_y)+NUM2INT(dy)));
+
+  if(rb_block_given_p() == Qtrue){
+    VALUE ret = rb_yield(self);
+    if(ret == Qfalse || ret == Qnil)
+      rb_funcall(self, rb_intern("reset"), 4, min_x, max_x, min_y, max_y);
+  }
+
+  return self;
+}
+
+static VALUE segment_move_to(VALUE self, VALUE x, VALUE y)
+{
+  VALUE min_x, max_x, min_y, max_y;
+  VALUE *st = RSTRUCT_PTR(self);
+  
+  get_min_max(*(st+0), &min_x, &max_x);
+  get_min_max(*(st+1), &min_y, &max_y);
+  
+  int w = NUM2INT(max_x)-NUM2INT(min_x);
+  int h = NUM2INT(max_y)-NUM2INT(min_y);
+
+  rb_funcall(self, rb_intern("reset"), 4, x, y, INT2NUM(NUM2INT(x)+w), INT2NUM(NUM2INT(y)+h));
+
+  if(rb_block_given_p() == Qtrue){
+    VALUE ret = rb_yield(self);
+    if(ret == Qfalse || ret == Qnil)
+      rb_funcall(self, rb_intern("reset"), 4, min_x, max_x, min_y, max_y);
+  }
+
+  return self;
+}
+
+static VALUE segment_resize(VALUE self, VALUE dw, VALUE dh)
+{
+  VALUE min_x, max_x, min_y, max_y;
+  VALUE *st = RSTRUCT_PTR(self);
+   
+  get_min_max(*(st+0), &min_x, &max_x);
+  get_min_max(*(st+1), &min_y, &max_y);
+
+  int w = NUM2INT(max_x) + NUM2INT(dw);
+  int h = NUM2INT(max_y) + NUM2INT(dh);
+  
+  if(w <= 0)
+    rb_raise(eMiyakoError, "illegal width(result is 0 or minus)");
+  if(h <= 0)
+    rb_raise(eMiyakoError, "illegal height(result is 0 or minus)");
+  
+  rb_funcall(self, rb_intern("reset"), 4, INT2NUM(NUM2INT(min_x)),
+                                          INT2NUM(NUM2INT(min_y)),
+                                          INT2NUM(w),
+                                          INT2NUM(h));
+
+  if(rb_block_given_p() == Qtrue){
+    VALUE ret = rb_yield(self);
+    if(ret == Qfalse || ret == Qnil)
+      rb_funcall(self, rb_intern("reset"), 4, min_x, max_x, min_y, max_y);
+  }
+
+  return self;
+}
+
+static VALUE segment_resize_to(VALUE self, VALUE w, VALUE h)
+{
+  VALUE min_x, max_x, min_y, max_y;
+  VALUE *st = RSTRUCT_PTR(self);
+  
+  get_min_max(*(st+0), &min_x, &max_x);
+  get_min_max(*(st+1), &min_y, &max_y);
+  
+  int nw = NUM2INT(w);
+  int nh = NUM2INT(h);
+  
+  if(nw <= 0)
+    rb_raise(eMiyakoError, "illegal width(result is 0 or minus)");
+  if(nh <= 0)
+    rb_raise(eMiyakoError, "illegal height(result is 0 or minus)");
+  
+  rb_funcall(self, rb_intern("reset"), 4, INT2NUM(NUM2INT(min_x)),
+                                          INT2NUM(NUM2INT(min_y)),
+                                          INT2NUM(NUM2INT(min_x)+nw-1),
+                                          INT2NUM(NUM2INT(min_y)+nh-1));
+
+  if(rb_block_given_p() == Qtrue){
+    VALUE ret = rb_yield(self);
+    if(ret == Qfalse || ret == Qnil)
+      rb_funcall(self, rb_intern("reset"), 4, min_x, max_x, min_y, max_y);
+  }
+
+  return self;
+}
+
 void Init_miyako_basicdata()
 {
   mSDL = rb_define_module("SDL");
   mMiyako = rb_define_module("Miyako");
+  eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
   cWaitCounter  = rb_define_class_under(mMiyako, "WaitCounter", rb_cObject);
   sSpriteUnit = rb_define_class_under(mMiyako, "SpriteUnitBase", rb_cStruct);
   sPoint = rb_define_class_under(mMiyako, "PointStruct", rb_cStruct);
   sSize = rb_define_class_under(mMiyako, "SizeStruct", rb_cStruct);
   sRect = rb_define_class_under(mMiyako, "RectStruct", rb_cStruct);
   sSquare = rb_define_class_under(mMiyako, "SquareStruct", rb_cStruct);
+  sSegment = rb_define_class_under(mMiyako, "SegmentStruct", rb_cStruct);
 
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");
@@ -419,10 +576,15 @@ void Init_miyako_basicdata()
   rb_define_method(sRect, "move", point_move, 2);
   rb_define_method(sRect, "move_to", point_move_to, 2);
   rb_define_method(sRect, "resize", rect_resize, 2);
+  rb_define_method(sRect, "resize_to", rect_resize_to, 2);
   rb_define_method(sRect, "in_range?", rect_in_range, 2);
   rb_define_method(sSquare, "move", square_move, 2);
   rb_define_method(sSquare, "move_to", square_move_to, 2);
   rb_define_method(sSquare, "resize", square_resize, 2);
   rb_define_method(sSquare, "resize_to", square_resize_to, 2);
   rb_define_method(sSquare, "in_range?", square_in_range, 2);
+  rb_define_method(sSegment, "move", segment_move, 2);
+  rb_define_method(sSegment, "move_to", segment_move_to, 2);
+  rb_define_method(sSegment, "resize", segment_resize, 2);
+  rb_define_method(sSegment, "resize_to", segment_resize_to, 2);
 }

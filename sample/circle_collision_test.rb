@@ -1,6 +1,6 @@
 # encoding: utf-8
 # 円コリジョン(CircleCollision)サンプル
-# 2009.4.25 Cyross Makoto
+# 2009.4.26 Cyross Makoto
 
 require 'Miyako/miyako'
 
@@ -8,18 +8,26 @@ include Miyako
 
 Screen.fps = 60
 
+AMOUNT_MIN = -8
+AMOUNT_MAX = 8
+
 # Utility.in_bounds?引数生成
 def segments(sprite, amounts, idx)
-  [
-   [sprite.pos[idx], sprite.pos[idx] + sprite.size[idx] - 1],
-   [0, Screen.size[idx]],
-   amounts[idx]
-  ]
+  [sprite.segment[idx], Screen.segment[idx], amounts[idx]]
 end
 
-radius = 16
-size = [32, 32]
-pos = [16, 16]
+# 移動量の決定
+def get_amount
+  range = AMOUNT_MAX - AMOUNT_MIN
+  [[rand(range)+AMOUNT_MIN,
+    rand(range)+AMOUNT_MIN],
+   [rand(range)+AMOUNT_MIN,
+    rand(range)+AMOUNT_MIN]]
+end
+
+radius = 32
+size = [radius*2, radius*2]
+pos = [radius, radius]
 sprite1 = Sprite.new({:size=>size, :type=>:as})
 Drawing.circle(sprite1, pos, radius, [255,0,0], true)
 collision1 = CircleCollision.new(pos, radius)
@@ -28,19 +36,15 @@ Drawing.circle(sprite2, pos, radius, [0,255,0], true)
 collision2 = CircleCollision.new(pos, radius)
 caution = Shape.text({:font => Font.serif }){ text "collision!" }
 
-sprite1.center.move(0, 128)
-sprite2.move_to(176, 0)
+sprite1.move_to(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
+sprite2.move_to(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
 
-amounts = [8, -8]
-
-amount1 = [amounts.sample, amounts.sample]
-amount2 = [amounts.sample, amounts.sample]
+amount1, amount2 = get_amount
 
 Miyako.main_loop do
   break if Input.quit_or_escape?
   if collision1.collision?(sprite1.pos, collision2, sprite2.pos)
-    amount1 = [amounts.sample, amounts.sample]
-    amount2 = [amounts.sample, amounts.sample]
+    amount1, amount2 = get_amount
     caution.render
   end
   amount1[0] = -amount1[0] unless Utility.in_bounds?(*segments(sprite1, amount1, 0))

@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.0.4
-【   作成日   】　2009/4/25
+【 バージョン 】　2.0.5
+【   作成日   】　2009/4/26
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -891,7 +891,7 @@ v2.0.3(2009.4.19)
 ・サンプルball_action_sample.rb, utility_test3.rbを追加
 ・ドキュメントの修正
 
-v2.0.4(2009.4.25)
+v2.0.4(2009.4.25->2.0.5リリースのため、リリースをスキップ)
 ・Windows以外のOSで、install_miyako.rbが正しく動作しない問題を修正
 ・CircleCollision.intervalとCircleCollision#intervalメソッドを追加
 ・CollisionとCircleCollisionとの当たり判定ができるように、共通のデータを持たせた
@@ -904,6 +904,23 @@ v2.0.4(2009.4.25)
 ・サンプルcircle_collision_test.rbの内容を変更
 ・MANIFESTファイルを追加
 ・gemspecファイルの修正
+
+v2.0.5(2009.4.26)
+・SegmentStructクラス、Segment構造体を追加
+・Rect#resizeメソッドをRect#resize_toメソッドに改名
+・Rect#resizeメソッドを追加
+・Viewport#resizeメソッドをViewport#resize_toメソッドに改名
+・Viewport#resizeメソッドを追加
+・Viewportクラスの幅・高さのエラー範囲を「マイナス」から「0以下」に変更
+・Layout.segmentメソッドの追加
+・Screen.segmentメソッドの追加
+・Utility.in_bounds?,in_bounds_ex?,in_bounds_rev?,in_bounds_rev_ex?メソッドの引数flagのデフォルトをfalseに変更
+・Utility.in_bounds_by_size?,in_bounds_ex_by_size?,in_bounds_rev_by_size?,in_bounds_rev_ex_by_size?メソッドの
+　引数flagのデフォルトをfalseに変更
+・Segment#in_bounds?,in_bounds_ex?,in_bounds_rev?,in_bounds_rev_ex?メソッドの引数flagのデフォルトをfalseに変更
+・リファレンスマニュアルの修正
+・gemspecファイルの修正
+(・gemを、ruby-miyako(Linux,MacOSX等)とruby-miyako-mewin32に分離)
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

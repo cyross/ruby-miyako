@@ -1,20 +1,29 @@
 # encoding: utf-8
 # コリジョン(Collision・CircleCollision混合)サンプル
-# 2009.4.24 Cyross Makoto
+# 2009.4.26 Cyross Makoto
 
 require 'Miyako/miyako'
 
 include Miyako
 
+AMOUNT_MIN = -8
+AMOUNT_MAX = 8
+
 Screen.fps = 60
 
 # Utility.in_bounds?引数生成
 def segments(sprite, amounts, idx)
-  [
-   [sprite.pos[idx], sprite.pos[idx] + sprite.size[idx] - 1],
-   [0, Screen.size[idx]],
-   amounts[idx]
-  ]
+  [sprite.segment[idx], Screen.segment[idx], amounts[idx]]
+end
+
+# 移動量の決定
+def get_amount_one
+  range = AMOUNT_MAX - AMOUNT_MIN
+  [rand(range)+AMOUNT_MIN, rand(range)+AMOUNT_MIN]
+end
+def get_amount
+  range = AMOUNT_MAX - AMOUNT_MIN
+  [get_amount_one, get_amount_one]
 end
 
 # 矩形衝突判定と円形衝突判定との切り替え
@@ -27,8 +36,6 @@ Sprites = 20
 size = [64, 64]
 # スプライト矩形(当たり判定生成用)
 rect = [0, 0] + size
-# 移動量切り替え
-amount = [4, -4]
 
 sprites = Array.new(Sprites){|n|
   # スプライトの生成
@@ -43,7 +50,7 @@ sprites = Array.new(Sprites){|n|
   {
    :sprite => sprite,
    :collision => collision,
-   :amount => [amount.sample, amount.sample]
+   :amount => get_amount_one
   }
 }
 
@@ -83,10 +90,7 @@ Miyako.main_loop do
                                  p0[:sprite].pos,
                                  p1[:collision],
                                  p1[:sprite].pos)
-      p0[:amount][0] = -p0[:amount][0]
-      p0[:amount][1] = -p0[:amount][1]
-      p1[:amount][0] = -p1[:amount][0]
-      p1[:amount][1] = -p1[:amount][1]
+      p0[:amount], p1[:amount] = get_amount
     end
   }
 

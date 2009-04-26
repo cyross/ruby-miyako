@@ -214,6 +214,13 @@ module Miyako
       return @@size.dup
     end
 
+    #===Segment構造体を生成する
+    # 生成される線分は、x方向が[0,w-1]、y方向が[0,h-1]となる
+    #返却値:: 生成したSegment構造体インスタンス
+    def Screen::segment
+			return Segment.new([0, @@size[0]-1], [0, @@size[1]-1])
+    end
+
     #===画面のサーフェスを生成する
     #グローバル変数$miyako_open_screen==falseの時に有効
     #画面サーフェスを生成し、表示させる
