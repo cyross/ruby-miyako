@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "ruby-miyako"
-  s.version = "2.0.5.1"
+  s.version = "2.0.5.1.0"
 #  s.date = "2009-4-26"
   s.summary = "Game programming library for Ruby"
   s.email = "cyross@po.twin.ne.jp"
