@@ -21,14 +21,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-module Miyako
+require 'singleton'
 
+module Miyako
   #==シーン実行クラス
   #用意したシーンインスタンスを実行
   class Story
+
     @@sub_scenes = [:sub_scene, :sub_routine]
     @@over_scenes = [:over_scene]
-  
+
     def prev_label #:nodoc:
       return @prev_label
     end
@@ -50,7 +52,7 @@ module Miyako
 
       @stack = []
       @fibers = [nil]
-      
+
       @scene_cache = Hash.new
       @scene_cache_list = Array.new
       @scene_cache_max = 20
@@ -87,7 +89,7 @@ module Miyako
         @fibers[num] = nil
       }
     end
-    
+
     def get_scene(n, s) #:nodoc:
       class_symbol = n.to_s
       if @scene_cache_list.length == @scene_cache_max
@@ -118,7 +120,7 @@ module Miyako
         u = get_scene(n, @stack.size) if u == nil
         u.init_inner(@prev_label, self.upper_label)
         u.setup
-        
+
         loop do
           Input.update
           Screen.clear
@@ -160,13 +162,13 @@ module Miyako
       @scene_cache.clear
       @scene_cache_list.clear
     end
-    
+
     #==="over_scene"形式のシーンが実行中かどうか判別する
     #返却値:: "over_scene"形式のシーンが実行中の時はtrueを返す
     def over_scene_execute?
       return @now_fiber != nil
     end
-    
+
     #===内部の情報を解放する
     def dispose
       @scene_cache.keys.each{|k| @scene_cache[del_symbol].dispose }
@@ -223,6 +225,29 @@ module Miyako
         @upper = u
       end
 
+      #===前回実行したシーンを返す
+      #前回実行しているシーンをクラス名で返す
+      #但し、最初のシーンの場合はnilを返す
+      #返却値:: 前回実行したシーン名(Classクラスインスタンス)
+      def story
+        return @story
+      end
+
+      #===前回実行したシーンを返す
+      #前回実行しているシーンをクラス名で返す
+      #但し、最初のシーンの場合はnilを返す
+      #返却値:: 前回実行したシーン名(Classクラスインスタンス)
+      def prev_scene
+        return @prev
+      end
+
+      #===現在実行中のシーンを返す
+      #現在実行しているシーンをクラス名で返す
+      #返却値:: 前回実行したシーン名(Classクラスインスタンス)
+      def now_scene
+        return @now
+      end
+
       #===シーン内で使用するオブジェクトの初期化テンプレートメソッド
       #シーン内で使用するインスタンスを生成するときなどにこのメソッドを実装する
       def init
@@ -258,7 +283,7 @@ module Miyako
       #initメソッドと対になっているというイメージ
       def dispose
       end
-      
+
       def next=(label) #:nodoc:
         @next = label
       end
@@ -268,7 +293,7 @@ module Miyako
       def over_scene_execute?
         return @story.over_scene_execute?
       end
-    
+
       #===シーンの解説を返す(テンプレートメソッド)
       #Sceneモジュールをmixinしたとき、解説文を返す実装をしておくと、
       #Scene.#lisutupメソッドを呼び出したときに、noticeメソッドの結果を取得できる
