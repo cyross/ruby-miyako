@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "ruby-miyako"
-  s.version = "2.0.5.1.0"
+  s.version = "2.1.0"
 #  s.date = "2009-4-26"
   s.summary = "Game programming library for Ruby"
   s.email = "cyross@po.twin.ne.jp"
@@ -45,6 +45,7 @@ Gem::Specification.new do |s|
 "./lib/Miyako/API/sprite.rb",
 "./lib/Miyako/API/spriteunit.rb",
 "./lib/Miyako/API/sprite_animation.rb",
+"./lib/Miyako/API/sprite_list.rb",
 "./lib/Miyako/API/story.rb",
 "./lib/Miyako/API/textbox.rb",
 "./lib/Miyako/API/utility.rb",

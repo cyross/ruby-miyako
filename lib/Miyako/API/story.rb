@@ -89,6 +89,13 @@ module Miyako
         @fibers[num] = nil
       }
     end
+    
+    def initialize_copy(obj) #:nodoc:
+      @stack = @stack.dup
+      @fibers = @fibers.dup
+      @scene_cache = @scene_cache.dup
+      @scene_cache_list = @scene_cache_list.dup
+    end
 
     def get_scene(n, s) #:nodoc:
       class_symbol = n.to_s
@@ -122,6 +129,7 @@ module Miyako
         u.setup
 
         loop do
+          Audio.update
           Input.update
           Screen.clear
           bk_n = on

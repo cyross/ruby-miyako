@@ -66,6 +66,11 @@ module Miyako
       @visible = true
       set_layout_size(1, 1)
     end
+    
+    def initialize_copy(obj) #:nodoc:
+      @choices = @choices.dup
+      copy_layout
+    end
 
     def update_layout_position #:nodoc:
       dx = @layout.pos[0] - rect[0]
@@ -462,10 +467,11 @@ module Miyako
     #===選択肢のアニメーションを更新させる
     # (手動で更新する必要があるときに呼び出す)
     # 但し、まだ選択が開始されていなければ何もしない
-    # 返却値:: 自分自身を返す
+    # 返却値:: 各選択肢のupdate_spriteメソッドを呼び出した結果を配列として返す
+    # ただし、現在選択中の配列リストではないときは[false]を返す
     def update_animation
-      return self unless @now
-      @now.base.each{|c|
+      return [false] unless @now
+      @now.base.map{|c|
         ((c.body_selected && c.selected) ?
          c.body_selected.update_animation :
          c.body.update_animation) if c.condition.call

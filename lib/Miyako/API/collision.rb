@@ -49,6 +49,11 @@ module Miyako
       @radius = circum ? Math.sqrt(w ** 2 + h ** 2) / 2.0 : [w, h].min / 2.0
     end
 
+    def initialize_copy(obj) #:nodoc:
+      @rect = @rect.dup
+      @center = @center.dup
+    end
+
     #===当たり判定を行う(領域が重なっている)
     #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
     #_c2_:: 判定対象のコリジョンインスタンス
@@ -186,6 +191,11 @@ module Miyako
       end
     end
 
+    def initialize_copy(obj) #:nodoc:
+      @rect = @rect.dup
+      @center = @center.dup
+    end
+
     #===当たり判定間の距離を算出する
     #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
     #_c2_:: 判定対象のコリジョンインスタンス
@@ -310,6 +320,22 @@ module Miyako
     #返却値:: 作成されたインスタンス
     def initialize(collisions=[], points=[])
       @collisions = Array.new(collisions).zip(points)
+    end
+
+    def initialize_copy(obj) #:nodoc:
+      @collisions = @collisions.dup
+    end
+
+    def deep_dup_collision #:nodocs:
+      @collisions = @collisions.deep_dup
+      return self
+    end
+
+    #===要素も複製した複製インスタンスを返す
+    #返却値:: 複製したインスタンスを返す
+    def deep_dup
+      ret = self.dup
+      ret.deep_dup_collision
     end
 
     #===コリジョンと位置情報を追加する

@@ -116,6 +116,55 @@ module Miyako
                    ]
                   
     end
+    
+    def initialize_copy(obj) #:nodoc:
+      copy_layout
+      reset_snap
+
+      @locate = @locate.dup
+      @base = @base.dup
+      @size = @size.dup
+      @pos = @pos.dup
+
+      @fibers = @fibers.dup
+      @scene_cache = @scene_cache.dup
+      @scene_cache_list = @scene_cache_list.dup
+      @default_wait_cursor_position = @default_wait_cursor_position.dup
+      @default_select_cursor_position = @default_select_cursor_position.dup
+
+      @wait_cursor = @wait_cursor.dup
+      @wait_cursor_position = @wait_cursor_position.dup
+      @select_cursor = @select_cursor.dup
+      @select_cursor_position = @select_cursor_position.dup
+
+      @on_pause = @on_pause.dup
+
+      @on_release = @on_release.dup
+      
+      @on_draw = @on_draw.dup
+      
+      @choices = @choices.dup
+      @choices.snap(self)
+      @choices.left.top
+
+      @waiting = false
+      @select_type = :left
+      @selecting = false
+
+      @textarea = @textarea.dup
+      @textarea.snap(self)
+      @textarea.centering
+
+      @fiber = @fiber.dup
+
+      if @wait_cursor
+				@wait_cursor.snap(self)
+				@default_wait_cursor_position.call(@wait_cursor, self)
+			end
+			@select_cursor.snap(self) if @select_cursor
+
+      @move_list = @move_list.dup
+    end
 
     #===表示可能な文字行数を取得する
     #返却値:: 表示可能な行数
@@ -204,15 +253,16 @@ module Miyako
 
     #===テキストボックスの表示を更新する
     #テキストボックス・選択カーソル・選択肢・ウェイトカーソルのアニメーションを更新する
-    #返却値:: 常にfalseを返す
+    #返却値:: どれか一つ変更があったときはtrueを返す。それ以外はfalseを返す
     def update_animation
-      @textarea.update_animation
-      @wait_cursor.update_animation if (@wait_cursor && @waiting)
+      f = false
+      f |= @textarea.update_animation
+      f |= @wait_cursor.update_animation if (@wait_cursor && @waiting)
       if @selecting 
-        @choices.update_animation
-        @select_cursor.update_animation if @select_cursor
+        f |= @choices.update_animation.any?
+        f |= @select_cursor.update_animation if @select_cursor
       end
-      return false
+      return f
     end
 
     #===スプライトに変換した画像を表示する

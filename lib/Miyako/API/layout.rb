@@ -79,6 +79,17 @@ module Miyako
       @layout.on_move = []
     end
 
+    #===レイアウト管理の複写
+    def copy_layout
+      tmp = @layout
+      @layout.pos  = tmp.pos.dup
+      @layout.size = tmp.size.dup
+      @layout.base = tmp.base.dup
+      @layout.snap = tmp.snap.dup
+      @layout.snap.children = tmp.snap.children.dup
+      @layout.on_move = tmp.on_move.dup
+    end
+
     #===位置移動時に呼び出すブロックを管理する配列にアクセする
     #moveやleftメソッドを呼び出した時に評価したいブロックを渡すことで、付随処理を自律して行うことが出来る。
     #引数は、|self, x, y, dx, dy|の5つ。
@@ -325,7 +336,7 @@ module Miyako
 		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #返却値:: 自分自身を返す
     def reset_snap
-      @layout.snap.sprite =nil
+      @layout.snap.sprite = nil
       @layout.base = Screen
       @layout.snap.children = Array.new
       return self
@@ -416,6 +427,10 @@ module Miyako
     def initialize(size)
       init_layout
       set_layout_size(*(size.to_a))
+    end
+    
+    def initialize_copy(obj) #:nodoc:
+      copy_layout
     end
 
     #===現在の画面の最大の大きさを矩形で取得する

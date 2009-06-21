@@ -32,6 +32,8 @@ module Miyako
   #プロットは、引数を一つ（Yuki2クラスのインスタンス）を取ったメソッドもしくはブロック
   #として記述する。
   class Yuki
+    include SpriteBase
+    include Animation
   
     #==キャンセルを示す構造体
     #コマンド選択がキャンセルされたときに生成される構造体
@@ -149,7 +151,7 @@ module Miyako
       @update_clear = lambda{|yuki|}
       
       @parts = {}
-      @visibles = []
+      @visibles = SpriteList.new
       @vars = {}
       @visible = true
 
@@ -161,14 +163,14 @@ module Miyako
 
       @valign = :middle
 
-      @release_checks_default = [lambda{ Input.pushed_all?(:btn1) }, lambda{ Input.click?(:left) } ]
+      @release_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) }, lambda{ Input.click?(:left) } ]
       @release_checks = @release_checks_default.dup
       
-      @ok_checks_default = [lambda{ Input.pushed_all?(:btn1) },
+      @ok_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) },
                             lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) } ]
       @ok_checks = @ok_checks_default.dup
 
-      @cancel_checks_default = [lambda{ Input.pushed_all?(:btn2) },
+      @cancel_checks_default = [lambda{ Input.pushed_any?(:btn2, :esc) },
                                 lambda{ Input.click?(:right) } ]
       @cancel_checks = @cancel_checks_default.dup
 
@@ -191,27 +193,81 @@ module Miyako
       raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
-    
+
+    def initialize_copy(obj) #:nodoc:
+      @yuki = @yuki.dup
+      @text_box = @text_box.dup
+      @command_box = @command_box.dup
+
+      @exec_plot = @exec_plot.dup
+      
+      @select_amount = @select_amount.dup
+      @mouse_amount = @mouse_amount.dup
+
+      @result = @result.dup
+      @plot_result = @plot_result.dup
+
+      @update_inner = @update_inner.dup
+      @update_text  = @update_text.dup
+      @update_cr    = @update_cr.dup
+      @update_clear = @update_clear.dup
+      
+      @parts = @parts.deep_dup
+      @visibles = @visibles.deep_dup
+      @vars = @vars.deep_dup
+
+      @executing_fiber = @executing_fiber.dup
+
+      @text_methods = @text_methods.dup
+
+      @release_checks = @release_checks.dup
+      
+      @ok_checks = @ok_checks.dup
+
+      @cancel_checks = @cancel_checks.dup
+
+      @key_amount_proc   = @key_amount_proc.dup
+      @mouse_amount_proc = @mouse_amount_proc.dup
+
+      @pre_pause    = @pre_pause.dup
+      @pre_command  = @pre_command.dup
+      @pre_cancel   = @pre_cancel.dup
+      @post_pause   = @post_pause.dup
+      @post_command = @post_command.dup
+      @post_cancel  = @post_cancel.dup
+      @selecting_procs = @selecting_procs.dup
+      
+      @is_outer_height = @is_outer_height.dup
+
+      @now_page = @now_page.dup
+      @first_page = @first_page.dup.dup
+    end
+
     #===Yuki#showで表示指定した画像を描画する
     #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render
       return self unless @visible
-      @visibles.each{|name|
-        @parts[name].render if @parts.has_key?(name)
-      }
+      @visibles.render
+      return self
+    end
+    
+    #===Yuki#showで表示指定した画像を描画する
+    #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
+    #なお、visibleの値がfalseの時は描画されない。
+    #返却値:: 自分自身を返す
+    def render_to(dst)
+      return self unless @visible
+      @visibles.render_to(dst)
       return self
     end
     
     #===Yuki#showで表示指定した画像のアニメーションを更新する
     #showメソッドで指定した画像のupdate_animationメソッドを呼び出す
-    #返却値:: 自分自身を返す
+    #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
-      @visibles.each{|name|
-        @parts[name].update_animation if @parts.has_key?(name)
-      }
-      return self
+      @visibles.update_animation
     end
 
     #===変数を参照する
@@ -281,7 +337,7 @@ module Miyako
     #
     #返却値:: 描画対象リスト
     def visibles
-      @visibles
+      @visibles.names
     end
 
     #===オブジェクトを登録する
@@ -351,10 +407,7 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
     #返却値:: 自分自身を返す
     def show(*names)
-      names.each{|name|
-        @visibles.delete(name)
-        @visibles << name
-      }
+      names.each{|name| @visibles.push(name, @parts[name]); @parts[name].show }
       return self
     end
   
@@ -364,7 +417,7 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能
     #返却値:: 自分自身を返す
     def hide(*names)
-      names.each{|name| @visibles.delete(name) }
+      names.each{|name| @parts[name].hide; @visibles.delete(name) }
       return self
     end
   

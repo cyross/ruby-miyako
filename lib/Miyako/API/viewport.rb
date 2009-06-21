@@ -26,6 +26,9 @@ module Miyako
   # 画面全体を基準(640x480の画面のときは(0,0)-(639,479)の範囲)として、範囲を設定する
   # 範囲の設定はいつでも行えるが、描画にはrenderメソッドを呼び出した時の値が反映される
   class Viewport
+    include SpriteBase
+    include Animation
+    
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
 
     #===ビューポートのインスタンスを生成する
@@ -38,6 +41,11 @@ module Miyako
       @rect = Rect.new(x, y, w, h)
       @sq = Rect.new(x, y, x+w-1, y+h-1)
       @visible = true
+    end
+    
+    def initialize_copy(obj) #:nodoc:
+      @rect = @rect.dup
+      @sq = @sq.dup
     end
 
     #===ビューポートの内容を画面に反映する

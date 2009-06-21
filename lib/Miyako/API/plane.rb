@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Miyako
   #==プレーン(画面いっぱいにタイル表示される画像)を表現するクラス
   class Plane
+    include SpriteBase
+    include Animation
     extend Forwardable
 
     def resize #:nodoc:
@@ -46,6 +48,11 @@ module Miyako
       resize
       @pos = Point.new(0, 0)
       @visible = true
+    end
+    
+    def initialize_copy(obj) #:nodoc:
+      @sprite = @sprite.dup
+      @pos = @pos.dup
     end
 
     #===プレーン画像左上の x 座標の値を取得する
@@ -122,6 +129,12 @@ module Miyako
       return self
     end
     
+    #===描画の素になるスプライトのアニメーションを更新する
+    #返却値:: 更新した結果、パターンが変わった・アニメーションが終了したときはtrue、それ以外はfalseを返す
+    def update_animation
+      return @sprite.update_animation
+    end
+
     #===現在表示されているプレーンをSpriteクラスのインスタンスとして取得
     #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
     #返却値:: 取り込んだ画像を含むSpriteクラスのインスタンス

@@ -62,6 +62,7 @@ Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
+  VERSION = "2.1.0"
 
   #===アプリケーション実行中に演奏する音楽のサンプリングレートを指定する
   #単位はHz(周波数)
@@ -79,7 +80,7 @@ module Miyako
   #===Miyakoのバージョン番号を出力する
   #返却値:: バージョン番号を示す文字列
   def Miyako::version
-    return "2.0.0"
+    return VERSION
   end
 
   #==Miyakoの例外クラス
@@ -124,9 +125,9 @@ module Miyako
 end
 
 require 'Miyako/API/utility'
-require 'Miyako/API/yuki'
 require 'Miyako/API/basic_data'
 require 'Miyako/API/modules'
+require 'Miyako/API/yuki'
 require 'Miyako/API/font'
 require 'Miyako/API/viewport'
 require 'Miyako/API/layout'
@@ -135,6 +136,7 @@ require 'Miyako/API/drawing'
 require 'Miyako/API/spriteunit'
 require 'Miyako/API/sprite_animation'
 require 'Miyako/API/sprite'
+require 'Miyako/API/sprite_list'
 require 'Miyako/API/collision'
 require 'Miyako/API/screen'
 require 'Miyako/API/shape'
@@ -154,16 +156,17 @@ require 'Miyako/API/diagram'
 module Miyako
   #===Miyakoのメインループ
   #ブロックを受け取り、そのブロックを評価する
-  #ブロック評価前に<i>Input::update</i>と<i>Screen::clear</i>、評価後に<i>Screen::render</i>を呼び出す
+  #ブロック評価前に<i>Audio::update</i>と<i>Input::update</i>、<i>Screen::clear</i>、評価後に<i>Screen::render</i>を呼び出す
   #
   #ブロックを渡さないと例外が発生する
   def Miyako.main_loop
     raise MiyakoError, "Miyako.main_loop needs brock!" unless block_given?
     loop do
-      Input::update
-      Screen::clear
+      Audio.update
+      Input.update
+      Screen.clear
       yield
-      Screen::render
+      Screen.render
     end
   end
 end

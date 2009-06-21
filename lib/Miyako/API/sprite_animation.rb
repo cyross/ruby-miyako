@@ -220,6 +220,17 @@ module Miyako
       @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
                    @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
+    
+    def initialize_copy(obj) #:nodoc:
+      @units = @units.deep_copy
+      @slist = @slist.deep_copy
+      @plist = @plist.deep_copy
+      @move_offset = @move_offset.deep_copy
+      @pos_offset = @pos_offset
+      @now = @units[@plist[@pnow]]
+      @now = @now
+      copy_layout
+    end
 
     attr_accessor :visible
  
@@ -412,10 +423,10 @@ module Miyako
     end
 
     #===現在実行中のパターンの元になったスプライトユニットを返す
-    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
+    #得られるインスタンスは内部でしようしてるものの複写
     #返却値:: 現在表示しているスプライトユニット
     def to_unit
-      return @now
+      return @now.dup
     end
     
     #=== 現在実行中のパターンの画像を返す

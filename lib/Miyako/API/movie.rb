@@ -25,6 +25,7 @@ module Miyako
   #動画ファイル(MPEGファイル限定)をロード・再生するクラス
   class Movie
     include SpriteBase
+    include Animation
     include Layout
     extend Forwardable
 
@@ -64,6 +65,12 @@ module Miyako
       @x = @layout.pos[0]
       @y = @layout.pos[1]
       @sprite.move_to(*@layout.pos)
+    end
+    
+    def initialize_copy(obj) #:nodoc:
+      @sprite = @sprite.dup
+      @size = @size.dup
+      copy_layout
     end
     
     #===動画再生時の音量を指定する

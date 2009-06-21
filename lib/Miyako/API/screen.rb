@@ -154,10 +154,10 @@ module Miyako
     end
 
     #===画面を管理するSpriteUnitを取得する
-    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
+    #新しいSpriteUnitを作成して返す
     #返却値:: SpriteUnitインスタンス
     def Screen::to_unit
-      return @@unit
+      return @@unit.dup
     end
 
     #===画像の回転・拡大・縮小の中心座標を取得する

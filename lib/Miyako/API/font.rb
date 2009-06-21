@@ -135,6 +135,15 @@ module Miyako
       @unit = SpriteUnitFactory.create
     end
 
+    def initialize_copy(obj) #:nodoc:
+      @size = @size.dup
+      @color = @color.dup
+      @fname = @fname.dup
+      @shadow_color = @shadow_color.dup
+      @shadow_margin = shadow_margin.dup
+      @unit = @unit.dup
+    end
+
     #===フォントの大きさを変更する
     #_sz_:: 変更するフォントの大きさ(単位：ピクセル)
     #返却値:: 変更されたフォントのインスタンス

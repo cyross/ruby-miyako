@@ -20,6 +20,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
+require 'Forwardable'
+
+class Object
+  include Miyako::DeepCopy
+end
+
+class Array
+  include Miyako::SpriteArray
+
+  #===複製を取得する
+  #ただし、配列の要素もdeep_dupメソッドで複製する
+  #返却値:: 複写したインスタンスを返す
+  def deep_dup
+    self.dup.map{|e| e.deep_dup}
+  end
+end
+
+class Hash
+  #===複製を取得する
+  #ただし、配列の要素もdeep_dupメソッドで複製する
+  #返却値:: 複写したインスタンスを返す
+  def deep_dup
+    ret = self.dup
+    ret.keys.each{|key| ret[key] = ret[key].deep_dup }
+    ret
+  end
+end
+
 # スプライト関連クラス群
 module Miyako
   #==スプライト管理クラス
@@ -152,7 +180,16 @@ module Miyako
     end
 
     def_delegators(:@unit, :ox, :oy, :ow, :oh, :x, :y)
+    
+    def initialize_copy(obj) #:nodoc:
+      self.unit = obj.to_unit
+      copy_layout
+    end
 
+    def unit=(unit) #:nodoc:
+      @unit = unit
+    end
+    
     def update_layout_position #:nodoc:
       @unit.move_to(*@layout.pos)
     end
@@ -289,10 +326,10 @@ module Miyako
     end
 
     #===インスタンスをSpriteUnit構造体に変換して取得する
-    #得られるインスタンスは複写していないので、インスタンスの値を調整するには、dupメソッドで複製する必要がある
+    #新しいSpriteUnitを作成して返す
     #返却値:: SpriteUnit化したスプライト
     def to_unit
-      return @unit
+      return @unit.dup
     end
 
     #===インスタンスをスプライト化して返す

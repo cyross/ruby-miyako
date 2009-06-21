@@ -29,6 +29,8 @@ module Miyako
   #すべてのパーツは、すべてレイアウト空間にスナップされる
   #(登録したパーツのレイアウト情報が変わることに注意)
   class Parts
+    include SpriteBase
+    include Animation
     include Enumerable
     include Layout
     extend Forwardable
@@ -44,6 +46,21 @@ module Miyako
 
       init_layout
       set_layout_size(size[0], size[1])
+    end
+    
+    def refresh #:nodocs:
+      @parts.clear
+      @parts_list.clear
+      return self
+    end
+    
+    private :refresh
+    
+    def initialize_copy(obj) #:nodoc:
+      reset_snap
+      refresh
+      obj.names.each{|name| self[name] = obj[name].deep_dup }
+      copy_layout
     end
 
     #===nameで示した補助パーツを返す
@@ -70,19 +87,76 @@ module Miyako
       return @parts_list
     end
 
+    #===すべての補助パーツの一覧を配列で返す
+    #返却値:: パーツ名の配列(登録順)
+    def names
+      return @parts_list
+    end
+
     #===指定の補助パーツを除外する
     #_name_:: 除外するパーツ名(シンボル)
     #返却値:: 自分自身
     def remove(name)
       self.delete_snap_child(@parts[name])
+      @parts_list.delete(name)
       @parts.delete(name)
       return self
+    end
+
+    #===指定の補助パーツを除外する
+    #_name_:: 除外するパーツ名(シンボル)
+    #返却値:: 自分自身
+    def delete(name)
+      return self.remve(name)
     end
 
     #===メインパーツと補助パーツに対してブロックを評価する
     #返却値:: 自分自身
     def each
       @parts_list.each{|k| yield @parts[k] }
+      return self
+    end
+    
+    def insert(key, name, value = nil)
+      raise MiyakoError, "Illegal key! : #{key}" unless @parts_list.include?(key)
+      if value
+        @parts[name] = value 
+      else
+        raise MiyakoError, "name is not regist! : #{name}" unless @parts_list.include?(name)
+      end
+      @parts_list.delete(name) if @parts_list.include?(name)
+      @parts_list.insert(@parts_list.index(key), name)
+    end
+    
+    def insert_after(key, name, value = nil)
+      raise MiyakoError, "Illegal key! : #{key}" unless @parts_list.include?(key)
+      if value
+        @parts[name] = value 
+      else
+        raise MiyakoError, "name is not regist! : #{name}" unless @parts_list.include?(name)
+      end
+      @parts_list.delete(name) if @parts_list.include?(name)
+      @parts_list.insert(-@parts_list.index(key), name)
+    end
+    
+    #===指定した要素の内容を入れ替える
+    #配列の先頭から順にrenderメソッドを呼び出す。
+    #描画するインスタンスは、引数がゼロのrenderメソッドを持っているもののみ(持っていないときは呼び出さない)
+    #_name1,name_:: 入れ替え対象の名前
+    #返却値:: 自分自身を帰す
+    def swap(name1, name2)
+      raise MiyakoError, "Illegal name! : idx1:#{name1}" unless @parts_list.include?(name1)
+      raise MiyakoError, "Illegal name! : idx2:#{name2}" unless @parts_list.include?(name2)
+      idx1 = @parts_list.index(name1)
+      idx2 = @parts_list.index(name2)
+      @parts_list[idx1], @parts_list[idx2] = @parts_list[idx2], @parts_list[idx1]
+      return self
+    end
+    
+    #===名前の順番を反転する
+    #返却値:: 自分自身を帰す
+    def reverse!
+      @parts_list.reverse!
       return self
     end
 
@@ -101,9 +175,9 @@ module Miyako
     end
 
     #===メインパーツと補助パーツのすべてのアニメーションを更新する
-    #返却値:: 自分自身
+    #返却値:: 各パーツのupdate_animationの結果を配列として返す
     def update_animation
-      self.each{|parts| parts.update_animation }
+      self.map{|parts| parts.update_animation }
     end
 
     #===メインパーツと補助パーツのすべてのアニメーションを、最初のパターンに巻き戻す

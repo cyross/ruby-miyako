@@ -51,6 +51,11 @@ module Miyako
       @map = nil
       @id2event = Hash.new
     end
+    
+    def initialize_copy(obj) #:nodoc:
+      @map = @map.dup
+      @id2event = @id2event.dup
+    end
 
     def set(map) #:nodoc:
       @map = map
@@ -105,6 +110,9 @@ module Miyako
   #==マップ上のイベントを管理するモジュール
   #実際に使う際にはmix-inして使う
   module MapEvent
+    include SpriteBase
+    include Animation
+    
     #===イベントのインスタンスを作成する
     #引数として渡せるX,Y座標の値は、表示上ではなく理論上の座標位置
     #_map_obj_:: 関連づけられたMap/FixedMapクラスのインスタンス
