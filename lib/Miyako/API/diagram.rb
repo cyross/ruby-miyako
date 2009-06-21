@@ -201,6 +201,14 @@ module Miyako
         @next_trigger = nil
       end
 
+      def initialize_copy(obj) #:nodoc:
+        @name = @name.dup # デバッグ用
+        @node = @node.dup
+        @trigger = @trigger.dup
+        @arrow  = @arrow.dup
+        @next_trigger = @next_trigger.dup
+      end
+
       def add_arrow(to, trigger) #:nodoc:
         @arrow.push(Miyako::Diagram::Arrow.new(to, trigger))
       end
@@ -298,6 +306,13 @@ module Miyako
         @ptr = nil
         @first = nil
         @executing = false
+      end
+
+      def initialize_copy(obj) #:nodoc:
+        @name2idx = @name2idx.dup
+        @list = @list.dup
+        @ptr = @ptr.dup
+        @first = @first.dup
       end
 
       #===遷移図にノードを追加する
@@ -431,6 +446,10 @@ module Miyako
         @visible = true
       end
 
+      def initialize_copy(obj) #:nodoc:
+        @renderer = @renderer.dup
+      end
+
       #===レンダリングを行う
       #Processor#render メソッドを呼び出す
       #visibleメソッドの値がfalseのときは描画されない。
@@ -458,6 +477,12 @@ module Miyako
         @diagram = Miyako::Diagram::Manager.new
         @visible = true
         yield @diagram if block_given?
+      end
+
+      def initialize_copy(obj) #:nodocs:
+        @loop = @loop.dup
+        @states = @states.dup
+        @diagram = @diagram.dup
       end
 
       #===遷移図形式の処理を開始する
