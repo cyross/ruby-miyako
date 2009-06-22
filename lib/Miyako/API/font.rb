@@ -140,7 +140,7 @@ module Miyako
       @color = @color.dup
       @fname = @fname.dup
       @shadow_color = @shadow_color.dup
-      @shadow_margin = shadow_margin.dup
+      @shadow_margin = @shadow_margin.dup
       @unit = @unit.dup
     end
 
@@ -150,7 +150,9 @@ module Miyako
     def size=(sz)
       @size = sz
       @font = Font.get_font_inner(@fname, @fpath, @size)
-      @font.style = (@bold ? SDL::TTF::STYLE_BOLD : 0) | (@italic ? SDL::TTF::STYLE_ITALIC : 0) | (@under_line ? SDL::TTF::STYLE_UNDERLINE : 0)
+      @font.style = (@bold ? SDL::TTF::STYLE_BOLD : 0) | 
+                    (@italic ? SDL::TTF::STYLE_ITALIC : 0) |
+                    (@under_line ? SDL::TTF::STYLE_UNDERLINE : 0)
       init_height
       return self
     end
@@ -401,7 +403,10 @@ module Miyako
     #共通の名称でフォントインスタンスを取得するときに使う(主にゴシックフォント)
     #返却値:: OSごとに設定されたフォントイン寸タンス(フォントサイズは16)
     def Font::sans_serif
-      filename = @@font_base_name[Miyako::getOSName].detect{|base| Font.findFontPath(base[:sans_serif]) }[:sans_serif]
+      filename = @@font_base_name[Miyako::getOSName].
+                   detect{|base| 
+                     Font.findFontPath(base[:sans_serif])
+                   }[:sans_serif]
       return Font.new(filename)
     end
 
