@@ -2,7 +2,7 @@
 
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -58,7 +58,7 @@ module Miyako
       @scene_cache_max = 20
 
       @fiber = Proc.new{|sc, num|
-        raise MiyakoError, "Illegal Script-label name! : #{sc}" unless Scene.has_scene?(sc.to_s)
+        raise MiyakoValueError, "Illegal Script-label name! : #{sc}" unless Scene.has_scene?(sc.to_s)
         fnum = nil
         bk_nn = sc
         uu = sc.new(self)
@@ -122,8 +122,8 @@ module Miyako
         @prev_label = on
         on = n
 
-        raise MiyakoError, "Illegal Script-label name! : #{n}" unless Scene.has_scene?(n.to_s)
-        raise MiyakoError, "This scene cannot use for Standard Scene! : #{n}" if n.scene_type != :scene
+        raise MiyakoValueError, "Illegal Script-label name! : #{n}" unless Scene.has_scene?(n.to_s)
+        raise MiyakoValueError, "This scene cannot use for Standard Scene! : #{n}" if n.scene_type != :scene
         u = get_scene(n, @stack.size) if u == nil
         u.init_inner(@prev_label, self.upper_label)
         u.setup

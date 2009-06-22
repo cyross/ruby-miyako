@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -262,6 +262,7 @@ module Miyako
     #_event_manager_:: MapEventManagerクラスのインスタンス
     #返却値:: 生成したインスタンス
     def initialize(mapchips, layer_csv, event_manager)
+      raise MiyakoIOError.no_file(layer_csv) unless File.exist?(layer_csv)
       init_layout
       @visible = true
       @event_layers = []
@@ -270,7 +271,7 @@ module Miyako
       @mapchips = mapchips.to_a
       layer_data = CSV.readlines(layer_csv)
 
-      raise MiyakoError, "This file is not Miyako Map Layer file! : #{layer_csv}" unless layer_data.shift[0] == "Miyako Maplayer"
+      raise MiyakoFileFormatError, "This file is not Miyako Map Layer file! : #{layer_csv}" unless layer_data.shift[0] == "Miyako Maplayer"
 
       tmp = layer_data.shift # 空行の空読み込み
 

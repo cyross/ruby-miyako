@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -71,7 +71,7 @@ module Miyako
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1.0
     #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_liner_f(rect, amount = 1.0)
-      raise MiyakoError, "Illegal amount! #{amount}" if amount < Float::EPSILON
+      raise MiyakoValueError, "Illegal amount! #{amount}" if amount < Float::EPSILON
       return [] if rect[2] < Float::EPSILON || rect[3] < Float::EPSILON
       x1 = rect[0]
       y1 = rect[1]
@@ -93,7 +93,7 @@ module Miyako
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1
     #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_liner_by_square_f(square, amount = 1.0)
-      raise MiyakoError, "Illegal amount! #{amount}" if amount < Float::EPSILON
+      raise MiyakoValueError, "Illegal amount! #{amount}" if amount < Float::EPSILON
       return [] if (square[2] - square[0]) < Float::EPSILON || (square[3] - square[1]) < Float::EPSILON
       return product_liner_inner_f(*square, amount)
     end
@@ -132,7 +132,7 @@ module Miyako
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1
     #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_liner(rect, amount = 1)
-      raise MiyakoError, "Illegal amount! #{amount}" if amount <= 0
+      raise MiyakoValueError, "Illegal amount! #{amount}" if amount <= 0
       return [] if rect[2] == 0 || rect[3] == 0
       x1 = rect[0]
       y1 = rect[1]
@@ -153,7 +153,7 @@ module Miyako
     #_amount_:: 配列を作成する座標の刻み。デフォルトは1
     #返却値:: 矩形左上位置[x,y]の配列(指定の矩形に掛かる位置の組み合わせ)
     def Utility.product_liner_by_square(square, amount = 1)
-      raise MiyakoError, "Illegal amount! #{amount}" if amount <= 0
+      raise MiyakoValueError, "Illegal amount! #{amount}" if amount <= 0
       return [] if (square[2] - square[0]) == 0 || (square[3] - square[1]) == 0
       return product_liner_inner(*square, amount)
     end
@@ -325,9 +325,9 @@ module Miyako
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはfalse
     #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
     def Utility.in_bounds_by_size?(pos1, size1, pos2, size2, d, flag = false)
-      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
-      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
-      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      raise MiyakoValueError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoValueError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoValueError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
       min_x1 = pos1 + d
       min_x2 = pos1 + size1 + d
       min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
@@ -346,9 +346,9 @@ module Miyako
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはfalse
     #返却値:: 判別の結果
     def Utility.in_bounds_ex_by_size?(pos1, size1, pos2, size2, d, flag = false)
-      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
-      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
-      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      raise MiyakoValueError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoValueError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoValueError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
       min_x1 = pos1 + d
       min_x2 = pos1 + size1 + d
       min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
@@ -368,9 +368,9 @@ module Miyako
     #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはfalse
     #返却値:: 判別の結果
     def Utility.in_bounds_rev_by_size?(pos1, size1, pos2, size2, d, flag = false)
-      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
-      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
-      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      raise MiyakoValueError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoValueError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoValueError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
       min_x1 = pos1 + d
       min_x2 = pos1 + size1 + d
       min_x1, min_x2 = min_x2, min_x1 if min_x1 > min_x2
@@ -391,9 +391,9 @@ module Miyako
     #返却値:: 判別の結果
     def Utility.in_bounds_rev_ex_by_size?(pos1, size1, pos2, size2, d, flag = false)
       return 0 if d == 0
-      raise MiyakoError, "illegal size1! #{size1}" if size1 < 0
-      raise MiyakoError, "illegal size2! #{size2}" if size2 <= 0
-      raise MiyakoError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
+      raise MiyakoValueError, "illegal size1! #{size1}" if size1 < 0
+      raise MiyakoValueError, "illegal size2! #{size2}" if size2 <= 0
+      raise MiyakoValueError, "size1 is more than size2! #{size1}, #{size2}" if size1 > size2
       dir = (d <=> 0)
       min_x1 = pos1 + d
       min_x2 = pos1 + size1 + d

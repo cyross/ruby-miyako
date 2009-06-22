@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -125,7 +125,7 @@ module Miyako
       @bold = false
       @italic = false
       @under_line = false
-      @fpath = Font.findFontPath(@fname) or raise MiyakoError, "Cannot Find Font! : #{@fname}"
+      @fpath = Font.findFontPath(@fname) or raise MiyakoIOError.new(@fname)
       @font = Font.get_font_inner(@fname, @fpath, @size)
       @font.style = SDL::TTF::STYLE_NORMAL
       init_height

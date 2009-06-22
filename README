@@ -935,6 +935,8 @@ v2.1.0(2009.6)
 <仕様変更>
 ・miyako.rbで組み込んでいるライブラリの順番を変更
 ・ゲーム中に流せるBGMは1曲のみに制限(効果音はその限りではない)
+・音声系クラス(Audio::BGM,Audio::SE)の複写メソッドの使用を禁止
+・例外クラスの追加(MiyakoErrorのみ→複数クラスの混在)
 ・ArrayクラスにSpriteArrayモジュールをmixin
 ・FixedMapクラスにSpriteBase,Animationモジュールをmixin
 ・FixedMapLayerクラスにSpriteBase,Animationモジュールをmixin
@@ -946,6 +948,7 @@ v2.1.0(2009.6)
 ・PlaneクラスにSpriteBase,Animationモジュールをmixin
 ・ViewportクラスにSpriteBase,Animationモジュールをmixin
 ・YukiクラスにSpriteBase,Animationモジュールをmixin
+・Audio::BGM,Audio::SEクラスのインスタンスを複写しようとすると例外発生するように変更
 ・Audio::BGM.newメソッドの引数インタフェースを変更
 ・Audio::BGM.newメソッドの処理内容を変更
 ・Audio::BGM#play,start,fade_inメソッドの引数インタフェースを変更
@@ -970,6 +973,12 @@ v2.1.0(2009.6)
 <定数追加>
 ・Miyako::VERSION
 <クラス追加>
+・MiyakoCopyError
+・MiyakoFileFormatError
+・MiyakoIOError
+・MiyakoProcError
+・MiyakoTypeError
+・MiyakoValueError
 ・SpriteList
 <モジュール追加>
 ・DeepCopy

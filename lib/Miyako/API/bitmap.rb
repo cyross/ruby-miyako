@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -30,7 +30,12 @@ module Miyako
     end
 
     def Bitmap.load(filename) #:nodoc:
-      return SDL::Surface.load(filename)
+      begin
+        return SDL::Surface.load(filename)
+      rescue SDL::Error
+        raise MiyakoFileFormatError, "Illegal file format! collect? #{name}"
+      end
+      return nil
     end
 
     #===画像をαチャネル付き画像へ転送する

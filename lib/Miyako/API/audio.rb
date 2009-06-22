@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -78,13 +78,15 @@ module Miyako
       def allow_loop_count_up? #:nodoc:
         @cnt_up_flag
       end
-
+      
       #===インスタンスを生成する
       #_fname_:: 演奏するBGMファイル名。対応ファイルはwav,mp3,ogg,mid等。
       #_loops_:: 演奏の繰り返し回数を指定する。-1を渡すと無限に繰り返す。省略時は-1を渡す。
       #返却値:: 生成したインスタンス
       def initialize(fname, loops = -1)
         return if $not_use_audio
+        raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
+        raise MiyakoIOError.no_file(fname) unless File.exist?(fname)
         @bgm = SDL::Mixer::Music.load(fname)
         @loops = loops
         @now_loops = loops
@@ -92,11 +94,18 @@ module Miyako
         @cnt_up_flag = false
       end
 
+      #===インスタンスの複写
+      #複写すると不都合が多いため、MiyakoCopyException例外が発生する
+      def initialize_copy(obj)
+        raise MiyakoCopyError.not_copy("BGM")
+      end
+      
       #===音の大きさを設定する
       #_v_:: 音の大きさ。0〜255までの整数。255で最大。
       #返却値:: 自分自身を返す
       def set_volume(v)
         return self if $not_use_audio
+        raise MiyakoValueError.over_range(v, 0, 255) unless (0..255).cover?(v)
         SDL::Mixer.set_volume_music(v)
         return self
       end
@@ -109,6 +118,12 @@ module Miyako
       #_loops_:: 演奏の繰り返し回数を指定する。-1のときは無限に繰り返す。nilを渡すと元の設定を使う。省略時はnilを渡す。
       #返却値:: 演奏に成功したときはtrue、失敗した問いはfalseを返す
       def start(vol = nil, loops = nil)
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+        end
+        if loops
+          raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
+        end
         return self.play(vol, loops)
       end
       
@@ -120,7 +135,13 @@ module Miyako
       def play(vol = nil, loops = nil)
         return false if $not_use_audio
         return false if @@playing_bgm && @@playing_bgm != self
-        set_volume(vol) if vol
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+          set_volume(vol)
+        end
+        if loops
+          raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
+        end
         @now_loops = loops ? loops : @loops
         SDL::Mixer.play_music(@bgm, @now_loops)
         @loop_cnt = 1
@@ -140,7 +161,14 @@ module Miyako
       def fade_in(msec=5000, vol = nil, loops = nil)
         return false if $not_use_audio
         return false if @@playing_bgm && @@playing_bgm != self
-        set_volume(vol) if vol
+        raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+          set_volume(vol)
+        end
+        if loops
+          raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
+        end
         @now_loops = loops ? loops : @loops
         SDL::Mixer.fade_in_music(@bgm, @now_loops)
         @@playing_bgm = self
@@ -223,6 +251,7 @@ module Miyako
       #返却値:: 自分自身を返す
       def fade_out(msec = 5000, wmode = false)
         return self if $not_use_audio
+        raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
         if SDL::Mixer.play_music?
           SDL::Mixer.fade_out_music(msec)
           SDL::delay(msec) if wmode
@@ -279,6 +308,9 @@ module Miyako
       #===現在再生している効果音をすべて停止する
       #_msec_:: 停止する時間をミリ秒で指定(msecミリ秒後に停止)。nilを渡すとすぐに停止する。省略時はnilを渡す。
       def SE.stop(msec = nil)
+        if msec
+          raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
+        end
         msec ? SDL::Mixer.expire(-1, msec) : SDL::Mixer.halt(-1)
         @@playings.clear
       end
@@ -292,7 +324,7 @@ module Miyako
       def SE.channels=(channels)
         return false if $not_use_audio
         return false if SE.playing_any?
-        raise MiyakoError, "Illegal Channels! : #{channels}" if channels <= 0
+        raise MiyakoValueError, "Illegal Channels! : #{channels}" if channels <= 0
         SDL::Mixer.allocate_channels(channels)
         @@channels = channels
         return true
@@ -333,8 +365,12 @@ module Miyako
       #返却値:: 生成したインスタンス
       def initialize(fname, vol = nil)
         return nil if $not_use_audio
+        raise MiyakoIOError.no_file(fname) unless File.exist?(fname)
         @wave = SDL::Mixer::Wave.load(fname)
-        @wave.set_volume(vol) if vol
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+          @wave.set_volume(vol)
+        end
         @channel = -1
         @loops = -1
         @now_loops = @loops
@@ -342,6 +378,12 @@ module Miyako
         @cnt_up_flag = false
       end
 
+      #===インスタンスの複写
+      #複写すると不都合が多いため、MiyakoCopyException例外が発生する
+      def initialize_copy(obj)
+        raise MiyakoCopyError.not_copy("SE")
+      end
+      
       #===効果音を鳴らす
       #音の大きさ・繰り返し回数・演奏時間を指定可能
       #_vol_:: 音の大きさ(省略可能)。0〜255の整数を設定する。nilを渡したときは音の大きさを変更しない。
@@ -349,6 +391,13 @@ module Miyako
       #_time_:: 演奏時間。ミリ秒を整数で指定する。省略時は最後まで演奏する。
       #返却値:: 再生に成功したときはtrue、失敗したときはfalseを返す
       def start(vol = nil, loops = 1, time = nil)
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+        end
+        if time
+          raise MiyakoValueError.over_range(time, 1, nil) unless msec > 1
+        end
+        raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
         return self.play(vol, loops, time)
       end
 
@@ -364,7 +413,14 @@ module Miyako
         return false if $not_use_audio
         return false if (@@playings.length == @@channels && !@@playings.include?(self))
         self.stop if @@playings.include?(self)
-        set_volume(vol) if vol
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+          set_volume(vol)
+        end
+        if time
+          raise MiyakoValueError.over_range(time, 1, nil) unless time > 0
+        end
+        raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
         @now_loops = loops ? loops : @loops
         @loop_cnt = 1
         lp = @now_loops == -1 ? -1 : @now_loops - 1
@@ -395,6 +451,9 @@ module Miyako
       #返却値:: 自分自身を返す
       def stop(msec = nil)
         return self if $not_use_audio
+        if msec
+          raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
+        end
         return self if @channel == -1
         return self unless SDL::Mixer.play?(@channel)
         msec ? SDL::Mixer.expire(@channel, msec) : SDL::Mixer.halt(@channel)
@@ -414,7 +473,14 @@ module Miyako
         return false if $not_use_audio
         return false if (@@playings.length == @@channels && !@@playings.include?(self))
         self.stop if @@playings.include?(self)
-        set_volume(vol) if vol
+        if vol
+          raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
+          set_volume(vol)
+        end
+        if time
+          raise MiyakoValueError.over_range(time, 1, nil) unless time > 0
+        end
+        raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
         @now_loops = loops ? loops : @loops
         @loop_cnt = 1
         lp = @now_loops == -1 ? -1 : @now_loops - 1
@@ -430,6 +496,9 @@ module Miyako
       #返却値:: 自分自身を返す
       def fade_out(msec = 5000, wmode = false)
         return self if $not_use_audio
+        if msec
+          raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
+        end
         if self.playing?
           SDL::Mixer.fade_out(@channel, msec)
           SDL::delay(msec) if wmode
@@ -465,6 +534,7 @@ module Miyako
       #返却値:: 自分自身を返す
       def set_volume(v)
         return self if $not_use_audio
+        raise MiyakoValueError.over_range(v, 0, 255) unless (0..255).cover?(v)
         @wave.set_volume(v)
         return self
       end

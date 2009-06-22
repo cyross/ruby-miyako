@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -44,6 +44,7 @@ module Miyako
       @x = 0
       @y = 0
       
+      raise MiyakoIOError.no_file(fname) unless File.exist?(fname)
       @movie = SDL::MPEG.load(fname)
       @size = Size.new(@movie.info.width, @movie.info.height)
       set_layout_size(*(@size.to_a))
@@ -76,7 +77,8 @@ module Miyako
     #===動画再生時の音量を指定する
     #_v_:: 指定する音量。(0～100までの整数)
     def set_volume(v)
-      return if v < 0 || v > 100 || $not_use_audio
+      return $not_use_audio
+      raise MiyakoValueError.over_range(v, 0, 100) unless (0..100).cover?(v)
       @movie.set_volume(v)
     end
 
@@ -113,7 +115,10 @@ module Miyako
     #動画の先頭から再生する。ブロックを渡したときは、ブロックを評価している間動画を再生する
     #_vol_:: 動画再生時の音量。0～100の整数
     def start(vol = nil)
-      set_volume(vol) if vol
+      if vol
+        raise MiyakoValueError.over_range(vol, 0, 100) unless (0..100).cover?(vol)
+        set_volume(vol) if vol
+      end
       @movie.play
       if block_given?
         yield self

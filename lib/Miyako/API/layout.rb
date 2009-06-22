@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -84,18 +84,29 @@ module Miyako
       tmp = @layout
       @layout.pos  = tmp.pos.dup
       @layout.size = tmp.size.dup
-      @layout.base = tmp.base.dup
-      @layout.snap = tmp.snap.dup
-      @layout.snap.children = tmp.snap.children.dup
       @layout.on_move = tmp.on_move.dup
+
+      @layout.snap = tmp.snap.dup
+      # スナップ元との関係を張り直し(スナップ先が変わったので)
+      if @layout.snap.sprite
+        @layout.snap.sprite.delete_snap_child(self)
+        self.snap(@layout.snap.sprite)
+      end
+      @layout.snap.children = []
+      tmp.snap.children.each{|child| child.snap(self)}
     end
 
     #===位置移動時に呼び出すブロックを管理する配列にアクセする
-    #moveやleftメソッドを呼び出した時に評価したいブロックを渡すことで、付随処理を自律して行うことが出来る。
+    #moveやleftメソッドを呼び出した時に評価したいブロックを渡すことで、
+    #付随処理を自律して行うことが出来る。
     #引数は、|self, x, y, dx, dy|の5つ。
-    #各引数は、「レシーバ, 移動後x座標位置, 移動後y座標位置, x座標移動量, y座標移動量」の機能がある。
-    #評価が行われるのは、left,outside_left,center,right,outside_right,top,outside_top,middle,bottom,outside_bottom
-    #move,move_toの各メソッド。
+    #各引数は、
+    #  「レシーバ, 移動後x座標位置, 移動後y座標位置, x座標移動量, y座標移動量」
+    #の機能がある。
+    #評価が行われるのは、
+    #  left,outside_left,center,right,outside_right,top,
+    #  outside_top,middle,bottom,outside_bottom,
+    #  move,move_toの各メソッド。
     #返却値:: ブロック管理配列
     def on_move
 			return @layout.on_move
@@ -112,7 +123,9 @@ module Miyako
 			@layout.pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
       @layout.snap.children.each{|c| c.left(&margin) }
       update_layout(@layout.pos[0]-t, 0)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
+      }
 			return self
     end
 
@@ -126,7 +139,9 @@ module Miyako
 			t = @layout.pos[0]
 			@layout.pos[0] = base[0] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
       update_layout(@layout.pos[0]-t, 0)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
+      }
 			return self
     end
 
@@ -137,7 +152,9 @@ module Miyako
 			t = @layout.pos[0]
 			@layout.pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
       update_layout(@layout.pos[0]-t, 0)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
+      }
 			return self
     end
 
@@ -151,7 +168,9 @@ module Miyako
 			t = @layout.pos[0]
 			@layout.pos[0] = base[0] + base[2] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
       update_layout(@layout.pos[0]-t, 0)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
+      }
 			return self
     end
 
@@ -165,7 +184,9 @@ module Miyako
 			t = @layout.pos[0]
 			@layout.pos[0] = base[0] + base[2] + (margin ? margin[base[2]].to_i : 0)
       update_layout(@layout.pos[0]-t, 0)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
+      }
 			return self
     end
 
@@ -179,7 +200,9 @@ module Miyako
 			t = @layout.pos[1]
 			@layout.pos[1] = base[1] + (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
+      }
 			return self
     end
 
@@ -193,7 +216,9 @@ module Miyako
 			t = @layout.pos[1]
 			@layout.pos[1] = base[1] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
+      }
 			return self
     end
 
@@ -204,7 +229,9 @@ module Miyako
 			t = @layout.pos[1]
 			@layout.pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
       update_layout(0, @layout.pos[1]-t)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
+      }
 			return self
     end
 
@@ -218,7 +245,9 @@ module Miyako
 			t = @layout.pos[1]
 			@layout.pos[1] = base[1] + base[3] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
+      }
 			return self
     end
 
@@ -232,7 +261,9 @@ module Miyako
 			t = @layout.pos[1]
 			@layout.pos[1] = base[1] + base[3] + (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
-      @layout.on_move.each{|block| block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)}
+      @layout.on_move.each{|block|
+        block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
+      }
 			return self
     end
     

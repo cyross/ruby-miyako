@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -147,11 +147,18 @@ module Miyako
     include Animation
     include Enumerable
 
+    #===各要素からスプライト以外の要素を取り除いた配列を作成する
+    #SpriteBaseモジュール、もしくはSpriteArrayモジュールをインクルードしていない要素を削除した配列を返す
+    #登録されている名前順の配列になる。
+    #返却値:: 生成したスプライトを返す
     def sprite_only
       self.delete_if{|e| !e.class.include?(SpriteBase) && !ret[name].class.include?(SpriteArray)}
-      return self
     end
 
+    #===各要素からスプライト以外の要素を取り除いた配列を破壊的に作成する
+    #SpriteBaseモジュール、もしくはSpriteArrayモジュールをインクルードしていない要素を削除する
+    #登録されている名前順の配列になる。
+    #返却値:: 自分自身を返す
     def sprite_only!
       self.delete_if!{|e| !e.class.include?(SpriteBase) && !ret[name].class.include?(SpriteArray)}
       return self
@@ -165,10 +172,19 @@ module Miyako
       self.map{|e| e.deep_copy }
     end
 
+    #===各要素の描画可能状態を取得する
+    #各要素のvisibleメソッドの値を配列で取得する。
+    #登録されている名前順の配列になる。
+    #返却値:: true/falseの配列
     def visible
       return self.sprite_only.map{|e| e.visible}
     end
   
+    #===各要素の描画可能状態を一気に設定する
+    #すべての要素のvisibleメソッドの値を変更する
+    #登録されている名前順の配列になる。
+    #_v_:: 設定する値(true/false)
+    #返却値:: 自分自身を返す
     def visible=(v)
       self.sprite_only.each{|e| e.visible = v}
       return self
@@ -214,8 +230,8 @@ module Miyako
     #返却値:: 自分自身を帰す
     def swap(idx1, idx2)
       l = self.length
-      raise MiyakoError, "Illegal index range! : idx1:#{idx1}" if (idx1 >= l || idx1 < -l)
-      raise MiyakoError, "Illegal index range! : idx2:#{idx2}" if (idx2 >= l || idx2 < -l)
+      raise MiyakoValueError, "Illegal index range! : idx1:#{idx1}" if (idx1 >= l || idx1 < -l)
+      raise MiyakoValueError, "Illegal index range! : idx2:#{idx2}" if (idx2 >= l || idx2 < -l)
       self[idx1], self[idx2] = self[idx2], self[idx1]
       return self
     end

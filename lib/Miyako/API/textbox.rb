@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -197,8 +197,8 @@ module Miyako
     #draw_text・command・pause・clear・cr・spaceのどれかのメソッドを呼び出す。
     #_params_:: Fiberに渡す引数リスト。Fiberへは配列として渡される
     def execute(*params, &block)
-      raise MiyakoError, "This method needs a block!" unless block
-      raise MiyakoError, "This method needs a block with one parameter!" unless block.arity == 2
+      raise MiyakoProcError, "This method needs a block!" unless block
+      raise MiyakoProcError, "This method needs a block with one parameter!" unless block.arity == 2
       @fiber = Fiber.new(&block)
       @fiber.resume(self, params)
     end
@@ -372,7 +372,7 @@ module Miyako
     #_color_:: 変更する文字色([r,g,b]の3要素の配列(値:0～255))
     #返却値:: 自分自身を返す
     def color_during(color)
-      raise MiyakoError, "not given block!" unless block_given?
+      raise MiyakoProcError, "not given block!" unless block_given?
       @font.color_during(Color.to_rgb(color)){ yield }
       return self
     end
@@ -391,7 +391,7 @@ module Miyako
     #_size_:: 変更するフォントサイズ
     #返却値:: 自分自身を返す
     def font_size_during(size)
-      raise MiyakoError, "not given block!" unless block_given?
+      raise MiyakoProcError, "not given block!" unless block_given?
       @font.size_during(size){
         @max_height = @font.line_height if @max_height < @font.line_height
         yield
@@ -403,7 +403,7 @@ module Miyako
     #文字が領域外にはみ出る場合があるので注意！
     #返却値:: 自分自身を返す
     def font_bold
-      raise MiyakoError, "not given block!" unless block_given?
+      raise MiyakoProcError, "not given block!" unless block_given?
       @font.bold{ yield }
       return self
     end
@@ -412,7 +412,7 @@ module Miyako
     #文字が領域外にはみ出る場合があるので注意！
     #返却値:: 自分自身を返す
     def font_italic
-      raise MiyakoError, "not given block!" unless block_given?
+      raise MiyakoProcError, "not given block!" unless block_given?
       @font.italic{ yield }
       return self
     end
@@ -420,7 +420,7 @@ module Miyako
     #===ブロックを評価している間、下線付き文字に変更する
     #返却値:: 自分自身を返す
     def font_under_line
-      raise MiyakoError, "not given block!" unless block_given?
+      raise MiyakoProcError, "not given block!" unless block_given?
       @font.under_line{ yield }
       return self
     end
@@ -535,7 +535,7 @@ module Miyako
     #但し、commandメソッドを呼び出したときは自動的に呼ばれる
     #返却値:: 自分自身を返す
     def start_command
-      raise MiyakoError, "don't set Choice!" if @choices.length == 0
+      raise MiyakoValueError, "don't set Choice!" if @choices.length == 0
       @choices.start_choice
       if @select_cursor
         @select_cursor.snap(@choices.body)
@@ -618,8 +618,8 @@ module Miyako
     #ブロックを渡していなかったり、ブロックの引数が2個でなければエラーを返す
     #返却値:: 自分自身を返す
     def set_wait_cursor_position(&proc)
-      raise MiyakoError, "Can't find block!" unless proc
-      raise MiyakoError, "This method must have two parameters!" unless proc.arity == 2
+      raise MiyakoProcError, "Can't find block!" unless proc
+      raise MiyakoProcError, "This method must have two parameters!" unless proc.arity == 2
       @wait_cursor_position = proc
       @wait_cursor_position.call(@wait_cursor, self) if @wait_cursor
       return self
@@ -643,8 +643,8 @@ module Miyako
     #ブロックを渡していなかったり、ブロックの引数が2個でなければエラーを返す
     #返却値:: 自分自身を返す
     def set_select_cursor_position(&proc)
-      raise MiyakoError, "Can't find block!" unless proc
-      raise MiyakoError, "This method must have two parameters!" unless proc.arity == 2
+      raise MiyakoProcError, "Can't find block!" unless proc
+      raise MiyakoProcError, "This method must have two parameters!" unless proc.arity == 2
       @select_cursor_position = proc
       @select_cursor_position.call(@select_cursor, @choices.body) if (@select_cursor && @choices.body)
       return self

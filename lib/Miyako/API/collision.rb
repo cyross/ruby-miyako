@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -41,8 +41,8 @@ module Miyako
     #返却値:: 作成されたコリジョン
     def initialize(rect, circum = true)
       @rect = Rect.new(*(rect.to_a[0..3]))
-      raise MiyakoError, "Illegal width! #{@rect[2]}" if @rect[2] < Float::EPSILON
-      raise MiyakoError, "Illegal height! #{@rect[3]}" if @rect[3] < Float::EPSILON
+      raise MiyakoValueError, "Illegal width! #{@rect[2]}" if @rect[2] < Float::EPSILON
+      raise MiyakoValueError, "Illegal height! #{@rect[3]}" if @rect[3] < Float::EPSILON
       w = @rect[2].to_f
       h = @rect[2].to_f
       @center = Point.new(@rect[0].to_f + w / 2.0, @rect[1].to_f + h / 2.0)
@@ -180,7 +180,7 @@ module Miyako
     #_circum_:: 矩形当たり判定とみなす時、円を外接円とするときはtrueを設定する。デフォルトはtrue
     #返却値:: 作成されたコリジョン
     def initialize(center, radius, circum = true)
-      raise MiyakoError, "illegal radius! #{radius}" if radius < Float::EPSILON
+      raise MiyakoValueError, "illegal radius! #{radius}" if radius < Float::EPSILON
       @center = Point.new(*(center.to_a[0..1]))
       @radius = radius
       if circum

@@ -3,12 +3,12 @@
 #=コンテンツ作成ライブラリMiyako2.0
 #
 #Authors:: サイロス誠
-#Version:: 2.0.0
+#Version:: 2.1.0
 #Copyright:: 2007-2009 Cyross Makoto
 #License:: LGPL2.1
 #
 =begin
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -82,10 +82,6 @@ module Miyako
   def Miyako::version
     return VERSION
   end
-
-  #==Miyakoの例外クラス
-  class MiyakoError < Exception
-  end
   
   osn = Config::CONFIG["target_os"].downcase
   @@osName = "other"
@@ -124,6 +120,7 @@ module Miyako
   end
 end
 
+require 'Miyako/API/exceptions'
 require 'Miyako/API/utility'
 require 'Miyako/API/basic_data'
 require 'Miyako/API/modules'

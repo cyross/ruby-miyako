@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -48,19 +48,12 @@ module Miyako
       set_layout_size(size[0], size[1])
     end
     
-    def refresh #:nodocs:
-      @parts.clear
-      @parts_list.clear
-      return self
-    end
-    
-    private :refresh
-    
     def initialize_copy(obj) #:nodoc:
-      reset_snap
-      refresh
-      obj.names.each{|name| self[name] = obj[name].deep_dup }
       copy_layout
+      @parts_list = []
+      @parts = {}
+      obj.names.each{|name| self[name] = obj[name].deep_dup }
+      self
     end
 
     #===nameで示した補助パーツを返す
@@ -75,6 +68,9 @@ module Miyako
     #_value_:: 補助パーツのインスタンス(スプライト、テキストボックス、アニメーション、レイアウトボックスなど)
     #返却値:: 自分自身
     def []=(name, value)
+      if @parts_list.include?(name)
+        @parts_list.delete(name)
+      end
       @parts_list.push(name)
       @parts[name] = value
       @parts[name].snap(self)
@@ -117,26 +113,42 @@ module Miyako
       return self
     end
     
+    #===指定の名前の直前に名前を挿入する
+    #配列上で、スプライト名配列の指定の名前の前になるように名前を挿入する
+    #_key_:: 挿入先の名前。この名前の直前に挿入する
+    #_name_:: 挿入するスプライトの名前
+    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
+    #返却値：自分自身を返す
     def insert(key, name, value = nil)
-      raise MiyakoError, "Illegal key! : #{key}" unless @parts_list.include?(key)
+      raise MiyakoValueError, "Illegal key! : #{key}" unless @parts_list.include?(key)
+      return self if key == name
       if value
         @parts[name] = value 
       else
-        raise MiyakoError, "name is not regist! : #{name}" unless @parts_list.include?(name)
+        raise MiyakoValueError, "name is not regist! : #{name}" unless @parts_list.include?(name)
       end
       @parts_list.delete(name) if @parts_list.include?(name)
       @parts_list.insert(@parts_list.index(key), name)
+      self
     end
     
+    #===指定の名前の直後に名前を挿入する
+    #配列上で、スプライト名配列の指定の名前の次の名前になるように名前を挿入する
+    #_key_:: 挿入先の名前。この名前の直後に挿入する
+    #_name_:: 挿入するスプライトの名前
+    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
+    #返却値：自分自身を返す
     def insert_after(key, name, value = nil)
-      raise MiyakoError, "Illegal key! : #{key}" unless @parts_list.include?(key)
+      raise MiyakoValueError, "Illegal key! : #{key}" unless @parts_list.include?(key)
+      return self if key == name
       if value
         @parts[name] = value 
       else
-        raise MiyakoError, "name is not regist! : #{name}" unless @parts_list.include?(name)
+        raise MiyakoValueError, "name is not regist! : #{name}" unless @parts_list.include?(name)
       end
       @parts_list.delete(name) if @parts_list.include?(name)
-      @parts_list.insert(-@parts_list.index(key), name)
+      @parts_list.insert(@parts_list.index(key)-@parts_list.length, name)
+      self
     end
     
     #===指定した要素の内容を入れ替える
@@ -145,8 +157,8 @@ module Miyako
     #_name1,name_:: 入れ替え対象の名前
     #返却値:: 自分自身を帰す
     def swap(name1, name2)
-      raise MiyakoError, "Illegal name! : idx1:#{name1}" unless @parts_list.include?(name1)
-      raise MiyakoError, "Illegal name! : idx2:#{name2}" unless @parts_list.include?(name2)
+      raise MiyakoValueError, "Illegal name! : idx1:#{name1}" unless @parts_list.include?(name1)
+      raise MiyakoValueError, "Illegal name! : idx2:#{name2}" unless @parts_list.include?(name2)
       idx1 = @parts_list.index(name1)
       idx2 = @parts_list.index(name2)
       @parts_list[idx1], @parts_list[idx2] = @parts_list[idx2], @parts_list[idx1]

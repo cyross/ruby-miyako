@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -109,35 +109,64 @@ module Miyako
       }
       return self
     end
-    
+
+    #==ブロックを受け取り、リストの各要素にたいして処理を行う
+    #ブロック引数には、|[スプライト名,スプライト本体]|が渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each
       self.to_a.each{|pair| yield pair}
     end
     
+    #==ブロックを受け取り、スプライト名リストの各要素にたいして処理を行う
+    #ブロック引数には、|スプライト名,スプライト本体|が渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_pair
       @names.each{|name| yield name, @n2v[name]}
     end
     
+    #==ブロックを受け取り、名前リストの各要素にたいして処理を行う
+    #ブロック引数には、|スプライト名|が渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_name
       @names.each{|name| yield name}
     end
     
+    #==ブロックを受け取り、値リストの各要素にたいして処理を行う
+    #ブロック引数には、|スプライト本体|の配列として渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_value
       @names.each{|name| yield @n2v[name]}
     end
     
+    #==ブロックを受け取り、配列インデックスにたいして処理を行う
+    #ブロック引数には、|スプライト名に対応する配列インデックス|の配列として渡ってくる
+    #0,1,2,...の順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_index
       @names.length.times{|idx| yield idx}
     end
     
+    #==スプライト名配列を取得する
+    #名前が登録されている順に渡ってくる
+    #返却値:: スプライト名配列
     def names
       @names
     end
     
+    #==スプライト配列を取得する
+    #名前が登録されている順に渡ってくる
+    #返却値:: スプライト本体配列
     def values
       @names.map{|name| @n2v[name]}
     end
     
+    #==リストが空っぽかどうか確かめる
+    #リストに何も登録されていないかどうか確かめる
+    #返却値:: 空っぽの時はtrue、なにか登録されているときはfalse
     def empty?
       @names.empty?
     end
@@ -394,19 +423,29 @@ module Miyako
       self.to_a.zip(*lists, &block)
     end
 
+    #===リストを配列化する
+    #インスタンスの内容を元に、配列を生成する。
+    #各要素は、[スプライト名,スプライト本体]という構成。
+    #返却値:: 生成したハッシュ
     def to_a
       @names.map{|name| [name, @n2v[name]]}
     end
     
+    #===スプライト名とスプライト本体とのハッシュを取得する
+    #スプライト名とスプライト本体が対になったハッシュを作成して返す
+    #返却値:: 生成したハッシュ
     def to_hash
       @n2v.dup
     end
     
+    #===リストの中身を消去する
+    #リストに登録されているスプライト名・スプライト本体への登録を解除する
     def clear
       @names.clear
       @n2v.clear
     end
     
+    #===オブジェクトを解放する
     def dispose
       @names.clear
       @names = nil
@@ -420,26 +459,42 @@ module Miyako
       @n2v.fetch(name, default, &block)
     end
     
+    #===指定の名前の直前に名前を挿入する
+    #配列上で、スプライト名配列の指定の名前の前になるように名前を挿入する
+    #_key_:: 挿入先の名前。この名前の直前に挿入する
+    #_name_:: 挿入するスプライトの名前
+    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
+    #返却値：自分自身を返す
     def insert(key, name, value = nil)
-      raise MiyakoError, "Illegal key! : #{key}" unless @names.include?(key)
+      raise MiyakoValueError, "Illegal key! : #{key}" unless @names.include?(key)
+      return self if key == name
       if value
         @n2v[name] = value 
       else
-        raise MiyakoError, "name is not regist! : #{name}" unless @names.include?(name)
+        raise MiyakoValueError, "name is not regist! : #{name}" unless @names.include?(name)
       end
       @names.delete(name) if @names.include?(name)
       @names.insert(@names.index(key), name)
+      self
     end
     
+    #===指定の名前の直後に名前を挿入する
+    #配列上で、スプライト名配列の指定の名前の次の名前になるように名前を挿入する
+    #_key_:: 挿入先の名前。この名前の直後に挿入する
+    #_name_:: 挿入するスプライトの名前
+    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
+    #返却値：自分自身を返す
     def insert_after(key, name, value = nil)
-      raise MiyakoError, "Illegal key! : #{key}" unless @names.include?(key)
+      raise MiyakoValueError, "Illegal key! : #{key}" unless @names.include?(key)
+      return self if key == name
       if value
         @n2v[name] = value 
       else
-        raise MiyakoError, "name is not regist! : #{name}" unless @names.include?(name)
+        raise MiyakoValueError, "name is not regist! : #{name}" unless @names.include?(name)
       end
       @names.delete(name) if @names.include?(name)
-      @names.insert(-@names.index(key), name)
+      @names.insert(@parts_list.index(key)-@parts_list.length, name)
+      self
     end
     
     #===指定した要素の内容を入れ替える
@@ -448,8 +503,8 @@ module Miyako
     #_name1,name_:: 入れ替え対象の名前
     #返却値:: 自分自身を帰す
     def swap(name1, name2)
-      raise MiyakoError, "Illegal name! : idx1:#{name1}" unless @names.include?(name1)
-      raise MiyakoError, "Illegal name! : idx2:#{name2}" unless @names.include?(name2)
+      raise MiyakoValueError, "Illegal name! : idx1:#{name1}" unless @names.include?(name1)
+      raise MiyakoValueError, "Illegal name! : idx2:#{name2}" unless @names.include?(name2)
       idx1 = @names.index(name1)
       idx2 = @names.index(name2)
       @names[idx1], @names[idx2] = @names[idx2], @names[idx1]

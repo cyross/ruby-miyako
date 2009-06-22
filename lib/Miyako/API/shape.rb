@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -50,7 +50,7 @@ module Miyako
     #_&block_:: 描画するテキスト(Ｙｕｋｉ形式)
     #返却値:: テキストを描画したスプライト
     def Shape.text(param, &block)
-      raise MiyakoError, "Cannot find any text(:text parameter)!" unless (param[:text] || block)
+      raise MiyakoValueError, "Cannot find any text(:text parameter)!" unless (param[:text] || block)
       @@shape_executer.create_text(param, block)
     end
 

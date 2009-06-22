@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -252,7 +252,7 @@ module Miyako
 
     def Screen::check_mode_error #:nodoc:
       unless Screen::set_screen
-        print "Sorry, this system not supported display...\n";
+        raise MiyakoError, "Sorry, this system not supported display...";
         exit(1)
       end
     end

@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
 "./lib/Miyako/API/collision.rb",
 "./lib/Miyako/API/diagram.rb",
 "./lib/Miyako/API/drawing.rb",
+"./lib/Miyako/API/exceptions.rb",
 "./lib/Miyako/API/fixedmap.rb",
 "./lib/Miyako/API/font.rb",
 "./lib/Miyako/API/input.rb",

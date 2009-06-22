@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -140,7 +140,7 @@ module Miyako
     #_x_:: 初期位置(x 座標)。規定値は 0。nilを渡すと、最後に選択した選択肢が選ばれる。
     #_y_:: 初期位置(y 座標)。規定値は 0
     def start_choice(x = 0, y = 0)
-      raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x != nil && (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length))
+      raise MiyakoValueError, "Illegal choice position! [#{x}][#{y}]" if (x != nil && (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length))
       @now = x ? @choices[x][y] : @last_selected
       @now.selected = true
       @last_selected = @now
@@ -233,7 +233,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def select(x, y)
       raise MiyakoError, "Not select yet!" unless @now
-      raise MiyakoError, "Illegal choice position! [#{x}][#{y}]" if (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
+      raise MiyakoValueError, "Illegal choice position! [#{x}][#{y}]" if (x < 0 || x >= @choices.length || y < 0 || y >= @choices[x].length)
       @non_select = false
       @last_selected = @now
       @now.selected = false

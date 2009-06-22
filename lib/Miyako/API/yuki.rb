@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -190,7 +190,7 @@ module Miyako
       @now_page = nil
       @first_page = nil
       
-      raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
+      raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
 
@@ -493,7 +493,7 @@ module Miyako
       @now_page = nil
       @first_page = nil
       
-      raise MiyakoError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
+      raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
       
       return self
@@ -522,9 +522,9 @@ module Miyako
     #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
     #返却値:: 自分自身を返す
     def start_plot(plot_proc = nil, with_update_input = true, &plot_block)
-      raise MiyakoError, "Yuki Error! Textbox is not selected!" unless @text_box
-      raise MiyakoError, "Yuki Error! Plot must not have any parameters!" if plot_proc && plot_proc.arity != 0
-      raise MiyakoError, "Yuki Error! Plot must not have any parameters!" if plot_block && plot_block.arity != 0
+      raise MiyakoValueError, "Yuki Error! Textbox is not selected!" unless @text_box
+      raise MiyakoProcError, "Yuki Error! Plot must not have any parameters!" if plot_proc && plot_proc.arity != 0
+      raise MiyakoProcError, "Yuki Error! Plot must not have any parameters!" if plot_block && plot_block.arity != 0
       @with_update_input = with_update_input
       @executing_fiber = Fiber.new{ plot_facade(plot_proc, &plot_block) }
       @executing_fiber.resume
@@ -581,7 +581,7 @@ module Miyako
       @plot_result = plot_proc ? self.instance_exec(&plot_proc) :
                      block_given? ? self.instance_exec(&plot_block) :
                      exec_plot ? self.instance_exec(&exec_plot) :
-                     raise(MiyakoError, "Cannot find plot!")
+                     raise(MiyakoProcError, "Cannot find plot!")
       @executing = false
     end
 
@@ -661,7 +661,7 @@ module Miyako
     #post_proc:: ポーズ解除時に実行させるProc(デフォルトは[](何もしない))
     #返却値:: 自分自身を返す
     def release_checks_during(procs, pre_procs = [], post_procs = [])
-      raise MiyakoError, "Can't find block!" unless block_given?
+      raise MiyakoProcError, "Can't find block!" unless block_given?
       backup = [@release_checks, @pre_pause, @post_pause]
       @release_checks, @pre_pause, @post_pause = procs, pre_proc, post_proc
       yield
@@ -677,7 +677,7 @@ module Miyako
     #post_proc:: コマンド選択決定時に実行させるProc(デフォルトは[](何もしない))
     #返却値:: 自分自身を返す
     def ok_checks_during(procs, pre_procs = [], post_procs = [])
-      raise MiyakoError, "Can't find block!" unless block_given?
+      raise MiyakoProcError, "Can't find block!" unless block_given?
       backup = [@ok_checks, @pre_command, @post_command]
       @ok_checks, @pre_command, @post_command = procs, pre_proc, post_proc
       yield
@@ -693,7 +693,7 @@ module Miyako
     #post_proc:: コマンド選択キャンセル時に実行させるProc(デフォルトは[](何もしない))
     #返却値:: 自分自身を返す
     def cancel_checks_during(procs, pre_procs = [], post_procs = [])
-      raise MiyakoError, "Can't find block!" unless block_given?
+      raise MiyakoProcError, "Can't find block!" unless block_given?
       backup = [@cancel_checks, @pre_cancel, @post_cancel]
       @cancel_checks, @pre_cancel, @post_cancel = procs, pre_proc, post_proc
       yield
@@ -795,7 +795,7 @@ module Miyako
     #_mode_:: テキストの表示方法。:charのときは文字ごと、:stringのときは文字列ごとに表示される。それ以外を指定したときは例外が発生
     #返却値:: 自分自身を返す
     def text_method(mode)
-      raise MiyakoError, "undefined text_mode! #{mode}" unless [:char,:string].include?(mode)
+      raise MiyakoValueError, "undefined text_mode! #{mode}" unless [:char,:string].include?(mode)
       backup = @text_method_name
       @text_method_name = mode
       if block_given?
@@ -906,7 +906,7 @@ module Miyako
     #_valign_:: 文字の縦の位置(top, middle, bottom)
     #返却値:: 自分自身を返す
     def valign_during(valign)
-      raise MiyakoError, "Can't find block!" unless block_given?
+      raise MiyakoProcError, "Can't find block!" unless block_given?
       oalign, @valign = @valign, valign
       yield
       @valign = oalign
@@ -1030,7 +1030,7 @@ module Miyako
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
     def command(command_list, cancel_to = Canceled, &chain_block)
-      raise MiyakoError, "Yuki Error! Commandbox is not selected!" unless @command_box
+      raise MiyakoValueError, "Yuki Error! Commandbox is not selected!" unless @command_box
       @cancel = cancel_to
 
       choices = []
@@ -1136,7 +1136,7 @@ module Miyako
     #_use_pause_::ページの処理が終了した後、必ずpauseメソッドを呼び出すかどうかのフラグ。デフォルトはtrue
     #返却値:: select_first_pageメソッドで指定されていないページのときはnil、指定されているページの場合は引数nameの値
     def page(name, use_pause = true)
-      raise MiyakoError, "Yuki#page needs block!" unless block_given?
+      raise MiyakoProcError, "Yuki#page needs block!" unless block_given?
       return nil if (@first_page && name != @first_page)
       @first_page = nil
       @now_page = name

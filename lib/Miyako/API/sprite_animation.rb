@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v1.5
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -114,7 +114,7 @@ module Miyako
         @pat_len  = @slist.length
         @pats     = @slist.length
       else
-        raise MiyakoError, "Illegal sprite list for SpriteAnimation."
+        raise MiyakoTypeError, "Illegal sprite list for SpriteAnimation."
       end
 
       if @plist
@@ -202,7 +202,7 @@ module Miyako
         elsif wait.kind_of?(Float)
           @waits = Array.new(@pats){|pat| WaitCounter.new(wait)}
         else
-          raise MiyakoError, "Illegal wait counter for SpriteAnimation."
+          raise MiyakoTypeError, "Illegal counter class for SpriteAnimation."
         end
       elsif @waits.length < @pats
         @waits = @waits.cycle.take(@pats)
