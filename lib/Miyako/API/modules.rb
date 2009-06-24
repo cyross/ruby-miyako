@@ -274,3 +274,29 @@ module Miyako
     end
   end
 end
+
+class Object
+  include Miyako::DeepCopy
+end
+
+class Array
+  include Miyako::SpriteArray
+
+  #===複製を取得する
+  #ただし、配列の要素もdeep_dupメソッドで複製する
+  #返却値:: 複写したインスタンスを返す
+  def deep_dup
+    self.dup.map{|e| e.deep_dup}
+  end
+end
+
+class Hash
+  #===複製を取得する
+  #ただし、配列の要素もdeep_dupメソッドで複製する
+  #返却値:: 複写したインスタンスを返す
+  def deep_dup
+    ret = self.dup
+    ret.keys.each{|key| ret[key] = ret[key].deep_dup }
+    ret
+  end
+end

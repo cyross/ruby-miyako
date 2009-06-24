@@ -121,14 +121,15 @@ module Miyako
     #
     #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
     #引数の数とブロック引数の数が違っていれば例外が発生する
-    #_params_:: ブロックに渡す引数リスト
+    #_params_:: ブロックに渡す引数リスト(ただし、ブロックを渡しているときのみに有効)
     def initialize(*params, &proc)
       @yuki = { }
+      @over_yuki = nil
+      @over_exec = false
       @text_box = nil
       @command_box = nil
 
       @executing = false
-      @with_update_input = true
 
       @exec_plot = nil
       
@@ -196,6 +197,7 @@ module Miyako
 
     def initialize_copy(obj) #:nodoc:
       @yuki = @yuki.dup
+      @over_exec = false
       @text_box = @text_box.dup
       @command_box = @command_box.dup
 
@@ -248,8 +250,8 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render
-      return self unless @visible
-      @visibles.render
+      @visibles.render if @visible
+      @over_yuki.render if @over_yuki && @over_yuki.executing?
       return self
     end
     
@@ -258,8 +260,8 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render_to(dst)
-      return self unless @visible
-      @visibles.render_to(dst)
+      @visibles.render_to(dst) if @visible
+      @over_yuki.render_to(dst) if @over_yuki && @over_yuki.executing?
       return self
     end
     
@@ -267,6 +269,7 @@ module Miyako
     #showメソッドで指定した画像のupdate_animationメソッドを呼び出す
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
+      @over_yuki.update_animation if @over_yuki && @over_yuki.executing?
       @visibles.update_animation
     end
 
@@ -465,12 +468,43 @@ module Miyako
       end
       return self
     end
+
+    #===別のYukiエンジンを実行する
+    #[[Yukiスクリプトとして利用可能]]
+    #もう一つのYukiエンジンを実行させ、並行実行させることができる
+    #ウインドウの上にウインドウを表示したりするときに、このメソッドを使う
+    #renderメソッドで描画する際は、自分のインスタンスが描画した直後に描画される
+    #自分自身を実行しようとするとMiyakoValueError例外が発生する
+    #_yuki_:: 実行対象のYukiインスタンス(事前にsetupの呼び出しが必要)
+    #_plot_:: プロットインスタンス。すでにsetupなどで登録しているときはnilを渡す
+    #_params_:: プロット実行開始時に、プロットに渡す引数
+    #返却値:: 自分自身を返す
+    def over_exec(yuki, plot, *params)
+      raise MiyakoValueError, "This Yuki engine is same as self!" if yuki.eql?(self)
+      @over_yuki = yuki
+      @over_yuki.start_plot(plot, *params)
+      return self
+    end
+
+    #===別のYukiエンジンの実行が終わるまで待つ
+    #[[Yukiスクリプトとして利用可能]]
+    #over_execを呼び出した時、処理がすぐに次の行へ移るため、
+    #over_execの処理が終了するのを待たせるためのメソッド
+    #返却値:: 自分自身を返す
+    def wait_over_exec
+      @over_exec = true
+      while @over_yuki && @over_yuki.executing?
+        @over_yuki.update
+        Fiber.yield
+      end
+      return self
+    end
   
     #===シーンのセットアップ時に実行する処理
     #
     #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
     #引数の数とブロック引数の数が違っていれば例外が発生する
-    #_params_:: ブロックに渡す引数リスト
+    #_params_:: ブロックに渡す引数リスト(ブロックを渡しているときのみ)
     #返却値:: 自分自身を返す
     def setup(*params, &proc)
       @exec_plot = nil
@@ -494,7 +528,7 @@ module Miyako
       @first_page = nil
       
       raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
-      instance_exec(*params, &proc) if block_given?
+      instance_exec(*params, &proc) if proc
       
       return self
     end
@@ -518,15 +552,15 @@ module Miyako
     #
     #3)select_plotメソッドで登録したブロック(Procクラスのインスタンス)
     #
-    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
-    #_with_update_input_:: Yuki#updateメソッドを呼び出した時、同時にYuki#update_plot_inputメソッドを呼び出すかどうかを示すフラグ。デフォルトはfalse
+    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト。省略時はnil(paramsを指定するときは必ず設定すること)
+    #_params_:: プロットに引き渡す引数リスト
     #返却値:: 自分自身を返す
-    def start_plot(plot_proc = nil, with_update_input = true, &plot_block)
+    def start_plot(plot_proc = nil, *params, &plot_block)
       raise MiyakoValueError, "Yuki Error! Textbox is not selected!" unless @text_box
-      raise MiyakoProcError, "Yuki Error! Plot must not have any parameters!" if plot_proc && plot_proc.arity != 0
-      raise MiyakoProcError, "Yuki Error! Plot must not have any parameters!" if plot_block && plot_block.arity != 0
-      @with_update_input = with_update_input
-      @executing_fiber = Fiber.new{ plot_facade(plot_proc, &plot_block) }
+      raise MiyakoProcError, "Aagument count is not same block parameter count!" if plot_proc && plot_proc.arity.abs != params.length
+      raise MiyakoProcError, "Aagument count is not same block parameter count!" if plot_block && plot_block.arity.abs != params.length
+      raise MiyakoProcError, "Aagument count is not same block parameter count!" if @exec_plot && @exec_plot.arity.abs != params.length
+      @executing_fiber = Fiber.new{ plot_facade(plot_proc, *params, &plot_block) }
       @executing_fiber.resume
       return self
     end
@@ -536,7 +570,8 @@ module Miyako
     #プロット処理の実行確認は出来ない
     def update
       return unless @executing
-      update_plot_input if @with_update_input
+      return @over_yuki.update if @over_yuki && @over_yuki.executing? && !@over_exec
+      update_plot_input
       pausing if @pausing
       selecting if @selecting
       waiting   if @waiting
@@ -562,6 +597,7 @@ module Miyako
     #プロット処理の場合は、メインスレッドから明示的に呼び出す必要がある
     #返却値:: nil を返す
     def update_plot_input
+      return nil if @over_yuki && @over_yuki.executing?
       return nil unless @executing
       if @pausing && @release_checks.inject(false){|r, c| r |= c.call }
         @pause_release = true
@@ -574,13 +610,13 @@ module Miyako
       return nil
     end
 
-    def plot_facade(plot_proc = nil, &plot_block) #:nodoc:
+    def plot_facade(plot_proc = nil, *params, &plot_block) #:nodoc:
       @plot_result = nil
       @executing = true
       exec_plot = @exec_plot
-      @plot_result = plot_proc ? self.instance_exec(&plot_proc) :
-                     block_given? ? self.instance_exec(&plot_block) :
-                     exec_plot ? self.instance_exec(&exec_plot) :
+      @plot_result = plot_proc ? self.instance_exec(*params, &plot_proc) :
+                     block_given? ? self.instance_exec(*params, &plot_block) :
+                     exec_plot ? self.instance_exec(*params, &exec_plot) :
                      raise(MiyakoProcError, "Cannot find plot!")
       @executing = false
     end

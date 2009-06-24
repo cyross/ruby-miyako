@@ -24,7 +24,20 @@ module Miyako
   #==オーディオ管理モジュール
   #オーディオにはBGM,SE(効果音)の2種類あり、扱えるメソッドが少々違う(別クラスになっている)。
   module Audio
-    #===効果音の再生情報を更新する
+    @@initialized = false
+
+    #===音声関連の初期化処理
+    def Audio.init
+      SDL::Mixer.open($sampling_seq, SDL::Mixer::DEFAULT_FORMAT, 2, $sound_buffer_size) unless $not_use_audio
+      @@initialized = true
+    end
+
+    #===音声関係の初期化がされた？
+    def Audio.initialized?
+      @@initialized
+    end
+    
+    #===BGM・効果音の再生情報を更新する
     def Audio.update
       return if $not_use_audio
       Audio::BGM.update
@@ -451,6 +464,7 @@ module Miyako
       #返却値:: 自分自身を返す
       def stop(msec = nil)
         return self if $not_use_audio
+        return self if !@@playings.include?(self)
         if msec
           raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
         end
@@ -496,6 +510,7 @@ module Miyako
       #返却値:: 自分自身を返す
       def fade_out(msec = 5000, wmode = false)
         return self if $not_use_audio
+        return self if !@@playings.include?(self)
         if msec
           raise MiyakoValueError.over_range(msec, 1, nil) unless msec > 0
         end

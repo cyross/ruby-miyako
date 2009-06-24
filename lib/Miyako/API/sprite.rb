@@ -22,32 +22,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 require 'Forwardable'
 
-class Object
-  include Miyako::DeepCopy
-end
-
-class Array
-  include Miyako::SpriteArray
-
-  #===複製を取得する
-  #ただし、配列の要素もdeep_dupメソッドで複製する
-  #返却値:: 複写したインスタンスを返す
-  def deep_dup
-    self.dup.map{|e| e.deep_dup}
-  end
-end
-
-class Hash
-  #===複製を取得する
-  #ただし、配列の要素もdeep_dupメソッドで複製する
-  #返却値:: 複写したインスタンスを返す
-  def deep_dup
-    ret = self.dup
-    ret.keys.each{|key| ret[key] = ret[key].deep_dup }
-    ret
-  end
-end
-
 # スプライト関連クラス群
 module Miyako
   #==スプライト管理クラス
@@ -79,6 +53,7 @@ module Miyako
 
     #===インスタンス生成
     #スプライトをファイルや画像サイズから生成します。
+    #Screen.init/Miyako.openが呼ばれる前に作成しようとするとMiyakoError例外が発生します
     #
     #v1.5以前は、ファイルからスプライトを生成するときは、ファイル名で画像が共有されていましたが、
     #v2.0では廃止されました。
@@ -110,6 +85,7 @@ module Miyako
     #    * デフォルト：画像の[0,0]の位置にあるピクセルの色
     #* 3. αチャネル付き画像を使用(設定変更不可)　(書式):type=>:alpha_channel(:ac)
     def initialize(param)
+      raise MiyakoError, "Sprite instance cannot create uninitialized yet!" unless Screen.initialized?
       raise MiyakoTypeError, "Sprite parameter is not Hash!" unless param.kind_of?(Hash)
       setup
       init_layout

@@ -126,9 +126,6 @@ module Miyako
       @size = @size.dup
       @pos = @pos.dup
 
-      @fibers = @fibers.dup
-      @scene_cache = @scene_cache.dup
-      @scene_cache_list = @scene_cache_list.dup
       @default_wait_cursor_position = @default_wait_cursor_position.dup
       @default_select_cursor_position = @default_select_cursor_position.dup
 
@@ -154,8 +151,6 @@ module Miyako
       @textarea = @textarea.dup
       @textarea.snap(self)
       @textarea.centering
-
-      @fiber = @fiber.dup
 
       if @wait_cursor
 				@wait_cursor.snap(self)

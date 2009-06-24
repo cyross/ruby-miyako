@@ -63,6 +63,19 @@ module Miyako
                                       {:serif=>"ヒラキ゛ノ明朝 Pro W6.otf", :sans_serif=>"ヒラキ゛ノ角コ゛ Pro W6.otf"},
                                       {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"},
                                       {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"}]
+    @@initialized = false
+
+    #===フォント関連の初期化処理
+    def Font.init
+      SDL::TTF.init
+      Font.create_font_path
+      @@initialized = true
+    end
+
+    #===フォント周辺の初期化がされた？
+    def Font.initialized?
+      @@initialized
+    end
 
     def Font.search_font_path_file(hash, path) #:nodoc:
       Dir.glob(path+"*"){|d|
@@ -386,8 +399,6 @@ module Miyako
       #else
       raise MiyakoError, "Illegal margin_height align! : #{align}"
     end
-
-    Font.create_font_path
 
     #===Serifフォント(明朝フォント)を取得する
     #マルチプラットフォームのソフトを作る際、OS間の差異を吸収するため、

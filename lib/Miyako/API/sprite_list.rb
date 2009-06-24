@@ -20,18 +20,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-# �X�v���C�g�֘A�N���X�Q
+# スプライト関連クラス群
 module Miyako
-  #==�����X�v���C�g�Ǘ�(���X�g)�N���X
-  #�����̃X�v���C�g���A[���O,�C���X�^���X]�̈�Έ�̃��X�g�Ƃ��Ď����Ă����B
-  #�l�̕��т̊�́A���O�̕��т�z��ɂ����Ƃ��̂���(SpriteList#values�̒l)�ɑΉ�����
-  #Enumerable����mixin���ꂽ���\�b�h�AArray�EHash�N���X�Ŏg�p����Ă���ꕔ���\�b�h�A
-  #swap�Ȃǂ̓Ǝ����\�b�h��ǉ����Ă���
-  #(Enumerable����mixin���ꂽ���\�b�h�ł́A�u���b�N������[���O,�C���X�^���X]�̔z��Ƃ��ēn�����)
-  #render�Arender_to��p�ӂ��A��C�ɕ`�悪�\�B
-  #���O�͔z��Ƃ��ĊǗ����Ă���Brender���ɂ́A���O�̏��Ԃɕ`�悳���B
-  #�e�v�f�̃��C�A�E�g�͊֗^���Ă��Ȃ�(������Parts�Ƃ̈Ⴂ)
-  #�܂��A���̃N���X�C���X�^���X��dup�Aclone�̓f�B�[�v�R�s�[(�z��̗v�f������)�ƂȂ��Ă��邱�Ƃɒ��ӁB
+  #==名前-本体ペアを構成する構造体用クラス
+  class ListPairStruct < Struct
+    # 構造体を配列に変換する
+    def to_ary
+      [self[0], self[1]]
+    end
+    
+    # 構造体を配列に変換する
+    def to_a
+      self.to_ary
+    end
+    
+    # 構造体を文字列に変換する
+    def to_s
+      "#{self[0]} : #{self[1]}"
+    end
+  end
+  
+  #===名前-本体ペアを構成する構造体
+  #ハッシュのようにキー・バリュー構成を持たせるための構造体
+  #_name_:: 名前
+  #_body_:: 本体
+  ListPair = Struct.new(:name, :body)
+
+  #==複数スプライト管理(リスト)クラス
+  #複数のスプライトを、[名前,インスタンス]の一対一のリストとして持っておく。
+  #値の並びの基準は、名前の並びを配列にしたときのもの(SpriteList#valuesの値)に対応する
+  #Enumerableからmixinされたメソッド、Array・Hashクラスで使用されている一部メソッド、
+  #swapなどの独自メソッドを追加している
+  #(Enumerableからmixinされたメソッドでは、ブロック引数に[名前,インスタンス]の配列として渡される)
+  #render、render_toを用意し、一気に描画が可能。
+  #名前は配列として管理している。render時には、名前の順番に描画される。
+  #各要素のレイアウトは関与していない(そこがPartsとの違い)
+  #また、このクラスインスタンスのdup、cloneはディープコピー(配列の要素も複写)となっていることに注意。
   class SpriteList
     include SpriteBase
     include Animation
@@ -39,40 +63,40 @@ module Miyako
 
     attr_accessor :visible
     
-    #===�n�b�V��������SpriteList�𐶐�����
-    #�n�b�V���̃L�[���X�v���C�g���ɂ��Đ�������
-    #_hash_:: �������̃n�b�V��
-    #�ԋp�l:: ���������C���X�^���X
+    #===ハッシュを元にSpriteListを生成する
+    #ハッシュのキーをスプライト名にして生成する
+    #_hash_:: 生成元のハッシュ
+    #返却値:: 生成したインスタンス
     def SpriteList.[](hash)
       body = SpriteList.new
       hash.each{|k, v| body.push(k ,v)}
     end
     
-    #===�n�b�V��������SpriteList�𐶐�����
-    #�������ȗ�����Ƌ��SpriteList�𐶐�����B
-    #�v�f��[�X�v���C�g��,�X�v���C�g]�̔z��ƂȂ�z��������Ƃ��ēn�����Ƃ��ł���B
-    #�n�b�V���������Ƃ��ēn���ƁA�L�[���X�v���C�g���Ƃ���SpriteList�𐶐�����B
-    #_pairs_:: �������̃C���X�^���X
-    #�ԋp�l:: ���������C���X�^���X
+    #===ハッシュを元にSpriteListを生成する
+    #引数を省略すると空のSpriteListを生成する。
+    #要素が[スプライト名,スプライト]の配列となる配列を引数として渡すこともできる。
+    #ハッシュを引数として渡すと、キーをスプライト名とするSpriteListを生成する。
+    #_pairs_:: 生成元のインスタンス
+    #返却値:: 生成したインスタンス
     def initialize(pairs = nil)
       @names = []
       @n2v   = {}
       if pairs.is_a?(Array)
         pairs.each{|pair|
           @names << pair[0]
-          @n2v[pair[0]] = pair[1]
+          @n2v[pair[0]] = ListPair.new(*pair)
         }
       elsif pairs.is_a?(Hash)
         pairs.each{|key, value|
           @names << key
-          @n2v[key] = value
+          @n2v[key] = ListPair.new(key, value)
         }
       end
       @visible = true
     end
     
-    #===�����Ŏg�p���Ă���z��Ȃǂ�V�����C���X�^���X�ɒu��������
-    #initialize_copy�p�Ō��E�V�C���X�^���X�Ŕz��Ȃǂ����p���Ă���ꍇ�ɑΉ�
+    #===内部で使用している配列などを新しいインスタンスに置き換える
+    #initialize_copy用で元・新インスタンスで配列などを共用している場合に対応
     def reflesh
       @names = []
       @n2v = {}
@@ -80,29 +104,31 @@ module Miyako
     
     def initialize_copy(obj) #:nodoc:
       reflesh
-      obj.names.each{|name|
-        self.push(name, obj[name].deep_dup)
-      }
+      obj.names.each{|name| self.push([name, obj[name].deep_dup]) }
       @visible = obj.visible
     end
     
-    #==nil��X�v���C�g�ȊO�̃C���X�^���X���폜����SpriteList�𐶐�����
-    #�V����SpriteList���쐬���A�{�̂�nil��ASpriteBase��������SpritArray���W���[����mixin���Ă��Ȃ��΂��폜����B
-    #�ԋp�l:: �V�������������C���X�^���X
+    #===スプライト以外のインスタンスを削除したSpriteListを生成する
+    #新しいSpriteListを作成し、本体がnilや、SpriteBaseもしくはSpritArrayモジュールを
+    #mixinしていない対を削除する。
+    #返却値:: 新しく生成したインスタンス
     def sprite_only
       ret = self.dup
       ret.names.each{|name|
-        ret.delete(name) if !ret[name].class.include?(SpriteBase) && !ret[name].class.include?(SpriteArray)
+        ret.delete(name) if !ret[name].class.include?(SpriteBase) &&
+                            !ret[name].class.include?(SpriteArray)
       }
       return ret
     end
 
-    #==nil��X�v���C�g�ȊO�̃C���X�^���X��j��I�ɍ폜����
-    #�������g����A�{�̂�nil��ASpriteBase��������SpritArray���W���[����mixin���Ă��Ȃ��΂��폜����B
-    #�ԋp�l:: �������g���A��
+    #===スプライト以外のインスタンスを破壊的に削除する
+    #自分自身から、本体がnilや、SpriteBaseもしくはSpritArrayモジュールを
+    #mixinしていない対を削除する。
+    #返却値:: 自分自身を帰す
     def sprite_only!
       @names.each{|name|
-        if !@n2v[name].class.include?(SpriteBase) && !ret[name].class.include?(SpriteArray)
+        if !@n2v[name].class.include?(SpriteBase) &&
+           !ret[name].class.include?(SpriteArray)
           @n2v.delete(name)
           @names.delete(name)
         end
@@ -110,115 +136,181 @@ module Miyako
       return self
     end
 
-    #==�u���b�N���󂯎��A���X�g�̊e�v�f�ɂ������ď������s��
-    #�u���b�N�����ɂ́A|[�X�v���C�g��,�X�v���C�g�{��]|���n���Ă���
-    #���O���o�^����Ă��鏇�ɓn���Ă���
-    #�ԋp�l:: �������g���A��
+    #===ブロックを受け取り、リストの各要素にたいして処理を行う
+    #ブロック引数には、|[スプライト名,スプライト本体]|が渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each
       self.to_a.each{|pair| yield pair}
     end
     
-    #==�u���b�N���󂯎��A�X�v���C�g�����X�g�̊e�v�f�ɂ������ď������s��
-    #�u���b�N�����ɂ́A|�X�v���C�g��,�X�v���C�g�{��|���n���Ă���
-    #���O���o�^����Ă��鏇�ɓn���Ă���
-    #�ԋp�l:: �������g���A��
+    #===ブロックを受け取り、スプライト名リストの各要素にたいして処理を行う
+    #ブロック引数には、|スプライト名,スプライト本体|が渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_pair
-      @names.each{|name| yield name, @n2v[name]}
+      @names.each{|name| yield *@n2v[name]}
     end
     
-    #==�u���b�N���󂯎��A���O���X�g�̊e�v�f�ɂ������ď������s��
-    #�u���b�N�����ɂ́A|�X�v���C�g��|���n���Ă���
-    #���O���o�^����Ă��鏇�ɓn���Ă���
-    #�ԋp�l:: �������g���A��
+    #===ブロックを受け取り、名前リストの各要素にたいして処理を行う
+    #ブロック引数には、|スプライト名|が渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_name
       @names.each{|name| yield name}
     end
     
-    #==�u���b�N���󂯎��A�l���X�g�̊e�v�f�ɂ������ď������s��
-    #�u���b�N�����ɂ́A|�X�v���C�g�{��|�̔z��Ƃ��ēn���Ă���
-    #���O���o�^����Ă��鏇�ɓn���Ă���
-    #�ԋp�l:: �������g���A��
+    #===ブロックを受け取り、値リストの各要素にたいして処理を行う
+    #ブロック引数には、|スプライト本体|の配列として渡ってくる
+    #名前が登録されている順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_value
-      @names.each{|name| yield @n2v[name]}
+      @names.each{|name| yield @n2v[name].body}
     end
     
-    #==�u���b�N���󂯎��A�z��C���f�b�N�X�ɂ������ď������s��
-    #�u���b�N�����ɂ́A|�X�v���C�g���ɑΉ�����z��C���f�b�N�X|�̔z��Ƃ��ēn���Ă���
-    #0,1,2,...�̏��ɓn���Ă���
-    #�ԋp�l:: �������g���A��
+    #===ブロックを受け取り、配列インデックスにたいして処理を行う
+    #ブロック引数には、|スプライト名に対応する配列インデックス|の配列として渡ってくる
+    #0,1,2,...の順に渡ってくる
+    #返却値:: 自分自身を帰す
     def each_index
       @names.length.times{|idx| yield idx}
     end
     
-    #==�X�v���C�g���z����擾����
-    #���O���o�^����Ă��鏇�ɓn���Ă���
-    #�ԋp�l:: �X�v���C�g���z��
+    #===スプライト名配列を取得する
+    #名前が登録されている順に渡ってくる
+    #返却値:: スプライト名配列
     def names
       @names
     end
     
-    #==�X�v���C�g�z����擾����
-    #���O���o�^����Ă��鏇�ɓn���Ă���
-    #�ԋp�l:: �X�v���C�g�{�̔z��
+    #===スプライト配列を取得する
+    #名前が登録されている順に渡ってくる
+    #返却値:: スプライト本体配列
     def values
-      @names.map{|name| @n2v[name]}
+      @names.map{|name| @n2v[name].body}
     end
     
-    #==���X�g������ۂ��ǂ����m���߂�
-    #���X�g�ɉ����o�^����Ă��Ȃ����ǂ����m���߂�
-    #�ԋp�l:: ����ۂ̎���true�A�Ȃɂ��o�^����Ă���Ƃ���false
+    #===名前-本体ペア配列を取得する
+    #名前が登録されている順にListPair構造体の構造体を構成して返す
+    #返却値:: ListPair構造体の配列
+    def pairs
+      @names.map{|name| @n2v[name].body}
+    end
+    
+    #===リストが空っぽかどうか確かめる
+    #リストに何も登録されていないかどうか確かめる
+    #返却値:: 空っぽの時はtrue、なにか登録されているときはfalse
     def empty?
       @names.empty?
     end
 
+    #===内容が同じかどうか比較する
+    #リストに含まれるスプライト名(順番も)・値が同じかどうか比較する
+    #返却値:: 同じときはtrue、違うときはfalseを返す
     def eql?(other)
-      @names.eql?(other.names) && @n2v.values.eql?(other.values)
+      @names.map{|name|
+        self.index(name) == other.index(name) &&
+        @n2v[name].body.eql?(other[name].body)
+      }.all?
     end
     
+    #===リストに名前が登録されているか確認する
+    #スプライト名リスト内に、引数で指定した名前が含まれているか調べる
+    #(include?メソッドと同じ)
+    #_name_:: 検索対象の名前
+    #返却値:: 名前が含まれていればtrue、含まれていなければfalseと返す
     def has_name?(name)
       @n2v.has_key?(name)
     end
     
+    #===リストに名前が登録されているか確認する
+    #スプライト名リスト内に、引数で指定した名前が含まれているか調べる
+    #(has_name?メソッドと同じ)
+    #_name_:: 検索対象の名前
+    #返却値:: 名前が含まれていればtrue、含まれていなければfalseと返す
     def include?(name)
       @names.has_key?(name)
     end
     
+    #===リストにスプライトが登録されているか確認する
+    #スプライトリスト内に、引数で指定したスプライトが含まれているか調べる
+    #_value_:: 検索対象のスプライト
+    #返却値:: スプライトが含まれていればtrue、含まれていなければfalseと返す
     def has_value?(value)
-      @n2v.has_value?(value)
+      @n2v.values.has_value?(value)
     end
 
+    #===リストの長さを求める
+    #スプライトの登録数(リストの要素数)を返す
+    #(sizeメソッドと同じ)
+    #返却値:: リストの要素数(殻のときは0)
     def length
       @names.length
     end
 
+    #===リストの長さを求める
+    #スプライトの登録数(リストの要素数)を返す
+    #(lengthメソッドと同じ)
+    #返却値:: リストの要素数(殻のときは0)
     def size
       @names.size
     end
 
+    #===スプライト名を探し、あればその対を返す
+    #引数で渡された名前を元に、リストから探し出す。
+    #(内部でHash#assocを呼び出し)
+    #_name_:: 検索対象のスプライト名
+    #返却値:: 見つかればListPair構造体、無ければnil
     def assoc(name)
       @n2v.assoc(name)
     end
-    
-    def rassoc(val)
-      @n2v.rassoc(name)
-    end
-    
+
+    #===スプライトが登録されている名前を求める
+    #実際のスプライト本体から、登録されているスプライトを探す。
+    #見つかれば、それに対応する名前を返す。
+    #(内部でHash#keyメソッドを呼び出している)
+    #_name_:: 検索対象のスプライト名
+    #返却値:: 名前が見つかったときはそのスプライト名、無ければnil
     def name(value)
       @n2v.key(value)
     end
     
+    #===名前が何番目にあるかを求める
+    #スプライト名リスト中、指定したスプライト名のインデックスを求める
+    #(内部でHash#indexメソッドを呼び出している)
+    #_name_:: 検索対象のスプライト名
+    #返却値:: 名前が見つかったときはそのインデックス(0以上の整数)、無ければnil
     def index(name)
       @names.index(name)
     end
     
+    #===リストの先頭要素を求める
+    #リストの先頭からn要素をSpriteListとして返す。
+    #リストが空のとき、nが0のときはnilを返す
+    #_n_:: 先頭からの数。省略時は1
+    #返却値:: 先頭からn個の要素を設定したSpriteList
     def first(n=1)
-      @names.length < n ? nil : @names.first(n).map{|name| [name, @n2v[name]]}
+      return nil if @names.empty?
+      return nil if n == 0
+      SpriteList.new(@names.first(n).map{|name| [name, @n2v[name]]})
     end
     
+    #===リストの終端要素を求める
+    #リストの終端からn要素をSpriteListとして返す。
+    #リストが空のとき、nが0のときはnilを返す
+    #_n_:: 終端からの数。省略時は1
+    #返却値:: 終端からn個の要素を設定したSpriteList
     def last(n=1)
-      @names.length < n ? nil : @names.last(n).map{|name| [name, @n2v[name]]}
+      return nil if @names.empty?
+      return nil if n == 0
+      SpriteList.new(@names.last(n).map{|name| [name, @n2v[name]]})
     end
     
+    #===名前・スプライトの対を登録する
+    #リストに名前・スプライトをリストの後ろに追加する
+    #効果はSpriteList#pushと同じ
+    #_pair_:: 名前とスプライトの対。[name,sprite]として渡す
+    #返却値:: 追加した自分自身を渡す
     def <<(pair)
       self.push(*pair)
     end
@@ -253,33 +345,58 @@ module Miyako
       self.eql?(other)
     end
 
-    def add(pair)
-      self.push(*pair)
+    #===名前・スプライトを登録する
+    #リストに名前・スプライトをリストの後ろに追加する
+    #効果はSpriteList#push,<<と同じ
+    #_name_:: スプライト名
+    #_sprite_:: スプライト本体
+    #返却値:: 追加した自分自身を渡す
+    def add(name, sprite)
+      self.push([name, sprite])
     end
     
-    def push(name, sprite)
-      @names.delete(name) if @names.include?(name)
-      @names << name
-      @n2v[name] = sprite
+    #===名前・スプライトの対を登録する
+    #リストに名前・スプライトをリストの後ろに追加する
+    #効果はSpriteList#addと同じ
+    #_pair_:: 名前とスプライトの対。[name,sprite]として渡す
+    #返却値:: 追加した自分自身を渡す
+    def push(*pairs)
+      pairs.each{|name, sprite|
+        @names.delete(name) if @names.include?(name)
+        @names << name
+        @n2v[name] = ListPair.new(name, sprite)
+      }
       return self
     end
-
+    
+    #===リストの終端から名前・スプライトの対を取り出す
+    #リストに名前・スプライトをリストの終端から取り除いて、取り除いた対を返す
+    #返却値:: 終端にあった名前に対応するListPair構造体
     def pop
       return nil if @names.empty?
       name = @names.pop
-      [name, @n2v.delete(name)]
+      @n2v.delete(name)
     end
     
+    #===名前・スプライトを登録する
+    #リストに名前・スプライトをリストの先頭に追加する
+    #(先頭に追加することがSpriteList#<<,add,pushとの違い
+    #_name_:: スプライト名
+    #_sprite_:: スプライト本体
+    #返却値:: 追加した自分自身を渡す
     def unshift(name, sprite)
       @names.delete(name) if @names.include?(name)
       @names.unshift(name)
-      @n2v[name] = sprite
+      @n2v[name] = ListPair.new(name, sprite)
       return self
     end
     
     def slice(*names)
       list = self.to_a
-      names.map{|name| [name, @n2v[name]]}
+      names.map{|name|
+        next nil unless @names.include?(name)
+        ListPair.new(name, @n2v[name])
+      }
     end
     
     def slice!(*names)
@@ -290,16 +407,17 @@ module Miyako
       return nil if @names.empty?
       if n
         names = @names.shift(n)
-        return names.map{|name| [name, @n2v.delete(name)]}
+        return names.map{|name| @n2v.delete(name)}
       else
         name = @names.shift
-        return [name, @n2v.delete(name)]
+        return @n2v.delete(name)
       end
     end
 
     def delete(name)
       return nil unless @names.include?(name)
-      [@names.delete(name), @n2v.delete(name)]
+      @names.delete(name)
+      @n2v.delete(name)
     end
 
     def delete_at(idx)
@@ -356,66 +474,101 @@ module Miyako
       self.to_a.cycle(&block)
     end
 
+    #===名前の順番をシャッフルしたSpriteListを返す
+    #自分自身を複製し、登録されている名前の順番をシャッフルして返す
+    #返却値:: シャッフルした自分自身の複製
     def shuffle
-      self.to_a.shuffle
+      self.dup.shuffle!
     end
 
+    #===名前の順番をシャッフルする
+    #自分自身で登録されている名前の順番をシャッフルする
+    #返却値:: シャッフルした自分自身
+    def shuffle!
+      @names.shuffle
+      self
+    end
+
+    #===自身から要素をランダムに選ぶ
+    #自分自身を配列化(to_ary)し、最大n個の要素(ListPair)をランダムに選び出して配列として返す
+    #自分自身が空のときは、n=nilのときはnilを、n!=nilのときは空配列を返す
+    #_n_:: 選び出す個数。n=nilのときは1個とみなす
+    #返却値:: 選び出したListPairを配列化したもの
     def sample(n=nil)
       n ? self.to_a.sample(n) : self.to_a.sample
     end
 
-    def combination(n)
-      self.to_a.combination(n)
+    #===自身での組み合わせを配列として返す
+    #自分自身を配列化(to_ary)し、サイズnの組み合わせをすべて求めて配列にまとめる
+    #_n_:: 組み合わせのサイズ
+    #返却値:: すべてのListPairの順列を配列化したもの
+    def combination(n, &block)
+      self.to_a.combination(n, &block)
     end
 
+    #===自身での順列を配列として返す
+    #自分自身を配列化(to_ary)し、サイズnの順列をすべて求めて配列にまとめる
+    #_n_:: 順列のサイズ
+    #返却値:: すべてのListPairの組み合わせを配列化したもの
     def permutation(n, &block)
       self.to_a.permutation(n, &block)
     end
     
     private :reflesh
     
+    #===内容を引数のものに置き換える
+    #現在登録されているデータをいったん解除し、
+    #引数として渡ってきたSpriteListの無いようにデータを置き換える
+    #_other_:: 置き換え元のSpriteList
+    #返却値:: 置き換えた自分自身
     def replace(other)
       self.clear
       other.to_a.each{|pair| self.add(*pair)}
       self
     end
 
-    #===���O�̏��Ԃ𔽓]����
-    #���O�̏��Ԃ𔽓]�����A�������g�̃R�s�[�𐶐�����
-    #�ԋp�l:: ���O�𔽓]�������������g�̕�����Ԃ�
+    #===名前の順番を反転する
+    #名前の順番を反転した、自分自身のコピーを生成する
+    #返却値:: 名前を反転させた自分自身の複製を返す
     def reverse
       ret = self.dup
       ret.reverse!
-      return ret
     end
     
-    #===���O�̏��Ԃ�j��I�ɔ��]����
-    #�ԋp�l:: �������g���A��
+    #===名前の順番を破壊的に反転する
+    #返却値:: 自分自身を帰す
     def reverse!
       @names.reverse!
       return self
     end
     
+    #===名前と関連付けられたスプライトを取得する
+    #関連付けられているスプライトが見つからなければnilが返る
+    #_name_:: 名前
+    #返却値:: 名前に関連付けられたスプライト
     def [](name)
-      return @n2v[name]
+      return @n2v[name].body
     end
-
+    
+    #===名前と関連付けられたスプライトを置き換える
+    #名前に対応したスプライトを、引数で指定したものに置き換える。
+    #ただし、まだ名前が登録されていないときは、新規追加と同じになる。
+    #新規追加のときはSpriteList#pushと同じ
+    #_name_:: 名前
+    #_sprite_:: スプライト
+    #返却値:: 登録された自分自身
     def []=(name, sprite)
       return self.push(name, sprite) unless @names.include?(name)
-      @n2v[name] = sprite
+      @n2v[name] = ListPair.new(name, sprite)
       return self
     end
     
-    def sort(&block)
-      @n2v.sort(&block)
-    end
-    
     def pairs_at(*names)
-      names.map{|name| [name, @n2v[name]]}
+      names.map{|name| @n2v[name]}
     end
     
     def values_at(*names)
-      names.map{|name| @n2v[name]}
+      names.map{|name| @n2v[name].body }
     end
     
     def zip(*lists, &block)
@@ -423,29 +576,37 @@ module Miyako
       self.to_a.zip(*lists, &block)
     end
 
-    #===���X�g��z�񉻂���
-    #�C���X�^���X�̓��e�����ɁA�z��𐶐�����B
-    #�e�v�f�́A[�X�v���C�g��,�X�v���C�g�{��]�Ƃ����\���B
-    #�ԋp�l:: ���������n�b�V��
+    #===リストを配列化する
+    #インスタンスの内容を元に、配列を生成する。
+    #各要素は、ListPair構造体
+    #返却値:: 生成した配列
     def to_a
-      @names.map{|name| [name, @n2v[name]]}
+      self.to_ary
+    end
+
+    #===リストを配列化する
+    #インスタンスの内容を元に、配列を生成する。
+    #各要素は、ListPair構造体
+    #返却値:: 生成した配列
+    def to_ary
+      @names.map{|name| @n2v[name]}
     end
     
-    #===�X�v���C�g���ƃX�v���C�g�{�̂Ƃ̃n�b�V�����擾����
-    #�X�v���C�g���ƃX�v���C�g�{�̂��΂ɂȂ����n�b�V�����쐬���ĕԂ�
-    #�ԋp�l:: ���������n�b�V��
+    #===スプライト名とスプライト本体とのハッシュを取得する
+    #スプライト名とスプライト本体が対になったハッシュを作成して返す
+    #返却値:: 生成したハッシュ
     def to_hash
       @n2v.dup
     end
     
-    #===���X�g�̒��g����������
-    #���X�g�ɓo�^����Ă���X�v���C�g���E�X�v���C�g�{�̂ւ̓o�^����������
+    #===リストの中身を消去する
+    #リストに登録されているスプライト名・スプライト本体への登録を解除する
     def clear
       @names.clear
       @n2v.clear
     end
     
-    #===�I�u�W�F�N�g���������
+    #===オブジェクトを解放する
     def dispose
       @names.clear
       @names = nil
@@ -453,23 +614,23 @@ module Miyako
       @n2v = nil
     end
     
-    #===���O�ɑ΂��Ēl��n��
-    #�d�l��Hash#fetch�Ɠ���
+    #===名前に対して値を渡す
+    #仕様はHash#fetchと同じ
     def fetch(name, default = nil, &block)
       @n2v.fetch(name, default, &block)
     end
     
-    #===�w��̖��O�̒��O�ɖ��O��}������
-    #�z���ŁA�X�v���C�g���z��̎w��̖��O�̑O�ɂȂ�悤�ɖ��O��}������
-    #_key_:: �}����̖��O�B���̖��O�̒��O�ɑ}������
-    #_name_:: �}������X�v���C�g�̖��O
-    #_value_:: (���O�����o�^�̎���)�X�v���C�g�{�̏ȗ�����nil
-    #�ԋp�l�F�������g��Ԃ�
+    #===指定の名前の直前に名前を挿入する
+    #配列上で、スプライト名配列の指定の名前の前になるように名前を挿入する
+    #_key_:: 挿入先の名前。この名前の直前に挿入する
+    #_name_:: 挿入するスプライトの名前
+    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
+    #返却値：自分自身を返す
     def insert(key, name, value = nil)
       raise MiyakoValueError, "Illegal key! : #{key}" unless @names.include?(key)
       return self if key == name
       if value
-        @n2v[name] = value 
+        @n2v[name] = ListPair.new(name, value) 
       else
         raise MiyakoValueError, "name is not regist! : #{name}" unless @names.include?(name)
       end
@@ -478,17 +639,17 @@ module Miyako
       self
     end
     
-    #===�w��̖��O�̒���ɖ��O��}������
-    #�z���ŁA�X�v���C�g���z��̎w��̖��O�̎��̖��O�ɂȂ�悤�ɖ��O��}������
-    #_key_:: �}����̖��O�B���̖��O�̒���ɑ}������
-    #_name_:: �}������X�v���C�g�̖��O
-    #_value_:: (���O�����o�^�̎���)�X�v���C�g�{�̏ȗ�����nil
-    #�ԋp�l�F�������g��Ԃ�
+    #===指定の名前の直後に名前を挿入する
+    #配列上で、スプライト名配列の指定の名前の次の名前になるように名前を挿入する
+    #_key_:: 挿入先の名前。この名前の直後に挿入する
+    #_name_:: 挿入するスプライトの名前
+    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
+    #返却値：自分自身を返す
     def insert_after(key, name, value = nil)
       raise MiyakoValueError, "Illegal key! : #{key}" unless @names.include?(key)
       return self if key == name
       if value
-        @n2v[name] = value 
+        @n2v[name] = ListPair.new(name, value) 
       else
         raise MiyakoValueError, "name is not regist! : #{name}" unless @names.include?(name)
       end
@@ -497,11 +658,9 @@ module Miyako
       self
     end
     
-    #===�w�肵���v�f�̓��e�����ւ���
-    #�z��̐擪���珇��render���\�b�h���Ăяo���B
-    #�`�悷��C���X�^���X�́A�������[����render���\�b�h�������Ă�����̂̂�(�����Ă��Ȃ��Ƃ��͌Ăяo���Ȃ�)
-    #_name1,name_:: ����ւ��Ώۂ̖��O
-    #�ԋp�l:: �������g���A��
+    #===指定した要素の内容を入れ替える
+    #_name1,name_:: 入れ替え対象の名前
+    #返却値:: 自分自身を帰す
     def swap(name1, name2)
       raise MiyakoValueError, "Illegal name! : idx1:#{name1}" unless @names.include?(name1)
       raise MiyakoValueError, "Illegal name! : idx2:#{name2}" unless @names.include?(name2)
@@ -511,72 +670,60 @@ module Miyako
       return self
     end
     
-    #===�`���摜�̃A�j���[�V�������J�n����
-    #�e�v�f��start���\�b�h���Ăяo��
-    #�ԋp�l:: �������g��Ԃ�
+    #===描く画像のアニメーションを開始する
+    #各要素のstartメソッドを呼び出す
+    #返却値:: 自分自身を返す
     def start
       self.sprite_only.each{|pair| pair[1].start }
       return self
     end
     
-    #===�`���摜�̃A�j���[�V�������~����
-    #�e�v�f��stop���\�b�h���Ăяo��
-    #�ԋp�l:: �������g��Ԃ�
+    #===描く画像のアニメーションを停止する
+    #各要素のstopメソッドを呼び出す
+    #返却値:: 自分自身を返す
     def stop
       self.sprite_only.each{|pair| pair[1].stop }
       return self
     end
     
-    #===�`���摜�̃A�j���[�V������擪�p�^�[���ɖ߂�
-    #�e�v�f��reset���\�b�h���Ăяo��
-    #�ԋp�l:: �������g��Ԃ�
+    #===描く画像のアニメーションを先頭パターンに戻す
+    #各要素のresetメソッドを呼び出す
+    #返却値:: 自分自身を返す
     def reset
       self.sprite_only.each{|pair| pair[1].reset }
       return self
     end
     
-    #===�`���摜�̃A�j���[�V�������X�V����
-    #�e�v�f��update_animation���\�b�h���Ăяo��
-    #�ԋp�l:: �`���摜��update_sprite���\�b�h���Ăяo�������ʂ�z��ŕԂ�
+    #===描く画像のアニメーションを更新する
+    #各要素のupdate_animationメソッドを呼び出す
+    #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
-      self.sprite_only.map{|pair|
-        pair[1].update_animation
-      }
+      self.sprite_only.map{|pair| pair[1].update_animation }
     end
     
-    #===�z��̗v�f����ʂɕ`�悷��
-    #�z��̐擪���珇��render���\�b�h���Ăяo���B
-    #�`�悷��C���X�^���X�́A�������[����render���\�b�h�������Ă�����̂̂�(�����Ă��Ȃ��Ƃ��͌Ăяo���Ȃ�)
-    #�ԋp�l:: �������g���A��
+    #===配列の要素を画面に描画する
+    #配列の先頭から順にrenderメソッドを呼び出す。
+    #返却値:: 自分自身を帰す
     def render
       return self unless @visible
-      @names.each{|e|
-        v = @n2v[e]
-        next unless v.class.method_defined?(:render)
-        v.render if (-1..0).include?(v.method(:render).arity)
-      }
+      self.sprite_only.each{|pair| pair[1].render }
       return self
     end
     
-    #===�z��̗v�f��Ώۂ̉摜�ɕ`�悷��
-    #�z��̐擪���珇��render_to���\�b�h���Ăяo���B
-    #�`�悷��C���X�^���X�́A�������P��render_to���\�b�h�������Ă�����̂̂�(�����Ă��Ȃ��Ƃ��͌Ăяo���Ȃ�)
-    #_dst_:: �`��Ώۂ̉摜�C���X�^���X
-    #�ԋp�l:: �������g���A��
+    #===配列の要素を対象の画像に描画する
+    #配列の先頭から順にrender_toメソッドを呼び出す。
+    #_dst_:: 描画対象の画像インスタンス
+    #返却値:: 自分自身を帰す
     def render_to(dst)
       return self unless @visible
-      @names.each{|e|
-        v = @n2v[e]
-        next unless v.class.method_defined?(:render_to)
-        v.render_to(dst) if [-2,-1,1].include?(v.method(:render_to).arity)
-      }
+      self.sprite_only.each{|pair| pair[1].render_to(dst) }
       return self
     end
     
-    #===�I�u�W�F�N�g�𕶎���ɕϊ�����
-    #��������A���O�ƃX�v���C�g�Ƃ̑΂̔z��ɕϊ����Ato_s���\�b�h�ŕ����񉻂���B
-    #(��)[[name1, sprite1], [name2, sprite2],...]
-    #�ԋp�l:: �ϊ�����������
+    #===オブジェクトを文字列に変換する
+    #いったん、名前とスプライトとの対の配列に変換し、to_sメソッドで文字列化する。
+    #(例)[[name1, sprite1], [name2, sprite2],...]
+    #返却値:: 変換した文字列
     def to_s
       self.to_a.to_s
     end

@@ -932,11 +932,17 @@ v2.1.0(2009.6)
 ・同時再生数を超えて効果音を再生するとプログラムが落ちる問題を修正
 ・各種オブジェクトが正しく複製されない問題を修正
 　(ただし、Audio::BGM,Audio::SEは、内部データを複製すると落ちるため、複製していない)
+・Yuki#select_plotで渡したプロットの引数チェックを行っていなかったバグを修正
 <仕様変更>
 ・miyako.rbで組み込んでいるライブラリの順番を変更
+・$miyako_auto_openグローバル変数により、強制的な画面のオープンを解除
+　必要な部分だけ呼び出し(Miyako.init,Audio.init,Screen.init,Font.init)
+　(Miyako.open/Screen.open呼び出し前のSprite作成不可)
 ・ゲーム中に流せるBGMは1曲のみに制限(効果音はその限りではない)
 ・音声系クラス(Audio::BGM,Audio::SE)の複写メソッドの使用を禁止
 ・例外クラスの追加(MiyakoErrorのみ→複数クラスの混在)
+・Sceneモジュール内部で使用する変数の構成の変更
+　(@@scenes,@now,@prev,@next,@upper -> @@scenes, @@pool)
 ・ArrayクラスにSpriteArrayモジュールをmixin
 ・FixedMapクラスにSpriteBase,Animationモジュールをmixin
 ・FixedMapLayerクラスにSpriteBase,Animationモジュールをmixin
@@ -967,12 +973,26 @@ v2.1.0(2009.6)
 ・Sprite#to_unitの値を複写したものに変更
 ・SpriteAnimation#to_unitの値を複写したものに変更
 ・Screen.to_unitの値を複写したものに変更
+・Story::Sceneモジュールの内部構成を変更
 ・Yuki表示部の内部処理を変更
 ・Yukiを使用したとき、決定キー・コマンド決定キーにスペースバーを追加
 ・Yukiを使用したとき、コマンドキャンセルきーにエスケープキーを追加
+・Yukiのスクリプトに対して引数を渡すことができるようになった(↓参照)
+・Yuki#start_plotのインタフェース変更(with_update_inputを廃止、*paramsを追加)
+<ファイル追加>
+・lib/Miyako/API/exceptions.rb
+・lib/Miyako/API/sprite_list.rb
+<グローバル変数追加>
+・$miyako_auto_open(require時に、同時に画面などの初期化を行うかどうかのフラグ)
 <定数追加>
 ・Miyako::VERSION
+<定数削除>
+・Screen::BPP
+<構造体追加>
+・ListPair
+・ScenePool
 <クラス追加>
+・ListPairStruct
 ・MiyakoCopyError
 ・MiyakoFileFormatError
 ・MiyakoIOError
@@ -987,17 +1007,21 @@ v2.1.0(2009.6)
 ・ArrayクラスにSpriteArrayモジュールをmixin
 ・ObjectクラスにDeepCopyモジュールをmixin
 <クラス・モジュールメソッド追加>
+・Audio.init
+・Audio.initialized?
 ・Audio.update
 ・Audio::BGM.update
 ・Audio::SE.update
 ・Audio::SE.playing_any?
 ・Audio::SE.channels
 ・Layout.copy_layout
-・SpriteBase.render_to
-・SpriteBase.visible
-・SpriteBase.visible=
-・SpriteBase.show
-・SpriteBase.hide
+・Font.init
+・Font.initialized?
+・Miyako.init
+・Miyako.initialized?
+・Miyako.open
+・Screen.init
+・Screen.initialized?
 ・Utility.interval
 ・Utility.theta
 ・Yuki.add_method
@@ -1005,6 +1029,13 @@ v2.1.0(2009.6)
 ・Scene#story
 ・Scene#prev_scene
 ・Scene#now_scene
+・SpriteBase#render_to
+・SpriteBase#visible
+・SpriteBase#visible=
+・SpriteBase#show
+・SpriteBase#hide
+・Yuki#over_exec
+・Yuki#wait_over_exec
 ・Yuki#vars_names
 ・Yuki#parts_names
 ・Yuki#render_to
@@ -1029,6 +1060,8 @@ v2.1.0(2009.6)
 ・Parts#insert
 ・Parts#insert_after
 ・Parts#swap
+・Scene#upper_scene
+・Scene#next_scene
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

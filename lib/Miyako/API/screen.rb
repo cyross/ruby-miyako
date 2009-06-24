@@ -23,10 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 require 'singleton'
 
 module Miyako
-  #プログラムで使用する色深度を示す。デフォルトは現在システムが使用している色深度
-  $miyako_bpp ||= SDL.video_info.bpp
-  #色深度が32ビット以外の時はエラーを返す
-  raise MiyakoError, "Unsupported Color bits! : #{$miyako_bpp}" unless [32].include?($miyako_bpp)
 
   #==画面管理モジュール
   module Screen
@@ -34,8 +30,6 @@ module Miyako
     DefaultWidth = 640
     #デフォルトの画面解像度(高さ)
     DefaultHeight = 480
-    #Miyakoで使用する色深度
-    BPP = $miyako_bpp
     #fpsの最大値(1000fps)
     FpsMax = 1000
     #画面モードの数(ウインドウモード、フルスクリーンモード)
@@ -44,23 +38,14 @@ module Miyako
     WINDOW_MODE = 0
     #フルスクリーンモードを示す値
     FULLSCREEN_MODE = 1
-
     #ウインドウモード・フルスクリーンモードを切り替える際のフラグを示す配列
     ScreenFlag = $miyako_use_opengl ? [SDL::OPENGL, SDL::OPENGL | SDL::FULLSCREEN] : [SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT, SDL::ANYFORMAT | SDL::FULLSCREEN]
-    
-    if $miyako_use_opengl
-      SDL::GL.set_attr(SDL::GL::RED_SIZE, 8)
-      SDL::GL.set_attr(SDL::GL::GREEN_SIZE, 8)
-      SDL::GL.set_attr(SDL::GL::BLUE_SIZE, 8)
-      SDL::GL.set_attr(SDL::GL::ALPHA_SIZE, 8)
-      SDL::GL.set_attr(SDL::GL::DEPTH_SIZE, 32)
-      SDL::GL.set_attr(SDL::GL::STENCIL_SIZE, 32)
-      SDL::GL.set_attr(SDL::GL::DOUBLEBUFFER, 1)
-    end
-    
+
     def Screen::get_fps_count
       return @@fps == 0 ? 0 : FpsMax / @@fps
     end
+
+    @@initialized = false
 
     @@fps = 0 # fps=0 : no-limit
     @@fpsView = false
@@ -75,12 +60,37 @@ module Miyako
 
     @@size      = Size.new(DefaultWidth, DefaultHeight)
     @@in_the_scene = false
-
     @@screen = nil
     @@viewport = nil
     
     @@pre_render_array = []
     @@auto_render_array = []
+
+    #===画面関連の初期化処理
+    def Screen.init
+      #プログラムで使用する色深度を示す。デフォルトは現在システムが使用している色深度
+      $miyako_bpp ||= SDL.video_info.bpp
+      #色深度が32ビット以外の時はエラーを返す
+      raise MiyakoError, "Unsupported Color bits! : #{$miyako_bpp}" unless [32].include?($miyako_bpp)
+
+      if $miyako_use_opengl
+        SDL::GL.set_attr(SDL::GL::RED_SIZE, 8)
+        SDL::GL.set_attr(SDL::GL::GREEN_SIZE, 8)
+        SDL::GL.set_attr(SDL::GL::BLUE_SIZE, 8)
+        SDL::GL.set_attr(SDL::GL::ALPHA_SIZE, 8)
+        SDL::GL.set_attr(SDL::GL::DEPTH_SIZE, 32)
+        SDL::GL.set_attr(SDL::GL::STENCIL_SIZE, 32)
+        SDL::GL.set_attr(SDL::GL::DOUBLEBUFFER, 1)
+      end
+
+      Screen::check_mode_error
+      @@initialized = true
+    end
+
+    #===画面関係の初期化がされた？
+    def Screen.initialized?
+      @@initialized
+    end
     
     #===画面の状態(ウインドウモードとフルスクリーンモード)を設定する
     #_v_:: ウィンドウモードのときは、Screen::WINDOW_MODE、 フルスクリーンモードのときはScreen::FULLSCREEN_MODE
@@ -226,13 +236,13 @@ module Miyako
     #画面サーフェスを生成し、表示させる
     #require 'Miyako/miyako'を記述する前に、"$miyako_open_screen=false"と記述すると
     def Screen::open
-      @@screen = SDL::Screen.open(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
+      @@screen = SDL::Screen.open(*(@@size.to_a << $miyako_bpp << ScreenFlag[@@mode]))
       SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
       @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
     end
 
     def Screen::set_screen #:nodoc:
-      return false unless SDL.checkVideoMode(*(@@size.to_a << BPP << ScreenFlag[@@mode]))
+      return false unless SDL.checkVideoMode(*(@@size.to_a << $miyako_bpp << ScreenFlag[@@mode]))
       self.open
       return true
     end
@@ -244,7 +254,7 @@ module Miyako
     #返却値:: 変更に成功したときは trueを返す
     def Screen::set_size(w, h)
       return unless @@screen
-      return false unless SDL.checkVideoMode(w, h, BPP, ScreenFlag[@@mode])
+      return false unless SDL.checkVideoMode(w, h, $miyako_bpp, ScreenFlag[@@mode])
       @@size = Size.new(w, h)
       self.open
       return true
@@ -256,8 +266,6 @@ module Miyako
         exit(1)
       end
     end
-
-    Screen::check_mode_error
 
     #===現在表示されている画面を画像(Spriteクラスのインスタンス)として取り込む
     #_param_:: Spriteインスタンスを生成するときに渡すパラメータ(但し、:sizeと:typeのみ使用する)

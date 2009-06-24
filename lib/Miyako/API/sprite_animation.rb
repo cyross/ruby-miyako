@@ -222,13 +222,12 @@ module Miyako
     end
     
     def initialize_copy(obj) #:nodoc:
-      @units = @units.deep_copy
-      @slist = @slist.deep_copy
-      @plist = @plist.deep_copy
-      @move_offset = @move_offset.deep_copy
-      @pos_offset = @pos_offset
-      @now = @units[@plist[@pnow]]
-      @now = @now
+      @units = @units.deep_dup
+      @slist = @slist.deep_dup
+      @plist = @plist.dup
+      @move_offset = @move_offset.dup
+      @pos_offset = @pos_offset.dup
+      @now = @units[@plist[@pnum]]
       copy_layout
     end
 

@@ -43,6 +43,9 @@ require 'iconv' if RUBY_VERSION < '1.9.0'
 require 'kconv'
 require 'rbconfig'
 
+#画面などの初期設定を自動的に行うかどうかの設定。デフォルトはtrue
+$miyako_auto_open = true if $miyako_auto_open.nil?
+
 #デバッグモードの設定。デバッグモードにするときはtrueを渡す。デフォルトはfalse
 $miyako_debug_mode ||= false
 
@@ -52,11 +55,6 @@ $miyako_use_opengl ||= false
 #サウンド機能を使わないときは、miyako.rbをロードする前に
 #$not_use_audio変数にtrueを割り当てる
 $not_use_audio ||= false
-if $not_use_audio
-  SDL.init(SDL::INIT_VIDEO | SDL::INIT_JOYSTICK)
-else
-  SDL.init(SDL::INIT_VIDEO | SDL::INIT_AUDIO | SDL::INIT_JOYSTICK)
-end
 
 Thread.abort_on_exception = true
 
@@ -73,9 +71,6 @@ module Miyako
   #サウンド機能を使うときのバッファサイズを設定する（バイト単位）
   #デフォルトは4096バイト
   $sound_buffer_size ||= 4096
-
-  SDL::TTF.init
-  SDL::Mixer.open($sampling_seq, SDL::Mixer::DEFAULT_FORMAT, 2, $sound_buffer_size) unless $not_use_audio
 
   #===Miyakoのバージョン番号を出力する
   #返却値:: バージョン番号を示す文字列
@@ -151,6 +146,8 @@ require 'Miyako/API/story'
 require 'Miyako/API/diagram'
 
 module Miyako
+  @@initialized = false
+
   #===Miyakoのメインループ
   #ブロックを受け取り、そのブロックを評価する
   #ブロック評価前に<i>Audio::update</i>と<i>Input::update</i>、<i>Screen::clear</i>、評価後に<i>Screen::render</i>を呼び出す
@@ -166,6 +163,34 @@ module Miyako
       Screen.render
     end
   end
+
+  #===Miyako(SDL)の初期化
+  def Miyako.init
+    if $not_use_audio
+      SDL.init(SDL::INIT_VIDEO | SDL::INIT_JOYSTICK)
+    else
+      SDL.init(SDL::INIT_VIDEO | SDL::INIT_AUDIO | SDL::INIT_JOYSTICK)
+    end
+    @@initialized = true
+  end
+
+  #===Miyako(SDL)が初期化された？
+  def Miyako.initialized?
+    @@initialized
+  end
+  
+  #===Miyakoの初期化
+  #画面初期化や音声初期化などのメソッドを呼び出す。
+  #グローバル変数$miyako_auto_openがtrueのときは最初に自動的に呼び出される。
+  #ユーティリティメソッドを使うだけならば、$miyako_auto_open=falseを設定して、後々Miyako.openを呼び出す。
+  def Miyako.open
+    Miyako.init
+    Screen.init
+    Font.init
+    Audio.init
+  end
 end
 
 require 'Miyako/miyako_no_katana'
+
+Miyako.open if $miyako_auto_open
