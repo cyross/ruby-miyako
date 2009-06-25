@@ -72,7 +72,7 @@ module Miyako
             @fibers[fnum].resume(true)
           elsif nn && !(nn.eql?(uu.class)) && @@over_scenes.include?(nn.scene_type)
             @fibers << Fiber.new(&@fiber)
-            fnum = @fibers.length-1
+            fnum = @fibers.length - 1
             @fibers[fnum].resume(nn, fnum)
             n = bk_nn
           end
@@ -150,7 +150,7 @@ module Miyako
         u.next = n
         @next_label = n
         u.final
-        if n == nil
+        if n.nil?
           if @@sub_scenes.include?(u.class.scene_type) && @stack.empty? == false
             n, u = @stack.pop
             next
@@ -163,9 +163,7 @@ module Miyako
           u = nil
         end
       end
-      if @fibers.length > 0
-        @fibers.each{|fiber| fiber.resume(nil) if fiber }
-      end
+      @fibers.each{|fiber| fiber.resume(nil) if fiber } if @fibers.length > 0
       @scene_cache_list.each{|sy| @scene_cache[sy].dispose }
       @scene_cache.clear
       @scene_cache_list.clear

@@ -425,13 +425,13 @@ module Miyako
     end
 
     def delete_if
-      ret = self.dup
+      ret = self.deep_dup
       ret.each{|pair| ret.delete(pair[0]) if yield(*pair)}
       ret
     end
 
     def reject
-      ret = self.dup
+      ret = self.deep_dup
       ret.each{|pair| ret.delete(pair[0]) if yield(*pair)}
       ret
     end

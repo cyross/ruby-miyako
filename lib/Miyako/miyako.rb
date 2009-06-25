@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-#=コンテンツ作成ライブラリMiyako2.0
+#=コンテンツ作成ライブラリMiyako2.1
 #
 #Authors:: サイロス誠
 #Version:: 2.1.0
@@ -164,7 +164,7 @@ module Miyako
     end
   end
 
-  #===Miyako(SDL)の初期化
+  #===SDLの初期化
   def Miyako.init
     if $not_use_audio
       SDL.init(SDL::INIT_VIDEO | SDL::INIT_JOYSTICK)
@@ -183,14 +183,17 @@ module Miyako
   #画面初期化や音声初期化などのメソッドを呼び出す。
   #グローバル変数$miyako_auto_openがtrueのときは最初に自動的に呼び出される。
   #ユーティリティメソッドを使うだけならば、$miyako_auto_open=falseを設定して、後々Miyako.openを呼び出す。
-  def Miyako.open
+  #_screen_:: 別のプロセスで生成されたSDL::Screenクラスのインスタンス。省略時はnil
+  #_buf_size_:: Audioモジュールで使用するバッファサイズ。単位はバイト。省略時は4096
+  #_seq_:: Audioモジュールで使用する音声の再生サンプル周波数。省略時は44100(44.1kHz)
+  def Miyako.open(screen = nil, buf_size = 4096, seq = 44100)
     Miyako.init
-    Screen.init
+    Screen.init(screen)
     Font.init
-    Audio.init
+    Audio.init(buf_size, seq)
   end
 end
 
 require 'Miyako/miyako_no_katana'
 
-Miyako.open if $miyako_auto_open
+Miyako.open(nil, $sound_buffer_size, $sampling_seq) if $miyako_auto_open

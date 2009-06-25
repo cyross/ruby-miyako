@@ -67,7 +67,10 @@ module Miyako
     @@auto_render_array = []
 
     #===画面関連の初期化処理
-    def Screen.init
+    #呼び出し時に、別プロセスで生成したSDL::Screenクラスインスタンスを引数として渡すと、
+    #Miyakoはこのインスタンスを利用して描画を行う
+    #_screen_:: 別のプロセスで生成されたSDL::Screenクラスのインスタンス。省略時はnil
+    def Screen.init(screen = nil)
       #プログラムで使用する色深度を示す。デフォルトは現在システムが使用している色深度
       $miyako_bpp ||= SDL.video_info.bpp
       #色深度が32ビット以外の時はエラーを返す
@@ -83,7 +86,7 @@ module Miyako
         SDL::GL.set_attr(SDL::GL::DOUBLEBUFFER, 1)
       end
 
-      Screen::check_mode_error
+      Screen::check_mode_error(screen)
       @@initialized = true
     end
 
@@ -234,16 +237,19 @@ module Miyako
     #===画面のサーフェスを生成する
     #グローバル変数$miyako_open_screen==falseの時に有効
     #画面サーフェスを生成し、表示させる
-    #require 'Miyako/miyako'を記述する前に、"$miyako_open_screen=false"と記述すると
-    def Screen::open
-      @@screen = SDL::Screen.open(*(@@size.to_a << $miyako_bpp << ScreenFlag[@@mode]))
+    #事前に何もせずにrequire 'Miyako/miyako'を行うと本メソッドが自動的に呼ばれる。
+    #require 前に"$miyako_open_screen=false"と記述すると、本メソッドの呼び出しが抑制される。
+    #_screen_:: 別のプロセスで生成されたSDL::Screenクラスのインスタンス。省略時はnil
+    def Screen::open(screen = nil)
+      @@screen = screen ? screen : SDL::Screen.open(*(@@size.to_a << $miyako_bpp << ScreenFlag[@@mode]))
       SpriteUnitFactory.apply(@@unit, {:bitmap=>@@screen, :ow=>@@screen.w, :oh=>@@screen.h})
+      @@size = Size.new(@@screen.w, @@screen.h)
       @@viewport = Viewport.new(0, 0, @@screen.w, @@screen.h)
     end
 
-    def Screen::set_screen #:nodoc:
-      return false unless SDL.checkVideoMode(*(@@size.to_a << $miyako_bpp << ScreenFlag[@@mode]))
-      self.open
+    def Screen::set_screen(screen = nil) #:nodoc:
+      return false unless (screen || SDL.checkVideoMode(*(@@size.to_a << $miyako_bpp << ScreenFlag[@@mode])))
+      self.open(screen)
       return true
     end
 
@@ -260,8 +266,8 @@ module Miyako
       return true
     end
 
-    def Screen::check_mode_error #:nodoc:
-      unless Screen::set_screen
+    def Screen::check_mode_error(screen = nil) #:nodoc:
+      unless Screen::set_screen(screen)
         raise MiyakoError, "Sorry, this system not supported display...";
         exit(1)
       end

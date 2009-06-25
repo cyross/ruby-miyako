@@ -56,6 +56,7 @@ Gem::Specification.new do |s|
 "./lib/Miyako/EXT/raster_scroll.rb",
 "./lib/Miyako/EXT/slides.rb",
 "./lib/Miyako/miyako.rb",
+"./lib/Miyako/miyako_require_only.rb",
 "./logo/EGSR_logo.png",
 "./logo/EGSR_logo_bg.png",
 "./logo/EGSR_logo_fg.png",

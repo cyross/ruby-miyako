@@ -941,6 +941,8 @@ v2.1.0(2009.6)
 ・ゲーム中に流せるBGMは1曲のみに制限(効果音はその限りではない)
 ・音声系クラス(Audio::BGM,Audio::SE)の複写メソッドの使用を禁止
 ・例外クラスの追加(MiyakoErrorのみ→複数クラスの混在)
+・Screenモジュールの初期化で、既存のSDL::Screenクラスインスタンスを利用可能(他ライブラリとの親和性向上)
+・miyako.rbの組み込みのみ行うmiyako_require_only.rb追加
 ・Sceneモジュール内部で使用する変数の構成の変更
 　(@@scenes,@now,@prev,@next,@upper -> @@scenes, @@pool)
 ・ArrayクラスにSpriteArrayモジュールをmixin
@@ -980,6 +982,7 @@ v2.1.0(2009.6)
 ・Yukiのスクリプトに対して引数を渡すことができるようになった(↓参照)
 ・Yuki#start_plotのインタフェース変更(with_update_inputを廃止、*paramsを追加)
 <ファイル追加>
+・lib/Miyako/miyako_require_only.rb
 ・lib/Miyako/API/exceptions.rb
 ・lib/Miyako/API/sprite_list.rb
 <グローバル変数追加>

@@ -26,7 +26,10 @@ module Miyako
   #SDLのSurfaceクラスインスタンスを管理するクラス
   class Bitmap
     def Bitmap.create(w, h, flag=SDL::HWSURFACE | SDL::SRCCOLORKEY | SDL::SRCALPHA) #:nodoc:
-      return SDL::Surface.new(flag, w, h, 32, Screen.bitmap.Rmask, Screen.bitmap.Gmask, Screen.bitmap.Bmask, Screen.bitmap.Amask)
+      return SDL::Surface.new(flag, w, h, 32,
+                              Screen.bitmap.Rmask, Screen.bitmap.Gmask,
+                              Screen.bitmap.Bmask, Screen.bitmap.Amask)
+#      return SDL::Surface.new(flag, w, h, 32, 0xff0000, 0xff00, 0xff, 0xff000000)
     end
 
     def Bitmap.load(filename) #:nodoc:
