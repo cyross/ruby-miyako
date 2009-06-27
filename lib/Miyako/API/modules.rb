@@ -152,7 +152,7 @@ module Miyako
     #登録されている名前順の配列になる。
     #返却値:: 生成したスプライトを返す
     def sprite_only
-      self.dup.delete_if{|e| !e.class.include?(SpriteBase) && !e.class.include?(SpriteArray)}
+      self.select{|e| e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
     end
 
     #===各要素からスプライト以外の要素を取り除いた配列を破壊的に作成する
@@ -188,7 +188,59 @@ module Miyako
       self.sprite_only.each{|e| e.visible = v}
       return self
     end
-    
+  
+    #===各要素の位置を変更する(変化量を指定)
+    #ブロックを渡したとき、戻り値として[更新したdx,更新したdy]とした配列を返すと、
+    #それがその要素での移動量となる。
+    #ブロックの引数は、|要素, インデックス(0,1,2,...), dx, dy|となる。
+    #(例)q=[a, b, c]
+    #    #各スプライトの位置=すべて(10,15)
+    #    q.move!(20,25) => aの位置:(30,40)
+    #                      bの位置:(30,40)
+    #                      cの位置:(30,40)
+    #    q.move!(20,25){|e,i,dx,dy|
+    #      [i*dx, i*dy]
+    #    }
+    #                   => aの位置:(10,15)
+    #                      bの位置:(30,40)
+    #                      cの位置:(50,65)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move!(dx, dy)
+      if block_given?
+        self.sprite_only.each_with_index{|e, i| e.move!(*(yield e, i, dx, dy))}
+      else
+        self.sprite_only.each{|e| e.move!(dx, dy)}
+      end
+    end
+
+    #===各要素の位置を変更する(変化量を指定)
+    #ブロックを渡したとき、戻り値として[更新したdx,更新したdy]とした配列を返すと、
+    #それがその要素での移動量となる。
+    #ブロックの引数は、|要素, インデックス(0,1,2,...), x, y|となる。
+    #(例)q=[a, b, c]
+    #    #各スプライトの位置=すべて(10,15)
+    #    q.move!(20,25) => aの位置:(20,25)
+    #                      bの位置:(20,25)
+    #                      cの位置:(20,25)
+    #    q.move!(20,25){|e,i,dx,dy|
+    #      [i*dx, i*dy]
+    #    }
+    #                   => aの位置:( 0, 0)
+    #                      bの位置:(20,25)
+    #                      cの位置:(40,50)
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to!(x, y)
+      if block_given?
+        self.sprite_only.each_with_index{|e, i| e.move_to!(*(yield e, i, x, y))}
+      else
+        self.sprite_only.each{|e| e.move_to!(x, y)}
+      end
+    end
+
     #===描く画像のアニメーションを開始する
     #各要素のstartメソッドを呼び出す
     #返却値:: 自分自身を返す

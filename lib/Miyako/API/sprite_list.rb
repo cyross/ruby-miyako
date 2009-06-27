@@ -842,6 +842,64 @@ module Miyako
       lists = lists.map{|list| list.to_a}
       self.to_a.zip(*lists, &block)
     end
+  
+    #===各要素の位置を変更する(変化量を指定)
+    #ブロックを渡したとき、戻り値として[更新したdx,更新したdy]とした配列を返すと、
+    #それがその要素での移動量となる。
+    #ブロックの引数は、|ListPair, インデックス(0,1,2,...), dx, dy|となる。
+    #(例)a=SpriteList(pair(:a), pair(:b), pair(:c))
+    #    #各スプライトの位置=すべて(10,15)
+    #    a.move!(20,25) => pair(:a)の位置:(30,40)
+    #                      pair(:b)の位置:(30,40)
+    #                      pair(:c)の位置:(30,40)
+    #    a.move!(20,25){|pair,i,dx,dy|
+    #      [i*dx, i*dy]
+    #    }
+    #                   => pair(:a)の位置:(10,15)
+    #                      pair(:b)の位置:(30,40)
+    #                      pair(:c)の位置:(50,65)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move!(dx, dy)
+      if block_given?
+        @names.each_with_index{|e, i|
+          pair = @n2v[e]
+          pair.body.move!(*(yield pair, i, dx, dy))
+        }
+      else
+        @names.each{|e| @n2v[e].body.move!(dx, dy) }
+      end
+    end
+
+    #===各要素の位置を変更する(変化量を指定)
+    #ブロックを渡したとき、戻り値として[更新したdx,更新したdy]とした配列を返すと、
+    #それがその要素での移動量となる。
+    #ブロックの引数は、|ListPair, インデックス(0,1,2,...), x, y|となる。
+    #(例)a=SpriteList(pair(:a), pair(:b), pair(:c))
+    #    #各スプライトの位置=すべて(10,15)
+    #    a.move!(20,25) => pair(:a)の位置:(20,25)
+    #                      pair(:b)の位置:(20,25)
+    #                      pair(:c)の位置:(20,25)
+    #    a.move!(20,25){|pair,i,dx,dy|
+    #      [i*dx, i*dy]
+    #    }
+    #                   => pair(:a)の位置:( 0, 0)
+    #                      pair(:b)の位置:(20,25)
+    #                      pair(:c)の位置:(40,50)
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to!(x, y)
+      if block_given?
+        @names.each_with_index{|e, i|
+          pair = @n2v[e]
+          pair.body.move_to!(*(yield pair, i, x, y))
+        }
+      else
+        @names.each{|e| @n2v[e].body.move_to!(x, y) }
+      end
+    end
 
     #===リストを配列化する
     #インスタンスの内容を元に、配列を生成する。
