@@ -24,6 +24,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Miyako
   #==名前-本体ペアを構成する構造体用クラス
   class ListPairStruct < Struct
+    include SpriteBase
+
+    # ディープコピー
+    def deep_dup
+      [self[0], self[1].dup]
+    end
+    
+    # ディープコピー
+    def deep_clone
+      self.deep_copy
+    end
+    
     # 構造体を配列に変換する
     def to_ary
       [self[0], self[1]]
@@ -38,13 +50,24 @@ module Miyako
     def to_s
       "#{self[0]} : #{self[1]}"
     end
+    
+    #画面に描画する
+    def render
+      self[1].render
+    end
+    
+    #指定の画像に描画する
+    #_dst_:: 描画先インスタンス
+    def render_to(dst)
+      self[1].render_to(dst)
+    end
   end
   
   #===名前-本体ペアを構成する構造体
   #ハッシュのようにキー・バリュー構成を持たせるための構造体
   #_name_:: 名前
   #_body_:: 本体
-  ListPair = Struct.new(:name, :body)
+  ListPair = ListPairStruct.new(:name, :body)
 
   #==複数スプライト管理(リスト)クラス
   #複数のスプライトを、[名前,インスタンス]の一対一のリストとして持っておく。
@@ -83,15 +106,15 @@ module Miyako
       @n2v   = {}
       if pairs.is_a?(Array)
         pairs.each{|pair|
-          @names << pair[0]
-          @n2v[pair[0]] = ListPair.new(*pair)
-        }
+        @names << pair[0]
+        @n2v[pair[0]] = ListPair.new(*pair)
+      }
       elsif pairs.is_a?(Hash)
         pairs.each{|key, value|
           @names << key
           @n2v[key] = ListPair.new(key, value)
         }
-      end
+       end
       @visible = true
     end
     
@@ -219,6 +242,15 @@ module Miyako
     #(include?メソッドと同じ)
     #_name_:: 検索対象の名前
     #返却値:: 名前が含まれていればtrue、含まれていなければfalseと返す
+    def has_key?(name)
+      @n2v.has_key?(name)
+    end
+    
+    #===リストに名前が登録されているか確認する
+    #スプライト名リスト内に、引数で指定した名前が含まれているか調べる
+    #(include?メソッドと同じ)
+    #_name_:: 検索対象の名前
+    #返却値:: 名前が含まれていればtrue、含まれていなければfalseと返す
     def has_name?(name)
       @n2v.has_key?(name)
     end
@@ -322,7 +354,7 @@ module Miyako
     #返却値:: 変更を加えた自分自身の複製
     def +(other)
       list = self.dup
-      other.to_a.each{|pair| list.add(pair)}
+      other.to_a.each{|pair| list.add(pair[0], pair[1].dup)}
       list
     end
     
@@ -333,7 +365,7 @@ module Miyako
     #返却値:: 変更を加えた自分自身の複製
     def *(other)
       list = SpriteList.new
-      self.to_a.each{|pair| list.add(pair) if other.has_key?(pair[0])}
+      self.to_a.each{|pair| list.add(pair[0], pair[1].dup) if other.has_key?(pair[0])}
       list
     end
     
@@ -343,7 +375,7 @@ module Miyako
     #返却値:: 変更を加えた自分自身の複製
     def -(other)
       list = SpriteList.new
-      self.to_a.each{|pair| list.add(pair) unless other.has_key?(pair[0])}
+      self.to_a.each{|pair| list.add(pair[0], pair[1].dup) unless other.has_key?(pair[0])}
       list
     end
     
@@ -411,7 +443,7 @@ module Miyako
     
     #===名前・スプライトを登録する
     #リストに名前・スプライトをリストの先頭に追加する
-    #(先頭に追加することがSpriteList#<<,add,pushとの違い
+    #(先頭に追加することがSpriteList#<<,add,pushとの違い)
     #_name_:: スプライト名
     #_sprite_:: スプライト本体
     #返却値:: 追加した自分自身を渡す
@@ -422,71 +454,169 @@ module Miyako
       return self
     end
     
+    #===指定した名前の要素を取り除いたSpriteListを取得する
+    #登録されていない名前が指定されたときは何もしない
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.slice(:a,:b)
+    #      =>a=SpriteList(pair(:c))
+    #        b=SpriteList(pair(:a),pair(:b))
+    #    b=a.slice(:d,:b)
+    #      =>a=SpriteList(pair(:a),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #_names_:: スプライト名のリスト
+    #返却値:: 自分自身の複製から指定した名前の要素を取り除いたインスタンス
     def slice(*names)
-      list = self.to_a
-      names.map{|name|
-        next nil unless @names.include?(name)
-        ListPair.new(name, @n2v[name])
-      }
+      list = self.dup
+      list.delete_if!{|name, sprite| !names.include?(name)}
     end
     
+    #===指定した名前の要素を取り除く
+    #登録されていない名前が指定されたときは何もしない
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.slice!(:a,:b)
+    #      =>a=SpriteList(pair(:c))
+    #        b=SpriteList(pair(:c))
+    #    b=a.slice!(:d,:b)
+    #      =>a=SpriteList(pair(:a),pair(:c))
+    #        b=SpriteList(pair(:a),pair(:c))
+    #_names_:: スプライト名のリスト
+    #返却値:: 更新した自分自身
     def slice!(*names)
       self.delete_if!{|name, sprite| !names.include?(name)}
     end
     
-    def shift(n = nil)
+    #===指定した数の要素を先頭から取り除く
+    #SpriteListの先頭からn個の要素を取り除いて、新しいSpriteListとする。
+    #nがマイナスの時は、後ろからn個の要素を取り除く。
+    #nが0の時は、空のSpriteListを返す。
+    #自分自身に何も登録されていなければnilを返す
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.shift(1)
+    #      =>a=SpriteList(pair(:b),pair(:c))
+    #        b=SpriteList(pair(:a))
+    #    b=a.shift(2)
+    #      =>a=SpriteList(pair(:c))
+    #        b=SpriteList(pair(:a),pair(:b))
+    #    b=a.shift(0)
+    #      =>a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #        b=SpriteList()
+    #(例)a=SpriteList()
+    #    b=a.shift(1)
+    #      =>a=SpriteList()
+    #        b=nil
+    #_n_:: 取り除く要素数。省略時は1
+    #返却値:: 取り除いた要素から作られたSpriteList
+    def shift(n = 1)
       return nil if @names.empty?
-      if n
-        names = @names.shift(n)
-        return names.map{|name| @n2v.delete(name)}
-      else
-        name = @names.shift
-        return @n2v.delete(name)
-      end
+      return SpriteList.new if n == 0
+      names = @names.shift(n)
+      SpriteList.new(names.map{|name| @n2v.delete(name).to_a})
     end
 
+    #===指定した数の要素を先頭から取り除く
+    #SpriteListの先頭からn個の要素を取り除いて、新しいSpriteListとする。
+    #nがマイナスの時は、後ろからn個の要素を取り除く。
+    #nが0の時は、空のSpriteListを返す。
+    #自分自身に何も登録されていなければnilを返す
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.delete(:b)
+    #      =>a=SpriteList(pair(:a),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #    b=a.delete(:d)
+    #      =>a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #        b=nil
+    #_n_:: 取り除く要素数。省略時は1
+    #返却値:: 取り除いた要素から作られたSpriteList
     def delete(name)
       return nil unless @names.include?(name)
       @names.delete(name)
-      @n2v.delete(name)
+      SpriteList.new([@n2v.delete(name).to_a])
     end
 
+    #===指定したインデックスの要素を取り除く
+    #SpriteListの先頭からn個の要素を取り除いて、新しいSpriteListとする。
+    #nがマイナスの時は、後ろからn個の要素を取り除く。
+    #nが0の時は、空のSpriteListを返す。
+    #自分自身に何も登録されていなければnilを返す
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.delete_at(2)
+    #      =>a=SpriteList(pair(:a),pair(:b))
+    #        b=SpriteList(pair(:c))
+    #    b=a.delete_at(3)
+    #      =>a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #        b=nil
+    #_idx_:: 取り除く要素数。省略時は1
+    #返却値:: 取り除いた要素から作られたSpriteList
     def delete_at(idx)
       self.delete(@names[idx])
     end
 
+    #===ブロックの評価結果が真のときのみ削除するSpriteListを作成
+    #SpriteListの複製を作り、各要素でブロックを評価したときに、真になった要素は削除される。
+    #引数は、各要素を示すListPari構造体インスタンスが渡ってくる。
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.delete_if{|pair| pair[0] == :b}
+    #      =>a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #返却値:: 取り除いた後のSpriteList
     def delete_if
       ret = self.deep_dup
       ret.each{|pair| ret.delete(pair[0]) if yield(*pair)}
       ret
     end
 
+    #===ブロックの評価結果が真のときのみ削除するSpriteListを作成
+    #SpriteListの複製を作り、各要素でブロックを評価したときに、真になった要素は削除される。
+    #引数は、各要素を示すListPari構造体インスタンスが渡ってくる。
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.reject{|pair| pair[0] == :b}
+    #      =>a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #返却値:: 取り除いた後のSpriteList
     def reject
       ret = self.deep_dup
       ret.each{|pair| ret.delete(pair[0]) if yield(*pair)}
       ret
     end
 
+    #===ブロックの評価結果が真のときのみ破壊的に削除する
+    #自分自身に対して、各要素でブロックを評価したときに、真になった要素は削除される。
+    #引数は、各要素を示すListPari構造体インスタンスが渡ってくる。
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.delete_if!{|pair| pair[0] == :b}
+    #      =>a=SpriteList(pair(:a),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #返却値:: 取り除いた後のSpriteList
     def delete_if!
       self.each{|pair| self.delete(pair[0]) if yield(*pair)}
       self
     end
 
+    #===ブロックの評価結果が真のときのみ破壊的に削除する
+    #自分自身に対して、各要素でブロックを評価したときに、真になった要素は削除される。
+    #引数は、各要素を示すListPari構造体インスタンスが渡ってくる。
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.reject!{|pair| pair[0] == :b}
+    #      =>a=SpriteList(pair(:a),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #返却値:: 取り除いた後のSpriteList
     def reject!
       self.each{|pair| self.delete(pair[0]) if yield(*pair)}
       self
     end
     
-    def compact
-      ret.delete_if{|pair| pair[1].nil?}
-    end
-
-    def compact!
-      ret.delete_if!{|pair| pair[1].nil?}
-    end
-
+    #===別のSpriteListと破壊的につなげる
+    #自分自身にotherで指定したListの要素をつなげる。
+    #ただし、既に自分自身に登録されている要素は追加しない。
+    #(例)a=SpriteList(pair(:a),pair(:b)(b1),pair(:c))
+    #    b=SpriteList(pair(:b)(b2),pair(:d),pair(:e))
+    #    a.concat(b)
+    #      =>a=SpriteList(pair(:a),pair(:b)(b1),pair(:c),pair(:d),pair(:e))
+    #        b=SpriteList(pair(:b)(b2),pair(:d),pair(:e))
+    #返却値:: 自分自身を返す
     def concat(other)
-      other.to_a.each{|pair| self.add(pair)}
+      other.each{|pair| self.add(pair[0],pair[1].dup) unless self.has_name?(pair[0]) }
+      self
     end
     
     #===引数と自分自身との結果をマージする
@@ -542,7 +672,7 @@ module Miyako
     #       SpriteList(pair(:c),pair(:a),pair(:b)) or SpriteList(pair(:c),pair(:b),pair(:a))
     #返却値:: シャッフルした自分自身
     def shuffle!
-      @names.shuffle
+      @names.shuffle!
       self
     end
 
@@ -612,7 +742,7 @@ module Miyako
     #返却値:: 置き換えた自分自身
     def replace(other)
       self.clear
-      other.to_a.each{|pair| self.add(*pair)}
+      other.to_a.each{|pair| self.add(pair[0], pair[1].dup)}
       self
     end
 
@@ -764,7 +894,7 @@ module Miyako
     end
     
     #===指定の名前の直前に名前を挿入する
-    #配列上で、スプライト名配列の指定の名前の前になるように名前を挿入する
+    #配列上で、keyの前にnameを挿入する
     #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert(:b, :d, spr(:d))
     #   => SpriteList(pair(:a),pair(:d),pair(:b),pair(:c))
     #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert(:c, :a)
@@ -787,7 +917,7 @@ module Miyako
     end
     
     #===指定の名前の直後に名前を挿入する
-    #配列上で、スプライト名配列の指定の名前の次の名前になるように名前を挿入する
+    #配列上で、keyの後ろにnameを挿入する
     #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert_after(:b, :d, spr(:d))
     #   => SpriteList(pair(:a),pair(:b),,pair(:d)pair(:c))
     #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert_after(:c, :b)

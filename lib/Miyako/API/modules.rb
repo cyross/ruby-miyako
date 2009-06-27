@@ -152,7 +152,7 @@ module Miyako
     #登録されている名前順の配列になる。
     #返却値:: 生成したスプライトを返す
     def sprite_only
-      self.delete_if{|e| !e.class.include?(SpriteBase) && !ret[name].class.include?(SpriteArray)}
+      self.dup.delete_if{|e| !e.class.include?(SpriteBase) && !e.class.include?(SpriteArray)}
     end
 
     #===各要素からスプライト以外の要素を取り除いた配列を破壊的に作成する
@@ -160,8 +160,7 @@ module Miyako
     #登録されている名前順の配列になる。
     #返却値:: 自分自身を返す
     def sprite_only!
-      self.delete_if!{|e| !e.class.include?(SpriteBase) && !ret[name].class.include?(SpriteArray)}
-      return self
+      self.delete_if{|e| !e.class.include?(SpriteBase) && !e.class.include?(SpriteArray)}
     end
   
     #===配列要素を複製したコピー配列を取得する
