@@ -69,8 +69,10 @@ module Miyako
     #===画面関連の初期化処理
     #呼び出し時に、別プロセスで生成したSDL::Screenクラスインスタンスを引数として渡すと、
     #Miyakoはこのインスタンスを利用して描画を行う
+    #ただし、既に初期化済みの時はMiyakoErrorが発生する
     #_screen_:: 別のプロセスで生成されたSDL::Screenクラスのインスタンス。省略時はnil
     def Screen.init(screen = nil)
+      raise MiyakoError, "Already initialized!" if @@initialized
       #プログラムで使用する色深度を示す。デフォルトは現在システムが使用している色深度
       $miyako_bpp ||= SDL.video_info.bpp
       #色深度が32ビット以外の時はエラーを返す

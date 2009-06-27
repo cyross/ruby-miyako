@@ -27,9 +27,11 @@ module Miyako
     @@initialized = false
 
     #===音声関連の初期化処理
+    #既に初期化済みの時はMiyakoErrorが発生する
     #_buf_size_:: Audioモジュールで使用するバッファサイズ。単位はバイト。省略時は4096
     #_seq_:: Audioモジュールで使用する音声の再生サンプリング周波数。省略時は44100(44.1kHz)
     def Audio.init(buf_size = 4096, seq = 44100)
+      raise MiyakoError, "Already initialized!" if @@initialized
       SDL::Mixer.open(seq, SDL::Mixer::DEFAULT_FORMAT, 2, buf_size) unless $not_use_audio
       @@initialized = true
     end

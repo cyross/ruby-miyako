@@ -262,6 +262,20 @@ module Miyako
       return theta < Float::EPSILON ? 0.0 : theta
     end
 
+    #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
+    # 移動後の小線分が大線分の範囲内にあるかどうかをtrue/falseで取得する
+    #_mini_segment_:: 小線分の範囲。[min,max]で構成された2要素の配列
+    #_big_segment_:: 大線分の範囲。[min,max]で構成された2要素の配列
+    #_d_:: mini_segmentの移動量
+    #_flag_:: 大線分の端いっぱいも範囲外に含めるときはtrueを設定する。デフォルトはfalse
+    #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
+    def Utility.in_bounds?(mini_segment, big_segment, d, flag = false)
+      nx = mini_segment[0] + d
+      nx2 = mini_segment[1] + d
+      nx, nx2 = nx2, nx if nx > nx2
+      return flag ? (nx >= big_segment[0] && nx2 <= big_segment[1]) : (nx > big_segment[0] && (nx2 - 1) < big_segment[1])
+    end
+
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別して、その状態によって値を整数で返す
     # 移動後の小線分の範囲が大線分の範囲内のときは0、
     # マイナス方向で範囲外に出るときは-1、

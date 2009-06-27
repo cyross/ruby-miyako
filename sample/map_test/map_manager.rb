@@ -28,14 +28,14 @@ class MapManager
     @map.set_mapchip_base(0, 3, @ar)
   end
 
-  def move(dx, dy)
-    @map.move(dx, dy)
-    @map.events[0].each{|e| e.move(dx, dy) }
+  def move!(dx, dy)
+    @map.move!(dx, dy)
+    @map.events[0].each{|e| e.move!(dx, dy) }
   end
   
-  def move_to(x, y)
-    @map.events[0].each{|e| e.move(x-@map.pos.x, y-@map.pos.y) }
-    @map.move_to(x, y)
+  def move_to!(x, y)
+    @map.events[0].each{|e| e.move!(x-@map.pos.x, y-@map.pos.y) }
+    @map.move_to!(x, y)
   end
   
   def start

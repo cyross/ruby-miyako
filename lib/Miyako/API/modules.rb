@@ -263,7 +263,7 @@ module Miyako
     #ただし、再定義しているクラス(例:Arrayクラス)以外はdupメソッドの結果
     #返却値:: 複写したインスタンスを返す
     def deep_dup
-      self.dup
+      (self && self.methods.include?(:dup)) ? self.dup : self
     end
 
     #===複製を取得する
@@ -286,7 +286,7 @@ class Array
   #ただし、配列の要素もdeep_dupメソッドで複製する
   #返却値:: 複写したインスタンスを返す
   def deep_dup
-    self.dup.map{|e| e.deep_dup}
+    self.dup.map{|e| (e && e.methods.include?(:deep_dup)) ? e.deep_dup : e }
   end
 end
 
@@ -296,7 +296,10 @@ class Hash
   #返却値:: 複写したインスタンスを返す
   def deep_dup
     ret = self.dup
-    ret.keys.each{|key| ret[key] = ret[key].deep_dup }
+    ret.keys.each{|key|
+      v = ret[key]
+      (v && v.methods.include?(:deep_dup)) ? v.deep_dup : v
+    }
     ret
   end
 end

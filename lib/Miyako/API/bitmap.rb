@@ -26,11 +26,30 @@ module Miyako
   #SDLのSurfaceクラスインスタンスを管理するクラス
   class Bitmap
     def Bitmap.create(w, h, flag=SDL::HWSURFACE | SDL::SRCCOLORKEY | SDL::SRCALPHA) #:nodoc:
-      return SDL::Surface.new(flag, w, h, 32,
-                              Screen.bitmap.Rmask, Screen.bitmap.Gmask,
-                              Screen.bitmap.Bmask, Screen.bitmap.Amask)
-#      return SDL::Surface.new(flag, w, h, 32, 0xff0000, 0xff00, 0xff, 0xff000000)
+#      return SDL::Surface.new(flag, w, h, 32,
+#                              Screen.bitmap.Rmask, Screen.bitmap.Gmask,
+#                              Screen.bitmap.Bmask, Screen.bitmap.Amask)
+      # エンディアン判別
+      if [1].pack("V*") == [1].pack("L*") # リトルエンディアン？
+        bitmap = SDL::Surface.new(flag, w, h, 32, 0xff0000, 0xff00, 0xff, 0xff000000)
+      else # ビッグエンディアン
+        bitmap = SDL::Surface.new(flag, w, h, 32, 0xff00, 0xff0000, 0xff000000, 0xff)
+      end
+      bitmap
     end
+
+#    def Bitmap.create_from(bitmap) #:nodoc:
+#      bpp = 32
+#      # エンディアン判別
+#      if [1].pack("V*") == [1].pack("L*") # リトルエンディアン？
+#        bitmap = SDL::Surface.new_from(bitmap.pixels, bitmap.w, bitmap.h, 32, (bitmap.w*bpp)>>3,
+#                                       0xff0000, 0xff00, 0xff, 0xff000000)
+#      else # ビッグエンディアン
+#        bitmap = SDL::Surface.new_from(bitmap.pixels, bitmap.w, bitmap.h, 32, (bitmap.w*bpp)>>3,
+#                                       0xff00, 0xff0000, 0xff000000, 0xff)
+#      end
+#      bitmap
+#    end
 
     def Bitmap.load(filename) #:nodoc:
       begin

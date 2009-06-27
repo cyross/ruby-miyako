@@ -16,8 +16,8 @@ sprite2.fill([0,255,0])
 collision2 = Collision.new(rect)
 caution = Shape.text({:font => Font.serif }){ text "collision!" }
 
-sprite1.center.move(0, 128)
-sprite2.center
+sprite1.center!.move!(0, 128)
+sprite2.center!
 
 amount = 8
 
@@ -26,7 +26,7 @@ Miyako.main_loop do
   if Collision.collision?(collision1, sprite1.pos, collision2, sprite2.pos)
     caution.render
   else
-    sprite2.move(0, amount)
+    sprite2.move!(0, amount)
   end
   sprite1.render
   sprite2.render

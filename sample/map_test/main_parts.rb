@@ -22,7 +22,7 @@ class CommonParts
     wc = SpriteAnimation.new({:sprite => wcs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
     sc = SpriteAnimation.new({:sprite => scs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
     tb = TextBox.new({:size => [20, 4], :font => font, :wait_cursor => wc, :select_cursor => sc})
-    tb.set_wait_cursor_position{|wc, tbox| wc.right.bottom }
+    tb.set_wait_cursor_position{|wc, tbox| wc.right!.bottom! }
  
     wc = SpriteAnimation.new({:sprite => wcs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
     sc = SpriteAnimation.new({:sprite => scs, :wait => 0.2, :pattern_list => [0, 1, 2, 3, 2, 1]})
@@ -37,12 +37,12 @@ class CommonParts
     @box = Parts.new(bg.size)
     @box[:bg] = bg
     @box[:box] = tb
-    @box.center.bottom{|body| wc.oh }
+    @box.center!.bottom!{|body| wc.oh }
 
     @cbox = Parts.new(cbg.size)
     @cbox[:bg] = cbg
     @cbox[:box] = cb
-    @cbox.right{|body| 2.percent(body) }.top{|body| 2.percent(body) }
+    @cbox.right!{|body| 2.percent(body) }.top!{|body| 2.percent(body) }
 
     @executing = false
   end

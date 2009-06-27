@@ -126,38 +126,40 @@ module Miyako
           @tr_color = Color.to_rgb(param[:tr_color])
         end
         # カラーキーのα値を0にしたビットマップを作成
-        tbitmap = bitmap.display_format
-        tunit   = SpriteUnitFactory.create(:bitmap => tbitmap)
-        bitmap  = Bitmap.create(bitmap.w, bitmap.h, SDL::HWSURFACE)
-        bitmap  = bitmap.display_format_alpha
-        nunit = SpriteUnitFactory.create(:bitmap => bitmap)
-        Bitmap.ck_to_ac(tunit, nunit, @tr_color)
-        self.bitmap = bitmap
-        @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
-        tbitmap = nil
+#        self.bitmap = Bitmap.create_from(bitmap)
+        self.bitmap = bitmap.display_format_alpha
+        if param[:is_fill]
+          @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0])
+          Bitmap.ck_to_ac!(@unit, [0,0,0])
+        else
+          Bitmap.ck_to_ac!(@unit, @tr_color)
+        end
       when :alpha_surface
         # カラーキーのα値を0にしたビットマップを作成
-        tbitmap = bitmap.display_format
-        tunit   = SpriteUnitFactory.create(:bitmap => tbitmap)
-        bitmap  = Bitmap.create(bitmap.w, bitmap.h, SDL::HWSURFACE)
-        bitmap  = bitmap.display_format_alpha
-        nunit = SpriteUnitFactory.create(:bitmap => bitmap)
-        Bitmap.normal_to_ac(tunit, nunit)
-        self.bitmap = bitmap
-        @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
-        tbitmap = nil
-      when :alpha_channel
+#        self.bitmap = Bitmap.create_from(bitmap)
         self.bitmap = bitmap.display_format_alpha
-        @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0, 0]) if param[:is_fill]
+        Bitmap.normal_to_ac!(@unit)
+        if param[:is_fill]
+          @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0])
+          Bitmap.ck_to_ac!(@unit, [0,0,0])
+        end
+      when :alpha_channel
+#        self.bitmap = Bitmap.create_from(bitmap)
+        self.bitmap = bitmap.display_format_alpha
+        if param[:is_fill]
+          @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0])
+          Bitmap.ck_to_ac!(@unit, [0,0,0])
+        end
       when :movie
-        self.bitmap = bitmap.display_format
+#        self.bitmap = Bitmap.create_from(bitmap)
+        self.bitmap = bitmap.display_format_alpha
       end
       @type = param[:type]
 
       if param.has_key?(:unit)
         SpriteUnitFactory.apply(@unit, :ow=>param[:unit].ow, :oh=>param[:unit].oh,
                                        :cx => param[:unit].cx, :cy => param[:unit].cy)
-        self.move_to(param[:unit].x, param[:unit].y)
+        self.move_to!(param[:unit].x, param[:unit].y)
       end
     end
 
@@ -173,7 +175,7 @@ module Miyako
     end
     
     def update_layout_position #:nodoc:
-      @unit.move_to(*@layout.pos)
+      @unit.move_to!(*@layout.pos)
     end
 
     #===画像の幅を取得する

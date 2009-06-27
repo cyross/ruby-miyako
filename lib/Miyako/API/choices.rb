@@ -77,8 +77,8 @@ module Miyako
       dy = @layout.pos[1] - rect[1]
       @choices.each{|ch|
         ch.each{|cc|
-          cc.body.move(dx, dy)
-          cc.body_selected.move(dx, dy) if cc.body_selected && cc.body != cc.body_selected
+          cc.body.move!(dx, dy)
+          cc.body_selected.move!(dx, dy) if cc.body_selected && cc.body != cc.body_selected
         }
       }
     end

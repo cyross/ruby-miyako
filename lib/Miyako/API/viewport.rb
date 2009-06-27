@@ -70,15 +70,15 @@ module Miyako
     #_dx_:: 移動量(x方向)
     #_dy_:: 移動量(y方向)
     #返却値:: 自分自身を返す
-    def move(dx,dy)
+    def move!(dx,dy)
       orect = rect.to_a[0..1]
       osq = sq.to_a[0..1]
-      @rect.move(dx,dy)
-      @sq.move(dx, dy)
+      @rect.move!(dx,dy)
+      @sq.move!(dx, dy)
       if block_given?
         unless yield(self)
-          @rect.move_to(*orect)
-          @sq.move_to(*osq)
+          @rect.move_to!(*orect)
+          @sq.move_to!(*osq)
         end
       end
       return self
@@ -90,15 +90,15 @@ module Miyako
     #_x_:: 移動先位置(x方向)
     #_y_:: 移動先位置(y方向)
     #返却値:: 自分自身を返す
-    def move_to(x,y)
+    def move_to!(x,y)
       orect = rect.to_a[0..1]
       osq = sq.to_a[0..1]
-      @rect.move_to(x,y)
-      @sq.move_to(x, y)
+      @rect.move_to!(x,y)
+      @sq.move_to!(x, y)
       if block_given?
         unless yield(self)
-          @rect.move_to(*orect)
-          @sq.move_to(*osq)
+          @rect.move_to!(*orect)
+          @sq.move_to!(*osq)
         end
       end
     end
@@ -108,10 +108,10 @@ module Miyako
     #_dw_:: 幅
     #_dh_:: 高さ
     #返却値:: 自分自身を返す
-    def resize(dw,dh)
+    def resize!(dw,dh)
       raise MiyakoValueError, "Illegal size! w:#{w} h:#{h}" if ((@rect.w + dw) <= 0 || (@rect.h + dh) <= 0)
-      @rect.resize(dw, dh)
-      @sq.resize(dw, dh)
+      @rect.resize!(dw, dh)
+      @sq.resize!(dw, dh)
       return self
     end
 
@@ -120,11 +120,53 @@ module Miyako
     #_w_:: 幅
     #_h_:: 高さ
     #返却値:: 自分自身を返す
+    def resize_to!(w,h)
+      raise MiyakoValueError, "Illegal size! w:#{w} h:#{h}" if (w <= 0 || h <= 0)
+      @rect.resize_to!(w,h)
+      @sq.resize_to!(w, h)
+      return self
+    end
+
+    #===ビューポートの左上位置を変更したときの位置を求める
+    #移動量を指定して、位置を変更する
+    #ただし、自分自身の位置は変わらない
+    #_dx_:: 移動量(x方向)
+    #_dy_:: 移動量(y方向)
+    #返却値:: 更新したインスタンス(Rect構造体)を返す
+    def move(dx,dy)
+      @rect.dup.move!(dx,dy)
+    end
+
+    #===ビューポートの左上位置を変更したときの位置を求める
+    #移動先を指定して、位置を変更する
+    #ただし、自分自身の位置は変わらない
+    #_x_:: 移動先位置(x方向)
+    #_y_:: 移動先位置(y方向)
+    #返却値:: 更新したインスタンス(Rect構造体)を返す
+    def move_to(x,y)
+      @rect.dup.move_to!(x,y)
+    end
+
+    #===ビューポートの大きさを変更したときの値を求める
+    #変化量を指定して変更する
+    #ただし、自分自身の位置は変わらない
+    #_dw_:: 幅
+    #_dh_:: 高さ
+    #返却値:: 更新したインスタンス(Rect構造体)を返す
+    def resize(dw,dh)
+      raise MiyakoValueError, "Illegal size! w:#{w} h:#{h}" if ((@rect.w + dw) <= 0 || (@rect.h + dh) <= 0)
+      @rect.dup.resize!(dw,dh)
+    end
+
+    #===ビューポートの大きさを変更したときの値を求める
+    #幅と高さを指定して変更する
+    #ただし、自分自身の位置は変わらない
+    #_w_:: 幅
+    #_h_:: 高さ
+    #返却値:: 更新したインスタンス(Rect構造体)を返す
     def resize_to(w,h)
       raise MiyakoValueError, "Illegal size! w:#{w} h:#{h}" if (w <= 0 || h <= 0)
-      @rect.resize_to(w,h)
-      @sq.resize_to(w, h)
-      return self
+      @rect.dup.resize_to!(w,h)
     end
     
     #===インスタンスを解放する
@@ -133,10 +175,10 @@ module Miyako
       @sq   = nil
     end
     
-    #===ビューポートのインスタンスを取得する
-    #返却値:: ビューポートの矩形(Rect構造体インスタンス)の複製
+    #===ビューポートのインスタンスを複製する
+    #返却値:: 自分自身の複製
     def viewport
-      return @rect.dup
+      return self.dup
     end
     
     #===ビューポートのインスタンスを「左、右、上、下」の形式で取得する

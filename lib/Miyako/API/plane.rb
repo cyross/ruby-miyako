@@ -74,8 +74,8 @@ module Miyako
     #_dx_:: 移動量(x 座標)
     #_dy_:: 移動量(y 座標)
     #返却値:: 自分自身を返す
-    def move(dx, dy)
-      @pos.move(dx, dy)
+    def move!(dx, dy)
+      @pos.move!(dx, dy)
       @pos.x %= @sprite.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
       @pos.y %= @sprite.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
       return self
@@ -86,8 +86,34 @@ module Miyako
     #_x_:: 移動先の位置(x 座標)
     #_y_:: 移動先の位置(y 座標)
     #返却値:: 自分自身を返す
-    def move_to(x, y)
-      @pos.move_to(x, y)
+    def move_to!(x, y)
+      @pos.move_to!(x, y)
+      @pos.x %= @screen.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
+      @pos.y %= @screen.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
+      return self
+    end
+
+    #===プレーンの表示位置を移動させたときの位置を求める
+    #画像スクロールと同じ効果を得る
+    #ただし、自分自身の位置は変わらない
+    #_dx_:: 移動量(x 座標)
+    #_dy_:: 移動量(y 座標)
+    #返却値:: 変更したPosition構造体を返す
+    def move!(dx, dy)
+      @pos.move!(dx, dy)
+      @pos.x %= @sprite.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
+      @pos.y %= @sprite.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
+      return self
+    end
+
+    #===プレーンの表示位置を移動させたときの位置を求める(移動位置指定)
+    #画像スクロールと同じ効果を得る
+    #ただし、自分自身の位置は変わらない
+    #_x_:: 移動先の位置(x 座標)
+    #_y_:: 移動先の位置(y 座標)
+    #返却値:: 変更したPosition構造体を返す
+    def move_to!(x, y)
+      @pos.move_to!(x, y)
       @pos.x %= @screen.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
       @pos.y %= @screen.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
       return self

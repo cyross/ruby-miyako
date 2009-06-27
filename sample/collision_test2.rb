@@ -99,7 +99,7 @@ Miyako.main_loop do
     # 画面の端に来たら方向転換
     s[:amount][0] = -s[:amount][0] unless Utility.in_bounds?(*segments(s[:sprite], s[:amount], 0))
     s[:amount][1] = -s[:amount][1] unless Utility.in_bounds?(*segments(s[:sprite], s[:amount], 1))
-    s[:sprite].move(*s[:amount])
+    s[:sprite].move!(*s[:amount])
   }
 
   # 画面への描画

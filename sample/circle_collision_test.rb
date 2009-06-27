@@ -36,8 +36,8 @@ Drawing.circle(sprite2, pos, radius, [0,255,0], true)
 collision2 = CircleCollision.new(pos, radius)
 caution = Shape.text({:font => Font.serif }){ text "collision!" }
 
-sprite1.move_to(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
-sprite2.move_to(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
+sprite1.move_to!(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
+sprite2.move_to!(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
 
 amount1, amount2 = get_amount
 
@@ -52,8 +52,8 @@ Miyako.main_loop do
   amount2[0] = -amount2[0] unless Utility.in_bounds?(*segments(sprite2, amount2, 0))
   amount2[1] = -amount2[1] unless Utility.in_bounds?(*segments(sprite2, amount2, 1))
 
-  sprite1.move(*amount1)
-  sprite2.move(*amount2)
+  sprite1.move!(*amount1)
+  sprite2.move!(*amount2)
 
   sprite1.render
   sprite2.render

@@ -8,11 +8,11 @@ class Green
     @yuki.select_textbox(message_box[:box])
     @yuki.select_commandbox(command_box[:box])
     @midori = Sprite.new(:file => "image/midori.png", :type => :ck)
-    @midori.center.bottom
+    @midori.center!.bottom!
     @yuki.regist_parts(:midori, @midori)
 
     @room = Sprite.new(:file => "image/room_green.png", :type => :as)
-    @room.center.bottom
+    @room.center!.bottom!
 
     var[:midori_aisatsu]      = false if var[:midori_aisatsu]      == nil
     var[:release_aoyama_book] = false if var[:release_aoyama_book] == nil

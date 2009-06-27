@@ -312,35 +312,61 @@ module Miyako
     #_pair_:: 名前とスプライトの対。[name,sprite]として渡す
     #返却値:: 追加した自分自身を渡す
     def <<(pair)
-      self.push(*pair)
+      self.push(pair)
     end
     
+    #===引数と自分自身との和集合を取る
+    #otherと自分自身で一方でも割り付けられた名前の本体のみ登録する(方法はpush・addと同じ)
+    #名前がバッティングしたときは引数の本体を優先する
+    #_other_:: 計算をするSpriteList
+    #返却値:: 変更を加えた自分自身の複製
     def +(other)
       list = self.dup
       other.to_a.each{|pair| list.add(pair)}
       list
     end
     
+    #===引数と自分自身との積集合を取る
+    #otherと自分自身で両方割り付けられた名前のみ登録されたリストを生成する
+    #内容は自分自身の本体を割り当てる
+    #_other_:: 計算をするSpriteList
+    #返却値:: 変更を加えた自分自身の複製
     def *(other)
       list = SpriteList.new
       self.to_a.each{|pair| list.add(pair) if other.has_key?(pair[0])}
       list
     end
     
+    #===引数と自分自身との差集合を取る
+    #otherと自分自身で両方割り付けられた名前を取り除いたリストを生成する
+    #_other_:: 計算をするSpriteList
+    #返却値:: 変更を加えた自分自身の複製
     def -(other)
       list = SpriteList.new
       self.to_a.each{|pair| list.add(pair) unless other.has_key?(pair[0])}
       list
     end
     
+    #===引数と自分自身とのANDを取る
+    #方法は積集合と同じ(#*参照)
+    #_other_:: 計算をするSpriteList
+    #返却値:: 変更を加えた自分自身の複製
     def &(other)
       self * other
     end
     
+    #===引数と自分自身とのORを取る
+    #方法は和集合と同じ(#+参照)
+    #_other_:: 計算をするSpriteList
+    #返却値:: 変更を加えた自分自身の複製
     def |(other)
       self + other
     end
     
+    #===引数と内容が同じかどうかを確認する
+    #方法は#eql?と同じ(#eql?参照)
+    #_other_:: 比較元SpriteList
+    #返却値:: 同じ内容ならばtrue,違ったらfalseを返す
     def ==(other)
       self.eql?(other)
     end
@@ -357,11 +383,16 @@ module Miyako
     
     #===名前・スプライトの対を登録する
     #リストに名前・スプライトをリストの後ろに追加する
-    #効果はSpriteList#addと同じ
-    #_pair_:: 名前とスプライトの対。[name,sprite]として渡す
+    #効果はSpriteList#addと同じだが、複数の対を登録できることが特徴
+    #(例)push([name1,sprite1])
+    #    push([name1,sprite1],[name2,sprite2])
+    #_pairs_:: 名前とスプライトの対を配列にしたもの。対は、[name,sprite]として渡す。
     #返却値:: 追加した自分自身を渡す
     def push(*pairs)
       pairs.each{|name, sprite|
+        unless sprite.class.include?(SpriteBase) || sprite.class.include?(SpriteArray)
+          raise MiyakoValueError, "Illegal Sprite!"
+        end
         @names.delete(name) if @names.include?(name)
         @names << name
         @n2v[name] = ListPair.new(name, sprite)
@@ -458,24 +489,45 @@ module Miyako
       other.to_a.each{|pair| self.add(pair)}
     end
     
+    #===引数と自分自身との結果をマージする
+    #otherで割り付けられた名前のうち、自分では登録されていないものは新規登録する(方法はpushと同じ)
+    #名前がバッティングしたときは自分自身の本体を優先する
+    #_other_:: マージするSpriteList
+    #返却値:: 変更を加えた自分自身の複製
     def merge(other)
       ret = other.dup + self
       ret.names.each{|name| yield name, self[name], other[name] } if block_given?
       ret
     end
     
+    #===自分自身と引数との結果を破壊的にマージする
+    #otherで割り付けられた名前のうち、自分では登録されていないものは新規登録する(方法はpushと同じ)
+    #名前がバッティングしたときは自分自身の本体を優先する
+    #_other_:: マージするSpriteList
+    #返却値:: 変更された自分自身
     def merge!(other)
       self.replace(other+self)
       self.names.each{|name| yield name, self[name], other[name] } if block_given?
       self
     end
     
+    #===名前-スプライトの対を繰り返し取得する
+    #インスタンスを配列化し、周回して要素を取得できるEnumeratorを生成する
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c)).cycle
+    #   =>pair(:a),pair(:b),pair(:c),pair(:a),pair(:b),pair(:c),pair(:a)...
+    #返却値:: 生成されたEnumerator
     def cycle(&block)
       self.to_a.cycle(&block)
     end
 
     #===名前の順番をシャッフルしたSpriteListを返す
     #自分自身を複製し、登録されている名前の順番をシャッフルして返す
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #   a.shuffle 
+    #   =>SpriteList(pair(:a),pair(:b),pair(:c)) or SpriteList(pair(:a),pair(:c),pair(:b)) or
+    #     SpriteList(pair(:b),pair(:a),pair(:c)) or SpriteList(pair(:b),pair(:c),pair(:a)) or
+    #     SpriteList(pair(:c),pair(:a),pair(:b)) or SpriteList(pair(:c),pair(:b),pair(:a))
+    #     a=SpriteList(pair(:a),pair(:b),pair(:c))
     #返却値:: シャッフルした自分自身の複製
     def shuffle
       self.dup.shuffle!
@@ -483,6 +535,11 @@ module Miyako
 
     #===名前の順番をシャッフルする
     #自分自身で登録されている名前の順番をシャッフルする
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #   a.shuffle! 
+    #   =>a=SpriteList(pair(:a),pair(:b),pair(:c)) or SpriteList(pair(:a),pair(:c),pair(:b)) or
+    #       SpriteList(pair(:b),pair(:a),pair(:c)) or SpriteList(pair(:b),pair(:c),pair(:a)) or
+    #       SpriteList(pair(:c),pair(:a),pair(:b)) or SpriteList(pair(:c),pair(:b),pair(:a))
     #返却値:: シャッフルした自分自身
     def shuffle!
       @names.shuffle
@@ -492,6 +549,17 @@ module Miyako
     #===自身から要素をランダムに選ぶ
     #自分自身を配列化(to_ary)し、最大n個の要素(ListPair)をランダムに選び出して配列として返す
     #自分自身が空のときは、n=nilのときはnilを、n!=nilのときは空配列を返す
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #   a.sample(1)
+    #   =>[pair(:a)] or [pair(:b)] or [pair(:c)]
+    #   a.sample(2)
+    #   =>[pair(:a),pair(:b)] or [pair(:a),pair(:c)] or
+    #     [pair(:b),pair(:a)] or [pair(:b),pair(:c)] or
+    #     [pair(:c),pair(:a)] or [pair(:c),pair(:b)]
+    #   a.sample(3)
+    #   =>[pair(:a),pair(:b),pair(:c)] or [pair(:a),pair(:c),pair(:b)] or
+    #     [pair(:b),pair(:a),pair(:c)] or [pair(:b),pair(:c),pair(:a)] or
+    #     [pair(:c),pair(:a),pair(:b)] or [pair(:c),pair(:b),pair(:a)]
     #_n_:: 選び出す個数。n=nilのときは1個とみなす
     #返却値:: 選び出したListPairを配列化したもの
     def sample(n=nil)
@@ -499,6 +567,13 @@ module Miyako
     end
 
     #===自身での組み合わせを配列として返す
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #   a.combination(1)
+    #   =>[[pair(:a)],[pair(:b)],[pair(:c)]]
+    #   a.combination(2)
+    #   =>[[pair(:a),pair(:b)],[pair(:a),pair(:c)],[pair(:b),pair(:c)]]
+    #   a.combination(3)
+    #   =>[[pair(:a),pair(:b),pair(:c)]]
     #自分自身を配列化(to_ary)し、サイズnの組み合わせをすべて求めて配列にまとめる
     #_n_:: 組み合わせのサイズ
     #返却値:: すべてのListPairの順列を配列化したもの
@@ -508,6 +583,17 @@ module Miyako
 
     #===自身での順列を配列として返す
     #自分自身を配列化(to_ary)し、サイズnの順列をすべて求めて配列にまとめる
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #   a.permutation(1)
+    #   =>[[pair(:a)],[pair(:b)],[pair(:c)]]
+    #   a.permutation(2)
+    #   =>[[pair(:a),pair(:b)],[pair(:a),pair(:c)],
+    #      [pair(:b),pair(:a)],[pair(:b),pair(:c)],
+    #      [pair(:c),pair(:a)],[pair(:c),pair(:b)]]
+    #   a.permutation(3)
+    #   =>[[pair(:a),pair(:b),pair(:c)],[pair(:a),pair(:c),pair(:b)],
+    #      [pair(:b),pair(:a),pair(:c)],[pair(:b),pair(:c),pair(:a)],
+    #      [pair(:c),pair(:a),pair(:b)],[pair(:c),pair(:b),pair(:a)]]
     #_n_:: 順列のサイズ
     #返却値:: すべてのListPairの組み合わせを配列化したもの
     def permutation(n, &block)
@@ -519,6 +605,9 @@ module Miyako
     #===内容を引数のものに置き換える
     #現在登録されているデータをいったん解除し、
     #引数として渡ってきたSpriteListの無いようにデータを置き換える
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))
+    #   a.replace(SpriteList(pair(:e),pair(:f),pair(:g),pair(:h)))
+    #   =>a=SpriteList(pair(:e),pair(:f),pair(:g),pair(:h))
     #_other_:: 置き換え元のSpriteList
     #返却値:: 置き換えた自分自身
     def replace(other)
@@ -529,6 +618,10 @@ module Miyako
 
     #===名前の順番を反転する
     #名前の順番を反転した、自分自身のコピーを生成する
+    #例:a=SpriteList(pari(:a),pair(:b),pair(:c),pair(:d))
+    #   a.reverse
+    #   =>SpriteList(pari(:d),pair(:c),pair(:b),pair(:a))
+    #     a=SpriteList(pari(:a),pair(:b),pair(:c),pair(:d))
     #返却値:: 名前を反転させた自分自身の複製を返す
     def reverse
       ret = self.dup
@@ -536,6 +629,10 @@ module Miyako
     end
     
     #===名前の順番を破壊的に反転する
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))
+    #   a.reverse!
+    #   =>SpriteList(pair(:d),pair(:c),pair(:b),pair(:a))
+    #     a=SpriteList(pair(:d),pair(:c),pair(:b),pair(:a))
     #返却値:: 自分自身を帰す
     def reverse!
       @names.reverse!
@@ -544,6 +641,8 @@ module Miyako
     
     #===名前と関連付けられたスプライトを取得する
     #関連付けられているスプライトが見つからなければnilが返る
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))[:c]
+    #   => spr(:c)
     #_name_:: 名前
     #返却値:: 名前に関連付けられたスプライト
     def [](name)
@@ -554,6 +653,10 @@ module Miyako
     #名前に対応したスプライトを、引数で指定したものに置き換える。
     #ただし、まだ名前が登録されていないときは、新規追加と同じになる。
     #新規追加のときはSpriteList#pushと同じ
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))[:e]=spr(:e)
+    #   => SpriteList(pair(:a),pair(:b),pair(:c),pair(:d),pair(:e))
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))[:b]=spr(:b2)
+    #   => SpriteList(pair(:a),pair(:b2),pair(:c),pair(:d))
     #_name_:: 名前
     #_sprite_:: スプライト
     #返却値:: 登録された自分自身
@@ -563,14 +666,48 @@ module Miyako
       return self
     end
     
+    #===名前の一覧から新しいSpriteListを生成する
+    #リストの順番はnamesの順番と同じ
+    #自分自身に登録されていない名前があったときはnilが登録される
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d)).pairs_at(:b, :d)
+    #   => [pair(:b),pair(:d)]
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d)).pairs_at(:b, :e)
+    #   => [pair(:b),nil]
+    #_names_:: 取り出した名前のリスト名前
+    #返却値:: 生成されたSpriteList
     def pairs_at(*names)
-      names.map{|name| @n2v[name]}
+      ret = SpriteList.new
+      names.each{|name| ret[name] = @n2v[name]}
+      ret
     end
     
+    #===名前の一覧から本体のリストを生成する
+    #本体のみの配列を返す。要素の順番はnamesの順番と同じ
+    #自分自身に登録されていない名前があったときはnilが登録される
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d)).values_at(:b, :d)
+    #   => [spr(:b),spr(:d)]
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d)).values_at(:b, :e)
+    #   => [spr(:b),nil]
+    #_names_:: 取り出した名前のリスト名前
+    #返却値:: 生成された配列
     def values_at(*names)
       names.map{|name| @n2v[name].body }
     end
     
+    #===SpriteListを配列化し、同じ位置の要素を一つの配列にまとめる
+    #自分自身に登録されていない名前があったときはnilが登録される
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).zip(SpriteList(pair(:d),pair(:e),pair(:f))
+    #   => [[pair(:a),pair(:d)],[pair(:b),pair(:e)],[pair(:c),pair(:f)]]
+    #例:SpriteList(pair(:a),pair(:b)).zip(SpriteList(pair(:d),pair(:e),pair(:f))
+    #   => [[pair(:a),pair(:d)],[pair(:b),pair(:e)]]
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).zip(SpriteList(pair(:d),pair(:e))
+    #   => [[pair(:a),pair(:d)],[pair(:b),pair(:e)],[pair(:c),nil]]
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).zip(
+    #       SpriteList(pair(:d),pair(:e),pair(:f),
+    #       SpriteList(pair(:g),pair(:h),pair(:i))
+    #   => [[pair(:a),pair(:d),pair(:g)],[pair(:b),pair(:e),pair(:h)],[pair(:c),pair(:f),pair(:i)]]
+    #_names_:: 取り出した名前のリスト名前
+    #返却値:: 生成されたSpriteList
     def zip(*lists, &block)
       lists = lists.map{|list| list.to_a}
       self.to_a.zip(*lists, &block)
@@ -579,6 +716,8 @@ module Miyako
     #===リストを配列化する
     #インスタンスの内容を元に、配列を生成する。
     #各要素は、ListPair構造体
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c)).to_a
+    #   => [pair(:a),pair(:b),pair(:c)]
     #返却値:: 生成した配列
     def to_a
       self.to_ary
@@ -587,6 +726,8 @@ module Miyako
     #===リストを配列化する
     #インスタンスの内容を元に、配列を生成する。
     #各要素は、ListPair構造体
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c)).to_ary
+    #   => [pair(:a),pair(:b),pair(:c)]
     #返却値:: 生成した配列
     def to_ary
       @names.map{|name| @n2v[name]}
@@ -594,6 +735,8 @@ module Miyako
     
     #===スプライト名とスプライト本体とのハッシュを取得する
     #スプライト名とスプライト本体が対になったハッシュを作成して返す
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).to_hash
+    #   => {:a=>spr(:a),:b=>spr(:b),:c=>spr(:c)}
     #返却値:: 生成したハッシュ
     def to_hash
       @n2v.dup
@@ -622,6 +765,10 @@ module Miyako
     
     #===指定の名前の直前に名前を挿入する
     #配列上で、スプライト名配列の指定の名前の前になるように名前を挿入する
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert(:b, :d, spr(:d))
+    #   => SpriteList(pair(:a),pair(:d),pair(:b),pair(:c))
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert(:c, :a)
+    #   => SpriteList(pair(:c),pair(:a),pair(:b))
     #_key_:: 挿入先の名前。この名前の直前に挿入する
     #_name_:: 挿入するスプライトの名前
     #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
@@ -641,6 +788,10 @@ module Miyako
     
     #===指定の名前の直後に名前を挿入する
     #配列上で、スプライト名配列の指定の名前の次の名前になるように名前を挿入する
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert_after(:b, :d, spr(:d))
+    #   => SpriteList(pair(:a),pair(:b),,pair(:d)pair(:c))
+    #例:SpriteList(pair(:a),pair(:b),pair(:c)).insert_after(:c, :b)
+    #   => SpriteList(pair(:a),pair(:c),pair(:b))
     #_key_:: 挿入先の名前。この名前の直後に挿入する
     #_name_:: 挿入するスプライトの名前
     #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
@@ -659,6 +810,8 @@ module Miyako
     end
     
     #===指定した要素の内容を入れ替える
+    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d)).insert(:b, :d)
+    #   => SpriteList(pair(:a),pair(:d),pair(:c),pair(:b))
     #_name1,name_:: 入れ替え対象の名前
     #返却値:: 自分自身を帰す
     def swap(name1, name2)
@@ -722,7 +875,7 @@ module Miyako
     
     #===オブジェクトを文字列に変換する
     #いったん、名前とスプライトとの対の配列に変換し、to_sメソッドで文字列化する。
-    #(例)[[name1, sprite1], [name2, sprite2],...]
+    #例:[[name1, sprite1], [name2, sprite2],...]
     #返却値:: 変換した文字列
     def to_s
       self.to_a.to_s

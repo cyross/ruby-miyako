@@ -11,10 +11,10 @@ class Title
     font.size = 24
     font.color = Color[:white]
     @push_key = Shape.text(:text=>"Push Any Key", :font=>font)
-    @push_key.center.bottom{|body| (0.1).ratio(body) }
+    @push_key.center!.bottom!{|body| (0.1).ratio(body) }
 
     @copy_right = Shape.text(:text=>"2006-2008 Cyross Makoto", :font=>font)
-    @copy_right.center.bottom{|body| (0.05).ratio(body) }
+    @copy_right.center!.bottom!{|body| (0.05).ratio(body) }
 
     @visible = false
 
@@ -24,12 +24,12 @@ class Title
   end
 
   def setup
-    @title.move_to(Screen.w, 0)
+    @title.move_to!(Screen.w, 0)
   end
 
   def view_in
     if @title.x > 0
-      @title.move(-8, 0)
+      @title.move!(-8, 0)
       return @now
     end
     @visible = true
@@ -47,7 +47,7 @@ class Title
 
   def view_out
     if @title.x > -Screen.w
-      @title.move(-8, 0)
+      @title.move!(-8, 0)
       return @now
     end
     return TitleCall
@@ -76,7 +76,7 @@ class TitleCall
       select_textbox(box)
     }
     @man = Sprite.new(:file=>"image/start.png", :type=>:ck)
-    @man.center.bottom
+    @man.center!.bottom!
     @alpha = 0.0
     @wait = WaitCounter.new(0.2)
     @exec = self.method(:view_in)

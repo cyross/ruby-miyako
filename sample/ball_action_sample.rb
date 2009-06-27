@@ -29,14 +29,15 @@ class Obj
   def update_layout_position
     # 画像はマージンが掛かっている可能性があるため、
     # 補正を掛けておく
-    @sprite.move(@layout.pos[0]-@position[0],
-                 @layout.pos[1]-@position[1])
-    @position.move_to(*@layout.pos.to_a)
+    pos = @layout.pos.move(-@position[0],-@position[1])
+    p pos
+    @sprite.move!(*pos)
+    @position.move_to!(*@layout.pos)
   end
   
   # スプライトとコリジョン間でマージンを設定
   def margin(dx, dy)
-    @sprite.move(dx, dy)
+    @sprite.move!(dx, dy)
     return self
   end
 
@@ -53,7 +54,7 @@ end
 
 # ボール
 class Ball < Obj
-  V0 = [4.0, 6.0, 8.0, 12.0].cycle
+  V0 = [8.0, 12.0].cycle
   VX = [1, -1].cycle
   G = 9.8
 
@@ -171,10 +172,10 @@ end
 @floor = Floor.new
 
 # 床の初期位置設定
-@floor.center.bottom
+@floor.center!.bottom!
 
 # ボールの初期位置設定
-@ball.center.bottom{|b| @floor.size.h }
+@ball.center!.bottom!{|b| @floor.size.h }
 
 # フォントの用意
 @font = Font.serif
@@ -183,7 +184,7 @@ end
 # 情報表示用スプライトの用意
 @speed = Sprite.new(size: Size.new(640, 16), type: :ac)
 @info = Shape.text(font: @font, text: "１ボタンを押せばボールが跳ね上がります")
-@info.snap(@speed).left.outside_bottom
+@info.snap(@speed).left!.outside_bottom!
 
 Miyako.main_loop do
   break if Input.quit_or_escape?

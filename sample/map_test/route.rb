@@ -10,7 +10,7 @@ class EventRouteMarker
     @spr = Sprite.new({:filename => "map2.png", :type => :color_key})
     @spr.ow = @spr.oh = 32
     @spr.ox = 96
-    @spr.move_to(x, y)
+    @spr.move_to!(x, y)
     @coll = Collision.new([0, 0, @spr.ow, @spr.oh])
     @pos  = Point.new(x, y)
     @margin = Size.new(0, 0)
@@ -46,12 +46,12 @@ class EventRouteMarker
     end
   end
   
-  def move(dx, dy)
-    @spr.move(-dx, -dy)
+  def move!(dx, dy)
+    @spr.move!(-dx, -dy)
   end
   
-  def move_to(x, y)
-    @spr.move_to(x, y)
+  def move_to!(x, y)
+    @spr.move_to!(x, y)
   end
   
   def update(map_obj, events, params)
@@ -63,9 +63,9 @@ class EventRouteMarker
 
   # イベントキャラクタの描画
   def render
-    @spr.move(-@margin.w, -@margin.h)
+    @spr.move!(-@margin.w, -@margin.h)
     @spr.render
-    @spr.move(@margin.w, @margin.h)
+    @spr.move!(@margin.w, @margin.h)
   end
 
   #(Yuki起動時)メッセージボックスの表示
@@ -85,7 +85,7 @@ class EventRouteMarker2
     @spr = Sprite.new({:filename => "map2.png", :type => :color_key})
     @spr.ow = @spr.oh = 32
     @spr.ox = 96
-    @spr.move(x, y)
+    @spr.move!(x, y)
     @coll = Collision.new([0, 0, @spr.ow, @spr.oh])
     @pos  = Point.new(x, y)
     @margin = Size.new(0, 0)
@@ -128,12 +128,12 @@ class EventRouteMarker2
     end
   end
   
-  def move(dx, dy)
-    @spr.move(-dx, -dy)
+  def move!(dx, dy)
+    @spr.move!(-dx, -dy)
   end
   
-  def move_to(x, y)
-    @spr.move_to(x, y)
+  def move_to!(x, y)
+    @spr.move_to!(x, y)
   end
   
   def update(map_obj, events, params)
@@ -145,9 +145,9 @@ class EventRouteMarker2
 
   # イベントキャラクタの描画
   def render
-    @spr.move(-@margin.w, -@margin.h)
+    @spr.move!(-@margin.w, -@margin.h)
     @spr.render
-    @spr.move(@margin.w, @margin.h)
+    @spr.move!(@margin.w, @margin.h)
   end
 
   #(Yuki起動時)メッセージボックスの表示

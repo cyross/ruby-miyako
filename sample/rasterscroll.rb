@@ -10,7 +10,7 @@ include Miyako
 #1秒後にラスタスクロールのフェードアウトを設定する
 wait = WaitCounter.new(1.0).start
 # 0.05秒ごとに、2ラインずつ、8ピクセル単位のラスタスクロールを行う
-sprite = Sprite.new(:file => "Animation2/lex_body.png", :type => :ck).centering
+sprite = Sprite.new(:file => "Animation2/lex_body.png", :type => :ck).centering!
 rs = RasterScroll.new(sprite).start({:lines => 2, :size => 8, :wait=>WaitCounter.new(0.05)})
 fade = false
 

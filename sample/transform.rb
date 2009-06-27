@@ -12,7 +12,7 @@ MAX = 8.0 # 最大拡大率8倍
 MIN = -8.0 # 最小拡大率8分の1
 RATE = 0.4 # 拡大率間隔0.4倍
 
-@sprite = Sprite.new(:file=>"map_test/map.png", :type=>:ck).centering
+@sprite = Sprite.new(:file=>"map_test/map.png", :type=>:ck).centering!
 
 # 変形対象画像を半透明にする
 Bitmap.dec_alpha!(@sprite, 0.5)
@@ -29,7 +29,7 @@ yscale = 4.0 # 初期拡大率(y座標)4倍
 angle = 0.0  # 初期回転角度0度
 
 # 画面の中心に画像を表示指定(pre_render)
-Screen.pre_render_array << [Sprite.new(:file=>"Animation1/m1ku_back.jpg", :type=>:ac).centering, @sprite]
+Screen.pre_render_array << [Sprite.new(:file=>"Animation1/m1ku_back.jpg", :type=>:ac).centering!, @sprite]
 
 # 画面の変形中心を設定
 Screen.center_x = Screen.w/2

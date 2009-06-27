@@ -65,7 +65,7 @@ module Miyako
     def update_layout_position #:nodoc:
       @x = @layout.pos[0]
       @y = @layout.pos[1]
-      @sprite.move_to(*@layout.pos)
+      @sprite.move_to!(*@layout.pos)
     end
     
     def initialize_copy(obj) #:nodoc:

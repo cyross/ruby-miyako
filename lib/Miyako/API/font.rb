@@ -66,7 +66,9 @@ module Miyako
     @@initialized = false
 
     #===フォント関連の初期化処理
+    #既に初期化済みの時はMiyakoErrorが発生する
     def Font.init
+      raise MiyakoError, "Already initialized!" if @@initialized
       SDL::TTF.init
       Font.create_font_path
       @@initialized = true

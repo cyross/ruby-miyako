@@ -34,9 +34,9 @@ box_bg.fill([128,0,64,128])
 @parts = Parts.new(box.size)
 @parts[:box_bg] = box_bg
 @parts[:box] = box
-@parts[:box_bg].centering
-@parts[:box].centering
-@parts.centering
+@parts[:box_bg].centering!
+@parts[:box].centering!
+@parts.centering!
 
 # 選択肢の作成
 list = [

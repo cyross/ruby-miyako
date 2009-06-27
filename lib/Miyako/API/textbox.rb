@@ -65,8 +65,8 @@ module Miyako
 
       @textarea = Sprite.new({:size => @size, :type => :ac, :is_fill => true})
 
-      @default_wait_cursor_position = lambda{|wcursor, tbox| wcursor.center.outside_bottom}
-      @default_select_cursor_position = lambda{|scursor, tbox| scursor.outside_left.middle}
+      @default_wait_cursor_position = lambda{|wcursor, tbox| wcursor.center!.outside_bottom!}
+      @default_select_cursor_position = lambda{|scursor, tbox| scursor.outside_left!.middle!}
 
       @wait_cursor = params[:wait_cursor] || params[:wc] || nil
       @wait_cursor_position = @default_wait_cursor_position
@@ -83,7 +83,7 @@ module Miyako
 
       @choices = Choices.new
       @choices.snap(self)
-      @choices.left.top
+      @choices.left!.top!
 
       @now_choice = nil
       @pre_attach = false
@@ -93,7 +93,7 @@ module Miyako
       @selecting = false
 
       @textarea.snap(self)
-      @textarea.centering
+      @textarea.centering!
 
       @fiber = nil
 
@@ -142,7 +142,7 @@ module Miyako
       
       @choices = @choices.dup
       @choices.snap(self)
-      @choices.left.top
+      @choices.left!.top!
 
       @waiting = false
       @select_type = :left
@@ -150,7 +150,7 @@ module Miyako
 
       @textarea = @textarea.dup
       @textarea.snap(self)
-      @textarea.centering
+      @textarea.centering!
 
       if @wait_cursor
 				@wait_cursor.snap(self)
@@ -487,8 +487,8 @@ module Miyako
           v.up = cc[y - 1]
           v.right = right[y] || right.last
           v.left = left[y] || left.last
-          v.body.move_to(0, yp)
-          v.body_selected.move_to(0, yp)
+          v.body.move_to!(0, yp)
+          v.body_selected.move_to!(0, yp)
           yp += [v.body.broad_rect.h, v.body_selected.broad_rect.h].max
         }
       }
@@ -519,8 +519,8 @@ module Miyako
         @choices.clear
         choices.each{|cc| @choices.create_choices(cc) }
       end
-      @choices.left{|b| @locate.x}.top{|b| @locate.y}
-      @choices.move(dx, dy) if (dx != nil && dy != nil)
+      @choices.left!{|b| @locate.x}.top!{|b| @locate.y}
+      @choices.move!(dx, dy) if (dx != nil && dy != nil)
       start_command
       Fiber.yield if @fiber
       return self
@@ -545,7 +545,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def finish_command
       @choices.end_choice(self)
-      @choices.left.top
+      @choices.left!.top!
       @selecting = false
       return self
     end
@@ -599,16 +599,16 @@ module Miyako
     end
 
     def update_layout_position #:nodoc:
-      @pos.move_to(*@layout.pos)
+      @pos.move_to!(*@layout.pos)
     end
 
     #===入力待ち状態(ポーズ)に表示するカーソルの位置を設定する
     #ポーズカーソルの位置を、パラメータ二つ(カーソル本体・テキストボックス)を引数に取るブロックで実装する
     #位置は、テキストエリアをsnapしていると想定して実装する
-    #デフォルトは、テキストエリアの中下に置かれる(center.bottom)
-    # (例)テキストボックスの中下(テキストエリアの外) -> {|wc, tbox| wc.center.outside_bottom }
-    #  　 テキストボックスの右下(テキストエリアの中) -> {|wc, tbox| wc.right.bottom }
-    #  　 テキストの最後尾 -> {|wc, tbox| wc.left{|b| tbox.locate.x }.top{|b| tbox.locate.y} }
+    #デフォルトは、テキストエリアの中下に置かれる(center!.bottom!)
+    # (例)テキストボックスの中下(テキストエリアの外) -> {|wc, tbox| wc.center!.outside_bottom! }
+    #  　 テキストボックスの右下(テキストエリアの中) -> {|wc, tbox| wc.right!.bottom! }
+    #  　 テキストの最後尾 -> {|wc, tbox| wc.left!{|b| tbox.locate.x }.top!{|b| tbox.locate.y} }
     #     (テキストエリアの左上から右下へ現在の描画開始位置(tbox.locateメソッドで示した値)の距離移動した箇所)
     #ブロックを渡していなかったり、ブロックの引数が2個でなければエラーを返す
     #返却値:: 自分自身を返す
@@ -621,7 +621,7 @@ module Miyako
     end
 
     #===入力待ち状態(ポーズ)に表示するカーソルの位置をデフォルトに戻す
-    #デフォルトの位置は、テキストエリアの中下(center.bottom)に設定されている
+    #デフォルトの位置は、テキストエリアの中下(center!.bottom!)に設定されている
     #返却値:: 自分自身を返す
     def reset_wait_cursor_position
       @wait_cursor_position = @default_wait_cursor_position
@@ -632,9 +632,9 @@ module Miyako
     #===コマンド選択時に表示するカーソルの位置を設定する
     #カーソルの位置を、パラメータ二つ(カーソル本体・選択肢)を引数に取るブロックで実装する
     #位置は、テキストエリアをsnapしていると想定して実装する
-    #デフォルトは、選択肢の左側に置かれる(outside_left.middle)
-    # (例)選択肢の右側 -> {|wc, choice| wc.outside_right.middle }
-    #  　 選択肢の真上 -> {|wc, choice| wc.centering }
+    #デフォルトは、選択肢の左側に置かれる(outside_left!.middle!)
+    # (例)選択肢の右側 -> {|wc, choice| wc.outside_right!.middle! }
+    #  　 選択肢の真上 -> {|wc, choice| wc.centering! }
     #ブロックを渡していなかったり、ブロックの引数が2個でなければエラーを返す
     #返却値:: 自分自身を返す
     def set_select_cursor_position(&proc)
@@ -646,7 +646,7 @@ module Miyako
     end
 
     #===入力待ち状態(ポーズ)に表示するカーソルの位置をデフォルトに戻す
-    #デフォルトの位置は、テキストエリアの中下(center.bottom)に設定されている
+    #デフォルトの位置は、テキストエリアの中下(center!.bottom!)に設定されている
     #返却値:: 自分自身を返す
     def reset_select_cursor_position
       @select_cursor_position = @default_select_cursor_position

@@ -566,25 +566,25 @@ void Init_miyako_basicdata()
   rb_define_method(cWaitCounter, "finish?", counter_finish, 0);
   rb_define_method(cWaitCounter, "wait", counter_wait, 0);
   
-  rb_define_method(sSpriteUnit, "move", su_move, 2);
-  rb_define_method(sSpriteUnit, "move_to", su_move_to, 2);
+  rb_define_method(sSpriteUnit, "move!", su_move, 2);
+  rb_define_method(sSpriteUnit, "move_to!", su_move_to, 2);
 
-  rb_define_method(sPoint, "move", point_move, 2);
-  rb_define_method(sPoint, "move_to", point_move_to, 2);
-  rb_define_method(sSize, "resize", size_resize, 2);
-  rb_define_method(sSize, "resize_to", size_resize_to, 2);
-  rb_define_method(sRect, "move", point_move, 2);
-  rb_define_method(sRect, "move_to", point_move_to, 2);
-  rb_define_method(sRect, "resize", rect_resize, 2);
-  rb_define_method(sRect, "resize_to", rect_resize_to, 2);
+  rb_define_method(sPoint, "move!", point_move, 2);
+  rb_define_method(sPoint, "move_to!", point_move_to, 2);
+  rb_define_method(sSize, "resize!", size_resize, 2);
+  rb_define_method(sSize, "resize_to!", size_resize_to, 2);
+  rb_define_method(sRect, "move!", point_move, 2);
+  rb_define_method(sRect, "move_to!", point_move_to, 2);
+  rb_define_method(sRect, "resize!", rect_resize, 2);
+  rb_define_method(sRect, "resize_to!", rect_resize_to, 2);
   rb_define_method(sRect, "in_range?", rect_in_range, 2);
-  rb_define_method(sSquare, "move", square_move, 2);
-  rb_define_method(sSquare, "move_to", square_move_to, 2);
-  rb_define_method(sSquare, "resize", square_resize, 2);
-  rb_define_method(sSquare, "resize_to", square_resize_to, 2);
+  rb_define_method(sSquare, "move!", square_move, 2);
+  rb_define_method(sSquare, "move_to!", square_move_to, 2);
+  rb_define_method(sSquare, "resize!", square_resize, 2);
+  rb_define_method(sSquare, "resize_to!", square_resize_to, 2);
   rb_define_method(sSquare, "in_range?", square_in_range, 2);
-  rb_define_method(sSegment, "move", segment_move, 2);
-  rb_define_method(sSegment, "move_to", segment_move_to, 2);
-  rb_define_method(sSegment, "resize", segment_resize, 2);
-  rb_define_method(sSegment, "resize_to", segment_resize_to, 2);
+  rb_define_method(sSegment, "move!", segment_move, 2);
+  rb_define_method(sSegment, "move_to!", segment_move_to, 2);
+  rb_define_method(sSegment, "resize!", segment_resize, 2);
+  rb_define_method(sSegment, "resize_to!", segment_resize_to, 2);
 }

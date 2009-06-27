@@ -981,6 +981,14 @@ v2.1.0(2009.6)
 ・Yukiを使用したとき、コマンドキャンセルきーにエスケープキーを追加
 ・Yukiのスクリプトに対して引数を渡すことができるようになった(↓参照)
 ・Yuki#start_plotのインタフェース変更(with_update_inputを廃止、*paramsを追加)
+・各クラス・構造体・モジュールのmove,move_to,resize,resize_toメソッドを、
+　move!,move_to!,resize!,resize_to!に変更
+　(既存のメソッドは、「変更した後の値を新しいインスタンスとして返す(自身は変更しない)」に変更)
+・Layoutモジュールの(outside_)left,(outside_)top,(outside_)right,(outside_)bottom,centeringメソッドを、
+　(outside_)left!,(outside_)top!,(outside_)right!,(outside_)bottom!,centering!に変更
+　(既存のメソッドは、「変更した後の値を新しいインスタンスとして返す(自身は変更しない)」に変更)
+・Segment#reset->reset!に変更
+・Viewport#viewportメソッドの返却値を変更(
 <ファイル追加>
 ・lib/Miyako/miyako_require_only.rb
 ・lib/Miyako/API/exceptions.rb
@@ -1017,6 +1025,7 @@ v2.1.0(2009.6)
 ・Audio::SE.update
 ・Audio::SE.playing_any?
 ・Audio::SE.channels
+・Input.init
 ・Layout.copy_layout
 ・Font.init
 ・Font.initialized?
@@ -1063,8 +1072,18 @@ v2.1.0(2009.6)
 ・Parts#insert
 ・Parts#insert_after
 ・Parts#swap
+・Rect#pos
+・Rect#size
 ・Scene#upper_scene
 ・Scene#next_scene
+・Segment#x
+・Segment#y
+・Segment#min_x
+・Segment#max_x
+・Segment#min_y
+・Segment#max_y
+・Square#pos
+・Square#size
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

@@ -17,13 +17,13 @@ class MoveSlower
   end
   
   def start
-    @spr.move_to(640, @spr.y) # 画面を出たところまで移動
+    @spr.move_to!(640, @spr.y) # 画面を出たところまで移動
   end
 
   def update
     @finish = (@spr.x <= 320) # 所定の位置までスクロールさせたら終了
     return if @finish
-    @spr.move(-2,0)
+    @spr.move!(-2,0)
   end
 
   def render
@@ -45,13 +45,13 @@ class MoveFaster
   end
   
   def start
-    @spr.move_to(640, @spr.y) # 画面を出たところまで移動
+    @spr.move_to!(640, @spr.y) # 画面を出たところまで移動
   end
 
   def update
     @finish = (@spr.x <= 40) # 所定の位置までスクロールさせたら終了
     return if @finish
-    @spr.move(-4,0)
+    @spr.move!(-4,0)
   end
 
   def render
@@ -234,17 +234,17 @@ class MainScene
     @parts = Parts.new(@box.size)
     @parts[:box_bg] = @box_bg
     @parts[:box] = @box
-    @parts[:box_bg].centering
-    @parts[:box].centering
-    @parts.center.bottom{ TEXTBOX_BOTTOM }
+    @parts[:box_bg].centering!
+    @parts[:box].centering!
+    @parts.center!.bottom!{ TEXTBOX_BOTTOM }
 
     @yuki = Yuki.new
     @yuki.update_text = self.method(:update_text)
     
     @imgs = {}
-    @imgs[:c1] = Sprite.new(:file=>"chr01.png", :type=>:ac).bottom
-    @imgs[:c2] = Sprite.new(:file=>"chr02.png", :type=>:ac).bottom
-    @imgs[:bk] = Sprite.new(:file=>"back.png", :type=>:as).centering
+    @imgs[:c1] = Sprite.new(:file=>"chr01.png", :type=>:ac).bottom!
+    @imgs[:c2] = Sprite.new(:file=>"chr02.png", :type=>:ac).bottom!
+    @imgs[:bk] = Sprite.new(:file=>"back.png", :type=>:as).centering!
 
     
     @pr = Diagram::Processor.new{|dia|
@@ -282,8 +282,7 @@ class MainScene
   end
   
   def plot
-    yuki_plot{|str|
-      puts str
+    yuki_plot{
       text_method :string do
         page :page1 do
           text "「ねえ、あんたの担当のセリフ、ちゃんと覚えてるわよねぇ？"

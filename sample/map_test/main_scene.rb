@@ -13,13 +13,13 @@ class MainScene
 
     # キャラクタの初期位置を指定([10,10]に位置)
     @chr = PChara.new("./chr1.png")
-    @chr.position.move(@chr.size[0]*10, @chr.size[1]*10)
+    @chr.position.move!(@chr.size[0]*10, @chr.size[1]*10)
 
     # マップの表示開始位置を移動させる
     # キャラクタのグラフィックを真ん中に表示させるため、マージン分移動させる
-    @map.move(*@chr.margin)
+    @map.move!(*@chr.margin)
     # マップの実座標を設定する
-    @map.move(*@chr.position)
+    @map.move!(*@chr.position)
     
     @parts = CommonParts.instance
     #Yukiの初期化
@@ -44,7 +44,7 @@ class MainScene
     # 移動量が残っているときは移動を優先
     if @cnt > 0
       # 移動後のマップの実座標を計算
-      @map.move(*@a)
+      @map.move!(*@a)
       @cnt = @cnt - @amt
     elsif @yuki.executing?
       @yuki.update
@@ -74,7 +74,7 @@ class MainScene
         if @map[0].can_access?(0, :in, @chr.position, @d[0]*@chr.size.w, @d[1]*@chr.size.h)
           #移動可能なら、移動量を設定する
           @a = @d.map{|d| d * @amt}
-          @chr.position.move(@d[0]*@map[0].mapchip.chip_size.w, @d[1]*@map[0].mapchip.chip_size.h)
+          @chr.position.move!(@d[0]*@map[0].mapchip.chip_size.w, @d[1]*@map[0].mapchip.chip_size.h)
           #1フレームごとに一定ピクセル移動する(移動中は操作不可)
           @cnt = @d[0] != 0 ? @map[0].mapchip.chip_size.w : @map[0].mapchip.chip_size.h
         end

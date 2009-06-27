@@ -24,7 +24,7 @@ class Monster
     ap[:pattern_list] = pattern
     @anim = SpriteAnimation.new(ap)
     @anim.snap(map)
-    @anim.left.top.move(x, y)
+    @anim.left!.top!.move!(x, y)
   end
 
   def start
@@ -71,8 +71,8 @@ class Slime < Monster
     super
     return if @wait.waiting? || @wait0.waiting?
     if @cnt > 0
-      @anim.move(@interval_x, @interval_y)
-      @cpos.move(@interval_x, @interval_y)
+      @anim.move!(@interval_x, @interval_y)
+      @cpos.move!(@interval_x, @interval_y)
       @cnt -= @interval
       @wait0.start
       return
@@ -86,7 +86,7 @@ class Slime < Monster
       data = @ary[val-1]
       # スライムが当たっているマップ位置リストを取得
       colls = Utility.product_position(
-                @cpos.dup.move(data[0], data[1]), @coll.rect, map.mapchips[0].chip_size.to_a
+                @cpos.dup.move!(data[0], data[1]), @coll.rect, map.mapchips[0].chip_size.to_a
               )
       # 障害物に当たってない？
       if colls.inject(true){|r, pos| r &= map[0].can_access?(0, :in, @cpos, data[0], data[1]) }
@@ -133,7 +133,7 @@ Miyako.main_loop do
   dx, dy = Input.trigger_amount.map{|v| v * 4 }
   dx = 0 unless Utility.in_bounds?([@fmap.rect.x,@fmap.rect.x+@fmap.rect.w-1], [0,Screen.w-1], dx)
   dy = 0 unless Utility.in_bounds?([@fmap.rect.y,@fmap.rect.y+@fmap.rect.h-1], [0,Screen.h-1], dy)
-  @fmap.move(dx, dy)
+  @fmap.move!(dx, dy)
   @fmap.events.each{|ee| ee.each{|e| e.update(@fmap, @fmap.events, nil)}}
   @fmap.render_to(Screen)
   @fmap.events.each{|ee| ee.each{|e| e.render}}

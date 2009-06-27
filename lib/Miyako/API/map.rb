@@ -419,9 +419,9 @@ module Miyako
     #_dx_:: 移動量(x方向)
     #_dy_:: 移動量(y方向)
     #返却値:: 自分自身を返す
-    def move(dx,dy)
-      @pos.move(dx, dy)
-      @map_layers.each{|l| l.pos.move(dx, dy) }
+    def move!(dx,dy)
+      @pos.move!(dx, dy)
+      @map_layers.each{|l| l.pos.move!(dx, dy) }
       return self
     end
 
@@ -429,10 +429,28 @@ module Miyako
     #_dx_:: 移動先(x方向)
     #_dy_:: 移動先(y方向)
     #返却値:: 自分自身を返す
+    def move_to!(x,y)
+      @pos.move_to!(x, y)
+      @map_layers.each{|l| l.pos.move_to!(x, y) }
+      return self
+    end
+
+    #===マップを移動(移動量指定)位置を求める
+    #ただし、自分自身の位置は変わらない
+    #_dx_:: 移動量(x方向)
+    #_dy_:: 移動量(y方向)
+    #返却値:: 変更した位置のインスタンス(Position構造体)
+    def move(dx,dy)
+      @pos.move(dx, dy)
+    end
+
+    #===マップを移動(移動先指定)位置を求める
+    #ただし、自分自身の位置は変わらない
+    #_dx_:: 移動先(x方向)
+    #_dy_:: 移動先(y方向)
+    #返却値:: 変更した位置のインスタンス(Position構造体)
     def move_to(x,y)
       @pos.move_to(x, y)
-      @map_layers.each{|l| l.pos.move_to(x, y) }
-      return self
     end
 
     #===画像の表示矩形を取得する

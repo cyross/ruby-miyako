@@ -14,11 +14,11 @@ class Red
     end
 
     @akamatsu = Sprite.new(:file => "image/akamatsu.png", :type => :ck)
-    @akamatsu.center.bottom
+    @akamatsu.center!.bottom!
     @yuki.regist_parts(:akamatsu, @akamatsu)
 
     @room = Sprite.new(:file=>"image/room_red.png", :type=>:as)
-    @room.center.bottom
+    @room.center!.bottom!
 
     var[:akamatsu_aisatsu]      = false if var[:akamatsu_aisatsu]      == nil
     var[:release_akamatsu_book] = false if var[:release_akamatsu_book] == nil

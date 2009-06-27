@@ -34,7 +34,7 @@ module Miyako
     #_dx_:: 移動量(x方向)。単位はピクセル
     #_dy_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
-    def move(dx, dy)
+    def move!(dx, dy)
       o = [self.x, self.y]
       self.x+=dx
       self.y+=dy
@@ -51,7 +51,7 @@ module Miyako
     #_x_:: 移動先位置(x方向)。単位はピクセル
     #_y_:: 移動先位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
-    def move_to(x, y)
+    def move_to!(x, y)
       o = [self.x, self.y]
       self.x=x
       self.y=y
@@ -61,7 +61,28 @@ module Miyako
       end
       return self
     end
-    #また、ブロックを渡せば、複製したインスタンスに補正を欠けることが出来る(画像変換も可能)
+
+    #===位置を変更したときの値を求める(変化量を指定)
+    #位置を右方向へdxピクセル、下方向へdyピクセル移動する
+    #そのときの値をPosition構造体のインスタンスとして返す
+    #ただし、そのときの値が得られるだけで、自信の値に変更はない
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 更新した位置を示すPosition構造体のインスタンス
+    def move(dx, dy)
+      Position.new(self.x+dx, self.y+dy)
+    end
+
+    #===位置を変更したときの値を求める(位置指定)
+    #左上を(0.0)として、位置を右xピクセル、下yピクセルの位置移動する
+    #そのときの値をPosition構造体のインスタンスとして返す
+    #ただし、そのときの値が得られるだけで、自信の値に変更はない
+    #_x_:: 移動先位置(x方向)。単位はピクセル
+    #_y_:: 移動先位置(y方向)。単位はピクセル
+    #返却値:: 更新した位置を示すPosition構造体のインスタンス
+    def move_to(x, y)
+      Position.new(x, y)
+    end
 
     #===自分自身を返す
     #SpriteUnit対応

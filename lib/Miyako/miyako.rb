@@ -166,6 +166,7 @@ module Miyako
 
   #===SDLの初期化
   def Miyako.init
+    raise MiyakoError, "Already initialized!" if @@initialized
     if $not_use_audio
       SDL.init(SDL::INIT_VIDEO | SDL::INIT_JOYSTICK)
     else
@@ -191,6 +192,7 @@ module Miyako
     Screen.init(screen)
     Font.init
     Audio.init(buf_size, seq)
+    Input.init
   end
 end
 

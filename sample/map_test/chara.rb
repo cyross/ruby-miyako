@@ -21,7 +21,7 @@ class PChara # Player Character
     @position = Point.new(0, 0)
     # キャラパターンを表示
     @anim = SpriteAnimation.new(param)
-    @anim.centering
+    @anim.centering!
     @dir = :down
   end
 

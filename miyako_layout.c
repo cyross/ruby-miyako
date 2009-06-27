@@ -182,8 +182,8 @@ void Init_miyako_layout()
   one = 1;
   nOne = INT2NUM(one);
 
-	rb_define_method(mLayout, "move", layout_move, 2);
-	rb_define_method(mLayout, "move_to", layout_move_to, 2);
+	rb_define_method(mLayout, "move!", layout_move, 2);
+	rb_define_method(mLayout, "move_to!", layout_move_to, 2);
 	rb_define_method(mLayout, "update_layout", layout_update_layout, 2);
 	rb_define_method(mLayout, "snap", layout_snap, -1);
 	rb_define_method(mLayout, "add_snap_child", layout_add_snap_child, 1);

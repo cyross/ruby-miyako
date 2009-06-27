@@ -32,8 +32,8 @@ text = Sprite.new(:file=>"text.png", :type=>:ac)
 # 表示用背景を準備(元画像を反転)
 bk2 = bk.inverse
 
-spr2.centering
-spr3.right.bottom
+spr2.centering!
+spr3.right!.bottom!
 
 # 移動量配列を設定
 @amt1 = [ 4, 4]
@@ -60,9 +60,9 @@ Miyako.main_loop do
   spr2.render
   spr3.render
   # スプライトの移動
-  spr1.move(*@amt1)
-  spr2.move(*@amt2)
-  spr3.move(*@amt3)
+  spr1.move!(*@amt1)
+  spr2.move!(*@amt2)
+  spr3.move!(*@amt3)
   # 画像が画面をはみ出そうになったら移動量を+-反転
   @amt1 = turn(spr1, @amt1)
   @amt2 = turn(spr2, @amt2)

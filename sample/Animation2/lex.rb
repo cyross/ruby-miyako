@@ -9,7 +9,7 @@ include Miyako
 
 def create_wheel(num)
   spr = Sprite.new({:file=>sprintf("lex_wheel_#{num}.png"), :type=>:ck})
-  spr.move_to(317, 331)
+  spr.move_to!(317, 331)
   return spr
 end
 
@@ -21,13 +21,13 @@ title = Sprite.new({:file=>sprintf("song_title.png"), :type=>:ck})
 pos = Screen.h
 upper = 24
 x = 24
-title.move_to(x, pos)
+title.move_to!(x, pos)
 title_timer = WaitCounter.new(2)
 interval = 8
 mode = 0
 
 len_body = Sprite.new({:file=>sprintf("lex_body.png"), :type=>:ck})
-len_body.move_to(425, 219)
+len_body.move_to!(425, 219)
 
 len_anim_param = { 
   :sprite => len_body,
@@ -38,7 +38,7 @@ len_anim = SpriteAnimation.new(len_anim_param)
 len_anim.start
 
 road_roller = Sprite.new({:file=>sprintf("lex_roadroller.png"), :type=>:ck})
-road_roller.move_to(310, 180)
+road_roller.move_to!(310, 180)
 
 rr_anim_param = { 
   :sprite => road_roller,
@@ -66,7 +66,7 @@ Miyako.main_loop do
   rr_anim.update_animation
   wheel_anim.update_animation
   if back_timer.finish?
-    back.move(-2, 0)
+    back.move!(-2, 0)
     back_timer.start
   end
   if title_timer.finish?
@@ -83,7 +83,7 @@ Miyako.main_loop do
       else
         title_timer.start
       end
-      title.move_to(x, pos)
+      title.move_to!(x, pos)
     when 2
       # no operation
     end

@@ -8,11 +8,11 @@ class Blue
     @yuki.select_textbox(message_box[:box])
     @yuki.select_commandbox(command_box[:box])
     @aoyama = Sprite.new(:file => "image/aoyama.png", :type => :ck)
-    @aoyama.center.bottom
+    @aoyama.center!.bottom!
     @yuki.regist_parts(:aoyama, @aoyama)
 
     @room = Sprite.new(:file => "image/room_blue.png", :type => :as)
-    @room.center.bottom
+    @room.center!.bottom!
 
     var[:aoyama_aisatsu]        = false if var[:aoyama_aisatsu]        == nil
     var[:release_aoyama_book]   = false if var[:release_aoyama_book]   == nil

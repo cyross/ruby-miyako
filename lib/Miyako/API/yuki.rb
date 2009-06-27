@@ -410,7 +410,10 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
     #返却値:: 自分自身を返す
     def show(*names)
-      names.each{|name| @visibles.push(name, @parts[name]); @parts[name].show }
+      names.each{|name|
+        @visibles.add(name, @parts[name])
+        @parts[name].show
+      }
       return self
     end
   
@@ -420,7 +423,10 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能
     #返却値:: 自分自身を返す
     def hide(*names)
-      names.each{|name| @parts[name].hide; @visibles.delete(name) }
+      names.each{|name|
+        @parts[name].hide
+        @visibles.delete(name)
+      }
       return self
     end
   

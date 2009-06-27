@@ -42,7 +42,6 @@ module Miyako
   module Input
     BTNS = 12 # 使用するボタン数(ボタン１〜ボタン１２)
     @@joy = nil
-    @@joy = SDL::Joystick.open(0) if SDL::Joystick.num >= 1
     @@quit = false
     @@toggle_screen_mode = true
     @@click_start_tick = 0
@@ -106,6 +105,16 @@ module Miyako
                :drag  => {:left => false, :middle => false, :right => false, :x => 0, :y => 0},
                :drop  => {:left => false, :middle => false, :right => false, :succeed => true},
                :inner => true}
+
+    @@initialized = false
+
+    #===入力部の初期化
+    #
+    def Input.init
+      raise MiyakoError, "Already initialized!" if @@initialized
+      @@joy = SDL::Joystick.open(0) if SDL::Joystick.num >= 1
+      @@initialized = true
+    end
 
     def Input::process_quit(e) #:nodoc:
       @@quit = true

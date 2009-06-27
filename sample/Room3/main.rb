@@ -10,7 +10,7 @@ class MainScene
     }
     @yuki.select_plot(plot)
     @doors = Sprite.new(:file=>"image/three_doors.png", :type=>:as)
-    @doors.center.bottom
+    @doors.center!.bottom!
 
     var[:sekkaku] = true if var[:sekkaku] == nil
     var[:aikotoba] = false if var[:aikotoba] == nil

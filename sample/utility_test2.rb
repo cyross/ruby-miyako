@@ -31,7 +31,7 @@ loop do
   # キーが押されたとき、移動先が画面の範囲内なら移動
   # [仮移動量,座標,コリジョンサイズ,画面サイズ] の形式で取り込んで、Utility.in_bounds?メソッドで判定
   move_amount = Miyako::Input.trigger_amount.map{|v| v * amount}. # 入力値 * amount = 仮移動量
-                zip(position, collision.rect.to_a[2..3], Miyako::Screen.size).
+                zip(position, collision.rect.size, Miyako::Screen.size).
                 map{|qual| 
                   Miyako::Utility.in_bounds?(
                       [qual[1],qual[1]+qual[2]-1],
@@ -39,7 +39,7 @@ loop do
                       qual[0]
                   ) ? qual[0] : 0
                 }
-  position.move(*move_amount)
+  position.move!(*move_amount)
   
   array = Miyako::Utility.product_position(position,collision.rect,[size,size])
   
@@ -53,7 +53,7 @@ loop do
   }
   
   # 現在操作しているキャラの表示
-  Miyako::Drawing.rect(Miyako::Screen, position.to_a+collision.rect.to_a[2..3], [255,255,255])
+  Miyako::Drawing.rect(Miyako::Screen, position.to_a+collision.rect.size, [255,255,255])
 
   # 画面の更新
   Miyako::Screen.render

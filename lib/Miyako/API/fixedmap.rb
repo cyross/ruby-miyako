@@ -341,7 +341,7 @@ module Miyako
     end
 
     def update_layout_position #:nodoc:
-      @map_layers.each{|ml| ml.pos.move_to(*@layout.pos) }
+      @map_layers.each{|ml| ml.pos.move_to!(*@layout.pos) }
     end
 
     def [](idx) #:nodoc:

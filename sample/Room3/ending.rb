@@ -19,10 +19,10 @@ class Ending
     @bg.oh = @bg.h / 2
     @anim = SpriteAnimation.new(:sprite=>@bg, :wait=>0.5)
     @cong_text = Sprite.new(:file=>"image/congra.png", :type => :ck)
-    @cong_text.centering
+    @cong_text.centering!
     @visible_cong_text = false
     @cong_man = Sprite.new(:file=>"image/congratulation.png", :type => :ck)
-    @cong_man.center.bottom
+    @cong_man.center!.bottom!
     @visible_cong_man = false
     @timer = WaitCounter.new(3)
     @staff_roll = [Shape.text(:font=>message_box[:box].font, :align=>:center){
@@ -36,13 +36,13 @@ class Ending
                   ]
     @staff_roll.each{|st|
       st.snap(message_box)
-      st.centering
+      st.centering!
     }
     @index = -1
 
     @end_roll = Shape.text(:font=>message_box[:box].font){ text "Ｔ　Ｈ　Ｅ　　Ｅ　Ｎ　Ｄ" }
     @end_roll.snap(message_box)
-    @end_roll.centering
+    @end_roll.centering!
     @yuki.regist_parts(:end_roll, @end_roll)
     @yuki.vars[:staff_roll] = self.method(:staff_roll)
     

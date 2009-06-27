@@ -9,13 +9,13 @@ include Miyako
 
 def create_arm(num)
   spr = Sprite.new(:file=>sprintf("m1ku_arm_#{num}.png"), :type=>:ck)
-  spr.move_to(30, 70)
+  spr.move_to!(30, 70)
   return spr
 end
 
 def create_eye(num)
   spr = Sprite.new(:file=>sprintf("m1ku_eye_#{num}.png"), :type=>:ck)
-  spr.move_to(356, 114)
+  spr.move_to!(356, 114)
   return spr
 end
 
@@ -23,13 +23,13 @@ back = Sprite.new(:file=>"m1ku_back.jpg", :type=>:as)
 backs = SpriteAnimation.new(:sprite=>Array.new(12){|n| back.to_sprite{|sprite| Bitmap.hue(sprite, sprite, 30 * n) }}, :wait => 0.1).start
 
 body = Sprite.new(:file=>"m1ku_body.png", :type=>:ck)
-body.move_to(200, 64)
+body.move_to!(200, 64)
 
 hair_f = Sprite.new(:file=>"m1ku_hair_front.png", :type=>:ck)
-hair_f.move_to(200, 24)
+hair_f.move_to!(200, 24)
 
 hair_r = Sprite.new(:file=>"m1ku_hair_rear.png", :type=>:ck)
-hair_r.move_to(200, 24)
+hair_r.move_to!(200, 24)
 
 arms = Array.new
 (0..3).each{|n| arms.push(create_arm(n)) }

@@ -93,10 +93,9 @@ module Miyako
       if s.kind_of?(Sprite)
         @now = s.to_unit unless @now
         set_layout_size(s.ow, s.oh)
-        move_to(s.x, s.y)
+        move_to!(s.x, s.y)
         s.snap(self)
-        s.left
-        s.top
+        s.left!.top!
         @pat_len  = @dir == :h ? s.h  : s.w
         @pat_olen = @dir == :h ? s.oh : s.ow
         @chr_len  = @dir == :h ? s.w  : s.h
@@ -106,10 +105,10 @@ module Miyako
         first = s[0]
         @now = first.to_unit unless @now
         set_layout_size(first.ow, first.oh)
-        move_to(first.x, first.y)
+        move_to!(first.x, first.y)
         @slist = s.map{|ss|
           ss.snap(self)
-          ss.left.top
+          ss.left!.top!
         }
         @pat_len  = @slist.length
         @pats     = @slist.length
@@ -217,8 +216,8 @@ module Miyako
       @visible = true
 
       @now = @units[0]
-      @now.move_to(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
-                   @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
+      @now.move_to!(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
+                    @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
     
     def initialize_copy(obj) #:nodoc:
@@ -258,7 +257,7 @@ module Miyako
     end
 
     def update_layout_position #:nodoc:
-      @units.each{|u| u.move_to(*@layout.pos)}
+      @units.each{|u| u.move_to!(*@layout.pos)}
     end
 
     #===現在表示しているスプライトのowを取得する

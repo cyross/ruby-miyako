@@ -53,7 +53,7 @@ module Miyako
     end
     
     def initialize_copy(obj) #:nodoc:
-      @map = @map.dup
+      @map = @map.dup if @map
       @id2event = @id2event.dup
     end
 
@@ -143,7 +143,7 @@ module Miyako
     #_dx_:: 移動量(x座標)。単位はピクセル
     #_dy_:: 移動量(y座標)。単位はピクセル
     #返却値:: 自分自身を返す
-    def move(dx,dy)
+    def move!(dx,dy)
       return self
     end
 
@@ -151,8 +151,24 @@ module Miyako
     #_x_:: 移動先の位置(x座標)。単位はピクセル
     #_y_:: 移動先の位置(y座標)。単位はピクセル
     #返却値:: 自分自身を返す
-    def move_to(x,y)
+    def move_to!(x,y)
       return self
+    end
+
+    #===イベントを指定の分量で移動させたときの値を求める(テンプレートメソッド)
+    #_dx_:: 移動量(x座標)。単位はピクセル
+    #_dy_:: 移動量(y座標)。単位はピクセル
+    #返却値:: 移動した位置のインスタンスを返す
+    def move(dx,dy)
+      return Position.new(0,0)
+    end
+
+    #===イベントを指定の位置へ移動させたときの値を求める(テンプレートメソッド)
+    #_x_:: 移動先の位置(x座標)。単位はピクセル
+    #_y_:: 移動先の位置(y座標)。単位はピクセル
+    #返却値:: 移動した位置のインスタンスを返す
+    def move_to(x,y)
+      return Position.new(0,0)
     end
 
     #===イベント発生可否問い合わせ(テンプレートメソッド)
