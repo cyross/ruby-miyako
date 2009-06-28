@@ -213,6 +213,7 @@ module Miyako
       else
         self.sprite_only.each{|e| e.move!(dx, dy)}
       end
+      self
     end
 
     #===各要素の位置を変更する(変化量を指定)
@@ -239,6 +240,7 @@ module Miyako
       else
         self.sprite_only.each{|e| e.move_to!(x, y)}
       end
+      self
     end
 
     #===描く画像のアニメーションを開始する

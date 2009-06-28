@@ -25,6 +25,7 @@ module Miyako
   #==名前-本体ペアを構成する構造体用クラス
   class ListPairStruct < Struct
     include SpriteBase
+    include Animation
 
     # ディープコピー
     def deep_dup
@@ -50,7 +51,56 @@ module Miyako
     def to_s
       "#{self[0]} : #{self[1]}"
     end
+  
+    #===スプライトの移動(変化量を指定)
+    #_dx_:: 移動量(x方向)。単位はピクセル
+    #_dy_:: 移動量(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move!(dx, dy)
+      self[1].move!(dx, dy)
+      self
+    end
+
+    #===本体の移動(位置を指定)
+    #_x_:: 位置(x方向)。単位はピクセル
+    #_y_:: 位置(y方向)。単位はピクセル
+    #返却値:: 自分自身を返す
+    def move_to!(x, y)
+      self[1].move_to!(x, y)
+      self
+    end
     
+    #===本体のアニメーションを開始する
+    #各要素のstartメソッドを呼び出す
+    #返却値:: 自分自身を返す
+    def start
+      self[1].start
+      return self
+    end
+    
+    #===本体のアニメーションを停止する
+    #各要素のstopメソッドを呼び出す
+    #返却値:: 自分自身を返す
+    def stop
+      self[1].stop
+      return self
+    end
+    
+    #===本体のアニメーションを先頭パターンに戻す
+    #各要素のresetメソッドを呼び出す
+    #返却値:: 自分自身を返す
+    def reset
+      self[1].reset
+      return self
+    end
+    
+    #===本体のアニメーションを更新する
+    #各要素のupdate_animationメソッドを呼び出す
+    #返却値:: 本体のupdate_spriteメソッドを呼び出した結果
+    def update_animation
+      self[1].update_animation
+    end
+
     #画面に描画する
     def render
       self[1].render
@@ -704,15 +754,17 @@ module Miyako
     #   =>[[pair(:a),pair(:b)],[pair(:a),pair(:c)],[pair(:b),pair(:c)]]
     #   a.combination(3)
     #   =>[[pair(:a),pair(:b),pair(:c)]]
-    #自分自身を配列化(to_ary)し、サイズnの組み合わせをすべて求めて配列にまとめる
+    #自分自身を配列化(to_ary)し、サイズnの組み合わせをすべて求めて配列化したものを
+    #Enumeratorとして返す
     #_n_:: 組み合わせのサイズ
-    #返却値:: すべてのListPairの順列を配列化したもの
+    #返却値:: Enumerator(ただしブロックを渡すと配列)
     def combination(n, &block)
       self.to_a.combination(n, &block)
     end
 
     #===自身での順列を配列として返す
-    #自分自身を配列化(to_ary)し、サイズnの順列をすべて求めて配列にまとめる
+    #自分自身を配列化(to_ary)し、サイズnの順列をすべて求めて配列化したものを
+    #Enumeratorとして返す
     #例:a=SpriteList(pair(:a),pair(:b),pair(:c))
     #   a.permutation(1)
     #   =>[[pair(:a)],[pair(:b)],[pair(:c)]]
@@ -725,7 +777,7 @@ module Miyako
     #      [pair(:b),pair(:a),pair(:c)],[pair(:b),pair(:c),pair(:a)],
     #      [pair(:c),pair(:a),pair(:b)],[pair(:c),pair(:b),pair(:a)]]
     #_n_:: 順列のサイズ
-    #返却値:: すべてのListPairの組み合わせを配列化したもの
+    #返却値:: Enumerator(ただしブロックを渡すと配列)
     def permutation(n, &block)
       self.to_a.permutation(n, &block)
     end
@@ -865,11 +917,12 @@ module Miyako
       if block_given?
         @names.each_with_index{|e, i|
           pair = @n2v[e]
-          pair.body.move!(*(yield pair, i, dx, dy))
+          pair.move!(*(yield pair, i, dx, dy))
         }
       else
-        @names.each{|e| @n2v[e].body.move!(dx, dy) }
+        @names.each{|e| @n2v[e].move!(dx, dy) }
       end
+      self
     end
 
     #===各要素の位置を変更する(変化量を指定)
@@ -894,11 +947,12 @@ module Miyako
       if block_given?
         @names.each_with_index{|e, i|
           pair = @n2v[e]
-          pair.body.move_to!(*(yield pair, i, x, y))
+          pair.move_to!(*(yield pair, i, x, y))
         }
       else
-        @names.each{|e| @n2v[e].body.move_to!(x, y) }
+        @names.each{|e| @n2v[e].move_to!(x, y) }
       end
+      self
     end
 
     #===リストを配列化する
@@ -1011,7 +1065,7 @@ module Miyako
       return self
     end
     
-    #===描く画像のアニメーションを開始する
+    #===各要素のアニメーションを開始する
     #各要素のstartメソッドを呼び出す
     #返却値:: 自分自身を返す
     def start
@@ -1019,7 +1073,7 @@ module Miyako
       return self
     end
     
-    #===描く画像のアニメーションを停止する
+    #===各要素のアニメーションを停止する
     #各要素のstopメソッドを呼び出す
     #返却値:: 自分自身を返す
     def stop
@@ -1027,7 +1081,7 @@ module Miyako
       return self
     end
     
-    #===描く画像のアニメーションを先頭パターンに戻す
+    #===各要素のアニメーションを先頭パターンに戻す
     #各要素のresetメソッドを呼び出す
     #返却値:: 自分自身を返す
     def reset
@@ -1035,9 +1089,9 @@ module Miyako
       return self
     end
     
-    #===描く画像のアニメーションを更新する
+    #===各要素のアニメーションを更新する
     #各要素のupdate_animationメソッドを呼び出す
-    #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
+    #返却値:: 各要素のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
       self.sprite_only.map{|pair| pair[1].update_animation }
     end
