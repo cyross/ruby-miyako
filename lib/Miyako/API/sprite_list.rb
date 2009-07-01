@@ -852,7 +852,7 @@ module Miyako
     #_sprite_:: スプライト
     #返却値:: 登録された自分自身
     def []=(name, sprite)
-      return self.push(name, sprite) unless @names.include?(name)
+      return self.push([name, sprite]) unless @names.include?(name)
       @n2v[name] = ListPair.new(name, sprite)
       return self
     end

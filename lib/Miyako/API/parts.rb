@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
+
+  require 'delegate'
+
   #==パーツ構成クラス
   #複数のスプライト・アニメーションをまとめて一つの部品として構成できるクラス
   #
@@ -28,180 +31,57 @@ module Miyako
   #
   #すべてのパーツは、すべてレイアウト空間にスナップされる
   #(登録したパーツのレイアウト情報が変わることに注意)
-  class Parts
+  class Parts < Delegator
     include SpriteBase
     include Animation
     include Enumerable
     include Layout
     extend Forwardable
 
-    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
-
     #===Partsクラスインスタンスを生成
     #_size_:: パーツ全体の大きさ。Size構造体のインスタンスもしくは要素数が2の配列
     def initialize(size)
-      @parts = {}
-      @parts_list = []
-      @visible = true
+      @list = SpriteList.new
 
       init_layout
       set_layout_size(size[0], size[1])
     end
+
+    def __getobj__
+      @list
+    end
     
     def initialize_copy(obj) #:nodoc:
       copy_layout
-      @parts_list = []
-      @parts = {}
-      obj.names.each{|name| self[name] = obj[name].deep_dup }
+      @list = obj.sprite_list.dup
       self
     end
-
-    #===nameで示した補助パーツを返す
-    #_name_:: 補助パーツに与えた名前(シンボル)
-    #返却値:: 自分自身
-    def [](name)
-      return @parts[name]
-    end
-
+    
     #===補助パーツvalueをnameに割り当てる
     #_name_:: 補助パーツに与える名前(シンボル)
     #_value_:: 補助パーツのインスタンス(スプライト、テキストボックス、アニメーション、レイアウトボックスなど)
     #返却値:: 自分自身
     def []=(name, value)
-      if @parts_list.include?(name)
-        @parts_list.delete(name)
-      end
-      @parts_list.push(name)
-      @parts[name] = value
-      @parts[name].snap(self)
-      return self
+      @list[name] = value
+      @list[name].snap(self)
+      self
+    end
+
+    def sprite_list #:nodoc:
+      return @list
     end
 
     #===すべての補助パーツの一覧を配列で返す
     #返却値:: パーツ名の配列(登録順)
     def parts
-      return @parts_list
-    end
-
-    #===すべての補助パーツの一覧を配列で返す
-    #返却値:: パーツ名の配列(登録順)
-    def names
-      return @parts_list
+      return @list.names
     end
 
     #===指定の補助パーツを除外する
     #_name_:: 除外するパーツ名(シンボル)
     #返却値:: 自分自身
     def remove(name)
-      self.delete_snap_child(@parts[name])
-      @parts_list.delete(name)
-      @parts.delete(name)
-      return self
-    end
-
-    #===指定の補助パーツを除外する
-    #_name_:: 除外するパーツ名(シンボル)
-    #返却値:: 自分自身
-    def delete(name)
-      return self.remve(name)
-    end
-
-    #===メインパーツと補助パーツに対してブロックを評価する
-    #返却値:: 自分自身
-    def each
-      @parts_list.each{|k| yield @parts[k] }
-      return self
-    end
-    
-    #===指定の名前の直前に名前を挿入する
-    #配列上で、スプライト名配列の指定の名前の前になるように名前を挿入する
-    #_key_:: 挿入先の名前。この名前の直前に挿入する
-    #_name_:: 挿入するスプライトの名前
-    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
-    #返却値：自分自身を返す
-    def insert(key, name, value = nil)
-      raise MiyakoValueError, "Illegal key! : #{key}" unless @parts_list.include?(key)
-      return self if key == name
-      if value
-        @parts[name] = value 
-      else
-        raise MiyakoValueError, "name is not regist! : #{name}" unless @parts_list.include?(name)
-      end
-      @parts_list.delete(name) if @parts_list.include?(name)
-      @parts_list.insert(@parts_list.index(key), name)
-      self
-    end
-    
-    #===指定の名前の直後に名前を挿入する
-    #配列上で、スプライト名配列の指定の名前の次の名前になるように名前を挿入する
-    #_key_:: 挿入先の名前。この名前の直後に挿入する
-    #_name_:: 挿入するスプライトの名前
-    #_value_:: (名前が未登録の時の)スプライト本体省略時はnil
-    #返却値：自分自身を返す
-    def insert_after(key, name, value = nil)
-      raise MiyakoValueError, "Illegal key! : #{key}" unless @parts_list.include?(key)
-      return self if key == name
-      if value
-        @parts[name] = value 
-      else
-        raise MiyakoValueError, "name is not regist! : #{name}" unless @parts_list.include?(name)
-      end
-      @parts_list.delete(name) if @parts_list.include?(name)
-      @parts_list.insert(@parts_list.index(key)-@parts_list.length, name)
-      self
-    end
-    
-    #===指定した要素の内容を入れ替える
-    #配列の先頭から順にrenderメソッドを呼び出す。
-    #描画するインスタンスは、SpriteBaseもしくはSpriteArrayモジュールを
-    #mixinしているクラスのインスタンスのみ
-    #_name1,name_:: 入れ替え対象の名前
-    #返却値:: 自分自身を帰す
-    def swap(name1, name2)
-      raise MiyakoValueError, "Illegal name! : idx1:#{name1}" unless @parts_list.include?(name1)
-      raise MiyakoValueError, "Illegal name! : idx2:#{name2}" unless @parts_list.include?(name2)
-      idx1 = @parts_list.index(name1)
-      idx2 = @parts_list.index(name2)
-      @parts_list[idx1], @parts_list[idx2] = @parts_list[idx2], @parts_list[idx1]
-      return self
-    end
-    
-    #===名前の順番を反転する
-    #返却値:: 自分自身を帰す
-    def reverse!
-      @parts_list.reverse!
-      return self
-    end
-
-    #===メインパーツと補助パーツのすべてのアニメーションを開始する
-    #返却値:: 自分自身
-    def start
-      self.each{|parts| parts.start }
-      return self
-    end
-
-    #===メインパーツと補助パーツのすべてのアニメーションを停止する
-    #返却値:: 自分自身
-    def stop
-      self.each{|parts| parts.stop }
-      return self
-    end
-
-    #===メインパーツと補助パーツのすべてのアニメーションを更新する
-    #返却値:: 各パーツのupdate_animationの結果を配列として返す
-    def update_animation
-      self.map{|parts| parts.update_animation }
-    end
-
-    #===メインパーツと補助パーツのすべてのアニメーションを、最初のパターンに巻き戻す
-    #返却値:: 自分自身
-    def reset
-      self.each{|parts| parts.reset }
-      return self
-    end
-
-    def update #:nodoc:
-      self.each{|parts| parts.update }
+      @list.delete(name)
       return self
     end
 
@@ -232,8 +112,8 @@ module Miyako
     #返却値:: 生成された矩形(Rect構造体のインスタンス)
     def broad_rect
       rect = self.rect.to_a
-      return self.rect if @parts_list.length == 0
-      rect_list = rect.zip(*(self.map{|parts| parts.broad_rect.to_a}))
+      return self.rect if @list.length == 0
+      rect_list = rect.zip(*(self.map{|pair| pair[1].broad_rect.to_a}))
       # width -> right
       rect_list[2] = rect_list[2].zip(rect_list[0]).map{|xw| xw[0] + xw[1]}
       # height -> bottom
@@ -244,33 +124,11 @@ module Miyako
 
     #===パーツに登録しているインスタンスを解放する
     def dispose
-      @parts_list.clear
-      @parts_list = nil
-      @parts.clear
-      @parts = nil
+      @list.dispose
     end
-
-    #===パーツを画面に描画する
-    #各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
-    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、各パーツを貼り付ける。
-    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-    #ブロックの引数は、|パーツのSpriteUnit|となる。
-    #デフォルトでは、描画順は登録順となる。順番を変更したいときは、renderメソッドをオーバーライドする必要がある
-    #visibleメソッドの値がfalseのときは描画されない。
-    def render
-    end
-
-    #===パーツを画面に描画する
-    #各パーツの描画範囲は、それぞれのSpriteUnitの(ox,oy)を起点にする。
-    #転送先の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
-    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
-    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
-    #ブロックの引数は、|パーツのSpriteUnit|となる。
-    #デフォルトでは、描画順は登録順となる。順番を変更したいときは、render_toメソッドをオーバーライドする必要がある
-    #visibleメソッドの値がfalseのときは描画されない。
-    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
-    def render_to(dst)
-    end
+    
+    # mixinしたモジュールが優先して呼ばれるメソッドを再び移譲
+    def_delegators(:@list, :render, :render_to, :visible, :visible=, :show, :hide)
+    def_delegators(:@list, :start, :stop, :reset, :update_animation, :each)
   end
 end

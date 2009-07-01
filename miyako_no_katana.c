@@ -40,7 +40,9 @@ static VALUE cThread = Qnil;
 static VALUE cSprite = Qnil;
 static VALUE cSpriteAnimation = Qnil;
 static VALUE cPlane = Qnil;
+#if 0
 static VALUE cParts = Qnil;
+#endif
 static VALUE cMap = Qnil;
 static VALUE cMapLayer = Qnil;
 static VALUE cFixedMap = Qnil;
@@ -929,6 +931,7 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
   return Qnil;
 }
 
+#if 0
 /*
 パーツを画面に描画する
 */
@@ -968,6 +971,7 @@ static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
   
   return Qnil;
 }
+#endif
 
 /*
 :nodoc:
@@ -1012,7 +1016,9 @@ void Init_miyako_no_katana()
   cSprite = rb_define_class_under(mMiyako, "Sprite", rb_cObject);
   cSpriteAnimation = rb_define_class_under(mMiyako, "SpriteAnimation", rb_cObject);
   cPlane = rb_define_class_under(mMiyako, "Plane", rb_cObject);
+#if 0
   cParts = rb_define_class_under(mMiyako, "Parts", rb_cObject);
+#endif
   cMap = rb_define_class_under(mMiyako, "Map", rb_cObject);
   cMapLayer = rb_define_class_under(cMap, "MapLayer", rb_cObject);
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
@@ -1048,8 +1054,10 @@ void Init_miyako_no_katana()
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);
 
+#if 0
   rb_define_method(cParts, "render", parts_render, 0);
   rb_define_method(cParts, "render_to", parts_render_to_sprite, 1);
+#endif
 
   rb_define_method(cProcessor, "main_loop", processor_mainloop, 0);
   
