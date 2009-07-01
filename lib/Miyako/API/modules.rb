@@ -300,11 +300,10 @@ module Miyako
     
     #===配列の要素を対象の画像に描画する
     #配列の先頭から順にrender_toメソッドを呼び出す。
-    #描画するインスタンスは、SpriteBaseモジュールがmixinされているクラスのみ
     #_dst_:: 描画対象の画像インスタンス
     #返却値:: 自分自身を帰す
     def render_to(dst)
-      self.sprite_only.each{|e| e.render_to(dst) }
+      self.each{|e| e.render_to(dst) }
       return self
     end
   end

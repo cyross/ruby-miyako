@@ -69,6 +69,8 @@ extern void Init_miyako_collision();
 extern void Init_miyako_basicdata();
 extern void Init_miyako_font();
 extern void Init_miyako_utility();
+extern void Init_miyako_sprite2();
+extern void Init_miyako_input_audio();
 
 /*
 ===内部用レンダメソッド
@@ -1069,6 +1071,8 @@ void Init_miyako_no_katana()
   Init_miyako_layout();
   Init_miyako_collision();
   Init_miyako_basicdata();
+  Init_miyako_sprite2();
   Init_miyako_font();
   Init_miyako_utility();
+  Init_miyako_input_audio();
 }

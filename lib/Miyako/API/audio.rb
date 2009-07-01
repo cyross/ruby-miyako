@@ -190,7 +190,7 @@ module Miyako
         SDL::Mixer.fade_in_music(@bgm, @now_loops)
         @@playing_bgm = self
         @loop_cnt = 1
-        return false
+        return true
       end
 
       alias_method(:fadeIn, :fade_in)
@@ -505,7 +505,7 @@ module Miyako
         @channel = time ? SDL::Mixer.fade_in_channel_timed(-1, @wave, lp, msec, time) : SDL::Mixer.fade_in_channel(-1, @wave, lp, msec)
         @@playings << self
         SE.update
-        return false
+        return true
       end
 
       #===演奏をフェードアウトする

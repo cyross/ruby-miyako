@@ -933,6 +933,7 @@ v2.1.0(2009.6)
 ・各種オブジェクトが正しく複製されない問題を修正
 　(ただし、Audio::BGM,Audio::SEは、内部データを複製すると落ちるため、複製していない)
 ・Yuki#select_plotで渡したプロットの引数チェックを行っていなかったバグを修正
+・Alt+Enterを押してもフルスクリーンにならないバグを修正
 <仕様変更>
 ・miyako.rbで組み込んでいるライブラリの順番を変更
 ・$miyako_auto_openグローバル変数により、強制的な画面のオープンを解除
@@ -990,6 +991,8 @@ v2.1.0(2009.6)
 ・Segment#reset->reset!に変更
 ・Viewport#viewportメソッドの返却値を変更(
 <ファイル追加>
+・miyako_sprite2.c
+・miyako_input_audio.c
 ・lib/Miyako/miyako_require_only.rb
 ・lib/Miyako/API/exceptions.rb
 ・lib/Miyako/API/sprite_list.rb

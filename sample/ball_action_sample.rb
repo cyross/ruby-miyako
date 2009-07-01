@@ -30,7 +30,6 @@ class Obj
     # 画像はマージンが掛かっている可能性があるため、
     # 補正を掛けておく
     pos = @layout.pos.move(-@position[0],-@position[1])
-    p pos
     @sprite.move!(*pos)
     @position.move_to!(*@layout.pos)
   end
@@ -115,7 +114,7 @@ class Ball < Obj
                               floor.position)
       }
         # 床にぶつかれば跳ね返る
-        self.move_to(self.x, @by)
+        self.move_to!(self.x, @by)
         # 跳ね返り時の速度を求める。
         # 実数にすると何故か永遠にはねるため、整数化して強制的に値を少なくしている
         @v0 = -((@v0 - G * @t) * @e).to_i
@@ -124,7 +123,7 @@ class Ball < Obj
         @wait.start
       elsif @wait.finish?
         # ぶつからなければ移動
-        self.move_to(self.x, @by - y.to_i)
+        self.move_to!(self.x, @by - y.to_i)
         @t = @t + @dt
         @oy = y
         @wait.start

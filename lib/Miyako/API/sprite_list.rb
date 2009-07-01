@@ -148,6 +148,8 @@ module Miyako
     #===ハッシュを元にSpriteListを生成する
     #引数を省略すると空のSpriteListを生成する。
     #要素が[スプライト名,スプライト]の配列となる配列を引数として渡すこともできる。
+    #(ただし、要素がスプライトのみのときは、
+    #名前を":s_nnn"(nnn:配列インデックス(3桁))として追加する)
     #ハッシュを引数として渡すと、キーをスプライト名とするSpriteListを生成する。
     #_pairs_:: 生成元のインスタンス
     #返却値:: 生成したインスタンス
@@ -155,9 +157,15 @@ module Miyako
       @names = []
       @n2v   = {}
       if pairs.is_a?(Array)
-        pairs.each{|pair|
-        @names << pair[0]
-        @n2v[pair[0]] = ListPair.new(*pair)
+        pairs.each_with_index{|pair, i|
+        if pair.is_a?(Array)
+          @names << pair[0]
+          @n2v[pair[0]] = ListPair.new(*pair)
+        else
+          name = sprintf("s_%03d", i).to_sym
+          @names << name
+          @n2v[name] = ListPair.new(name, pair)
+        end
       }
       elsif pairs.is_a?(Hash)
         pairs.each{|key, value|
@@ -823,8 +831,9 @@ module Miyako
     
     #===名前と関連付けられたスプライトを取得する
     #関連付けられているスプライトが見つからなければnilが返る
-    #例:SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))[:c]
-    #   => spr(:c)
+    #例:a=SpriteList(pair(:a),pair(:b),pair(:c),pair(:d))
+    #   a[:c] => spr(:c)
+    #   a[:q] => nil
     #_name_:: 名前
     #返却値:: 名前に関連付けられたスプライト
     def [](name)

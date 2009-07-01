@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 =begin
 --
-Miyako v2.0
+Miyako v2.1
 Copyright (C) 2007-2009  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -245,9 +245,9 @@ module Miyako
       end
       e_list.reverse.each{|e|
         @@process[e.class].call(e)
-        if @@btn[:trigger][:alt] & @@btn[:pushed][:ent]==1 and @@toggle_screen_mode
+        if @@btn[:trigger][:alt] == 1 && @@btn[:pushed][:ent]==1 && @@toggle_screen_mode
           Screen.toggle_mode
-          @@btn[:trigger][:alt] = false
+          @@btn[:trigger][:alt] = 0
           @@btn[:pushed][:ent] = 0
         end
       }
