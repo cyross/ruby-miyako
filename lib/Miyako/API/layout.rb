@@ -82,18 +82,19 @@ module Miyako
     #===レイアウト管理の複写
     def copy_layout
       tmp = @layout
-      @layout.pos  = tmp.pos.dup
-      @layout.size = tmp.size.dup
+      @layout = tmp.dup
+      @layout.pos  = Point.new(*tmp.pos)
+      @layout.size = Size.new(*tmp.size)
       @layout.on_move = tmp.on_move.dup
 
       @layout.snap = tmp.snap.dup
-      # スナップ元との関係を張り直し(スナップ先が変わったので)
+      # スナップ関係を解消
       if @layout.snap.sprite
         @layout.snap.sprite.delete_snap_child(self)
-        self.snap(@layout.snap.sprite)
+        @layout.snap.sprite = nil
+        @layout.base = Screen
       end
       @layout.snap.children = []
-      tmp.snap.children.each{|child| child.snap(self)}
     end
 
     #===位置移動時に呼び出すブロックを管理する配列にアクセする
@@ -444,13 +445,13 @@ module Miyako
     #=== mixin されたインスタンスの位置情報(x,yの値)を取得する
     #返却値:: インスタンスの位置情報(@layout［:pos］の値)
     def pos
-      return @layout.pos
+      return @layout.pos.dup
     end
     
     #=== mixin されたインスタンスのサイズ情報(w,hの値)を取得する
     #返却値:: インスタンスのサイズ情報(@layout［:size］の値)
     def size
-      return @layout.size
+      return @layout.size.dup
     end
     
     #=== mixin されたインスタンスの表示上の幅を取得する
@@ -513,6 +514,13 @@ module Miyako
       @layout.snap.sprite = nil
       @layout.base = Screen
       @layout.snap.children = Array.new
+      return self
+    end
+    
+    #===すでに指定したスプライトがスナップ元として登録されているかどうか確認する
+    #返却値:: スナップ元として登録されていればtrue、登録されていなければfalse
+    def include_snap_child?(spr)
+      @layout.snap.children.include?(spr)
       return self
     end
     

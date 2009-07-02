@@ -165,7 +165,9 @@ module Miyako
 
     def_delegators(:@unit, :ox, :oy, :ow, :oh, :x, :y)
     
-    def initialize_copy(obj) #:nodoc:
+    #===複写時に呼び出されるメソッド
+    #複写と同時に、本インスタンスに対するスナップの関係を解消
+    def initialize_copy(obj)
       self.unit = obj.to_unit
       copy_layout
     end

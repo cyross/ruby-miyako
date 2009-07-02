@@ -220,7 +220,10 @@ module Miyako
                     @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
     
-    def initialize_copy(obj) #:nodoc:
+    #===複写時に呼び出されるメソッド
+    #複写と同時に、本インスタンスに対するスナップの関係を解消するが、
+    #新しいパターンスプライトとスナップをやり直す
+    def initialize_copy(obj)
       @units = @units.deep_dup
       @slist = @slist.deep_dup
       @plist = @plist.dup
@@ -228,6 +231,7 @@ module Miyako
       @pos_offset = @pos_offset.dup
       @now = @units[@plist[@pnum]]
       copy_layout
+      @slist.each{|s| s.snap(self)}
     end
 
     attr_accessor :visible

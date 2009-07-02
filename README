@@ -941,6 +941,9 @@ v2.1.0(2009.6)
 　(Miyako.open/Screen.open呼び出し前のSprite作成不可)
 ・ゲーム中に流せるBGMは1曲のみに制限(効果音はその限りではない)
 ・音声系クラス(Audio::BGM,Audio::SE)の複写メソッドの使用を禁止
+・Yukiの複写メソッドの使用を禁止
+・複写時は、そのインスタンスのスナップ関係を解消
+　(但し、内部的にスナップを行っているクラス(Parts,TextBox,SpriteAnimation)はスナップをやり直している)
 ・例外クラスの追加(MiyakoErrorのみ→複数クラスの混在)
 ・Screenモジュールの初期化で、既存のSDL::Screenクラスインスタンスを利用可能(他ライブラリとの親和性向上)
 ・miyako.rbの組み込みのみ行うmiyako_require_only.rb追加
@@ -1042,6 +1045,7 @@ v2.1.0(2009.6)
 ・Utility.theta
 ・Yuki.add_method
 <インスタンスメソッド追加>
+・Layout#include_snap_child?
 ・Scene#story
 ・Scene#prev_scene
 ・Scene#now_scene
@@ -1071,11 +1075,8 @@ v2.1.0(2009.6)
 ・Audio::SE#fade_in?
 ・Audio::SE#fade_out?
 ・Plane::update_animation
-・Parts#delete
-・Parts#names
-・Parts#insert
-・Parts#insert_after
-・Parts#swap
+・Parts#parts_move!
+・Parts#parts_move_to!
 ・Rect#pos
 ・Rect#size
 ・Scene#upper_scene

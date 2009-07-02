@@ -117,7 +117,10 @@ module Miyako
                   
     end
     
-    def initialize_copy(obj) #:nodoc:
+    #===複写時に呼び出されるメソッド
+    #複写と同時に、本インスタンスに対するスナップの関係を解消するが、
+    #内部で使用するスプライトとはスナップをやり直す
+    def initialize_copy(obj)
       copy_layout
       reset_snap
 

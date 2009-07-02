@@ -196,53 +196,7 @@ module Miyako
     end
 
     def initialize_copy(obj) #:nodoc:
-      @yuki = @yuki.dup
-      @over_exec = false
-      @text_box = @text_box.dup
-      @command_box = @command_box.dup
-
-      @exec_plot = @exec_plot.dup
-      
-      @select_amount = @select_amount.dup
-      @mouse_amount = @mouse_amount.dup
-
-      @result = @result.dup
-      @plot_result = @plot_result.dup
-
-      @update_inner = @update_inner.dup
-      @update_text  = @update_text.dup
-      @update_cr    = @update_cr.dup
-      @update_clear = @update_clear.dup
-      
-      @parts = @parts.deep_dup
-      @visibles = @visibles.deep_dup
-      @vars = @vars.deep_dup
-
-      @executing_fiber = @executing_fiber.dup
-
-      @text_methods = @text_methods.dup
-
-      @release_checks = @release_checks.dup
-      
-      @ok_checks = @ok_checks.dup
-
-      @cancel_checks = @cancel_checks.dup
-
-      @key_amount_proc   = @key_amount_proc.dup
-      @mouse_amount_proc = @mouse_amount_proc.dup
-
-      @pre_pause    = @pre_pause.dup
-      @pre_command  = @pre_command.dup
-      @pre_cancel   = @pre_cancel.dup
-      @post_pause   = @post_pause.dup
-      @post_command = @post_command.dup
-      @post_cancel  = @post_cancel.dup
-      @selecting_procs = @selecting_procs.dup
-      
-      @is_outer_height = @is_outer_height.dup
-
-      @now_page = @now_page.dup
-      @first_page = @first_page.dup.dup
+      raise MiyakoCopyError.not_copy("Yuki")
     end
 
     #===Yuki#showで表示指定した画像を描画する

@@ -50,10 +50,17 @@ module Miyako
     def __getobj__
       @list
     end
+
+    def __setobj__(obj)
+    end
     
     def initialize_copy(obj) #:nodoc:
       copy_layout
-      @list = obj.sprite_list.dup
+      @list = SpriteList.new
+      obj.sprite_list.each{|pair|
+        @list[pair.name] = pair.body.deep_dup
+        @list[pair.name].snap(self)
+      }
       self
     end
     
@@ -65,6 +72,41 @@ module Miyako
       @list[name] = value
       @list[name].snap(self)
       self
+    end
+
+    #===名前・スプライトの対を登録する
+    #リストに名前・スプライトをリストの後ろに追加する
+    #効果はSpriteList#addと同じだが、複数の対を登録できることが特徴
+    #(例)push([name1,sprite1])
+    #    push([name1,sprite1],[name2,sprite2])
+    #_pairs_:: 名前とスプライトの対を配列にしたもの。対は、[name,sprite]として渡す。
+    #返却値:: 追加した自分自身を渡す
+    def push(*pairs)
+      pairs.each{|pair|
+        @list.push(pair)
+        @list[pair[0]].snap(self)
+      }
+      return self
+    end
+
+    #===指定した数の要素を先頭から取り除く
+    #SpriteListの先頭からn個の要素を取り除いて、新しいSpriteListとする。
+    #nがマイナスの時は、後ろからn個の要素を取り除く。
+    #nが0の時は、空のSpriteListを返す。
+    #自分自身に何も登録されていなければnilを返す
+    #(例)a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #    b=a.delete(:b)
+    #      =>a=SpriteList(pair(:a),pair(:c))
+    #        b=SpriteList(pair(:b))
+    #    b=a.delete(:d)
+    #      =>a=SpriteList(pair(:a),pair(:b),pair(:c))
+    #        b=nil
+    #_n_:: 取り除く要素数。省略時は1
+    #返却値:: 取り除いたスプライト
+    def delete(name)
+      ret = @list.delete
+      ret.body.reset_snap
+      ret.body
     end
 
     def sprite_list #:nodoc:
@@ -130,5 +172,17 @@ module Miyako
     # mixinしたモジュールが優先して呼ばれるメソッドを再び移譲
     def_delegators(:@list, :render, :render_to, :visible, :visible=, :show, :hide)
     def_delegators(:@list, :start, :stop, :reset, :update_animation, :each)
+
+    #===各部品を移動させる
+    #Parts#move!はすでに予約されているため、
+    #SpriteList#move!はParts#parts_move!に改名。
+    #詳細は、SpriteList#move!を参照。
+    def_delegator(:@list, :move!, :parts_move!)
+
+    #===各部品を移動させる
+    #Parts#move_to!はすでに予約されているため、
+    #SpriteList#move_to!はParts#parts_move_to!に改名。
+    #詳細は、SpriteList#move_to!を参照。
+    def_delegator(:@list, :move_to!, :parts_move_to!)
   end
 end

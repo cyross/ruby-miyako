@@ -1056,7 +1056,7 @@ module Miyako
         raise MiyakoValueError, "name is not regist! : #{name}" unless @names.include?(name)
       end
       @names.delete(name) if @names.include?(name)
-      @names.insert(@parts_list.index(key)-@parts_list.length, name)
+      @names.insert(@names.index(key)-@names.length, name)
       self
     end
     
