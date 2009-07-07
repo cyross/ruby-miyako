@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.1.0
-【   作成日   】　2009/6/xx
+【   作成日   】　2009/7/3
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -926,7 +926,7 @@ v2.0.5(2009.4.26)
 v2.0.5.1(2009.4.26)
 ・アンインストールスクリプト(uninstall_miyako.rb)追加
 
-v2.1.0(2009.6)
+v2.1.0(2009.7.3)
 <バグ修正>
 ・Parts#removeメソッドで削除していないオブジェクトがあったため問題を修正
 ・同時再生数を超えて効果音を再生するとプログラムが落ちる問題を修正
@@ -991,7 +991,8 @@ v2.1.0(2009.6)
 ・Layoutモジュールの(outside_)left,(outside_)top,(outside_)right,(outside_)bottom,centeringメソッドを、
 　(outside_)left!,(outside_)top!,(outside_)right!,(outside_)bottom!,centering!に変更
 　(既存のメソッドは、「変更した後の値を新しいインスタンスとして返す(自身は変更しない)」に変更)
-・Segment#reset->reset!に変更
+・Segment構造体の機能をSegment、Segmentsの２つの構造体に分割(Segmentsの各要素がSegment)
+・Segments#reset->reset!に変更
 ・Viewport#viewportメソッドの返却値を変更
 ・PartsクラスをSpriteListクラス基準に変更
 <ファイル追加>
@@ -1009,6 +1010,7 @@ v2.1.0(2009.6)
 <構造体追加>
 ・ListPair
 ・ScenePool
+・Segments
 <クラス追加>
 ・ListPairStruct
 ・MiyakoCopyError
@@ -1045,6 +1047,18 @@ v2.1.0(2009.6)
 ・Utility.theta
 ・Yuki.add_method
 <インスタンスメソッド追加>
+・Collision.covers?
+・Collision.covered?
+・Collision#covers?
+・Collision#covered?
+・CircleCollision.covers?
+・CircleCollision.covered?
+・CircleCollision#covers?
+・CircleCollision#covered?
+・Collisions#covers?
+・Collisions#covered?
+・Collisions#covers_all?
+・Collisions#covered_all?
 ・Layout#include_snap_child?
 ・Scene#story
 ・Scene#prev_scene
@@ -1074,6 +1088,8 @@ v2.1.0(2009.6)
 ・Audio::SE#fade_out
 ・Audio::SE#fade_in?
 ・Audio::SE#fade_out?
+・Audio::SE#priority
+・Audio::SE#priority=
 ・Plane::update_animation
 ・Parts#parts_move!
 ・Parts#parts_move_to!
@@ -1089,6 +1105,11 @@ v2.1.0(2009.6)
 ・Segment#max_y
 ・Square#pos
 ・Square#size
+<インスタンスメソッド廃止>
+・Segments#min_x
+・Segments#min_y
+・Segments#max_x
+・Segments#max_y
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

@@ -41,7 +41,7 @@ sprites = Array.new(Sprites){|n|
   # スプライトの生成
   sprite = Sprite.new({:size=>size, :type=>:as})
   Drawing.circle(sprite, [size[0]/2, size[1]/2], size[0]/2, [rand(256),rand(256),rand(256)], true)
-  sprite.move_to(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
+  sprite.move_to!(rand(Screen.w-size[0]), rand(Screen.h-size[1]))
 
   # コリジョンの生成
   collision = Collision.new(rect)

@@ -596,9 +596,9 @@ module Miyako
 
     #===Segment構造体を生成する
     # 生成される線分は、x方向が[pos.x,pos.x+ow-1]、y方向が[pos.y,pos.y+oh-1]となる
-    #返却値:: 生成したSegment構造体インスタンス
+    #返却値:: 生成したSegments構造体インスタンス
     def segment
-			return Segment.new([@layout.pos[0],
+			return Segments.new([@layout.pos[0],
                           @layout.pos[0]+@layout.size[0]-1],
 			                   [@layout.pos[1],
                           @layout.pos[1]+@layout.size[1]-1])

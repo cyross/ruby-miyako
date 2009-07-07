@@ -81,6 +81,24 @@ module Miyako
       return Collision.cover?(self, pos1, c2, pos2)
     end
 
+    #===当たり判定を行う(レシーバがc2を覆っている)
+    #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def covers?(pos1, c2, pos2)
+      return Collision.covers?(self, pos1, c2, pos2)
+    end
+
+    #===当たり判定を行う(レシーバがc2に覆われている)
+    #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def covered?(pos1, c2, pos2)
+      return Collision.covered?(self, pos1, c2, pos2)
+    end
+
     #===当たり判定を行う(領域が重なっている)
     #_c1_:: 判定対象のコリジョンインスタンス(1)
     #_pos1_:: c1の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
@@ -143,11 +161,53 @@ module Miyako
       r2 = l2 + c2.rect[2]
       b2 = t2 + c2.rect[3]
       v =  0
-      v |= 1 if l1 >= l2 && r2 <= r1
-      v |= 2 if t1 >= t2 && b2 <= b1
-      v |= 4 if l2 >= l1 && r1 <= r2
-      v |= 8 if t2 >= t1 && b1 <= b2
+      v |= 1 if l1 >= l2 && r1 <= r2
+      v |= 2 if t1 >= t2 && b1 <= b2
+      v |= 4 if l2 >= l1 && r2 <= r1
+      v |= 8 if t2 >= t1 && b2 <= b1
       return v & 3 == 3 || v & 12 == 12
+    end
+
+    #===当たり判定を行う(c1がc2を覆っている)
+    #_c1_:: 判定対象のコリジョンインスタンス(1)
+    #_pos1_:: c1の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス(2)
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def Collision.covers?(c1, pos1, c2, pos2)
+      l1 = pos1[0] + c1.rect[0]
+      t1 = pos1[1] + c1.rect[1]
+      r1 = l1 + c1.rect[2]
+      b1 = t1 + c1.rect[3]
+      l2 = pos2[0] + c2.rect[0]
+      t2 = pos2[1] + c2.rect[1]
+      r2 = l2 + c2.rect[2]
+      b2 = t2 + c2.rect[3]
+      v =  0
+      v |= 1 if l2 >= l1 && r2 <= r1
+      v |= 2 if t2 >= t1 && b2 <= b1
+      return v & 3 == 3
+    end
+
+    #===当たり判定を行う(c1がc2に覆われている)
+    #_c1_:: 判定対象のコリジョンインスタンス(1)
+    #_pos1_:: c1の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス(2)
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def Collision.covered?(c1, pos1, c2, pos2)
+      l1 = pos1[0] + c1.rect[0]
+      t1 = pos1[1] + c1.rect[1]
+      r1 = l1 + c1.rect[2]
+      b1 = t1 + c1.rect[3]
+      l2 = pos2[0] + c2.rect[0]
+      t2 = pos2[1] + c2.rect[1]
+      r2 = l2 + c2.rect[2]
+      b2 = t2 + c2.rect[3]
+      v =  0
+      v |= 1 if l1 >= l2 && r1 <= r2
+      v |= 2 if t1 >= t2 && b1 <= b2
+      return v & 3 == 3
     end
 
     #== インスタンスの内容を解放する
@@ -232,6 +292,24 @@ module Miyako
       return CircleCollision.cover?(self, pos1, c2, pos2)
     end
 
+    #===当たり判定を行う(レシーバがc2を覆っている)
+    #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def covers?(pos1, c2, pos2)
+      return CircleCollision.covers?(self, pos1, c2, pos2)
+    end
+
+    #===当たり判定を行う(レシーバがc2に覆われている)
+    #_pos1_:: 自分自身の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def covered?(pos1, c2, pos2)
+      return CircleCollision.covered?(self, pos1, c2, pos2)
+    end
+
     #===当たり判定間の距離を算出する
     # ２つの当たり判定がどの程度離れているかを算出する。
     # 返ってくる値は、衝突していなければ正の実数、衝突していれば負の実数で返ってくる
@@ -294,6 +372,40 @@ module Miyako
       #半径の差分を求める
       r  = c1.radius ** 2 - 2 * (c1.radius * c2.radius) + c2.radius ** 2
       return d <= r
+    end
+
+    #===当たり判定を行う(c1がc2を覆っている)
+    #_c1_:: 判定対象のコリジョンインスタンス(1)
+    #_pos1_:: c1の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス(2)
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def CircleCollision.covers?(c1, pos1, c2, pos2)
+      #2点間の距離を求める
+      d = ((c1.center[0] + pos1[0]) - (c2.center[0] + pos2[0])) ** 2 +
+          ((c1.center[1] + pos1[1]) - (c2.center[1] + pos2[1])) ** 2
+      #半径の差分を求める
+      r1 = c1.radius
+      r2 = c2.radius
+      r  = r1 ** 2 - 2 * (r1 * r2) + r2 ** 2
+      return r1 >= r2 && d <= r
+    end
+
+    #===当たり判定を行う(c1がc2に覆われている)
+    #_c1_:: 判定対象のコリジョンインスタンス(1)
+    #_pos1_:: c1の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_c2_:: 判定対象のコリジョンインスタンス(2)
+    #_pos2_:: c2の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 領域が覆われていれば true を返す
+    def CircleCollision.covered?(c1, pos1, c2, pos2)
+      #2点間の距離を求める
+      d = ((c1.center[0] + pos1[0]) - (c2.center[0] + pos2[0])) ** 2 +
+          ((c1.center[1] + pos1[1]) - (c2.center[1] + pos2[1])) ** 2
+      #半径の差分を求める
+      r1 = c1.radius
+      r2 = c2.radius
+      r  = r2 ** 2 - 2 * (r1 * r2) + r1 ** 2
+      return r2 >= r1 && d <= r
     end
 
     #== インスタンスの内容を解放する
@@ -407,7 +519,7 @@ module Miyako
       return self
     end
     
-    #===当たり判定を行う(配列のどれかの領域が重なっている)
+    #===当たり判定を行う(配列要素がcと重なっている)
     # 重なったコリジョンが一つでもあれば、最初に引っかかったコリジョンを返す
     # 重なったコリジョンが無い場合はnilを返す
     #_c_:: 判定対象のコリジョンインスタンス
@@ -417,7 +529,7 @@ module Miyako
       return @collisions.detect{|cc| c.collision?(pos, cc[0], cc[1])}
     end
 
-    #===当たり判定を行う(配列のどれかの領域がピクセル単位で隣り合っている)
+    #===当たり判定を行う(配列要素のどれかがcとピクセル単位で隣り合っている)
     # 隣り合ったコリジョンが一つでもあれば、最初に引っかかったコリジョンを返す
     # 隣り合ったコリジョンが無い場合はnilを返す
     #_c_:: 判定対象のコリジョンインスタンス
@@ -427,7 +539,7 @@ module Miyako
       return @collisions.detect{|cc| c.meet?(pos, cc[0], cc[1])}
     end
 
-    #===当たり判定を行う(どちらかの領域がもう一方にすっぽり覆われている))
+    #===当たり判定を行う(配列要素とcのどちらかが、もう一方にすっぽり覆われている))
     # 覆われたコリジョンが一つでもあれば、最初に引っかかったコリジョンを返す
     # 覆われたコリジョンが無い場合はnilを返す
     #_c_:: 判定対象のコリジョンインスタンス
@@ -437,7 +549,27 @@ module Miyako
       return @collisions.detect{|cc| c.cover?(pos, cc[0], cc[1])}
     end
 
-    #===当たり判定を行う(領域が重なっている)
+    #===当たり判定を行う(配列要素のどれかがcを覆っている))
+    # 覆われたコリジョンが一つでもあれば、最初に引っかかったコリジョンを返す
+    # 覆われたコリジョンが無い場合はnilを返す
+    #_c_:: 判定対象のコリジョンインスタンス
+    #_pos_:: cの位置(Point/Rect/Square構造体、もしくは2要素の配列)
+    #返却値:: 領域が覆われていれば true を返す
+    def covers?(c, pos)
+      return @collisions.detect{|cc| c.covers?(pos, cc[0], cc[1])}
+    end
+
+    #===当たり判定を行う(配列要素のどれかがcに覆われている))
+    # 覆われたコリジョンが一つでもあれば、最初に引っかかったコリジョンを返す
+    # 覆われたコリジョンが無い場合はnilを返す
+    #_c_:: 判定対象のコリジョンインスタンス
+    #_pos_:: cの位置(Point/Rect/Square構造体、もしくは2要素の配列)
+    #返却値:: 領域が覆われていれば true を返す
+    def covered?(c, pos)
+      return @collisions.detect{|cc| c.covered?(pos, cc[0], cc[1])}
+    end
+
+    #===当たり判定を行う(配列要素とcが重なっている)
     # 重なったコリジョンが一つでもあれば、すべてのコリジョンの配列を返す
     # 重なったコリジョンが無い場合はnilを返す
     #_c_:: 判定対象のコリジョンインスタンス
@@ -447,7 +579,7 @@ module Miyako
       return @collisions.select{|cc| c.collision?(pos, cc[0], cc[1])}
     end
 
-    #===当たり判定を行う(領域がピクセル単位で隣り合っている)
+    #===当たり判定を行う(配列要素がcとピクセル単位で隣り合っている)
     # 隣り合ったコリジョンが一つでもあれば、すべてのコリジョンの配列を返す
     # 隣り合ったコリジョンが無い場合はnilを返す
     #_c_:: 判定対象のコリジョンインスタンス
@@ -457,7 +589,7 @@ module Miyako
       return @collisions.select{|cc| c.meet?(pos, cc[0], cc[1])}
     end
 
-    #===当たり判定を行う(どちらかの領域がもう一方にすっぽり覆われている))
+    #===当たり判定を行う(配列要素かcがもう一方を覆っている))
     # 覆われたコリジョンが一つでもあれば、すべてのコリジョンの配列を返す 
     # 覆われたコリジョンが無い場合はnilを返す
     #_c_:: 判定対象のコリジョンインスタンス
@@ -465,6 +597,26 @@ module Miyako
     #返却値:: コリジョンと本体の対の配列。
     def cover_all?(c, pos)
       return @collisions.select{|cc| c.cover?(pos, cc[0], cc[1])}
+    end
+
+    #===当たり判定を行う(配列要素が領域がcを覆っている))
+    # 覆われたコリジョンが一つでもあれば、すべてのコリジョンの配列を返す
+    # 覆われたコリジョンが無い場合はnilを返す
+    #_c_:: 判定対象のコリジョンインスタンス
+    #_pos_:: cの位置(Point/Rect/Square構造体、もしくは2要素の配列)
+    #返却値:: コリジョンと本体の対の配列。
+    def covers_all?(c, pos)
+      return @collisions.select{|cc| c.covers?(pos, cc[0], cc[1])}
+    end
+
+    #===当たり判定を行う(配列要素がcに覆われている))
+    # 覆われたコリジョンが一つでもあれば、すべてのコリジョンの配列を返す
+    # 覆われたコリジョンが無い場合はnilを返す
+    #_c_:: 判定対象のコリジョンインスタンス
+    #_pos_:: cの位置(Point/Rect/Square構造体、もしくは2要素の配列)
+    #返却値:: コリジョンと本体の対の配列。
+    def covered_all?(c, pos)
+      return @collisions.select{|cc| c.covered?(pos, cc[0], cc[1])}
     end
 
     #===インデックス形式でのコリジョン・本体の取得

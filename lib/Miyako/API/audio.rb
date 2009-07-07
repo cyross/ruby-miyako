@@ -295,6 +295,8 @@ module Miyako
 
       SDL::Mixer.allocate_channels(@@channels)
       
+      attr_accessor :priority
+      
       #===効果音の再生情報を更新する
       def SE.update
         return if $not_use_audio
@@ -379,8 +381,9 @@ module Miyako
       #===インスタンスを生成する
       #_fname_:: 効果音ファイル名。wavファイルのみ対応
       #_vol_:: 音の大きさ(省略可能)。0〜255の整数を設定する。nilを渡したときは音の大きさを変更しない。
+      #_vol_:: 再生優先度(省略可能)。整数を設定する。省略したときは0を渡す。
       #返却値:: 生成したインスタンス
-      def initialize(fname, vol = nil)
+      def initialize(fname, vol = nil, priority = 0)
         return nil if $not_use_audio
         raise MiyakoIOError.no_file(fname) unless File.exist?(fname)
         @wave = SDL::Mixer::Wave.load(fname)
@@ -393,6 +396,7 @@ module Miyako
         @now_loops = @loops
         @loop_cnt = 1
         @cnt_up_flag = false
+        @priority = priority
       end
 
       #===インスタンスの複写
@@ -428,8 +432,12 @@ module Miyako
       #返却値:: 再生に成功したときはtrue、失敗したときはfalseを返す
       def play(vol = nil, loops = 1, time = nil)
         return false if $not_use_audio
-        return false if (@@playings.length == @@channels && !@@playings.include?(self))
-        self.stop if @@playings.include?(self)
+        if (@@playings.length == @@channels && !@@playings.include?(self))
+          sorted = @@playings.sort{|a,b| a.priority <=> b.priority}
+          sorted[0].stop
+        elsif @@playings.include?(self)
+          self.stop
+        end
         if vol
           raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
           set_volume(vol)
@@ -489,8 +497,12 @@ module Miyako
       #返却値:: 演奏に成功したときはtrue、失敗した問いはfalseを返す
       def fade_in(msec=5000, loops = 1, vol = nil, time = nil)
         return false if $not_use_audio
-        return false if (@@playings.length == @@channels && !@@playings.include?(self))
-        self.stop if @@playings.include?(self)
+        if (@@playings.length == @@channels && !@@playings.include?(self))
+          sorted = @@playings.sort{|a,b| a.priority <=> b.priority}
+          sorted[0].stop
+        elsif @@playings.include?(self)
+          self.stop
+        end
         if vol
           raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
           set_volume(vol)
