@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.1.0
-【   作成日   】　2009/7/3
+【   作成日   】　2009/7/9
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -926,7 +926,7 @@ v2.0.5(2009.4.26)
 v2.0.5.1(2009.4.26)
 ・アンインストールスクリプト(uninstall_miyako.rb)追加
 
-v2.1.0(2009.7.3)
+v2.1.0(2009.7.9)
 <バグ修正>
 ・Parts#removeメソッドで削除していないオブジェクトがあったため問題を修正
 ・同時再生数を超えて効果音を再生するとプログラムが落ちる問題を修正
@@ -1010,7 +1010,6 @@ v2.1.0(2009.7.3)
 <構造体追加>
 ・ListPair
 ・ScenePool
-・Segments
 <クラス追加>
 ・ListPairStruct
 ・MiyakoCopyError
@@ -1019,6 +1018,7 @@ v2.1.0(2009.7.3)
 ・MiyakoProcError
 ・MiyakoTypeError
 ・MiyakoValueError
+・Segments
 ・SpriteList
 <モジュール追加>
 ・DeepCopy

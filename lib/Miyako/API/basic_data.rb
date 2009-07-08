@@ -489,16 +489,84 @@ module Miyako
     end
   end
 
-  #==X方向・Y方向線分の区間情報を操作する構造体クラス
+  #==X方向・Y方向線分の区間情報を操作するクラス
+  #本クラスでは、X方向・Y方向2つのSegmentを管理する。
   #位置変更メソッドを追加
-  class SegmentsStruct < Struct
-    #===Segment構造体インスタンスを生成する
-    # 入力した矩形情報(Rect構造体、[x,y,w,h]で表される配列)から、構造体インスタンスを生成する
+  class Segments
+  
+    #===x座標の線分を返す
+    #(例)segments = (x:[10,20],y:[100,200])
+    #    segments.x => segment[10,20]
+    #返却値:: Segment構造体
+    attr_reader :x
+
+    #===y座標の線分を返す
+    #(例)segment = (x:[10,20],y:[100,200])
+    #    segment.y => segment[100,200]
+    #返却値:: Segment構造体
+    attr_reader :y
+    
+    #===矩形情報からSegmentsインスタンスを生成する
+    #入力した矩形情報(Rect構造体、[x,y,w,h]で表される配列)から、構造体インスタンスを生成する
+    #(前バージョンまでの互換性のために残している)
     #_rect_:: 算出に使用する矩形情報
     #返却値:: 生成したインスタンスを返す
-    def SegmentsStruct.create(rect)
+    def Segments.create(rect)
       return Segments.new(Segment.new(rect[0], rect[0] + rect[2] - 1),
                           Segment.new(rect[1], rect[1] + rect[3] - 1))
+    end
+    
+    #===矩形情報からSegmentsインスタンスを生成する
+    #入力した情報から、Segment構造体二つを持ったインスタンスを生成する
+    #引数には、Rect構造体、Square構造体、[(x)[min,max],(y)[min,max]],[min_x,max_x,min_y,max_y]の形式を持つ
+    #
+    #引数を省略したときはすべて0のSegment構造体を持つ
+    #また、引数が3つ、5つ以上の時はMiyakoValueError例外が発生する
+    #_params_:: 情報を渡す引数(複数可)
+    #返却値:: 生成したインスタンスを返す
+    def initialize(*params)
+      case params.length
+        when 0
+          @x = Segment.new(0,0)
+          @y = Segment.new(0,0)
+        when 1
+          pm = params[0]
+          if pm.is_a?(Rect)
+            @x = Segment.new(pm[0], pm[0] + pm[2] - 1)
+            @y = Segment.new(pm[1], pm[1] + pm[3] - 1)
+          elsif pm.is_a?(Square) || (pm.is_a?(Array) && pm.length==4)
+            @x = Segment.new(pm[0], pm[2])
+            @y = Segment.new(pm[1], pm[3])
+          else
+            @x = Segment.new(pm[0][0],pm[0][1])
+            @y = Segment.new(pm[1][0],pm[1][1])
+          end
+        when 2
+          @x = Segment.new(params[0][0],params[0][1])
+          @y = Segment.new(params[1][0],params[1][1])
+        when 4
+          @x = Segment.new(params[0],params[1])
+          @y = Segment.new(params[2],params[3])
+        else
+          raise MiyakoValueError, "illegal params : params is 0,1,2,4! params = #{params.length}"
+      end
+    end
+    
+    #===インデックスから対象のSegment構造体を取得する
+    #インデックスの値に対応した
+    #上記以外のインデックスを渡したときはnilを返す
+    #Segmentsは以前構造体だったため、互換性のために用意している
+    #_idx_:: Segmentを指すインデックス
+    #返却値:: インデックスに対応したSegment構造体(対応していないインデックスの時はnil)
+    def [](idx)
+      case idx
+        when 0, :x
+          return @x
+        when 1, :y
+          return @y
+        else
+          return nil
+      end
     end
 
     #===位置を変更する(変化量を指定)
@@ -507,8 +575,8 @@ module Miyako
     #_dy_:: 移動量(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move!(dx, dy)
-      self[:x].move!(dx)
-      self[:y].move!(dy)
+      @x.move!(dx)
+      @y.move!(dy)
       return self
     end
 
@@ -518,8 +586,8 @@ module Miyako
     #_y_:: 移動先位置(y方向)。単位はピクセル
     #返却値:: 自分自身を返す
     def move_to!(x, y)
-      self[:x].move_to!(x)
-      self[:y].move_to!(y)
+      @x.move_to!(x)
+      @y.move_to!(y)
       return self
     end
 
@@ -549,8 +617,8 @@ module Miyako
     #_dh_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
     def resize!(dw, dh)
-      self[:x].resize!(dw)
-      self[:y].resize!(dh)
+      @x.resize!(dw)
+      @y.resize!(dh)
       return self
     end
 
@@ -560,8 +628,8 @@ module Miyako
     #_h_:: 高さ変更。単位はピクセル
     #返却値:: 自分自身を返す
     def resize_to!(w, h)
-      self[:x].resize_to!(w)
-      self[:y].resize_to!(h)
+      @x.resize_to!(w)
+      @y.resize_to!(h)
       return self
     end
     
@@ -585,28 +653,12 @@ module Miyako
       self.dup.resize_to!(w,h)
     end
 
-    #===x座標の線分を返す
-    #(例)segment = (x:[10,20],y:[100,200])
-    #    segment.x => [10,20]
-    #返却値:: Segment構造体
-    def x
-      self[0]
-    end
-
-    #===y座標の線分を返す
-    #(例)segment = (x:[10,20],y:[100,200])
-    #    segment.y => [100,200]
-    #返却値:: Segment構造体
-    def y
-      self[1]
-    end
-
     def reset!(min_x, max_x, min_y, max_y) #:nodoc:
-      self[0][0], self[0][1], self[1][0], self[1][1] = min_x, max_x, min_y, max_y
+      @x[0], @x[1], @y[0], @y[1] = min_x, max_x, min_y, max_y
     end
     
     def to_ary #:nodoc:
-      [self[0].to_ary, self[1].to_ary]
+      [@x.to_ary, @y.to_ary]
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
@@ -701,11 +753,6 @@ module Miyako
     end
   end
 
-  #==線分を構成するために使用する構造体
-  #_x_:: X方向の線分(Segment構造体)
-  #_y_:: Y方向の線分(Segment構造体)
-  Segments = SegmentsStruct.new(:x, :y)
-  
   #==色を管理するクラス
   #
   #色情報は、[r(赤),g(緑),b(青),a(透明度)]、[r,g,b,a(透明度)]の2種類の配列
