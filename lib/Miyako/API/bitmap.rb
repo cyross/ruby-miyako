@@ -25,37 +25,34 @@ module Miyako
   #==ビットマップ(画像)管理クラス
   #SDLのSurfaceクラスインスタンスを管理するクラス
   class Bitmap
-    def Bitmap.create(w, h, flag=SDL::HWSURFACE | SDL::SRCCOLORKEY | SDL::SRCALPHA) #:nodoc:
-#      return SDL::Surface.new(flag, w, h, 32,
-#                              Screen.bitmap.Rmask, Screen.bitmap.Gmask,
-#                              Screen.bitmap.Bmask, Screen.bitmap.Amask)
+    #===スプライトの元になる画像を生成する
+    #幅・高さを渡すことにより、SDL::Surfaceクラスのインスタンスを生成する。
+    #_w_:: 画像の幅。単位はピクセル
+    #_h_:: 画像の幅。単位はピクセル
+    #返却値:: 生成したSDL::Surfaceクラスのインスタンス(αチャネル付き)
+    def Bitmap.create(w, h)
+      flag = SDL::HWSURFACE | SDL::SRCCOLORKEY | SDL::SRCALPHA
       # エンディアン判別
       if [1].pack("V*") == [1].pack("L*") # リトルエンディアン？
-        bitmap = SDL::Surface.new(flag, w, h, 32, 0xff0000, 0xff00, 0xff, 0xff000000)
+        bitmap = SDL::Surface.new(flag, w, h, 32, 0xff0000, 0xff00, 0xff, 0xff000000).display_format_alpha
       else # ビッグエンディアン
-        bitmap = SDL::Surface.new(flag, w, h, 32, 0xff00, 0xff0000, 0xff000000, 0xff)
+        bitmap = SDL::Surface.new(flag, w, h, 32, 0xff00, 0xff0000, 0xff000000, 0xff).display_format_alpha
       end
       bitmap
     end
 
-#    def Bitmap.create_from(bitmap) #:nodoc:
-#      bpp = 32
-#      # エンディアン判別
-#      if [1].pack("V*") == [1].pack("L*") # リトルエンディアン？
-#        bitmap = SDL::Surface.new_from(bitmap.pixels, bitmap.w, bitmap.h, 32, (bitmap.w*bpp)>>3,
-#                                       0xff0000, 0xff00, 0xff, 0xff000000)
-#      else # ビッグエンディアン
-#        bitmap = SDL::Surface.new_from(bitmap.pixels, bitmap.w, bitmap.h, 32, (bitmap.w*bpp)>>3,
-#                                       0xff00, 0xff0000, 0xff000000, 0xff)
-#      end
-#      bitmap
-#    end
-
-    def Bitmap.load(filename) #:nodoc:
+    #===指定のファイルから画像を読み込む
+    #指定したファイル名(パス)から画像データを読みこみ、SDL::Surfaceクラスのインスタンスを生成する。
+    #存在しないパスを渡したときはMiyakoIOErrorを発生させる。
+    #ロードに失敗したときは例外MiyakoFileFormatErrorを発生させる。
+    #_filename_:: 画像のファイル名
+    #返却値:: 生成したSDL::Surfaceクラスのインスタンス(αチャネル付き)。
+    def Bitmap.load(filename)
+      raise MiyakoIOError, "can't find file! #{filename}" unless File.exist?(filename)
       begin
-        return SDL::Surface.load(filename)
+        return SDL::Surface.load(filename).display_format_alpha
       rescue SDL::Error
-        raise MiyakoFileFormatError, "Illegal file format! collect? #{name}"
+        raise MiyakoFileFormatError, "Illegal file format! collect? #{filename}"
       end
       return nil
     end

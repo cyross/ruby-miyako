@@ -33,6 +33,7 @@ module Miyako
     def Audio.init(buf_size = 4096, seq = 44100)
       raise MiyakoError, "Already initialized!" if @@initialized
       SDL::Mixer.open(seq, SDL::Mixer::DEFAULT_FORMAT, 2, buf_size) unless $not_use_audio
+      SDL::Mixer.allocate_channels(SE.channels)
       @@initialized = true
     end
 
@@ -320,7 +321,7 @@ module Miyako
       
       #===同時発音数を取得する
       #返却値:: 同時再生数
-      def SE.channels=(channels)
+      def SE.channels
         @@channels
       end
       
@@ -335,15 +336,19 @@ module Miyako
       end
       
       #===同時発音数を変更する
-      #設定変更は効果音が鳴っていないときに有効。
-      #鳴っているときに変更しようとするとfalseが返ってくる。
-      #デフォルトの同時発音数は８。
-      #_channels_:: 変更するチャネル数。０以下を指定するとエラー
+      #同時発音数に0以下を指定するとMiyakoValueErrorが発生する
+      #現在同時に発音している音が新しいせっていによりあぶれる場合、あぶれた分を優先度の低い順に停止する
+      #起動時の同時発音数は8
+      #_channels_:: 変更する同時発音数
       #返却値:: 変更に成功したときはtrue、失敗したときはfalseを返す
       def SE.channels=(channels)
         return false if $not_use_audio
-        return false if SE.playing_any?
         raise MiyakoValueError, "Illegal Channels! : #{channels}" if channels <= 0
+        if @@playings.length > channels
+          num = @@channels - channels
+          sorted = @@playings.sort{|a,b| a.priority <=> b.priority}
+          num.times{|n| sorted[n].stop}
+        end
         SDL::Mixer.allocate_channels(channels)
         @@channels = channels
         return true

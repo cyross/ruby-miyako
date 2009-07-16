@@ -38,66 +38,84 @@ module Miyako
     def to_unit
       return nil
     end
-    
+
     #===描画可能・不可状態を返すメソッドのテンプレート
     #返却値:: falseを返す
     def visible
       return false
     end
-    
+
     #===描画可能・不可状態を設定するメソッドのテンプレート
     #返却値:: falseを返す
     def visible=(v)
       return self
     end
-    
+
     #===描画可能状態にするメソッドのテンプレート
     def show
       self.visible = true
     end
-    
+
     #===描画不可能状態にするメソッドのテンプレート
     def hide
       self.visible = false
     end
-    
+
     #===領域の矩形を取得するメソッドのテンプレート
     #返却値:: nilを返す
     def rect
       return nil
     end
-    
+
     #===領域の最大矩形を取得するメソッドのテンプレート
     #返却値:: nilを返す
     def broad_rect
       return nil
     end
-    
+
     #===画像(Bitmapクラスのインスタンス)を取得するメソッドのテンプレート
     #返却値:: nilを返す
     def bitmap
       return nil
     end
-    
+
     #===画像内での描画開始位置(x座標)を取得するメソッドのテンプレート
     #返却値:: 0を返す
     def ox
       return 0
     end
-    
+
     #===画像内での描画開始位置(y座標)を取得するメソッドのテンプレート
     #返却値:: 0を返す
     def oy
       return 0
     end
-    
+
+    #===位置を指定して画面への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_xy(x, y)
+      return self.render
+    end
+
+    #===位置を指定して画像への描画を指示するメソッドのテンプレート
+    #_dst_:: 対象の画像
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_xy_to(dst, x, y)
+      return self.render_to(dst)
+    end
+
     #===画面への描画を指示するメソッドのテンプレート
     #_block_:: 呼び出し時にブロック付き呼び出しが行われたときのブロック本体。呼び先に渡すことが出来る。ブロックがなければnilが入る
     #返却値:: 自分自身を返す
     def render(&block)
       return self
     end
-    
+
     #===画像への描画を指示するメソッドのテンプレート
     #_dst_:: 対象の画像
     #_block_:: 呼び出し時にブロック付き呼び出しが行われたときのブロック本体。呼び先に渡すことが出来る。ブロックがなければnilが入る
@@ -136,7 +154,7 @@ module Miyako
       return false
     end
   end
-  
+
   #==複数スプライト管理(配列)機能を追加するモジュール
   #配列にスプライトとして最低限の機能を追加する。
   #また、独自にswapなどのメソッドを追加。
@@ -162,7 +180,7 @@ module Miyako
     def sprite_only!
       self.delete_if{|e| !e.class.include?(SpriteBase) && !e.class.include?(SpriteArray)}
     end
-  
+
     #===配列要素を複製したコピー配列を取得する
     #通常、インスタンスの複写に使われるdup,cloneメソッドは、同じ配列要素を見ているが、
     #このメソッドでは、要素も複製したものが複製される(各要素のdeep_copyメソッドを呼び出す)
@@ -178,7 +196,7 @@ module Miyako
     def visible
       return self.sprite_only.map{|e| e.visible}
     end
-  
+
     #===各要素の描画可能状態を一気に設定する
     #すべての要素のvisibleメソッドの値を変更する
     #登録されている名前順の配列になる。
@@ -188,7 +206,7 @@ module Miyako
       self.sprite_only.each{|e| e.visible = v}
       return self
     end
-  
+
     #===各要素の位置を変更する(変化量を指定)
     #ブロックを渡したとき、戻り値として[更新したdx,更新したdy]とした配列を返すと、
     #それがその要素での移動量となる。
@@ -250,7 +268,7 @@ module Miyako
       self.sprite_only.each{|sprite| sprite.start }
       return self
     end
-    
+
     #===描く画像のアニメーションを停止する
     #各要素のstopメソッドを呼び出す
     #返却値:: 自分自身を返す
@@ -258,7 +276,7 @@ module Miyako
       self.sprite_only.each{|sprite| sprite.stop }
       return self
     end
-    
+
     #===描く画像のアニメーションを先頭パターンに戻す
     #各要素のresetメソッドを呼び出す
     #返却値:: 自分自身を返す
@@ -266,7 +284,7 @@ module Miyako
       self.sprite_only.each{|sprite| sprite.reset }
       return self
     end
-    
+
     #===描く画像のアニメーションを更新する
     #各要素のupdate_animationメソッドを呼び出す
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
@@ -275,7 +293,7 @@ module Miyako
         e.update_animation
       }
     end
-  
+
     #===指定した要素の内容を入れ替える
     #配列の先頭から順にrenderメソッドを呼び出す。
     #描画するインスタンスは、引数がゼロのrenderメソッドを持っているもののみ(持っていないときは呼び出さない)
@@ -288,7 +306,7 @@ module Miyako
       self[idx1], self[idx2] = self[idx2], self[idx1]
       return self
     end
-    
+
     #===配列の要素を画面に描画する
     #配列の先頭から順にrenderメソッドを呼び出す。
     #描画するインスタンスは、SpriteBaseモジュールがmixinされているクラスのみ
@@ -297,7 +315,7 @@ module Miyako
       self.sprite_only.each{|e| e.render }
       return self
     end
-    
+
     #===配列の要素を対象の画像に描画する
     #配列の先頭から順にrender_toメソッドを呼び出す。
     #_dst_:: 描画対象の画像インスタンス
@@ -307,7 +325,7 @@ module Miyako
       return self
     end
   end
-  
+
   #==ディープコピーを実装するモジュール
   #dup、cloneとは違い、「ディープコピー(配列などの要素も複製するコピー)」を実装するためのモジュール。
   module DeepCopy

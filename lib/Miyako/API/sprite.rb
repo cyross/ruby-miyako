@@ -84,6 +84,16 @@ module Miyako
     #      　(例2):type=>:ck, :tr_color=>:red # 赤色を透明色に)
     #    * デフォルト：画像の[0,0]の位置にあるピクセルの色
     #* 3. αチャネル付き画像を使用(設定変更不可)　(書式):type=>:alpha_channel(:ac)
+    #* 4.背景塗りつぶし。必要ならば、色を指定してその色で塗りつぶす
+    #　(書式):fill=>[255,255,255] #=> 白で塗りつぶす
+    #　省略時は塗りつぶさない
+    #* 5.半透明設定。必要ならば、指定した割合で透明度を変える
+    #　値の範囲は0.0 <= alpha <= 1.0。範囲外の値を渡すとMiyakoValueErrorが発生
+    #　(書式):alpha=>0.5 #=> 半透明
+    #　(書式):alpha=>0.1 #=> 1割残っている程度
+    #　(書式):alpha=>0.0 #=> 完全透明
+    #　(書式):alpha=>1.0 #=> 完全不透明
+    #　省略時は生成時そのままの画像
     def initialize(param)
       raise MiyakoError, "Sprite instance cannot create uninitialized yet!" unless Screen.initialized?
       raise MiyakoTypeError, "Sprite parameter is not Hash!" unless param.kind_of?(Hash)
@@ -98,22 +108,24 @@ module Miyako
       param[:point]  ||= Point.new(0, 0)
       param[:tr_color]  ||= Color[:black]
       param[:is_fill] ||= false
-      
+      param[:fill] ||= nil
+      param[:alpha] ||= nil
+
       if param.has_key?(:bitmap) || param.has_key?(:bmp)
-        bitmap = param[:bitmap] || param[:bmp]
+        self.bitmap = param[:bitmap] || param[:bmp]
       elsif param.has_key?(:size)
-        bitmap = Bitmap.create(*(param[:size].to_a))
+        self.bitmap = Bitmap.create(*(param[:size].to_a))
         param[:is_fill] = true
       elsif param.has_key?(:filename) || param.has_key?(:file)
         name = param[:filename] || param[:file]
         raise MiyakoIOError.no_file(name) unless File.exist?(name)
         begin
-          bitmap = Bitmap.load(name)
+          self.bitmap = Bitmap.load(name)
         rescue SDL::Error
           raise MiyakoFileFormatError, "Illegal file format! collect? #{name}"
         end
       elsif param.has_key?(:unit)
-        bitmap = param[:unit].bitmap
+        self.bitmap = param[:unit].bitmap
       else
         raise MiyakoError, "Illegal Sprite parameter!"
       end
@@ -121,13 +133,11 @@ module Miyako
       case param[:type]
       when :color_key
         if param.has_key?(:point)
-          @tr_color = Color.to_rgb(bitmap.get_rgb(bitmap.getPixel(*(param[:point].to_a))))
+          @tr_color = Color.to_rgb(@unit.bitmap.get_rgb(@unit.bitmap.getPixel(*(param[:point].to_a))))
         else
           @tr_color = Color.to_rgb(param[:tr_color])
         end
         # カラーキーのα値を0にしたビットマップを作成
-#        self.bitmap = Bitmap.create_from(bitmap)
-        self.bitmap = bitmap.display_format_alpha
         if param[:is_fill]
           @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0])
           Bitmap.ck_to_ac!(@unit, [0,0,0])
@@ -136,23 +146,18 @@ module Miyako
         end
       when :alpha_surface
         # カラーキーのα値を0にしたビットマップを作成
-#        self.bitmap = Bitmap.create_from(bitmap)
-        self.bitmap = bitmap.display_format_alpha
         Bitmap.normal_to_ac!(@unit)
         if param[:is_fill]
           @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0])
           Bitmap.ck_to_ac!(@unit, [0,0,0])
         end
       when :alpha_channel
-#        self.bitmap = Bitmap.create_from(bitmap)
-        self.bitmap = bitmap.display_format_alpha
         if param[:is_fill]
           @unit.bitmap.fill_rect(0,0,@unit.bitmap.w,@unit.bitmap.h,[0, 0, 0])
           Bitmap.ck_to_ac!(@unit, [0,0,0])
         end
-      when :movie
-#        self.bitmap = Bitmap.create_from(bitmap)
-        self.bitmap = bitmap.display_format_alpha
+      else
+        # 何もしない
       end
       @type = param[:type]
 
@@ -161,10 +166,20 @@ module Miyako
                                        :cx => param[:unit].cx, :cy => param[:unit].cy)
         self.move_to!(param[:unit].x, param[:unit].y)
       end
+
+      if param[:fill]
+        self.fill(param[:fill])
+      end
+
+      if param[:alpha]
+        alpha = param[:alpha]
+        raise MiyakoValueError, "alpha is 0<=alpha<=1. value=#{param[:alpha]}" unless (alpha >= 0.0 and alpha <= 1.0)
+        Bitmap.dec_alpha!(self, alpha)
+      end
     end
 
     def_delegators(:@unit, :ox, :oy, :ow, :oh, :x, :y)
-    
+
     #===複写時に呼び出されるメソッド
     #複写と同時に、本インスタンスに対するスナップの関係を解消
     def initialize_copy(obj)
@@ -175,7 +190,7 @@ module Miyako
     def unit=(unit) #:nodoc:
       @unit = unit
     end
-    
+
     def update_layout_position #:nodoc:
       @unit.move_to!(*@layout.pos)
     end
@@ -221,7 +236,7 @@ module Miyako
       raise MiyakoValueError, "Illegal ox parameter! : #{v} (range: 0..#{@w-@unit.ow})" if (v < 0 || (v+@unit.ow) > @w)
       @unit.ox = v
     end
-    
+
     #===画像の表示開始位置(Y座標)を指定する
     #oyを指定すると、表示の左上位置が変更される。
     #値が画像の高さの範囲外(値がマイナス、画像の高さを超える値)のときは例外が発生する
@@ -230,7 +245,7 @@ module Miyako
       raise MiyakoValueError, "Illegal oy parameter! : #{v} (range: 0..#{@h-@unit.oh})" if (v < 0 || (v+@unit.oh) > @h)
       @unit.oy = v
     end
-    
+
     #===画像の表示幅を指定する
     #owを指定すると、横方向の一部のみ表示される。
     #値が画像の幅の範囲外(値がマイナス、画像の幅を超える値)のときは例外が発生する
@@ -328,7 +343,7 @@ module Miyako
     def to_sprite
       unit = @unit.dup
       unit.bitmap = Bitmap.create(unit.bitmap.w, unit.bitmap.h)
-      sprite = Sprite.new(size: [unit.bitmap.w, unit.bitmap.h], type: :ac)
+      sprite = Sprite.new(size => [unit.bitmap.w, unit.bitmap.h], type => :ac)
       Drawing.fill(sprite, [0,0,0])
       Bitmap.ck_to_ac!(sprite, [0,0,0])
       Bitmap.blit_aa(self, sprite, 0, 0)
@@ -381,6 +396,28 @@ module Miyako
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 自分自身を返す
     def render_to(dst)
+    end
+
+    #===インスタンスの内容を画面に描画する
+    #現在の画像を、現在の状態で描画するよう指示する
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
+    #返却値:: 自分自身を返す
+    def render_xy(x,y)
+    end
+
+    #===インスタンスの内容を別のインスタンスに描画する
+    #転送元の描画範囲は、src側SpriteUnitの(ox,oy)を起点に、src側(ow,oh)の範囲で転送する。
+    #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に設定にする。
+    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る)
+    #(ブロック引数のインスタンスは複写しているので、メソッドの引数として渡した値が持つSpriteUnitには影響しない)
+    #ブロックの引数は、|インスタンスのSpriteUnit,転送先のSpriteUnit|となる。
+    #visibleメソッドの値がfalseのときは描画されない。
+    #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
+    #返却値:: 自分自身を返す
+    def render_xy_to(dst,x,y)
     end
 
     #===インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)

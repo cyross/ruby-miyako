@@ -995,6 +995,8 @@ v2.1.0(2009.7.9)
 ・Segments#reset->reset!に変更
 ・Viewport#viewportメソッドの返却値を変更
 ・PartsクラスをSpriteListクラス基準に変更
+・Sprite#newでdisplay_format_alphaによる画像の複製を行わず、Bitmap.create、Bitmap.loadで行うようにした
+　(Bitmapを渡すことによる画像の共有化が可能に)
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
@@ -1031,6 +1033,7 @@ v2.1.0(2009.7.9)
 ・Audio.initialized?
 ・Audio.update
 ・Audio::BGM.update
+・Audio::SE.channels
 ・Audio::SE.update
 ・Audio::SE.playing_any?
 ・Audio::SE.channels
@@ -1068,6 +1071,7 @@ v2.1.0(2009.7.9)
 ・SpriteBase#visible=
 ・SpriteBase#show
 ・SpriteBase#hide
+・Yuki#add_method
 ・Yuki#over_exec
 ・Yuki#wait_over_exec
 ・Yuki#vars_names
@@ -1093,18 +1097,23 @@ v2.1.0(2009.7.9)
 ・Plane::update_animation
 ・Parts#parts_move!
 ・Parts#parts_move_to!
+・Rect#between?
 ・Rect#pos
 ・Rect#size
+・Rect#to_square
 ・Scene#upper_scene
 ・Scene#next_scene
 ・Segment#x
 ・Segment#y
-・Segment#min_x
-・Segment#max_x
-・Segment#min_y
-・Segment#max_y
+・Segment#min?
+・Segment#max?
+・Segment#in_range?
+・Segment#between?
+・Square#between?
 ・Square#pos
 ・Square#size
+・Square#to_rect
+・WaitCounter#call
 <インスタンスメソッド廃止>
 ・Segments#min_x
 ・Segments#min_y

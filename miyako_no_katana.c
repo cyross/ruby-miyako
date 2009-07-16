@@ -80,13 +80,13 @@ extern void Init_miyako_input_audio();
 static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 {
 	if(sb->ptr == db->ptr){ return; }
-	
+
 	MiyakoSize size;
   if(_miyako_init_rect(sb, db, &size) == 0) return;
-	
+
 	SDL_LockSurface(sb->surface);
 	SDL_LockSurface(db->surface);
-  
+
 	int x, y;
 	for(y = 0; y < size.h; y++)
 	{
@@ -199,6 +199,38 @@ static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 }
 
 /*
+インスタンスの内容を画面に描画する
+*/
+static VALUE sprite_render_xy(VALUE self, VALUE vx, VALUE vy)
+{
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
+	MiyakoBitmap src, dst;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  _miyako_setup_unit_2(self, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
+  src.x = NUM2INT(vx);
+  src.y = NUM2INT(vy);
+  render_inner(&src, &dst);
+  return self;
+}
+
+/*
+インスタンスの内容を別のインスタンスに描画する
+*/
+static VALUE sprite_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE vy)
+{
+  VALUE visible = rb_iv_get(self, "@visible");
+  if(visible == Qfalse) return self;
+	MiyakoBitmap src, dst;
+	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+  src.x = NUM2INT(vx);
+  src.y = NUM2INT(vy);
+  render_to_inner(&src, &dst);
+  return self;
+}
+
+/*
 :nodoc:
 */
 static VALUE screen_update_tick(VALUE self)
@@ -247,7 +279,7 @@ static VALUE render_auto_render_array(VALUE array)
     }
     ptr++;
   }
-  
+
   return Qnil;
 }
 
@@ -272,13 +304,13 @@ static VALUE screen_render(VALUE self)
   VALUE dst = rb_iv_get(mScreen, "@@unit");
 	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
-  
+
   VALUE auto_render_array = rb_iv_get(mScreen, "@@auto_render_array");
   if(RARRAY_LEN(auto_render_array) > 0)
   {
     render_auto_render_array(auto_render_array);
   }
-  
+
   if(fps_view == Qtrue){
     char str[256];
     int interval = NUM2INT(rb_iv_get(mScreen, "@@interval"));
@@ -290,7 +322,7 @@ static VALUE screen_render(VALUE self)
 
     sprintf(str, "%d fps", fps_max / interval);
     VALUE fps_str = rb_str_new2((const char *)str);
-		
+
     fps_sprite = rb_funcall(fps_str, rb_intern("to_sprite"), 1, sans_serif);
     sprite_render(fps_sprite);
   }
@@ -303,7 +335,7 @@ static VALUE screen_render(VALUE self)
     return Qnil;
   }
   rb_funcall(cGL, rb_intern("swap_buffers"), 0);
-  
+
   return Qnil;
 }
 
@@ -349,7 +381,7 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
 
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
-  
+
   if(pos_x < 0){ pos_x = real_size_w + (pos_x % real_size_w); }
   if(pos_y < 0){ pos_y = real_size_h + (pos_y % real_size_h); }
   if(pos_x >= real_size_w){ pos_x %= real_size_w; }
@@ -362,10 +394,10 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
 
   MiyakoBitmap src;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  
+
   int bx = dst->rect.x;
   int by = dst->rect.y;
-  
+
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
     idx1 = (y + dy) % size_h;
@@ -377,7 +409,7 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
       _miyako_setup_unit(
 			  rb_funcall(*(RARRAY_PTR(munits) + code),
                    rb_intern("to_unit"), 0),
-        scr, &src, 
+        scr, &src,
         INT2NUM(x * ow - mx), INT2NUM(y * oh - my), 0);
       render_inner(&src, dst);
       dst->rect.x = bx;
@@ -409,10 +441,10 @@ static void fixedmaplayer_render_inner(VALUE self, MiyakoBitmap *dst)
 
   MiyakoBitmap src;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  
+
   int bx = dst->rect.x;
   int by = dst->rect.y;
-  
+
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
     idx1 = y % size_h;
@@ -459,7 +491,7 @@ static void maplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
 
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
-  
+
   if(pos_x < 0){ pos_x = real_size_w + (pos_x % real_size_w); }
   if(pos_y < 0){ pos_y = real_size_h + (pos_y % real_size_h); }
   if(pos_x >= real_size_w){ pos_x %= real_size_w; }
@@ -472,10 +504,10 @@ static void maplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
 
   MiyakoBitmap src;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  
+
   int bx = dst->rect.x;
   int by = dst->rect.y;
-  
+
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
     idx1 = (y + dy) % size_h;
@@ -516,10 +548,10 @@ static void fixedmaplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
 
   MiyakoBitmap src;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  
+
   int bx = dst->rect.x;
   int by = dst->rect.y;
-  
+
   int x, y, idx1, idx2;
   for(y = 0; y < ch; y++){
     idx1 = y % size_h;
@@ -608,7 +640,7 @@ static VALUE map_render(VALUE self)
   for(i=0; i<RARRAY_LEN(map_layers); i++){
     maplayer_render_inner(*(RARRAY_PTR(map_layers) + i), &dst);
   }
-  
+
   return self;
 }
 
@@ -727,16 +759,16 @@ static VALUE sa_update_wait_counter(VALUE self)
   VALUE waiting = rb_funcall(cnt, rb_intern("waiting?"), 0);
 
   if(waiting == Qtrue) return Qfalse;
-  
+
   VALUE num = rb_iv_get(self, "@pnum");
   VALUE loop = rb_iv_get(self, "@loop");
 
   int pnum = NUM2INT(num);
   int pats = NUM2INT(rb_iv_get(self, "@pats"));
   pnum = (pnum + 1) % pats;
-    
+
   rb_iv_set(self, "@pnum", INT2NUM(pnum));
-    
+
   if(loop == Qfalse && pnum == 0){
     rb_funcall(self, rb_intern("stop"), 0);
     return Qfalse;
@@ -764,7 +796,7 @@ static VALUE sa_update(VALUE self)
     is_change = sa_update_frame(self);
   else
     is_change = sa_update_wait_counter(self);
-  
+
   return is_change;
 }
 
@@ -779,7 +811,7 @@ static VALUE sa_render(VALUE self)
   VALUE *runit = RSTRUCT_PTR(vsrc);
   VALUE polist = rb_iv_get(self, "@pos_offset");
   VALUE dir = rb_iv_get(self, "@dir");
-  
+
   int num = NUM2INT(rb_iv_get(self, "@pnum"));
 
   VALUE *move_off = RARRAY_PTR(rb_funcall(*(RARRAY_PTR(rb_iv_get(self, "@move_offset")) + num), id_to_a, 0));
@@ -787,7 +819,7 @@ static VALUE sa_render(VALUE self)
   int pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
 
   int didx = (rb_to_id(dir) == rb_intern("h") ? 2 : 1);
-  
+
   VALUE tmp_oxy = *(runit +  didx);
   VALUE tmp_x = *(runit + 5);
   VALUE tmp_y = *(runit + 6);
@@ -819,7 +851,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
   VALUE *runit = RSTRUCT_PTR(vsrc);
   VALUE polist = rb_iv_get(self, "@pos_offset");
   VALUE dir = rb_iv_get(self, "@dir");
-  
+
   int num = NUM2INT(rb_iv_get(self, "@pnum"));
 
   int pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
@@ -828,7 +860,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
   VALUE move_off = *(RARRAY_PTR(molist) + num);
 
   int didx = (rb_to_id(dir) == rb_intern("h") ? 3 : 2);
-  
+
   VALUE tmp_oxy = *(runit +  didx);
   VALUE tmp_x = *(runit + 5);
   VALUE tmp_y = *(runit + 6);
@@ -886,7 +918,7 @@ static VALUE plane_render(VALUE self)
       }
     }
   }
-  
+
   return Qnil;
 }
 
@@ -927,7 +959,7 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
       }
     }
   }
-  
+
   return Qnil;
 }
 
@@ -948,7 +980,7 @@ static VALUE parts_render(VALUE self)
     VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
     rb_funcall(parts, id_render, 0);
   }
-  
+
   return Qnil;
 }
 
@@ -968,7 +1000,7 @@ static VALUE parts_render_to_sprite(VALUE self, VALUE vdst)
     VALUE parts = rb_hash_aref(parts_hash, *(RARRAY_PTR(parts_list) + i));
     rb_funcall(parts, rb_intern("render_to"), 1, vdst);
   }
-  
+
   return Qnil;
 }
 #endif
@@ -1034,7 +1066,7 @@ void Init_miyako_no_katana()
   nZero = INT2NUM(zero);
   one = 1;
   nOne = INT2NUM(one);
-  
+
   rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
   rb_define_module_function(mScreen, "pre_render", screen_pre_render, 0);
   rb_define_module_function(mScreen, "render", screen_render, 0);
@@ -1050,6 +1082,8 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(cSprite, "render_to", sprite_c_render_to_sprite, 2);
   rb_define_method(cSprite, "render", sprite_render, 0);
   rb_define_method(cSprite, "render_to", sprite_render_to_sprite, 1);
+  rb_define_method(cSprite, "render_xy", sprite_render_xy, 2);
+  rb_define_method(cSprite, "render_xy_to", sprite_render_xy_to_sprite, 3);
 
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);
@@ -1060,7 +1094,7 @@ void Init_miyako_no_katana()
 #endif
 
   rb_define_method(cProcessor, "main_loop", processor_mainloop, 0);
-  
+
   rb_define_method(cMapLayer, "render", maplayer_render, 0);
   rb_define_method(cFixedMapLayer, "render", fixedmaplayer_render, 0);
   rb_define_method(cMap, "render", map_render, 0);
@@ -1071,7 +1105,7 @@ void Init_miyako_no_katana()
   rb_define_method(cFixedMapLayer, "render_to", fixedmaplayer_render_to_sprite, 1);
 
   use_opengl = rb_gv_get("$miyako_use_opengl");
-  
+
   Init_miyako_bitmap();
   Init_miyako_transform();
   Init_miyako_hsv();

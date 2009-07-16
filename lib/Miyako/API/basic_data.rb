@@ -192,6 +192,14 @@ module Miyako
       return (x >= self[0] && y >= self[1] && x < self[0] + self[2] && y < self[1] + self[3])
     end
 
+    #===指定の座標が矩形の範囲内かを問い合わせる
+    #_x_:: 指定のx座標
+    #_y_:: 指定のy座標
+    #返却値:: 座標が矩形の範囲内ならtrueを返す
+    def between?(x, y)
+      return in_range?(x, y)
+    end
+
     #===矩形の左上位置部分のみ返す
     #返却値:: Position構造体のインスタンス
     def pos
@@ -204,8 +212,17 @@ module Miyako
       return Size.new(self[2], self[3])
     end
     
-    def to_ary #:nodoc:
+    #===矩形情報を配列に変換する
+    #[left, top, width, height]の配列を生成して返す。
+    #返却値:: 生成した配列
+    def to_ary
       [self[0], self[1], self[2], self[3]]
+    end
+    
+    #===矩形情報をSquare構造体に変換する
+    #返却値:: 生成したSquare構造体
+    def to_square
+      Square.new(self[0], self[1], self[2]+self[0]-1, self[3]+self[1]-1)
     end
   end
 
@@ -292,6 +309,14 @@ module Miyako
       return (x >= self[0] && y >= self[1] && x <= self[2] && y <= self[3])
     end
 
+    #===指定の座標が矩形の範囲内かを問い合わせる
+    #_x_:: 指定のx座標
+    #_y_:: 指定のy座標
+    #返却値:: 座標が矩形の範囲内ならtrueを返す
+    def between?(x, y)
+      return in_range?(x, y)
+    end
+
     #===矩形の左上位置部分のみ返す
     #返却値:: Position構造体のインスタンス
     def pos
@@ -304,8 +329,17 @@ module Miyako
       return Size.new(self[2]-self[0]+1, self[3]-self[1]+1)
     end
     
-    def to_ary #:nodoc:
+    #===矩形情報を配列に変換する
+    #[left, top, right, bottom]の配列を生成して返す。
+    #返却値:: 生成した配列
+    def to_ary
       [self[0], self[1], self[2], self[3]]
+    end
+    
+    #===矩形情報をRect構造体に変換する
+    #返却値:: 生成したRect構造体
+    def to_rect
+      Rect.new(self[0], self[1], self[2]-self[0]+1, self[3]-self[1]+1)
     end
   end
 
@@ -415,12 +449,65 @@ module Miyako
       self.dup.resize_to!(v)
     end
 
+    #===線分情報を変更する
+    #minとmaxを一緒に更新する
+    #min>maxのときは、それぞれの値を入れ替える
+    #_min_:: 線分の最小値
+    #_max_:: 線分の最大値
+    #返却値:: 自分自身
     def reset!(min, max) #:nodoc:
       self[0], self[1] = min, max
+      self[0], self[1] = self[1], self[0] if self[0] > self[1]
+      self
     end
     
-    def to_ary #:nodoc:
+    #===線分情報を配列に変換する
+    #[min, max]の配列を生成して返す。
+    #返却値:: 生成した配列
+    def to_ary
       [self[0], self[1]]
+    end
+
+    #===値が線分の範囲内かどうかを判別する
+    #値がminとmaxの値の範囲内にあるかどうかを判別する。範囲内にあればtrueを返す
+    #値がminもしくはmaxに等しいときもtrueを返す
+    #_v_:: 判別する値
+    #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
+    def in_range?(v)
+      v >= self[0] && v <= self[1]
+    end
+
+    #===値が線分の範囲内かどうかを判別する
+    #値がminとmaxの値の範囲内にあるかどうかを判別する。範囲内にあればtrueを返す
+    #値がminもしくはmaxに等しいときもtrueを返す
+    #_v_:: 判別する値
+    #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
+    def between?(v)
+      in_range?(v)
+    end
+
+    #===値が線分の端かどうかを判別する
+    #値がminもしくはmaxと等しければtrueを返す
+    #_v_:: 判別する値
+    #返却値:: vがminもしくはmaxと等しければtrue、それ以外の時はfalseを返す
+    def in_edge?(v)
+      v == self[0] || v == self[1]
+    end
+
+    #===値が最小値かどうかを判別する
+    #値がminと等しければtrueを返す
+    #_v_:: 判別する値
+    #返却値:: vがminと等しければtrue、それ以外の時はfalseを返す
+    def min?(v)
+      v == self[0]
+    end
+
+    #===値が最大値かどうかを判別する
+    #値がmaxと等しければtrueを返す
+    #_v_:: 判別する値
+    #返却値:: vがmaxと等しければtrue、それ以外の時はfalseを返す
+    def max?(v)
+      v == self[1]
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
@@ -653,12 +740,71 @@ module Miyako
       self.dup.resize_to!(w,h)
     end
 
+    #===線分情報を変更する
+    #x,yそれぞれのminとmaxを一緒に更新する
+    #min>maxのときは、それぞれの値を入れ替える
+    #_min_x_:: x方向の線分の最小値
+    #_max_x_:: x方向の線分の最大値
+    #_min_y_:: y方向の線分の最小値
+    #_max_y_:: y方向の線分の最大値
+    #返却値:: 自分自身
     def reset!(min_x, max_x, min_y, max_y) #:nodoc:
-      @x[0], @x[1], @y[0], @y[1] = min_x, max_x, min_y, max_y
+      @x.reset!(min_x, max_x)
+      @y.reset!(min_y, max_y)
     end
-    
-    def to_ary #:nodoc:
+   
+    #===線分情報を配列に変換する
+    #[[min, max],[min, max]]の配列を生成して返す。
+    #返却値:: 生成した配列
+    def to_ary
       [@x.to_ary, @y.to_ary]
+    end
+
+    #===値がともに線分の範囲内かどうかを判別する
+    #x,yの値がともにminとmaxの値の範囲内にあるかどうかを判別する。範囲内にあればtrueを返す
+    #値がminもしくはmaxに等しいときもtrueを返す
+    #_x_:: x方向の値
+    #_y_:: y方向の値
+    #返却値:: x,yが範囲内のときはtrue、範囲外の時はfalseを返す
+    def in_range?(x, y)
+      @x.in_range?(x) && @y.in_range?(y)
+    end
+
+    #===値がともに線分の範囲内かどうかを判別する
+    #x,yの値がともにminとmaxの値の範囲内にあるかどうかを判別する。範囲内にあればtrueを返す
+    #値がminもしくはmaxに等しいときもtrueを返す
+    #_x_:: x方向の値
+    #_y_:: y方向の値
+    #返却値:: x,yが範囲内のときはtrue、範囲外の時はfalseを返す
+    def between?(x, y)
+      in_range?(x, y)
+    end
+
+    #===値がともに線分の端かどうかを判別する
+    #x,yの値がともにminもしくはmaxと等しければtrueを返す
+    #_x_:: x方向の値
+    #_y_:: y方向の値
+    #返却値:: x,yがminもしくはmaxと等しければtrue、それ以外の時はfalseを返す
+    def in_edge?(x, y)
+      @x.in_edge?(x) && @y.in_edge?(y)
+    end
+
+    #===値がともに最小値かどうかを判別する
+    #値がminと等しければtrueを返す
+    #_x_:: x方向の値
+    #_y_:: y方向の値
+    #返却値:: x,yがminと等しければtrue、それ以外の時はfalseを返す
+    def min?(x, y)
+      @x.min?(x) && @y.min?(y)
+    end
+
+    #===値がともに最大値かどうかを判別する
+    #値がmaxと等しければtrueを返す
+    #_x_:: x方向の値
+    #_y_:: y方向の値
+    #返却値:: x,yがmaxと等しければtrue、それ以外の時はfalseを返す
+    def max?(x, y)
+      @x.max?(x) && @y.max?(y)
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別する

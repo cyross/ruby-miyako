@@ -222,6 +222,7 @@ module Miyako
     #名前が登録されている順に渡ってくる
     #返却値:: 自分自身を帰す
     def each
+      return self.to_enum(:each) unless block_given?
       self.to_a.each{|pair| yield pair}
     end
     
@@ -230,6 +231,7 @@ module Miyako
     #名前が登録されている順に渡ってくる
     #返却値:: 自分自身を帰す
     def each_pair
+      return self.to_enum(:each_pair) unless block_given?
       @names.each{|name| yield *@n2v[name]}
     end
     
@@ -238,6 +240,7 @@ module Miyako
     #名前が登録されている順に渡ってくる
     #返却値:: 自分自身を帰す
     def each_name
+      return self.to_enum(:each_name) unless block_given?
       @names.each{|name| yield name}
     end
     
@@ -246,6 +249,7 @@ module Miyako
     #名前が登録されている順に渡ってくる
     #返却値:: 自分自身を帰す
     def each_value
+      return self.to_enum(:each_value) unless block_given?
       @names.each{|name| yield @n2v[name].body}
     end
     
@@ -254,6 +258,7 @@ module Miyako
     #0,1,2,...の順に渡ってくる
     #返却値:: 自分自身を帰す
     def each_index
+      return self.to_enum(:each_index) unless block_given?
       @names.length.times{|idx| yield idx}
     end
     

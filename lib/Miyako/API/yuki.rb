@@ -103,8 +103,9 @@ module Miyako
     #callメソッドを持つブロックが使用可能。
     attr_reader :selecting_procs
     
-    #===Yukiにメソッドを追加する
+    #===Yukiにメソッドを追加する(すべてのYukiインスタンスに適応)
     #ブロックを渡すことで、Yukiに新しいメソッドを追加できる。
+    #追加したメソッドは、すべてのYukiインスタンスで利用可能となる。
     #コンテキストはYukiクラスのインスタンスとなるため、Yukiスクリプトと同じ感覚でメソッドを追加できる。
     #ただし、すでに追加したメソッド(もしくはYukiクラスですでに追加されているメソッド)を追加しようとすると例外が発生する
     #
@@ -114,6 +115,21 @@ module Miyako
       name = name.to_sym
       raise MiyakoError, "Already added method! : #{name.to_s}" if self.methods.include?(name)
       define_method(name, block)
+      return nil
+    end
+
+    #===Yukiにメソッドを追加する(指定のYukiインスタンスのみ適応)
+    #ブロックを渡すことで、Yukiに新しいメソッドを追加できる。
+    #追加したメソッドは、指定したYukiインスタンスのみ利用可能となる。
+    #コンテキストはYukiクラスのインスタンスとなるため、Yukiスクリプトと同じ感覚でメソッドを追加できる。
+    #ただし、すでに追加したメソッド(もしくはYukiクラスですでに追加されているメソッド)を追加しようとすると例外が発生する
+    #
+    #_name_:: ブロックに渡す引数リスト
+    #_block_:: メソッドとして実行させるブロック
+    def add_method(name, &block)
+      name = name.to_sym
+      raise MiyakoError, "Already added method! : #{name.to_s}" if self.methods.include?(name)
+      self.define_singleton_method(name, block)
       return nil
     end
 

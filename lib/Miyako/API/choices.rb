@@ -118,6 +118,7 @@ module Miyako
     end
 
     def each #:nodoc:
+      return self.to_enum(:each) unless block_given?
       @choices.each{|ch| yield ch }
     end
 
