@@ -89,7 +89,7 @@ module Miyako
         @fibers[num] = nil
       }
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @stack = @stack.dup
       @fibers = @fibers.dup
@@ -128,10 +128,7 @@ module Miyako
         u.init_inner(@prev_label, self.upper_label)
         u.setup
 
-        loop do
-          Audio.update
-          Input.update
-          Screen.clear
+        Miyako.main_loop do
           bk_n = on
           n = u.update
           u.render
@@ -144,7 +141,6 @@ module Miyako
             @fibers.first.resume(n, 0)
             n = bk_n
           end
-          Screen.render
           break unless n && on.eql?(n)
         end
         u.next = n
@@ -182,7 +178,7 @@ module Miyako
 
     #==シーン情報格納のための構造体
     ScenePool = Struct.new(:story, :prev, :next, :upper)
-    
+
     #==シーンモジュール
     #本モジュールをmixinすることにより、シーンを示すインスタンスを作成することができる
     #mixinするときに気をつけなければいけないのは、本モジュールでは以下の

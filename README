@@ -935,6 +935,7 @@ v2.1.0(2009.7.9)
 ・Yuki#select_plotで渡したプロットの引数チェックを行っていなかったバグを修正
 ・Alt+Enterを押してもフルスクリーンにならないバグを修正
 <仕様変更>
+・"require 'miyako'"でもロード可能
 ・miyako.rbで組み込んでいるライブラリの順番を変更
 ・$miyako_auto_openグローバル変数により、強制的な画面のオープンを解除
 　必要な部分だけ呼び出し(Miyako.init,Audio.init,Screen.init,Font.init)
@@ -960,6 +961,7 @@ v2.1.0(2009.7.9)
 ・PlaneクラスにSpriteBase,Animationモジュールをmixin
 ・ViewportクラスにSpriteBase,Animationモジュールをmixin
 ・YukiクラスにSpriteBase,Animationモジュールをmixin
+・回数を指定した音声の繰り返し演奏に対応
 ・Audio::BGM,Audio::SEクラスのインスタンスを複写しようとすると例外発生するように変更
 ・Audio::BGM.newメソッドの引数インタフェースを変更
 ・Audio::BGM.newメソッドの処理内容を変更
@@ -997,10 +999,17 @@ v2.1.0(2009.7.9)
 ・PartsクラスをSpriteListクラス基準に変更
 ・Sprite#newでdisplay_format_alphaによる画像の複製を行わず、Bitmap.create、Bitmap.loadで行うようにした
 　(Bitmapを渡すことによる画像の共有化が可能に)
+・Sprite#newの引数を追加(:fill,:alpha)
+・Sprite#newの:typeハッシュ引数の既定値を:color_key(:ck)から:alpha_channel(:ac)に変更
+・Miyako.main_loopを再び高速化
+・Story#runの内部ループをloop do～からMiyako.main_loop～に変更
+・Map.new、FixedMap.newのインタフェースを変更(CSVファイル以外からのマップデータ生成を容易に)
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
 ・lib/Miyako/miyako_require_only.rb
+・lib/miyako.rb
+・lib/miyako_require_only.rb
 ・lib/Miyako/API/exceptions.rb
 ・lib/Miyako/API/sprite_list.rb
 <グローバル変数追加>
@@ -1011,9 +1020,15 @@ v2.1.0(2009.7.9)
 ・Screen::BPP
 <構造体追加>
 ・ListPair
+・MapStruct
 ・ScenePool
 <クラス追加>
+・CollisionEx
+・CircleCollisionEx
+・CollisionsEx
 ・ListPairStruct
+・MapStructStruct
+・MapStructFactory
 ・MiyakoCopyError
 ・MiyakoFileFormatError
 ・MiyakoIOError
@@ -1022,6 +1037,7 @@ v2.1.0(2009.7.9)
 ・MiyakoValueError
 ・Segments
 ・SpriteList
+・MapDir(AccessIndexから変更)
 <モジュール追加>
 ・DeepCopy
 ・SpriteArray
@@ -1041,6 +1057,7 @@ v2.1.0(2009.7.9)
 ・Layout.copy_layout
 ・Font.init
 ・Font.initialized?
+・MapChipFactory.create
 ・Miyako.init
 ・Miyako.initialized?
 ・Miyako.open
@@ -1052,12 +1069,21 @@ v2.1.0(2009.7.9)
 <インスタンスメソッド追加>
 ・Collision.covers?
 ・Collision.covered?
+・Collision#to_ex
 ・Collision#covers?
 ・Collision#covered?
+・Collision#body
+・Collision#body=
+・Collision#center
+・Collision#radius
 ・CircleCollision.covers?
 ・CircleCollision.covered?
+・CircleCollision#to_ex
 ・CircleCollision#covers?
 ・CircleCollision#covered?
+・CircleCollision#body
+・CircleCollision#body=
+・CircleCollision#rect
 ・Collisions#covers?
 ・Collisions#covered?
 ・Collisions#covers_all?
@@ -1066,11 +1092,17 @@ v2.1.0(2009.7.9)
 ・Scene#story
 ・Scene#prev_scene
 ・Scene#now_scene
+・Sprite#render_xy
+・Sprite#render_xy_to
+・Sprite#collision
+・Spriet#collision=
 ・SpriteBase#render_to
 ・SpriteBase#visible
 ・SpriteBase#visible=
 ・SpriteBase#show
 ・SpriteBase#hide
+・SpriteBase#render_xy
+・SpriteBase#render_xy_to
 ・Yuki#add_method
 ・Yuki#over_exec
 ・Yuki#wait_over_exec

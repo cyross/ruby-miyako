@@ -38,20 +38,21 @@ osn = Config::CONFIG["target_os"].downcase
 if osn =~ /mswin|mingw|cygwin|bccwin/
   ext_dir = "win/"
 elsif osn =~ /darwin/ # Mac OS X
-  if ENV['SDL_CONFIG_PATH'] 
+  if ENV['SDL_CONFIG_PATH']
     system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
   else
     system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl-config'; make")
   end
 else # linux, U*IX...
-  if ENV['SDL_CONFIG_PATH'] 
+  if ENV['SDL_CONFIG_PATH']
     system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
   else
     system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl-config'; make")
   end
 end
 
-sitelibdir = Config::CONFIG["sitelibdir"] + "/Miyako"
+baselibdir = Config::CONFIG["sitelibdir"]
+sitelibdir = baselibdir + "/Miyako"
 apidir = sitelibdir + "/API"
 extdir = sitelibdir + "/EXT"
 
@@ -71,6 +72,7 @@ if osn =~ /darwin/ # Mac OS X
 else # Windows, linux, U*IX...
   Dir.glob(ext_dir + "*.so"){|fname| FileUtils.install(fname, sitelibdir, option)}
 end
+Dir.glob("lib/*.rb"){|fname| FileUtils.install(fname, baselibdir, option)}
 Dir.glob("lib/Miyako/*.rb"){|fname| FileUtils.install(fname, sitelibdir, option)}
 Dir.glob("lib/Miyako/API/*.rb"){|fname| FileUtils.install(fname, apidir, option)}
 Dir.glob("lib/Miyako/EXT/*.rb"){|fname| FileUtils.install(fname, extdir, option)}

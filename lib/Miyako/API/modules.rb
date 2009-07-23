@@ -93,19 +93,40 @@ module Miyako
 
     #===位置を指定して画面への描画を指示するメソッドのテンプレート
     #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrenderメソッドを呼び出す
     #_x_:: 描画位置のx座標
     #_y_:: 描画位置のy座標
     #返却値:: 自分自身を返す
     def render_xy(x, y)
+      if [:pos, :move_to!].all?{|mn| self.class.method_defined?(mn)}
+        old_pos = self.pos
+        self.move_to!(x,y)
+        self.render
+        self.move_to!(*old_pos)
+        return self
+      end
       return self.render
     end
 
     #===位置を指定して画像への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが、処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrender_toメソッドを呼び出す
     #_dst_:: 対象の画像
     #_x_:: 描画位置のx座標
     #_y_:: 描画位置のy座標
     #返却値:: 自分自身を返す
     def render_xy_to(dst, x, y)
+      if [:pos, :move_to!].all?{|mn| self.class.method_defined?(mn)}
+        old_pos = self.pos
+        self.move_to!(x,y)
+        self.render_to(dst)
+        self.move_to!(*old_pos)
+        return self
+      end
       return self.render_to(dst)
     end
 

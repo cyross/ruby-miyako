@@ -29,7 +29,7 @@ module Miyako
     include SpriteBase
     include Animation
     include Layout
-    
+
     @@idx_ix = [-1, 2, 4]
     @@idx_iy = [-1, 0, 6]
 
@@ -43,7 +43,7 @@ module Miyako
       extend Forwardable
 
       @@use_chip_list = Hash.new(nil)
-      
+
       attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
       attr_accessor :mapchip, :mapchip_units
       attr_reader :pos
@@ -92,7 +92,7 @@ module Miyako
         }
         reSize
       end
-    
+
       def initialize_copy(obj) #:nodoc:
         @mapchip = @mapchip.dup
         @size = @size.dup
@@ -213,7 +213,7 @@ module Miyako
       def can_access?(type, inout, pos, dx, dy)
         code = get_code(pos[0]+dx, pos[1]+dy)
         return true if code == -1
-        index = AccessIndex.index2(inout, dx, dy)
+        index = MapDir.index2(inout, dx, dy)
         return true if index == -1
         return @mapchip.access_table[type][code][index]
       end
@@ -258,47 +258,23 @@ module Miyako
     #先頭に戻って繰り返し渡す仕様になっている
     #各MapChip構造体のマップチップの大きさを同じにしておく必要がある
     #_mapchips_:: マップチップ構造体群(MapChip構造体単体もしくは配列)
-    #_layer_csv_:: レイヤーファイル(CSVファイル)
+    #_map_struct_:: MapStruct構造体のインスタンス
     #_event_manager_:: MapEventManagerクラスのインスタンス
     #返却値:: 生成したインスタンス
-    def initialize(mapchips, layer_csv, event_manager)
-      raise MiyakoIOError.no_file(layer_csv) unless File.exist?(layer_csv)
+    def initialize(mapchips, map_struct, event_manager)
       init_layout
       @visible = true
-      @event_layers = []
       @em = event_manager.dup
       @em.set(self)
       @mapchips = mapchips.to_a
-      layer_data = CSV.readlines(layer_csv)
 
-      raise MiyakoFileFormatError, "This file is not Miyako Map Layer file! : #{layer_csv}" unless layer_data.shift[0] == "Miyako Maplayer"
-
-      tmp = layer_data.shift # 空行の空読み込み
-
-      @size = Size.new(tmp[0].to_i, tmp[1].to_i)
+      @size = map_struct.size
       @w = @size.w * @mapchips.first.chip_size.w
       @h = @size.h * @mapchips.first.chip_size.h
 
-      layers = layer_data.shift[0].to_i
+      @event_layers = []
 
-      evlist = []
-      brlist = []
-      layers.times{|n|
-        name = layer_data.shift[0]
-        values = []
-        @size.h.times{|y|
-          values << layer_data.shift.map{|m| m.to_i}
-        }
-        if name == "<event>"
-          evlist << values
-        else
-          brlist << values
-        end
-      }
-
-      @event_layer = nil
-
-      evlist.each{|events|
+      map_struct.elayers.each{|events|
         event_layer = Array.new
         events.each_with_index{|ly, y|
           ly.each_with_index{|code, x|
@@ -310,15 +286,15 @@ module Miyako
       }
 
       mc = @mapchips.cycle
-      @mapchips = mc.take(layers)
+      @mapchips = mc.take(map_struct.layer_num)
       @map_layers = []
-      brlist.each{|br|
+      map_struct.layers.each{|br|
         br = br.map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
         @map_layers.push(FixedMapLayer.new(mc.next, br, @size))
       }
       set_layout_size(@w, @h)
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @map_layers = @map_layers.dup
       @event_layers = @event_layers.dup

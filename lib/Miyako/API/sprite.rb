@@ -32,9 +32,10 @@ module Miyako
     include SingleEnumerable
     extend Forwardable
 
-    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
-    attr_reader :tr_color  #カラーキーが有向になっている場合のRGB値。[R,G,B]の配列(各要素は0～255の整数)
-    attr_reader :type      #画像の透明度・透過タイプを取得する(詳細はSprite.newメソッドを参照)
+    attr_accessor :visible   #レンダリングの可否(true->描画 false->非描画)
+    attr_accessor :collision #Collision#bindで関連づけられた当たり判定
+    attr_reader :tr_color    #カラーキーが有向になっている場合のRGB値。[R,G,B]の配列(各要素は0～255の整数)
+    attr_reader :type        #画像の透明度・透過タイプを取得する(詳細はSprite.newメソッドを参照)
 
     @@abb = {:ck => :color_key, :as => :alpha_surface, :ac => :alpha_channel}
 
@@ -47,6 +48,7 @@ module Miyako
       @h = 0
       @draw_list = nil
       @visible = true
+      @collision = nil
     end
 
     private :setup

@@ -20,99 +20,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-require 'csv'
 require 'forwardable'
 
 module Miyako
-  #==マップチップ構造体に配列化メソッド(to_a)を定義するための構造体クラス
-  #インデックス参照メソッドを追加
-  class MapChipStruct < Struct
-    #===インスタンスを配列化する
-    #Map/FixedMap.newメソッド内部で、MapChip構造体と、その配列とのダックタイピングのために用意
-    #返却値:: 自分自身を[]囲んだオブジェクトを返す
-    def to_a
-      return [self]
-    end
-  end
-
-  #=マップチップ定義構造体
-  MapChip = MapChipStruct.new(:chip_image, :chips, :size, :chip_size, :access_types, :collision_table, :access_table)
-
-  #=マップチップ作成ファクトリクラス
-  class MapChipFactory
-    #===マップチップを作成するためのファクトリクラス
-    #_csv_filename_:: マップチップファイル名(CSVファイル)
-    #_use_alpha_:: 画像にαチャネルを使うかどうかのフラグ。trueのときは画像のαチャネルを使用、falseのときはカラーキーを使用。デフォルトはtrue
-    def MapChipFactory.load(csv_filename, use_alpha = true)
-      raise MiyakoIOError.no_file(csv_filename) unless File.exist?(csv_filename)
-      lines = CSV.read(csv_filename)
-      raise MiyakoFileFormatError, "This file is not Miyako Map Chip file! : #{csv_filename}" unless lines.shift[0] == "Miyako Mapchip"
-      spr = use_alpha ? Sprite.new({:filename => lines.shift[0], :type => :alpha_channel}) : Sprite.new({:file_name => lines.shift[0], :type => :color_key})
-      tmp = lines.shift
-      chip_size = Size.new(tmp[0].to_i, tmp[1].to_i)
-      size = Size.new(spr.w / chip_size.w, spr.h / chip_size.h)
-      chips = size.w * size.h
-      access_types = lines.shift[0].to_i
-      collision_table = Array.new(access_types){|at|
-        Array.new(chips){|n| Collision.new(lines.shift.map{|s| s.to_i}) }
-      }
-      access_table = Array.new(access_types){|at|
-        Array.new(chips){|n|
-          lines.shift.map{|s|
-            v = eval(s)
-            next v if (v == true || v == false)
-            v = v.to_i
-            next false if v == 0
-            true
-          }
-        }
-      }
-      return MapChip.new(spr, chips, size, chip_size, access_types, collision_table, access_table)
-    end
-  end
-  
-  #==アクセス方向定義クラス
-  #マップチップのアクセステーブルを参照する際に、状態(入る(:in)・出る(:out))と
-  #方向(:left, :right, :up, :down)から、アクセステーブルの指標を取得する必要がある。
-  #このクラスでは、その指標を取得するメソッドを用意している
-  class AccessIndex
-    @@accesses = {
-      in:  { right: 2, left: 4, up: 6, down: 0},
-      out: { right: 3, left: 5, up: 1, down: 7}
-    }
-    @@accesses2 = {
-      in:  [[-1,0,6],[2,-1,-1],[4,-1,-1]],
-      out: [[-1,7,1],[3,-1,-1],[5,-1,-1]]
-    }
-
-    #===状態と方向からアクセステーブルの指標を取得する
-    #アクセステーブルには、2種類の状態(入る=:in, 出る=:out)と、
-    #4種類の方向(左=:left, 右=:right, 上=:up, 下=:down)から構成される
-    #配列となっている。本メソッドで、状態・方向に対応するシンボルから配列の要素指標を取得する。
-    #指定外のシンボルを渡すと例外が発生する
-    #_state_:: 状態を示すシンボル(:in, :out)
-    #_direction_:: 方向を示すシンボル(:left, :right, :up, :down)
-    #返却値:: アクセステーブルの指標番号(整数)
-    def AccessIndex.index(state, direction)
-      raise MiyakoValueError, "can't find AcceessIndex state symbol! #{state}" unless @@accesses.has_key?(state)
-      raise MiyakoValueError, "can't find AcceessIndex direction symbol! #{direction}" unless @@accesses[state].has_key?(direction)
-      return @@accesses[state][direction]
-    end
-
-    #===状態と移動量からアクセステーブルの指標を取得する
-    #アクセステーブルには、2種類の状態(入る=:in, 出る=:out)と、移動量(dx,dy)から構成される
-    #配列となっている。本メソッドで、状態に対応するシンボル、整数から配列の要素指標を取得する。
-    #指定外のシンボルを渡すと例外が発生する
-    #_state_:: 状態を示すシンボル(:in, :out)
-    #_dx_:: x方向移動量
-    #_dy_:: y方向移動量
-    #返却値:: アクセステーブルの指標番号(整数)。何も移動しない場合は-1が返る
-    def AccessIndex.index2(state, dx, dy)
-      raise MiyakoValueError, "can't find AcceessIndex state symbol! #{state}" unless @@accesses.has_key?(state)
-      return @@accesses2[state][dx < -1 ? -1 : dx > 1 ? 1 : 0][dy < -1 ? -1 : dy > 1 ? 1 : 0]
-    end
-  end
-
   #==マップ定義クラス
   class Map
     include SpriteBase
@@ -176,7 +86,7 @@ module Miyako
         @visible = true
         resize
       end
-    
+
       def initialize_copy(obj) #:nodoc:
         @mapchip = @mapchip.dup
         @size = @size.dup
@@ -298,7 +208,7 @@ module Miyako
       def can_access?(type, inout, pos, dx, dy)
         code = get_code(pos[0]+dx, pos[1]+dy)
         return true if code == -1
-        index = AccessIndex.index2(inout, dx, dy)
+        index = MapDir.index2(inout, dx, dy)
         return true if index == -1
         return @mapchip.access_table[type][code][index]
       end
@@ -337,44 +247,22 @@ module Miyako
     #また、各レイヤにMapChip構造体を渡すとき、レイヤ数より要素数が少ないときは、先頭に戻って繰り返し渡す仕様になっている
     #各MapChip構造体のマップチップの大きさを同じにしておく必要がある
     #_mapchips_:: マップチップ構造体群(MapChip構造体単体もしくは配列)
-    #_layer_csv_:: レイヤーファイル(CSVファイル)
+    #_map_struct_:: MapStruct構造体のインスタンス
     #_event_manager_:: MapEventManagerクラスのインスタンス
     #返却値:: 生成したインスタンス
-    def initialize(mapchips, layer_csv, event_manager)
-      raise MiyakoIOError.no_file(layer_csv) unless File.exist?(layer_csv)
-      @event_layers = []
+    def initialize(mapchips, map_struct, event_manager)
       @em = event_manager.dup
       @em.set(self)
       @mapchips = mapchips.to_a
       @visible = true
       @pos = Point.new(0, 0)
-      layer_data = CSV.readlines(layer_csv)
-      raise MiyakoFileFormatError, "This file is not Miyako Map Layer file! : #{layer_csv}" unless layer_data.shift[0] == "Miyako Maplayer"
 
-      tmp = layer_data.shift # 空行の空読み込み
-
-      @size = Size.new(*(tmp[0..1].map{|v| v.to_i}))
+      @size = map_struct.size
       @w = @size.w
       @h = @size.h
-      
-      layers = layer_data.shift[0].to_i
-      
-      evlist = []
-      brlist = []
-      layers.times{|n|
-        name = layer_data.shift[0]
-        values = []
-        @size.h.times{|y|
-          values << layer_data.shift.map{|m| m.to_i}
-        }
-        if name == "<event>"
-          evlist << values
-        else
-          brlist << values
-        end
-      }
 
-      evlist.each{|events|
+      @event_layers = []
+      map_struct.elayers.each{|events|
         event_layer = Array.new
         events.each_with_index{|ly, y|
           ly.each_with_index{|code, x|
@@ -386,14 +274,14 @@ module Miyako
       }
 
       mc = @mapchips.cycle
-      @mapchips = mc.take(layers)
+      @mapchips = mc.take(map_struct.layer_num)
       @map_layers = []
-      brlist.each{|br|
+      map_struct.layers.each{|br|
         br = br.map{|b| b.map{|bb| bb >= @mapchips.first.chips ? -1 : bb } }
         @map_layers.push(MapLayer.new(mc.next, br, @size))
       }
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @map_layers = @map_layers.dup
       @event_layers = @event_layers.dup
@@ -507,7 +395,7 @@ module Miyako
       yield code if block_given?
       return code
     end
-    
+
     #===対象のマップチップ番号の画像を置き換える
     #_idx_:: 置き換えるマップチップレイヤー番号
     #_code_:: 置き換えるマップチップ番号
@@ -517,7 +405,7 @@ module Miyako
       @map_layers[idx].mapchip_units[code] = base
       return self
     end
-    
+
     #===マップチップ１枚の大きさを取得する
     #マップチップの大きさが32×32ピクセルの場合は、[32,32]のSize構造体が返る
     #返却値:: マップチップのサイズ(Size構造体)

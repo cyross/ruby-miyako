@@ -12,8 +12,11 @@ require 'fileutils'
 puts "Are you sure?(Y/else)"
 exit unless $stdin.gets.split(//)[0].upcase == 'Y'
 
-sitelibdir = Config::CONFIG["sitelibdir"] + "/Miyako"
+baselibdir = Config::CONFIG["sitelibdir"]
+sitelibdir = baselibdir + "/Miyako"
 
+FileUtils.remove(baselibdir+"/miyako.rb")
+FileUtils.remove(baselibdir+"/miyako_require_only.rb")
 FileUtils.remove_dir(sitelibdir, true)
 
 puts "uninstall completed."

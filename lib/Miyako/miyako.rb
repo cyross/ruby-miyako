@@ -77,7 +77,7 @@ module Miyako
   def Miyako::version
     return VERSION
   end
-  
+
   osn = Config::CONFIG["target_os"].downcase
   @@osName = "other"
   case osn
@@ -88,7 +88,7 @@ module Miyako
   when /darwin/
     @@osName = "mac_osx"
   end
-  
+
   #===実行しているOSの名前を取得する
   #(Windows 9x/Me/Xp/Vista, Cygwin/MinGW) : "win"
   #(Linux) : "linux"
@@ -98,7 +98,7 @@ module Miyako
   def Miyako::getOSName
     return @@osName
   end
-  
+
   #===ウィンドウのタイトルを設定する
   #_title_:: 設定する文字列
   def Miyako::setTitle(title)
@@ -139,6 +139,7 @@ require 'Miyako/API/movie'
 require 'Miyako/API/parts'
 require 'Miyako/API/choices'
 require 'Miyako/API/textbox'
+require 'Miyako/API/map_struct'
 require 'Miyako/API/map'
 require 'Miyako/API/fixedmap'
 require 'Miyako/API/map_event'
@@ -179,7 +180,7 @@ module Miyako
   def Miyako.initialized?
     @@initialized
   end
-  
+
   #===Miyakoの初期化
   #画面初期化や音声初期化などのメソッドを呼び出す。
   #グローバル変数$miyako_auto_openがtrueのときは最初に自動的に呼び出される。

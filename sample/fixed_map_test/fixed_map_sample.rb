@@ -30,7 +30,7 @@ class Monster
   def start
     @anim.start
   end
-  
+
   def update(map, events, param)
     @anim.update_animation
   end
@@ -41,7 +41,7 @@ class Monster
 
   def finish
   end
-  
+
   def dispose
     @anim.dispose
     @spr.dispose
@@ -103,11 +103,11 @@ class SlimeEvent
   def init(map, x, y)
     @slime = Slime.new(map, x, y)
   end
-  
+
   def update(map, events, param)
     @slime.update(map, events, param)
   end
-  
+
   def final
     @slime.finish
   end
@@ -115,7 +115,7 @@ class SlimeEvent
   def dispose
     @slime.dispose
   end
-  
+
   def render
     @slime.render
   end
@@ -126,7 +126,8 @@ em.add(1, SlimeEvent)
 
 # main
 mp = MapChipFactory.load("./mapchip.csv")
-@fmap = FixedMap.new(mp, "./map.csv", em)
+ms = MapStructFactory.load("./map.csv")
+@fmap = FixedMap.new(mp, ms, em)
 
 Miyako.main_loop do
   break if Input.quit_or_escape?

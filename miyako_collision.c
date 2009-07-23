@@ -33,6 +33,7 @@ static VALUE mMiyako = Qnil;
 static VALUE eMiyakoError = Qnil;
 static VALUE cCollision = Qnil;
 static VALUE cCircleCollision = Qnil;
+static VALUE cCollisionEx = Qnil;
 static VALUE cCollisions = Qnil;
 static VALUE nZero = Qnil;
 static VALUE nOne = Qnil;
@@ -143,8 +144,52 @@ static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE
 
   if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
   if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
-  if(l2 >= l1 && r2 <= r1 && t2 >= t1 && b2 <= b1) return Qtrue;
-  if(l2 <= l1 && r2 >= r1 && t2 <= t1 && b2 >= b1) return Qtrue;
+  return Qfalse;
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
+  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  double l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
+  double t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
+  double r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
+  double b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
+  double l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
+  double t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
+  double r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
+  double b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+
+  if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
+  return Qfalse;
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_c_covered(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
+  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  double l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
+  double t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
+  double r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
+  double b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
+  double l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
+  double t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
+  double r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
+  double b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+
+  if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
   return Qfalse;
 }
 
@@ -170,6 +215,22 @@ static VALUE collision_meet(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 static VALUE collision_cover(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 {
   return collision_c_cover(cCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_covers(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return collision_c_covers(cCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_covered(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return collision_c_covered(cCollision, self, pos1, c2, pos2);
 }
 
 /*
@@ -244,6 +305,52 @@ static VALUE circlecollision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2,
 /*
 :nodoc:
 */
+static VALUE circlecollision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
+  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
+  double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
+  double r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  double cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
+  double cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
+  double cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
+  double cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  double d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+
+  if(r1 >= r2 && d <= r) return Qtrue;
+  return Qfalse;
+}
+
+/*
+:nodoc:
+*/
+static VALUE circlecollision_c_covered(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
+  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
+  double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
+  double r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
+  VALUE x1, y1, x2, y2;
+  collision_get_position(pos1, &x1, &y1);
+  collision_get_position(pos2, &x2, &y2);
+  double cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
+  double cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
+  double cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
+  double cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  double d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
+
+  if(r1 <= r2 && d <= r) return Qtrue;
+  return Qfalse;
+}
+
+/*
+:nodoc:
+*/
 static VALUE circlecollision_collision(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 {
   return circlecollision_c_collision(cCircleCollision, self, pos1, c2, pos2);
@@ -263,6 +370,112 @@ static VALUE circlecollision_meet(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 static VALUE circlecollision_cover(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 {
   return circlecollision_c_cover(cCircleCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE circlecollision_covers(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return circlecollision_c_covers(cCircleCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE circlecollision_covered(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
+{
+  return circlecollision_c_covered(cCircleCollision, self, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_c_collision(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE pos1 = rb_iv_get(c1, "@pos");
+  VALUE pos2 = rb_iv_get(c2, "@pos");
+  return collision_c_collision(cCollision, c1, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_c_meet(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE pos1 = rb_iv_get(c1, "@pos");
+  VALUE pos2 = rb_iv_get(c2, "@pos");
+  return collision_c_meet(cCollision, c1, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_c_cover(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE pos1 = rb_iv_get(c1, "@pos");
+  VALUE pos2 = rb_iv_get(c2, "@pos");
+  return collision_c_cover(cCollision, c1, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_c_covers(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE pos1 = rb_iv_get(c1, "@pos");
+  VALUE pos2 = rb_iv_get(c2, "@pos");
+  return collision_c_covers(cCollision, c1, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_c_covered(VALUE self, VALUE c1, VALUE c2)
+{
+  VALUE pos1 = rb_iv_get(c1, "@pos");
+  VALUE pos2 = rb_iv_get(c2, "@pos");
+  return collision_c_covered(cCollision, c1, pos1, c2, pos2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_collision(VALUE self, VALUE c2)
+{
+  return collision_ex_c_collision(cCollisionEx, self, c2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_meet(VALUE self, VALUE c2)
+{
+  return collision_ex_c_meet(cCollisionEx, self, c2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_cover(VALUE self, VALUE c2)
+{
+  return collision_ex_c_cover(cCollisionEx, self, c2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_covers(VALUE self, VALUE c2)
+{
+  return collision_ex_c_covers(cCollisionEx, self, c2);
+}
+
+/*
+:nodoc:
+*/
+static VALUE collision_ex_covered(VALUE self, VALUE c2)
+{
+  return collision_ex_c_covered(cCollisionEx, self, c2);
 }
 
 /*
@@ -306,6 +519,36 @@ static VALUE collisions_cover(VALUE self, VALUE c, VALUE pos)
     VALUE cs = *(RARRAY_PTR(collisions) + i);
     VALUE *cc = RARRAY_PTR(cs);
     if(collision_cover(c, pos, *cc, *(cc+1)) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE collisions_covers(VALUE self, VALUE c, VALUE pos)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_covers(c, pos, *cc, *(cc+1)) == Qtrue){ return cs; }
+  }
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE collisions_covered(VALUE self, VALUE c, VALUE pos)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_covered(c, pos, *cc, *(cc+1)) == Qtrue){ return cs; }
   }
   return Qnil;
 }
@@ -361,6 +604,40 @@ static VALUE collisions_cover_all(VALUE self, VALUE c, VALUE pos)
   return ret;
 }
 
+/*
+:nodoc:
+*/
+static VALUE collisions_covers_all(VALUE self, VALUE c, VALUE pos)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_covers(c, pos, *cc, *(cc+1)) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
+/*
+:nodoc:
+*/
+static VALUE collisions_covered_all(VALUE self, VALUE c, VALUE pos)
+{
+  VALUE collisions = rb_iv_get(self, "@collisions");
+  VALUE ret = rb_ary_new();
+  int i=0;
+  for(i=0; i<RARRAY_LEN(collisions); i++){
+    VALUE cs = *(RARRAY_PTR(collisions) + i);
+    VALUE *cc = RARRAY_PTR(cs);
+    if(collision_covered(c, pos, *cc, *(cc+1)) == Qtrue){ rb_ary_push(ret, cs); }
+  }
+  if(RARRAY_LEN(ret) == 0){ return Qnil; }
+  return ret;
+}
+
 void Init_miyako_collision()
 {
   mSDL = rb_define_module("SDL");
@@ -368,6 +645,7 @@ void Init_miyako_collision()
   eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
   cCollision = rb_define_class_under(mMiyako, "Collision", rb_cObject);
   cCircleCollision = rb_define_class_under(mMiyako, "CircleCollision", rb_cObject);
+  cCollisionEx = rb_define_class_under(mMiyako, "CollisionEx", cCollision);
   cCollisions = rb_define_class_under(mMiyako, "Collisions", rb_cObject);
 
   id_update = rb_intern("update");
@@ -383,21 +661,44 @@ void Init_miyako_collision()
   rb_define_singleton_method(cCollision, "collision?", collision_c_collision, 4);
   rb_define_singleton_method(cCollision, "meet?", collision_c_meet, 4);
   rb_define_singleton_method(cCollision, "cover?", collision_c_cover, 4);
+  rb_define_singleton_method(cCollision, "covers?", collision_c_covers, 4);
+  rb_define_singleton_method(cCollision, "covered?", collision_c_covered, 4);
   rb_define_method(cCollision, "collision?", collision_collision, 3);
   rb_define_method(cCollision, "meet?", collision_meet, 3);
   rb_define_method(cCollision, "cover?", collision_cover, 3);
+  rb_define_method(cCollision, "covers?", collision_covers, 3);
+  rb_define_method(cCollision, "covered?", collision_covered, 3);
+
+  rb_define_singleton_method(cCollisionEx, "collision?", collision_ex_c_collision, 2);
+  rb_define_singleton_method(cCollisionEx, "meet?", collision_ex_c_meet, 2);
+  rb_define_singleton_method(cCollisionEx, "cover?", collision_ex_c_cover, 2);
+  rb_define_singleton_method(cCollisionEx, "covers?", collision_ex_c_covers, 2);
+  rb_define_singleton_method(cCollisionEx, "covered?", collision_ex_c_covered, 2);
+  rb_define_method(cCollisionEx, "collision?", collision_ex_collision, 1);
+  rb_define_method(cCollisionEx, "meet?", collision_ex_meet, 1);
+  rb_define_method(cCollisionEx, "cover?", collision_ex_cover, 1);
+  rb_define_method(cCollisionEx, "covers?", collision_ex_covers, 1);
+  rb_define_method(cCollisionEx, "covered?", collision_ex_covered, 1);
 
   rb_define_singleton_method(cCircleCollision, "collision?", circlecollision_c_collision, 4);
   rb_define_singleton_method(cCircleCollision, "meet?", circlecollision_c_meet, 4);
   rb_define_singleton_method(cCircleCollision, "cover?", circlecollision_c_cover, 4);
+  rb_define_singleton_method(cCircleCollision, "covers?", circlecollision_c_covers, 4);
+  rb_define_singleton_method(cCircleCollision, "covered?", circlecollision_c_covered, 4);
   rb_define_method(cCircleCollision, "collision?", circlecollision_collision, 3);
   rb_define_method(cCircleCollision, "meet?", circlecollision_meet, 3);
   rb_define_method(cCircleCollision, "cover?", circlecollision_cover, 3);
+  rb_define_method(cCircleCollision, "covers?", circlecollision_covers, 3);
+  rb_define_method(cCircleCollision, "covered?", circlecollision_covered, 3);
 
   rb_define_method(cCollisions, "collision?", collisions_collision, 2);
   rb_define_method(cCollisions, "meet?", collisions_meet, 2);
   rb_define_method(cCollisions, "cover?", collisions_cover, 2);
+  rb_define_method(cCollisions, "covers?", collisions_covers, 2);
+  rb_define_method(cCollisions, "covered?", collisions_covered, 2);
   rb_define_method(cCollisions, "collision_all?", collisions_collision_all, 2);
   rb_define_method(cCollisions, "meet_all?", collisions_meet_all, 2);
   rb_define_method(cCollisions, "cover_all?", collisions_cover_all, 2);
+  rb_define_method(cCollisions, "covers_all?", collisions_covers_all, 2);
+  rb_define_method(cCollisions, "covered_all?", collisions_covered_all, 2);
 }

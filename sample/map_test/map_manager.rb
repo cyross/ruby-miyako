@@ -1,27 +1,28 @@
 # -*- encoding: utf-8 -*-
-#ƒ}ƒbƒvŠÇ—ƒNƒ‰ƒX
+#ãƒžãƒƒãƒ—ç®¡ç†ã‚¯ãƒ©ã‚¹
 class MapManager
   extend Forwardable
 
   attr_reader :mapchip
-  
+
   def initialize
     @moving = false
 
-    #ƒ}ƒbƒvƒ`ƒbƒvƒCƒ“ƒXƒ^ƒ“ƒX‚Ìì¬
+    #ãƒžãƒƒãƒ—ãƒãƒƒãƒ—ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ä½œæˆ
     @mapchip = MapChipFactory.load("./mapchip.csv")
 
-    #ƒCƒxƒ“ƒg‚ð“o˜^
+    #ã‚¤ãƒ™ãƒ³ãƒˆã‚’ç™»éŒ²
     em = MapEventManager.new
     em.add(3, EventRouteMarker).
        add(7, EventRouteMarker2).
        add(8, EventTown).
        add(16, EventOasis)
 
-    #ƒ}ƒbƒv‚Ìì¬
-    @map = Map.new(@mapchip, "./map_layer.csv", em)
+    #ãƒžãƒƒãƒ—ã®ä½œæˆ
+    @map_struct = MapStructFactory.load("./map_layer.csv")
+    @map = Map.new(@mapchip, @map_struct, em)
 
-    #ŠC‚Ìƒ}ƒbƒvƒ`ƒbƒv‚ð”g‚ªƒAƒjƒ[ƒVƒ‡ƒ“‚·‚é‰æ‘œ‚É’u‚«Š·‚¦
+    #æµ·ã®ãƒžãƒƒãƒ—ãƒãƒƒãƒ—ã‚’æ³¢ãŒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã™ã‚‹ç”»åƒã«ç½®ãæ›ãˆ
     @sp = Sprite.new(:file=>"sea.png", :type=>:as)
     @sp.oh = @sp.w
     @ar = SpriteAnimation.new(:sprite=>@sp, :wait=>0.4)
@@ -32,21 +33,21 @@ class MapManager
     @map.move!(dx, dy)
     @map.events[0].each{|e| e.move!(dx, dy) }
   end
-  
+
   def move_to!(x, y)
     @map.events[0].each{|e| e.move!(x-@map.pos.x, y-@map.pos.y) }
     @map.move_to!(x, y)
   end
-  
+
   def start
     @ar.start
   end
-  
+
   def update
     @ar.update_animation
     @map.events[0].each{|e| e.update(@map, @map.events, nil) }
   end
-  
+
   def render
     @map.render
   end
@@ -62,13 +63,13 @@ class MapManager
   def stop
     @ar.stop
   end
-  
+
   def dispose
     @map.dispose
     @ar.dispose
     @sp.dispose
   end
-    
+
   def_delegators(:@map, :w, :h, :get_code, :get_code_real, :margin, :mapchips, :[])
   def_delegators(:@map, :collision?, :meet?, :cover?, :events)
   def_delegators(:@mapchip, :collision_table, :access_table)
