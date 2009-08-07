@@ -38,6 +38,19 @@ module Miyako
     attr_reader :type        #画像の透明度・透過タイプを取得する(詳細はSprite.newメソッドを参照)
 
     @@abb = {:ck => :color_key, :as => :alpha_surface, :ac => :alpha_channel}
+    @@sprites = SpriteList.new
+
+    def Sprite.sprites
+      @@sprites
+    end
+
+    def Sprite.[](name)
+      @@sprites[name]
+    end
+
+    def Sprite.[]=(name, sprite)
+      @@sprites[name] = sprite
+    end
 
     def setup #:nodoc:
       @unit = SpriteUnitFactory.create
@@ -345,7 +358,7 @@ module Miyako
     def to_sprite
       unit = @unit.dup
       unit.bitmap = Bitmap.create(unit.bitmap.w, unit.bitmap.h)
-      sprite = Sprite.new(size => [unit.bitmap.w, unit.bitmap.h], type => :ac)
+      sprite = Sprite.new(:size => [unit.bitmap.w, unit.bitmap.h], :type => :ac)
       Drawing.fill(sprite, [0,0,0])
       Bitmap.ck_to_ac!(sprite, [0,0,0])
       Bitmap.blit_aa(self, sprite, 0, 0)

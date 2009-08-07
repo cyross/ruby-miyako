@@ -60,9 +60,9 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
 
 	size.w = dst.rect.w;
 	size.h = dst.rect.h;
-  
+
 	if(src.surface == dst.surface){ return Qnil; }
-	
+
   if(dst.rect.w >= 32768 || dst.rect.h >= 32768){ return Qnil; }
 
   double rad = NUM2DBL(radian) * -1.0;
@@ -77,6 +77,8 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
 	int qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
 	int qr = dst.rect.w + qx;
 	int qb = dst.rect.h + qy;
+  Uint32 sr, sg, sb, sa;
+  Uint32 dr, dg, db, da;
 
 	SDL_LockSurface(src.surface);
 	SDL_LockSurface(dst.surface);
@@ -92,50 +94,50 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
       int ny = (x*isin+y*icos) >> 12;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (*tp >> 16) & 0xff;
-      dst.color.g = (*tp >>  8) & 0xff;
-      dst.color.b = (*tp      ) & 0xff;
-      dst.color.a = (*tp >> 24) & 0xff | dst.a255;
-			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (*psrc >> 24) & 0xff | src.a255;
-      if(src.color.a == 0){ tp++; continue; }
-      if(dst.color.a == 0 || src.color.a == 255)
+      da = (*tp >> 24) | dst.a255;
+      Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
+      sa = (*psrc >> 24) | src.a255;
+      if(sa == 0){ tp++; continue; }
+      if(da == 0 || sa == 255)
       {
         *tp = *psrc;
         tp++;
         continue;
       }
-      int a1 = src.color.a + 1;
-      int a2 = 256 - src.color.a;
-      src.color.r = (*psrc >> 16) & 0xff;
-      src.color.g = (*psrc >>  8) & 0xff;
-      src.color.b = (*psrc      ) & 0xff;
-			*tp = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
-            ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
-						((src.color.b * a1 + dst.color.b * a2) >> 8)       |
-						0xff                                         << 24;
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      dr = *tp & 0xff0000;
+      dg = *tp & 0xff00;
+      db = *tp & 0xff;
+      sr = *psrc & 0xff0000;
+      sg = *psrc & 0xff00;
+      sb = *psrc & 0xff;
+      *tp = ((sr * a1 + dr * a2) & 0xff000000 |
+             (sg * a1 + dg * a2) & 0xff0000   |
+             (sb * a1 + db * a2)) >> 8        |
+            0xff000000;
 #else
-      dst.color.r = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
-      dst.color.g = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
-      dst.color.b = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
-      dst.color.a = (*tp & dst.fmt->Amask) | dst.a255;
+      dr = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dg = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      db = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      da = (*tp & dst.fmt->Amask) | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (*psrc & src.fmt->Amask) | src.a255;
-      if(src.color.a == 0){ tp++; continue; }
-      if(dst.color.a == 0 || src.color.a == 255)
+      sa = (*psrc & src.fmt->Amask) | src.a255;
+      if(sa == 0){ tp++; continue; }
+      if(da == 0 || sa == 255)
       {
         *tp = *psrc;
         tp++;
         continue;
       }
-      int a1 = src.color.a + 1;
-      int a2 = 256 - src.color.a;
-      src.color.r = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
-      src.color.g = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
-      src.color.b = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
-      *tp = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-            (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-            (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      sr = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      sg = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      sb = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      *tp = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
+            (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
+            (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
             0xff;
 #endif
       tp++;
@@ -144,7 +146,7 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
 
   SDL_UnlockSurface(src.surface);
   SDL_UnlockSurface(dst.surface);
-	
+
   return vdst;
 }
 
@@ -156,13 +158,15 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
   MiyakoBitmap src, dst;
   MiyakoSize   size;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  Uint32 sr, sg, sb, sa;
+  Uint32 dr, dg, db, da;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
+
 	if(src.surface == dst.surface){ return Qnil; }
-	
+
   if(dst.rect.w >= 32768 || dst.rect.h >= 32768){ return Qnil; }
 
   double tscx = NUM2DBL(xscale);
@@ -199,50 +203,50 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
       int ny = (y*scy) >> 12 - off_y;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst.color.r = (*tp >> 16) & 0xff;
-      dst.color.g = (*tp >>  8) & 0xff;
-      dst.color.b = (*tp      ) & 0xff;
-      dst.color.a = (*tp >> 24) & 0xff | dst.a255;
+      da = (*tp >> 24) | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (*psrc >> 24) & 0xff | src.a255;
-      if(src.color.a == 0){ tp++; continue; }
-      if(dst.color.a == 0 || src.color.a == 255)
+      sa = (*psrc >> 24) | src.a255;
+      if(sa == 0){ tp++; continue; }
+      if(da == 0 || sa == 255)
       {
         *tp = *psrc;
         tp++;
         continue;
       }
-      int a1 = src.color.a + 1;
-      int a2 = 256 - src.color.a;
-      src.color.r = (*psrc >> 16) & 0xff;
-      src.color.g = (*psrc >>  8) & 0xff;
-      src.color.b = (*psrc      ) & 0xff;
-			*tp = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
-            ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
-            ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
-            0xff                                         << 24;
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      dr = *tp & 0xff0000;
+      dg = *tp & 0xff00;
+      db = *tp & 0xff;
+      sr = *psrc & 0xff0000;
+      sg = *psrc & 0xff00;
+      sb = *psrc & 0xff;
+      *tp = ((sr * a1 + dr * a2) & 0xff000000 |
+             (sg * a1 + dg * a2) & 0xff0000   |
+             (sb * a1 + db * a2)) >> 8        |
+            0xff000000;
 #else
-      dst.color.r = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
-      dst.color.g = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
-      dst.color.b = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
-      dst.color.a = (*tp & dst.fmt->Amask) | dst.a255;
+      dr = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
+      dg = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
+      db = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
+      da = (*tp & dst.fmt->Amask) | dst.a255;
 			Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
-      src.color.a = (*psrc & src.fmt->Amask) | src.a255;
-      if(src.color.a == 0){ tp++; continue; }
-      if(dst.color.a == 0 || src.color.a == 255)
+      sa = (*psrc & src.fmt->Amask) | src.a255;
+      if(sa == 0){ tp++; continue; }
+      if(da == 0 || sa == 255)
       {
         *tp = *psrc;
         tp++;
         continue;
       }
-      int a1 = src.color.a + 1;
-      int a2 = 256 - src.color.a;
-      src.color.r = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
-      src.color.g = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
-      src.color.b = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
-      *tp = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
-            ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
-            ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      sr = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
+      sg = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
+      sb = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
+      *tp = ((sr * a1 + dr * a2) >> 8) << dst.fmt->Rshift |
+            ((sg * a1 + dg * a2) >> 8) << dst.fmt->Gshift |
+            ((sb * a1 + db * a2) >> 8) << dst.fmt->Bshift |
             0xff;
 #endif
       tp++;
@@ -251,7 +255,7 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
 
   SDL_UnlockSurface(src.surface);
   SDL_UnlockSurface(dst.surface);
-	
+
   return vdst;
 }
 
@@ -265,7 +269,7 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
   MiyakoSize   size;
 
   if(_miyako_init_rect(src, dst, &size) == 0) return;
-  
+
   double rad = NUM2DBL(radian) * -1.0;
   long isin = (long)(sin(rad)*4096.0);
   long icos = (long)(cos(rad)*4096.0);
@@ -289,6 +293,8 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
 	int qy = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+8)));
 	int qr = dst->rect.w + qx;
 	int qb = dst->rect.h + qy;
+  Uint32 sr, sg, sb, sa;
+  Uint32 dr, dg, db, da;
 
 	SDL_LockSurface(src->surface);
 	SDL_LockSurface(dst->surface);
@@ -304,50 +310,50 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
       int ny = (((x*isin+y*icos) >> 12) * scy) >> 12 - off_y;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      dst->color.r = (*tp >> 16) & 0xff;
-      dst->color.g = (*tp >>  8) & 0xff;
-      dst->color.b = (*tp      ) & 0xff;
-      dst->color.a = (*tp >> 24) & 0xff | dst->a255;
-			Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
-      src->color.a = (*psrc >> 24) & 0xff | src->a255;
-      if(src->color.a == 0){ tp++; continue; }
-      if(dst->color.a == 0 || src->color.a == 255)
+      da = (*tp >> 24) | dst->a255;
+      Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
+      sa = (*psrc >> 24) | src->a255;
+      if(sa == 0){ tp++; continue; }
+      if(da == 0 || sa == 255)
       {
         *tp = *psrc;
         tp++;
         continue;
       }
-      int a1 = src->color.a + 1;
-      int a2 = 256 - src->color.a;
-      src->color.r = (*psrc >> 16) & 0xff;
-      src->color.g = (*psrc >>  8) & 0xff;
-      src->color.b = (*psrc      ) & 0xff;
-			*tp = ((src->color.r * a1 + dst->color.r * a2) >> 8) << 16 |
-            ((src->color.g * a1 + dst->color.g * a2) >> 8) <<  8 |
-            ((src->color.b * a1 + dst->color.b * a2) >> 8)       |
-						0xff                                           << 24;
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      dr = *tp & 0xff0000;
+      dg = *tp & 0xff00;
+      db = *tp & 0xff;
+      sr = *psrc & 0xff0000;
+      sg = *psrc & 0xff00;
+      sb = *psrc & 0xff;
+      *tp = ((sr * a1 + dr * a2) & 0xff000000 |
+             (sg * a1 + dg * a2) & 0xff0000   |
+             (sb * a1 + db * a2)) >> 8        |
+            0xff000000;
 #else
-      dst->color.r = (*tp & dst->fmt->Rmask) >> dst->fmt->Rshift;
-      dst->color.g = (*tp & dst->fmt->Gmask) >> dst->fmt->Gshift;
-      dst->color.b = (*tp & dst->fmt->Bmask) >> dst->fmt->Bshift;
-      dst->color.a = (*tp & dst->fmt->Amask) | dst->a255;
+      dr = (*tp & dst->fmt->Rmask) >> dst->fmt->Rshift;
+      dg = (*tp & dst->fmt->Gmask) >> dst->fmt->Gshift;
+      db = (*tp & dst->fmt->Bmask) >> dst->fmt->Bshift;
+      da = (*tp & dst->fmt->Amask) | dst->a255;
 			Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
-      src->color.a = (*psrc & src->fmt->Amask) | src->a255;
-      if(src->color.a == 0){ tp++; continue; }
-      if(dst->color.a == 0 || src->color.a == 255)
+      sa = (*psrc & src->fmt->Amask) | src->a255;
+      if(sa == 0){ tp++; continue; }
+      if(da == 0 || sa == 255)
       {
         *tp = *psrc;
         tp++;
         continue;
       }
-      int a1 = src->color.a + 1;
-      int a2 = 256 - src->color.a;
-      src->color.r = (*psrc & src->fmt->Rmask) >> src->fmt->Rshift;
-      src->color.g = (*psrc & src->fmt->Gmask) >> src->fmt->Gshift;
-      src->color.b = (*psrc & src->fmt->Bmask) >> src->fmt->Bshift;
-      *tp = ((src->color.r * a1 + dst->color.r * a2) >> 8) << dst->fmt->Rshift |
-            ((src->color.g * a1 + dst->color.g * a2) >> 8) << dst->fmt->Gshift |
-            ((src->color.b * a1 + dst->color.b * a2) >> 8) << dst->fmt->Bshift |
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      sr = (*psrc & src->fmt->Rmask) >> src->fmt->Rshift;
+      sg = (*psrc & src->fmt->Gmask) >> src->fmt->Gshift;
+      sb = (*psrc & src->fmt->Bmask) >> src->fmt->Bshift;
+      *tp = ((sr * a1 + dr * a2) >> 8) << dst->fmt->Rshift |
+            ((sg * a1 + dg * a2) >> 8) << dst->fmt->Gshift |
+            ((sb * a1 + db * a2) >> 8) << dst->fmt->Bshift |
             0xff;
 #endif
       tp++;
@@ -369,7 +375,7 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst, VALUE r
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
 	if(src.surface == dst.surface){ return Qnil; }
-	
+
   transform_inner(&src, &dst, radian, xscale, yscale);
   return vdst;
 }
@@ -387,7 +393,7 @@ static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VAL
   _miyako_setup_unit_2(self, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
 
 	if(src.surface == dst.surface){ return Qnil; }
-	
+
   transform_inner(&src, &dst, radian, xscale, yscale);
   return self;
 }
@@ -403,9 +409,9 @@ static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst, VALUE rad
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
-	
+
 	if(src.surface == dst.surface){ return Qnil; }
-	
+
   transform_inner(&src, &dst, radian, xscale, yscale);
   return self;
 }
@@ -421,7 +427,7 @@ void Init_miyako_transform()
 
   rb_define_method(cSprite, "render_transform", sprite_render_transform, 3);
   rb_define_method(cSprite, "render_to_transform", sprite_render_to_sprite_transform, 4);
-  
+
   id_update = rb_intern("update");
   id_kakko  = rb_intern("[]");
   id_render = rb_intern("render");

@@ -28,7 +28,7 @@ module Miyako
   # 選択肢を表示させるときは、body 自体の表示位置を変更させる必要がある
   #
   #_body_:: 選択肢を示す画像
-  #_body_selected_:: 選択肢を示す画像(選択時) 
+  #_body_selected_:: 選択肢を示す画像(選択時)
   #_condition_:: 選択肢が選択できる条件を記述したブロック
   #_selected_:: 選択肢が選択されているときはtrue、選択されていないときはfalse
   #_result_:: 選択した結果を示すインスタンス
@@ -66,7 +66,7 @@ module Miyako
       @visible = true
       set_layout_size(1, 1)
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @choices = @choices.dup
       copy_layout
@@ -292,13 +292,13 @@ module Miyako
     #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
     #visibleメソッドの値がfalseのとき、選択が開始されていない時は描画されない。
     #返却値:: 自分自身を返す
-    def render(&block)
+    def render
       return unless @visible
       return self unless @now
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
-          c.body_selected.render(&block) :
-          c.body.render(&block)) if c.condition.call
+          c.body_selected.render :
+          c.body.render) if c.condition.call
       }
       return self
     end
@@ -310,13 +310,13 @@ module Miyako
     #visibleメソッドの値がfalseのとき、選択が開始されていない時は描画されない。
     #_dst_:: 描画対象の画像インスタンス
     #返却値:: 自分自身を返す
-    def render_to(dst, &block)
+    def render_to(dst)
       return self unless @visible
       return self unless @now
       @now.base.each{|c|
         ((c.body_selected && c.selected) ?
-          c.body_selected.render_to(dst, &block) :
-          c.body.render_to(dst, &block)) if c.condition.call
+          c.body_selected.render_to(dst) :
+          c.body.render_to(dst)) if c.condition.call
       }
       return self
     end

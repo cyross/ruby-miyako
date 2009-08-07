@@ -39,7 +39,7 @@ module Miyako
 
   #=マップチップ作成ファクトリクラス
   class MapChipFactory
-    #===マップチップを作成するためのファクトリクラス
+    #===CSVファイルからMapChip構造体を生成する
     #_csv_filename_:: マップチップファイル名(CSVファイル)
     #_use_alpha_:: 画像にαチャネルを使うかどうかのフラグ。trueのときは画像のαチャネルを使用、falseのときはカラーキーを使用。デフォルトはtrue
     #返却値:: MapChip構造体
@@ -70,22 +70,55 @@ module Miyako
       return MapChip.new(spr, chips, size, chip_size, access_types, collision_table, access_table)
     end
 
-    #===マップチップを作成するためのファクトリクラス
+    #===スプライトからMapChip構造体を生成する
     #CSVファイルからではなく、独自に用意したデータからMapChip構造体を生成する
     #このとき、マップチップの大きさは、引数として渡すスプライトのow,ohから算出する
     #collision_tableは、すべてのチップで[0,0,ow,oh]として生成する
     #access_tableは、すべての方向でtrueとして設定する
-    #_sprite_:: マップチップファイル名(CSVファイル)
+    #_sprite_:: マップチップが描かれているスプライト
     #_access_types_:: アクセス形式の数。0以下の時はMiyakoValueErrorが発生する。省略時は1
     #返却値:: MapChip構造体
     def MapChipFactory.create(sprite, access_types = 1)
-      raise MiyakoValueErro, "illegal access types! needs >1 : #{access_types}" if access_type < 1
+      raise MiyakoValueErro, "illegal access types! needs >1 : #{access_types}" if access_types < 1
       chip_size = Size.new(sprite.ow, sprite.oh)
-      size = Size.new(spr.w / chip_size.w, spr.h / chip_size.h)
+      size = Size.new(sprite.w / chip_size.w, sprite.h / chip_size.h)
       chips = size.w * size.h
       ctable = Array.new(access_types){|at| Array.new(chips){|n| Collision.new([0,0,chip_size.w,chip_size.h]) } }
       atable = Array.new(access_types){|at| Array.new(chips){|n| [true] * 8 } }
       return MapChip.new(sprite, chips, size, chip_size, access_types, ctable, atable)
+    end
+
+    #===スプライトからMapChip構造体を生成する
+    #CSVファイルからではなく、独自に用意したデータからMapChip構造体を生成する
+    #このとき、マップチップの大きさは、引数sizeを使用する
+    #collision_tableは、すべてのチップで[0,0,ow,oh]として生成する
+    #access_tableは、すべての方向でtrueとして設定する
+    #_sprite_:: マップチップが描かれているスプライト
+    #_size_:: マップチップの大きさ(Size構造体)
+    #_access_types_:: アクセス形式の数。0以下の時はMiyakoValueErrorが発生する。省略時は1
+    #返却値:: MapChip構造体
+    def MapChipFactory.create_with_size(sprite, size, access_types = 1)
+      raise MiyakoValueErro, "illegal access types! needs >1 : #{access_types}" if access_types < 1
+      chip_size = Size.new(size[0], size[1])
+      size = Size.new(sprite.w / chip_size.w, sprite.h / chip_size.h)
+      chips = size.w * size.h
+      ctable = Array.new(access_types){|at| Array.new(chips){|n| Collision.new([0,0,chip_size.w,chip_size.h]) } }
+      atable = Array.new(access_types){|at| Array.new(chips){|n| [true] * 8 } }
+      return MapChip.new(sprite, chips, size, chip_size, access_types, ctable, atable)
+    end
+
+    #===全方向移動可能なAccessTableを作成
+    #要素がすべてtrueの配列を生成する
+    #返却値:: 生成した配列
+    def MapChipFactory.all_access_table
+      [true] * 8
+    end
+
+    #===完全に移動不可なAccessTableを作成
+    #要素がすべてfalseの配列を生成する
+    #返却値:: 生成した配列
+    def MapChipFactory.not_access_table
+      [false] * 8
     end
   end
 
@@ -105,8 +138,9 @@ module Miyako
 
   #=マップ作成ファクトリクラス
   class MapStructFactory
-    #===マップを作成するためのファクトリクラス
+    #===CSVファイルからMapStruct構造体を生成する
     #_csv_filename_:: マップファイル名(CSVファイル)
+    #返却値:: 生成したMapStruct構造体
     def MapStructFactory.load(csv_filename)
       raise MiyakoIOError.no_file(csv_filename) unless File.exist?(csv_filename)
       layer_data = CSV.readlines(csv_filename)
@@ -136,7 +170,7 @@ module Miyako
       return MapStruct.new(size, layer.length, layer, elayer.length, elayer)
     end
 
-    #===マップを作成するためのファクトリクラス
+    #===MapStruct構造体を生成する
     #マップの大きさ・マップレイヤーを構成する配列・イベントレイヤーを構成する配列から
     #MapChip構造体を生成する
     #それぞれ構成を確認し、合致しないときはMiyakoErrorを返す
@@ -156,18 +190,37 @@ module Miyako
     #
     #_size_:: マップの大きさ。マップチップ単位・Size構造体インスタンスを渡す
     #_layers_:: マップチップIDの並びを示す配列
-    #_elayers_:: イベントIDの並びを示す配列
-    def MapStructFactory.create(size, layers, elayers)
-      raise MiyakoError, "layer access types and event layer access types is not equal." if layers.length != elayers.length
+    #_elayers_:: イベントIDの並びを示す配列。使用しないときは省略(nilを渡す)
+    #返却値:: 生成したMapStruct構造体
+    def MapStructFactory.create(size, layers, elayers=nil)
+      raise MiyakoError, "layer access types and event layer access types is not equal." if elayers && layers.length != elayers.length
       layers.each{|layer|
-        raise MiykaoError, "layer height and size.h is not equal." if layer.length != size[1]
+        raise MiyakoError, "layer height and size.h is not equal." if layer.length != size[1]
         layer.each{|line| raise MiykaoError, "layer width and size.w is not equal." if line.length != size[0] }
       }
-      elayers.each{|layer|
-        raise MiykaoError, "event layer height and size.h is not equal." if layer.length != size[1]
-        elayer.each{|line| raise MiykaoError, "event layer width and size.w is not equal." if line.length != size[0] }
-      }
-      return MapStruct.new(size, layers.length, layers, elayers.length, elayers)
+      if elayers
+        elayers.each{|layer|
+          raise MiyakoError, "event layer height and size.h is not equal." if layer.length != size[1]
+          layer.each{|line| raise MiykaoError, "event layer width and size.w is not equal." if line.length != size[0] }
+        }
+      end
+      return MapStruct.new(Size.new(*size), layers.length, layers, elayers ? elayers.length : 0, elayers)
+    end
+
+    #===すべて未定義のマップレイヤー配列を作成する
+    #すべての要素の値が-1(未定義)のレイヤー配列を生成する。
+    #
+    #(例)縦5、横6(MapStructFactory.undefined_layer([6,5])のとき
+    #[[-1,-1,-1,-1,-1,-1],
+    # [-1,-1,-1,-1,-1,-1],
+    # [-1,-1,-1,-1,-1,-1],
+    # [-1,-1,-1,-1,-1,-1],
+    # [-1,-1,-1,-1,-1,-1]]
+    #
+    #_size_:: マップの大きさ。マップチップ単位・Size構造体インスタンスを渡す
+    #返却値:: 生成したレイヤー配列
+    def MapStructFactory.undefined_layer(size)
+      return Array.new(size[1]){ Array.new(size[0]){ -1 }}
     end
   end
 

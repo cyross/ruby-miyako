@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Miyako
   #==遷移図モジュール群
   module Diagram
-  
+
     #==遷移図矢印構造体
     #ノードの移動先とトリガー(遷移条件)を収めている。
     #to::移動先ノードのインスタンス
@@ -68,7 +68,7 @@ module Miyako
       #_params_:: Processor::update_inputメソッドが呼ばれた時のパラメータ群。オーバーライドするときに省略可能
       def update_input(*params)
       end
-    
+
       #===ノードでの更新処理を実装する
       #Processor#update メソッドが呼ばれたときの処理を実装する
       #_params_:: Processor::updateメソッドが呼ばれた時のパラメータ群。オーバーライドするときに省略可能
@@ -80,7 +80,7 @@ module Miyako
       #Processor#reset_input メソッドが呼ばれたときの処理を実装する
       def reset_input
       end
-    
+
       #===ノードでのレンダリング処理を実装する
       #Screen.update メソッドを呼び出しているときは、本メソッドを実装する必要はない
       #Processor#render メソッドが呼ばれたときの処理を実装する
@@ -95,7 +95,7 @@ module Miyako
       def finish?
         return false
       end
-  
+
       #===現在実行しているノードの変数の値を取得するテンプレートメソッド
       #Diagram#[] メソッドが呼ばれたときの処理を実装する
       #
@@ -143,12 +143,12 @@ module Miyako
       #Processor#start メソッドが呼び出されたときの処理を実装する
       def pre_process
       end
-  
+
       #===後始末を実装する
       #Processor#stop メソッドが呼び出されたときの処理を実装する
       def post_process
       end
-  
+
       #===ノードの更新処理を行うかどうかの問い合わせメソッドを実装する
       #NodeBase#update を呼び出すかどうかを返す処理を実装する
       #デフォルトでは、無条件で true を返す
@@ -161,7 +161,7 @@ module Miyako
       #NodeBase#update を呼び出された後の処理を実装する
       def post_update
       end
-  
+
       #===ノードのレンダリング処理を行うかどうかの問い合わせメソッドを実装する
       #NodeBase#render を呼び出すかどうかを返す処理を実装する
       #デフォルトでは、無条件で true を返す
@@ -170,7 +170,7 @@ module Miyako
       def render?
         return true
       end
-  
+
       #===ノードのレンダリング処理が終わった後の後始末を行う
       #Screen.update メソッドを呼び出しているときは、本メソッドを実装する必要はない
       #NodeBase#render を呼び出された後の処理を実装する
@@ -234,7 +234,7 @@ module Miyako
       def update_input(*params) #:nodoc:
         @node.update_input(*params)
       end
-    
+
       def update(*params) #:nodoc:
         if @trigger.update?
           @node.update(*params)
@@ -270,7 +270,7 @@ module Miyako
       #_new_trigger_:: 置き換え対象のトリガーオブジェクト
       #_timing_:: 置き換えのタイミング。:immediateと:nextの２種類がある
       def replace_trigger(new_trigger, timing=:next)
-        raise MiyakoError, "I can't understand Timing Typ! : #{timing}" unless TRIGGER_TYPES.include?(timing)
+        raise MiyakoError, "I can't understand Timing Type! : #{timing}" unless TRIGGER_TYPES.include?(timing)
         case timing
         when :immediate
           @trigger.stop
@@ -281,7 +281,7 @@ module Miyako
           @next_trigger = new_trigger
         end
       end
-      
+
       def dispose #:nodoc:
         @node.dispose
       end
@@ -345,7 +345,7 @@ module Miyako
         @name2idx[from_name].add_arrow(to_name ? @name2idx[to_name] : nil, trigger)
         return self
       end
-  
+
       #===対象の名前を持つノードを取得する
       #ノード内の変数にアクセスするときに使う
       #_name_:: ノード名
@@ -354,7 +354,7 @@ module Miyako
         raise MiyakoError, "Don't set undefined node name!" unless @name2idx.has_key?(name)
         return @name2idx[name]
       end
- 
+
       #===実行開始ノードを変更する
       #但し、遷移図処理が行われていないときに変更可能
       #_name_:: ノード名
@@ -382,7 +382,7 @@ module Miyako
       def nodes
         return @name2idx.keys
       end
-      
+
       def start #:nodoc:
         @ptr = @first unless @ptr
         return unless @ptr
@@ -407,7 +407,7 @@ module Miyako
       def update_input(*params) #:nodoc:
         @ptr.update_input(*params) if @ptr
       end
-    
+
       def update(*params) #:nodoc:
         return unless @ptr
         @ptr.update(*params)
@@ -472,7 +472,6 @@ module Miyako
       #(Manager#add, Manager#add_arrow の各メソッドを参照)
       #返却値:: 生成されたインスタンス
       def initialize
-        @loop = self.method(:main_loop)
         @states = {:execute => false, :pause => false, :type1 => false }
         @diagram = Miyako::Diagram::Manager.new
         @visible = true
@@ -480,7 +479,6 @@ module Miyako
       end
 
       def initialize_copy(obj) #:nodocs:
-        @loop = @loop.dup
         @states = @states.dup
         @diagram = @diagram.dup
       end
@@ -520,7 +518,7 @@ module Miyako
         return if @states[:pause]
         @diagram.update_input(*params)
       end
-    
+
       #===処理の更新を行う
       #現在処理中のノードupdateメソッドを呼び出す。
       #_params_:: パラメータ群。省略可能
@@ -529,7 +527,7 @@ module Miyako
         @diagram.update(*params)
         @states[:execute] = false if @diagram.finish?
       end
-    
+
       #===レンダリング処理を行う
       #現在処理中のノードのrenderメソッドを呼び出す。
       #visibleメソッドの値がfalseのときは描画されない。
@@ -556,7 +554,7 @@ module Miyako
       def renderer
         return Miyako::Diagram::Renderer.new(self.method(:render))
       end
-  
+
       #===指定した名前のノードを取得する
       #_name_:: ノード名(文字列・シンボル)
       #返却値:: ノード名に対応したノードのインスタンス

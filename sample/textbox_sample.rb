@@ -38,8 +38,6 @@ box_bg.fill([128,0,64,128])
 @parts[:box].centering!
 @parts.centering!
 
-p @parts.broad_rect
-
 # 選択肢の作成
 list = [
         [Shape.text(:font=>font, :text=>"選択肢１"), nil, 1],

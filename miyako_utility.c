@@ -37,22 +37,7 @@ static VALUE sSpriteUnit = Qnil;
 // from rubysdl_video.c
 static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 
-void _miyako_yield_unit_1(MiyakoBitmap *src)
-{
-  if(rb_block_given_p() == Qtrue){ src->unit = rb_obj_dup(src->unit); rb_yield(src->unit); }
-}
-
-void _miyako_yield_unit_2(MiyakoBitmap *src, MiyakoBitmap *dst)
-{
-  if(rb_block_given_p() == Qtrue)
-  {
-    src->unit = rb_obj_dup(src->unit);
-    dst->unit = rb_obj_dup(dst->unit);
-    rb_yield_values(2, src->unit, dst->unit);
-  }
-}
-
-void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE x, VALUE y, int use_yield)
+void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE x, VALUE y)
 {
   mb->unit = unit;
   if(rb_obj_is_kind_of(mb->unit, sSpriteUnit) == Qfalse){
@@ -60,13 +45,13 @@ void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE
     if(mb->unit == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }
   }
 
-  if(use_yield) _miyako_yield_unit_1(mb);
+  VALUE *mb_p = RSTRUCT_PTR(mb->unit);
 
-  mb->rect.x = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 1));
-  mb->rect.y = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 2));
-  mb->rect.w = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 3));
-  mb->rect.h = NUM2INT(*(RSTRUCT_PTR(mb->unit) + 4));
-  
+  mb->rect.x = NUM2INT(*(mb_p + 1));
+  mb->rect.y = NUM2INT(*(mb_p + 2));
+  mb->rect.w = NUM2INT(*(mb_p + 3));
+  mb->rect.h = NUM2INT(*(mb_p + 4));
+
 	mb->surface = GetSurface(*(RSTRUCT_PTR(mb->unit)))->surface;
 	mb->ptr = (Uint32 *)(mb->surface->pixels);
 	mb->fmt = mb->surface->format;
@@ -92,17 +77,17 @@ void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE
     if(mb->rect.y + mb->rect.h > mb->surface->h)
       mb->rect.h = mb->surface->h - mb->rect.y;
   }
-  
+
   mb->a255 = (mb->surface == screen) ? 0xff : 0;
-  
-  mb->x = (x == Qnil ? NUM2INT(*(RSTRUCT_PTR(mb->unit) + 5)) : NUM2INT(x));
-  mb->y = (y == Qnil ? NUM2INT(*(RSTRUCT_PTR(mb->unit) + 6)) : NUM2INT(y));
+
+  mb->x = (x == Qnil ? NUM2INT(*(mb_p + 5)) : NUM2INT(x));
+  mb->y = (y == Qnil ? NUM2INT(*(mb_p+ 6)) : NUM2INT(y));
 }
 
-void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d, 
+void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
                          SDL_Surface *screen,
                          MiyakoBitmap *mb_s, MiyakoBitmap *mb_d,
-                         VALUE x, VALUE y, int use_yield)
+                         VALUE x, VALUE y)
 {
   mb_s->unit = unit_s;
   if(rb_obj_is_kind_of(mb_s->unit, sSpriteUnit) == Qfalse){
@@ -116,16 +101,17 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
     if(mb_d->unit == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }
   }
 
-  if(use_yield) _miyako_yield_unit_2(mb_s, mb_d);
-
 	mb_s->surface = GetSurface(*(RSTRUCT_PTR(mb_s->unit)))->surface;
 	mb_s->ptr = (Uint32 *)(mb_s->surface->pixels);
 	mb_s->fmt = mb_s->surface->format;
 
-  mb_s->rect.x = NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 1));
-  mb_s->rect.y = NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 2));
-  mb_s->rect.w = NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 3));
-  mb_s->rect.h = NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 4));
+  VALUE *ms_p = RSTRUCT_PTR(mb_s->unit);
+  VALUE *md_p = RSTRUCT_PTR(mb_d->unit);
+
+  mb_s->rect.x = NUM2INT(*(ms_p + 1));
+  mb_s->rect.y = NUM2INT(*(ms_p + 2));
+  mb_s->rect.w = NUM2INT(*(ms_p + 3));
+  mb_s->rect.h = NUM2INT(*(ms_p + 4));
 
   // adjust clip_rect
   if(mb_s->surface == screen)
@@ -150,18 +136,18 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
   }
 
   mb_s->a255 = (mb_s->surface == screen) ? 0xff : 0;
-  
-  mb_s->x = (x == Qnil ? NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 5)) : NUM2INT(x));
-  mb_s->y = (y == Qnil ? NUM2INT(*(RSTRUCT_PTR(mb_s->unit) + 6)) : NUM2INT(y));
+
+  mb_s->x = (x == Qnil ? NUM2INT(*(ms_p + 5)) : NUM2INT(x));
+  mb_s->y = (y == Qnil ? NUM2INT(*(ms_p + 6)) : NUM2INT(y));
 
 	mb_d->surface = GetSurface(*(RSTRUCT_PTR(mb_d->unit)))->surface;
 	mb_d->ptr = (Uint32 *)(mb_d->surface->pixels);
 	mb_d->fmt = mb_d->surface->format;
 
-  mb_d->rect.x = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 1));
-  mb_d->rect.y = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 2));
-  mb_d->rect.w = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 3));
-  mb_d->rect.h = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 4));
+  mb_d->rect.x = NUM2INT(*(md_p + 1));
+  mb_d->rect.y = NUM2INT(*(md_p + 2));
+  mb_d->rect.w = NUM2INT(*(md_p + 3));
+  mb_d->rect.h = NUM2INT(*(md_p + 4));
 
   // adjust clip_rect
   if(mb_d->surface == screen)
@@ -186,7 +172,7 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
   }
 
   mb_d->a255 = (mb_d->surface == screen) ? 0xff : 0;
-  
+
   mb_d->x = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 5));
   mb_d->y = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 6));
 }
@@ -199,13 +185,13 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
   int dh = dst->rect.h;
 
   // ox(oy)が画像のw(h)以上の時は転送不可
-  
+
   if(src->rect.x >= src->surface->w || src->rect.y >= src->surface->h) return 0;
   if(dst->rect.x >= dst->surface->w || dst->rect.y >= dst->surface->h) return 0;
 
   // ox(oy)がマイナスの時は、ow(oh)を減らしておいて、ox, oyをゼロにしておく
   // 0以下になったら転送不可
-  
+
   if(src->rect.x < 0){
     sw += src->rect.x;
     src->rect.x = 0;
@@ -229,7 +215,7 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
 
   // ox(oy)+ow(oh)が、w(h)を越える場合は、ow(oh)を減らしておく
   // 0以下になったら転送不可
-  
+
   if(src->rect.x + sw > src->surface->w)
   {
     sw += (src->surface->w - src->rect.x - sw);
@@ -252,13 +238,13 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
   }
 
   // ox(oy)が画像のw(h)以上、-w(-h)以下の時は転送不可
-  
+
   if(src->x >= dw || src->x <= -dw) return 0;
   if(src->y >= dh || src->y <= -dh) return 0;
 
   // x(y)がマイナスの時は、ow(oh)を減らしておいて、x, yをゼロにしておく
   // 0以下になったら転送不可
-  
+
   if(src->x < 0){
     dw += src->x;
     src->x = 0;
@@ -274,7 +260,7 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
 
   size->w = (dw > sw ? sw : dw);
   size->h = (dh > sh ? sh : dh);
-  
+
   return 1;
 }
 

@@ -29,7 +29,8 @@ yscale = 4.0 # 初期拡大率(y座標)4倍
 angle = 0.0  # 初期回転角度0度
 
 # 画面の中心に画像を表示指定(pre_render)
-Screen.pre_render_array << [Sprite.new(:file=>"Animation1/m1ku_back.jpg", :type=>:ac).centering!, @sprite]
+Screen.pre_render_array << [:s1, Sprite.new(:file=>"Animation1/m1ku_back.jpg", :type=>:ac).centering!]
+Screen.pre_render_array << [:s2, @sprite]
 
 # 画面の変形中心を設定
 Screen.center_x = Screen.w/2

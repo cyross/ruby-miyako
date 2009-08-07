@@ -53,7 +53,7 @@ module Miyako
 
     def __setobj__(obj)
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       copy_layout
       @list = SpriteList.new
@@ -63,7 +63,7 @@ module Miyako
       }
       self
     end
-    
+
     #===補助パーツvalueをnameに割り当てる
     #_name_:: 補助パーツに与える名前(シンボル)
     #_value_:: 補助パーツのインスタンス(スプライト、テキストボックス、アニメーション、レイアウトボックスなど)
@@ -168,7 +168,7 @@ module Miyako
     def dispose
       @list.dispose
     end
-    
+
     # mixinしたモジュールが優先して呼ばれるメソッドを再び移譲
     def_delegators(:@list, :render, :render_to, :visible, :visible=, :show, :hide)
     def_delegators(:@list, :start, :stop, :reset, :update_animation, :each)

@@ -29,7 +29,6 @@ module Miyako
   class Story
 
     @@sub_scenes = [:sub_scene, :sub_routine]
-    @@over_scenes = [:over_scene]
 
     def prev_label #:nodoc:
       return @prev_label
@@ -51,48 +50,15 @@ module Miyako
       @next_label = nil
 
       @stack = []
-      @fibers = [nil]
 
       @scene_cache = Hash.new
       @scene_cache_list = Array.new
       @scene_cache_max = 20
 
-      @fiber = Proc.new{|sc, num|
-        raise MiyakoValueError, "Illegal Script-label name! : #{sc}" unless Scene.has_scene?(sc.to_s)
-        fnum = nil
-        bk_nn = sc
-        uu = sc.new(self)
-        uu.init_inner(@prev_label, self.upper_label)
-        uu.setup
-        ret = true
-        while ret do
-          nn = uu.update
-          uu.render
-          if fnum && @fibers[fnum]
-            @fibers[fnum].resume(true)
-          elsif nn && !(nn.eql?(uu.class)) && @@over_scenes.include?(nn.scene_type)
-            @fibers << Fiber.new(&@fiber)
-            fnum = @fibers.length - 1
-            @fibers[fnum].resume(nn, fnum)
-            n = bk_nn
-          end
-          break unless nn
-          ret = Fiber.yield
-        end
-        uu.final
-        uu.dispose
-        if (fnum && @fibers[fnum])
-          @fibers[fnum].resume(nil)
-          @fibers[fnum] = nil
-          fnum = nil
-        end
-        @fibers[num] = nil
-      }
     end
 
     def initialize_copy(obj) #:nodoc:
       @stack = @stack.dup
-      @fibers = @fibers.dup
       @scene_cache = @scene_cache.dup
       @scene_cache_list = @scene_cache_list.dup
     end
@@ -132,15 +98,6 @@ module Miyako
           bk_n = on
           n = u.update
           u.render
-          if @fibers.first
-            raise MiyakoError, "Double over scene from root!" if n && @@over_scenes.include?(n.scene_type)
-            @fibers.first.resume(true, 0)
-          elsif n && @@over_scenes.include?(n.scene_type)
-            @fibers.clear
-            @fibers << Fiber.new(&@fiber)
-            @fibers.first.resume(n, 0)
-            n = bk_n
-          end
           break unless n && on.eql?(n)
         end
         u.next = n
@@ -159,16 +116,9 @@ module Miyako
           u = nil
         end
       end
-      @fibers.each{|fiber| fiber.resume(nil) if fiber } if @fibers.length > 0
       @scene_cache_list.each{|sy| @scene_cache[sy].dispose }
       @scene_cache.clear
       @scene_cache_list.clear
-    end
-
-    #==="over_scene"形式のシーンが実行中かどうか判別する
-    #返却値:: "over_scene"形式のシーンが実行中の時はtrueを返す
-    def over_scene_execute?
-      return @now_fiber != nil
     end
 
     #===内部の情報を解放する
@@ -194,8 +144,7 @@ module Miyako
     #判別は、scene_typeクラスメソッドを呼び出すことで可能。デフォルトは、
     #通常シーンを示すシンボル":scene"が返る。
     #形式を変えるには、scene_typeクラスメソッドをオーバーライドし、返却値を変える。
-    #サブシーンの時はシンボル":sub_scene"、オーバーシーンのときは
-    #シンボル":over_scene"を返すように実装する
+    #サブシーンの時はシンボル":sub_scene"を返すように実装する
     #(注1)同じクラス名のシーンを繰り返し実行したいときは、いったん別のダミーシーンを
     #介してから元のシーンへ移動する必要がある
     #(注2)オーバーシーン内では、シーンの移動が出来ないが、入れ子形式で
@@ -306,12 +255,6 @@ module Miyako
 
       def next=(label) #:nodoc:
         @@pool[self.object_id].next = label
-      end
-
-      #==="over_scene"形式のシーンが実行中かどうか判別する
-      #返却値:: "over_scene"形式のシーンが実行中の時はtrueを返す
-      def over_scene_execute?
-        return @story.over_scene_execute?
       end
 
       #===シーンの解説を返す(テンプレートメソッド)

@@ -39,7 +39,7 @@ module Miyako
     #フルスクリーンモードを示す値
     FULLSCREEN_MODE = 1
     #ウインドウモード・フルスクリーンモードを切り替える際のフラグを示す配列
-    ScreenFlag = $miyako_use_opengl ? [SDL::OPENGL, SDL::OPENGL | SDL::FULLSCREEN] : [SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT, SDL::ANYFORMAT | SDL::FULLSCREEN]
+    ScreenFlag = $miyako_use_opengl ? [SDL::OPENGL, SDL::OPENGL | SDL::FULLSCREEN] : [SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT, SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT | SDL::FULLSCREEN]
 
     def Screen::get_fps_count
       return @@fps == 0 ? 0 : FpsMax / @@fps
@@ -55,16 +55,16 @@ module Miyako
     @@min_interval_r = @@min_interval / 1000
     @@t = 0
     @@freezing  = false
-    @@mode      = WINDOW_MODE
+    @@mode      = FULLSCREEN_MODE
     @@unit      = SpriteUnitFactory.create
 
     @@size      = Size.new(DefaultWidth, DefaultHeight)
     @@in_the_scene = false
     @@screen = nil
     @@viewport = nil
-    
-    @@pre_render_array = []
-    @@auto_render_array = []
+
+    @@pre_render_array = SpriteList.new
+    @@auto_render_array = SpriteList.new
 
     #===画面関連の初期化処理
     #呼び出し時に、別プロセスで生成したSDL::Screenクラスインスタンスを引数として渡すと、
@@ -96,7 +96,7 @@ module Miyako
     def Screen.initialized?
       @@initialized
     end
-    
+
     #===画面の状態(ウインドウモードとフルスクリーンモード)を設定する
     #_v_:: ウィンドウモードのときは、Screen::WINDOW_MODE、 フルスクリーンモードのときはScreen::FULLSCREEN_MODE
     def Screen::set_mode(v)
@@ -305,12 +305,12 @@ module Miyako
       return unless @@screen
       @@screen.fillRect(0, 0, @@screen.w, @@screen.h, [0, 0, 0, 0])
     end
-    
+
     #===プリレンダー配列に登録されたインスタンスを画面に描画する
     #Screen.pre_render_arrayに登録したインスタンスを描画する
     def Screen::pre_render
     end
-    
+
     #===画面を更新する
     #描画した画面を、実際にミニ見える形に反映させる
     #呼び出し時に画面の消去は行われないため、消去が必要なときは明示的にScreen.clearメソッドを呼び出す必要がある

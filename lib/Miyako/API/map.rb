@@ -33,6 +33,9 @@ module Miyako
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
     attr_reader :map_layers, :mapchips, :pos, :size, :w, :h
+    alias_method :map_size, :size
+    alias_method :map_w, :w
+    alias_method :map_h, :h
 
     class MapLayer #:nodoc: all
       include SpriteBase
@@ -40,7 +43,7 @@ module Miyako
       extend Forwardable
 
       attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
-      attr_reader :mapchip, :mapchip_units, :pos, :size
+      attr_reader :mapchip, :mapchip_units, :pos, :size, :ignore_list
 
       def round(v, max) #:nodoc:
         v = max + (v % max) if v < 0
@@ -84,6 +87,8 @@ module Miyako
                                    :oh => @oh)
         }
         @visible = true
+        @def_ignore = -1
+        @ignore_list = []
         resize
       end
 
@@ -124,6 +129,15 @@ module Miyako
                          @modpy2[round(y, @size.h)])
       end
 
+      #===レイヤー配列を取得する
+      #レイヤーを構成している配列を取得する
+      #取得した配列にアクセスするときの書式は、以下のようになる。
+      #layer[y][x]
+      #返却値:: 所持しているレイヤー配列
+      def layer
+        @mapdat
+      end
+
       #===実座標を使用して、指定のレイヤー・位置のマップチップ番号を取得
       #イベントレイヤーでの番号はイベント番号と一致する
       #_x_:: マップチップ単位での位置(ピクセル単位)
@@ -153,61 +167,75 @@ module Miyako
       #===キャラクタとマップチップが重なっているかどうか問い合わせる
       #指定の矩形のキャラクタが、指定の位置のマップチップのコリジョンと重なっているかどうか問い合わせる
       #引数は、Rect(x,y,w,h)形式(Rect構造体、[x,y,w,h]の配列)で渡す
-      #指定の位置のマップチップ番号が-1(未定義)のときはnilを返す
+      #指定の位置のマップチップ番号が以下の時はnilを返す
+      #1)-1(未定義)のとき
+      #2)FixexMapLayer#ignore_listに含まれているとき
+      #3)引数ignoresに含まれているとき
       #_type_:: 移動形式(0以上の整数)
       #_pos_:: 調査対象のマップチップの位置
       #_collision_:: キャラクタのコリジョン
-      #_rect_:: キャラクタの矩形
+      #_cpos_:: キャラクタの位置
       #返却値:: コリジョンが重なっていれば、そのときのマップチップ番号を返す。重なっていなければnilを返す
-      def collision?(type, pos, collision, rect)
+      def collision?(type, pos, collision, cpos, *ignores)
         code = get_code(*pos.to_a)
-        return nil if code == -1
-        return @mapchip.collision_table[type][code].collision?(pos, collision, rect) ? code : nil
+        return nil if (code == @def_ignore or @ignore_list.include?(code) or ignores.flatten.include?(code))
+        return @mapchip.collision_table[type][code].collision?(pos, collision, cpos) ? code : nil
       end
 
       #===キャラクタとマップチップが隣り合っているかどうか問い合わせる
       #指定の矩形のキャラクタが、指定の位置のマップチップのコリジョンと隣り合っているかどうか問い合わせる
       #引数は、Rect(x,y,w,h)形式(Rect構造体、[x,y,w,h]の配列)で渡す
-      #指定の位置のマップチップ番号が-1(未定義)のときはnilを返す
+      #指定の位置のマップチップ番号が以下の時はnilを返す
+      #1)-1(未定義)のとき
+      #2)FixexMapLayer#ignore_listに含まれているとき
+      #3)引数ignoresに含まれているとき
       #_type_:: 移動形式(0以上の整数)
       #_pos_:: 調査対象のマップチップの位置
       #_collision_:: キャラクタのコリジョン
-      #_rect_:: キャラクタの矩形
+      #_cpos_:: キャラクタの位置
       #返却値:: コリジョンが隣り合っていれば、そのときのマップチップ番号を返す。隣り合っていなければnilを返す
-      def meet?(type, pos, collision, rect)
+      def meet?(type, pos, collision, cpos, *ignores)
         code = get_code(*pos.to_a)
-        return nil if code == -1
-        return @mapchip.collision_table[type][code].meet?(pos, collision, rect) ? code : nil
+        return nil if (code == @def_ignore or @ignore_list.include?(code) or ignores.flatten.include?(code))
+        return @mapchip.collision_table[type][code].meet?(pos, collision, cpos) ? code : nil
       end
 
       #===キャラクタとマップチップが覆い被さっているかどうか問い合わせる
       #指定の矩形のキャラクタが、指定の位置のマップチップのコリジョンを覆い被さっているかどうか問い合わせる
       #引数は、Rect(x,y,w,h)形式(Rect構造体、[x,y,w,h]の配列)で渡す
-      #指定の位置のマップチップ番号が-1(未定義)のときはnilを返す
+      #指定の位置のマップチップ番号が以下の時はnilを返す
+      #1)-1(未定義)のとき
+      #2)FixexMapLayer#ignore_listに含まれているとき
+      #3)引数ignoresに含まれているとき
       #_type_:: 移動形式(0以上の整数)
       #_pos_:: 調査対象のマップチップの位置
       #_collision_:: キャラクタのコリジョン
-      #_rect_:: キャラクタの矩形
+      #_cpos_:: キャラクタの位置
       #返却値:: どちらかのコリジョンが覆い被さっていれば、そのときのマップチップ番号を返す。
       #被さっていなければnilを返す
-      def cover?(type, pos, collision, rect)
+      def cover?(type, pos, collision, cpos, *ignores)
         code = get_code(*pos.to_a)
-        return nil if code == -1
-        return @mapchip.collision_table[type][code].cover?(pos, collision, rect) ? code : nil
+        return nil if (code == @def_ignore or @ignore_list.include?(code) or ignores.flatten.include?(code))
+        return @mapchip.collision_table[type][code].cover?(pos, collision, cpos) ? code : nil
       end
 
       #===キャラクタとマップチップが重なっているかどうか問い合わせる
       #指定の位置と方向で、指定の位置のマップチップ上で移動できるかどうか問い合わせる
-      #指定の位置のマップチップ番号が-1(未定義)のとき、移動していない(dx==0 and dy==0)ときはtrueを返す
+      #指定の位置のマップチップ番号が以下の時はnilを返す
+      #1)-1(未定義)のとき
+      #2)FixexMapLayer#ignore_listに含まれているとき
+      #3)引数ignoresに含まれているとき
+      #また、dx==0, dy==0のときもtrueを返す
       #_type_:: 移動形式(0以上の整数)
       #_inout_:: 入退形式(:in もしくは :out)
       #_pos_:: 調査対象のマップチップの位置
       #_dx_:: 移動量(x座標)
       #_dy_:: 移動量(y座標)
       #返却値:: 移動可能ならばtrueを返す
-      def can_access?(type, inout, pos, dx, dy)
+      def can_access?(type, inout, pos, dx, dy, *ignores)
+        return true if dx == 0 and dy == 0
         code = get_code(pos[0]+dx, pos[1]+dy)
-        return true if code == -1
+        return true if (code == @def_ignore or @ignore_list.include?(code) or ignores.flatten.include?(code))
         index = MapDir.index2(inout, dx, dy)
         return true if index == -1
         return @mapchip.access_table[type][code][index]
@@ -216,6 +244,8 @@ module Miyako
       def dispose #:nodoc:
         @mapdat = nil
         @baseimg = nil
+        @ignore_list.clear
+        @ignore_list = []
       end
 
       #===マップレイヤーを画面に描画する
@@ -248,11 +278,15 @@ module Miyako
     #各MapChip構造体のマップチップの大きさを同じにしておく必要がある
     #_mapchips_:: マップチップ構造体群(MapChip構造体単体もしくは配列)
     #_map_struct_:: MapStruct構造体のインスタンス
-    #_event_manager_:: MapEventManagerクラスのインスタンス
+    #_event_manager_:: MapEventManagerクラスのインスタンス。省略時（イベントを使わない時）はnil
     #返却値:: 生成したインスタンス
-    def initialize(mapchips, map_struct, event_manager)
-      @em = event_manager.dup
-      @em.set(self)
+    def initialize(mapchips, map_struct, event_manager=nil)
+      if event_manager
+        @em = event_manager.dup
+        @em.set(self)
+      else
+        @em = nil
+      end
       @mapchips = mapchips.to_a
       @visible = true
       @pos = Point.new(0, 0)
@@ -262,16 +296,19 @@ module Miyako
       @h = @size.h
 
       @event_layers = []
-      map_struct.elayers.each{|events|
-        event_layer = Array.new
-        events.each_with_index{|ly, y|
-          ly.each_with_index{|code, x|
-            next unless @em.include?(code)
-            event_layer.push(@em.create(code, x * @mapchips.first.chip_size.w, y * @mapchips.first.chip_size.h))
+      if map_struct.elayers
+        raise MiyakoError "Event Manager is not registered!" unless @em
+        map_struct.elayers.each{|events|
+          event_layer = Array.new
+          events.each_with_index{|ly, y|
+            ly.each_with_index{|code, x|
+              next unless @em.include?(code)
+              event_layer.push(@em.create(code, x * @mapchips.first.chip_size.w, y * @mapchips.first.chip_size.h))
+            }
           }
+          @event_layers << event_layer
         }
-        @event_layers << event_layer
-      }
+      end
 
       mc = @mapchips.cycle
       @mapchips = mc.take(map_struct.layer_num)
@@ -285,20 +322,22 @@ module Miyako
     def initialize_copy(obj) #:nodoc:
       @map_layers = @map_layers.dup
       @event_layers = @event_layers.dup
-      @em = em.dup
+      @em = @em.dup if @em
       @mapchips = @mapchips.dup
       @size = @size.dup
       @pos = @pos.dup
     end
 
     #===マップにイベントを追加する
+    # EventManagerが登録されていないときや登録されていないイベント番号で追加したときは例外を返す
     #_idx_:: 追加するイベントレイヤの指標
     #_code_:: イベント番号(Map.newメソッドで渡したイベント番号に対応)
     #_x_:: マップ上の位置(x方向)
     #_y_:: マップ常温位置(y方向)
     #返却値:: 自分自身を返す
     def add_event(idx, code, x, y)
-      return self unless @em.include?(code)
+      raise MiyakoError "Event Manager is not registered!" unless @em
+      raise MiyakoError "Unregisted event code! : #{code}" unless @em.include?(code)
       @event_layers[idx].push(@em.create(code, x, y))
       return self
     end

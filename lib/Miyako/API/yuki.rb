@@ -34,18 +34,18 @@ module Miyako
   class Yuki
     include SpriteBase
     include Animation
-  
+
     #==キャンセルを示す構造体
     #コマンド選択がキャンセルされたときに生成される構造体
     Canceled = Struct.new(:dummy)
-  
+
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
     Command = Struct.new(:body, :body_selected, :condition, :result)
-  
+
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
@@ -85,7 +85,7 @@ module Miyako
 
     attr_accessor :visible
     attr_accessor :update_inner, :update_text, :update_cr, :update_clear
-    attr_reader :valign
+    attr_reader :valign, :visibles
     #release_checks:: ポーズ解除を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
     #ok_checks:: コマンド選択決定を問い合わせるブロックの配列。
@@ -102,7 +102,7 @@ module Miyako
     #(4)マウスの位置を示す配列([x,y])
     #callメソッドを持つブロックが使用可能。
     attr_reader :selecting_procs
-    
+
     #===Yukiにメソッドを追加する(すべてのYukiインスタンスに適応)
     #ブロックを渡すことで、Yukiに新しいメソッドを追加できる。
     #追加したメソッドは、すべてのYukiインスタンスで利用可能となる。
@@ -148,7 +148,7 @@ module Miyako
       @executing = false
 
       @exec_plot = nil
-      
+
       @pausing = false
       @selecting = false
       @waiting = false
@@ -166,7 +166,7 @@ module Miyako
       @update_text  = lambda{|yuki, ch|}
       @update_cr    = lambda{|yuki|}
       @update_clear = lambda{|yuki|}
-      
+
       @parts = {}
       @visibles = SpriteList.new
       @vars = {}
@@ -174,7 +174,7 @@ module Miyako
 
       @executing_fiber = nil
 
-      @text_methods = {:char => self.method(:text_by_char), 
+      @text_methods = {:char => self.method(:text_by_char),
                       :string => self.method(:text_by_str) }
       @text_method_name = :char
 
@@ -182,7 +182,7 @@ module Miyako
 
       @release_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) }, lambda{ Input.click?(:left) } ]
       @release_checks = @release_checks_default.dup
-      
+
       @ok_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) },
                             lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) } ]
       @ok_checks = @ok_checks_default.dup
@@ -201,12 +201,12 @@ module Miyako
       @post_command = []
       @post_cancel  = []
       @selecting_procs = []
-      
+
       @is_outer_height = self.method(:is_outer_height)
 
       @now_page = nil
       @first_page = nil
-      
+
       raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
@@ -224,7 +224,7 @@ module Miyako
       @over_yuki.render if @over_yuki && @over_yuki.executing?
       return self
     end
-    
+
     #===Yuki#showで表示指定した画像を描画する
     #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
     #なお、visibleの値がfalseの時は描画されない。
@@ -234,7 +234,7 @@ module Miyako
       @over_yuki.render_to(dst) if @over_yuki && @over_yuki.executing?
       return self
     end
-    
+
     #===Yuki#showで表示指定した画像のアニメーションを更新する
     #showメソッドで指定した画像のupdate_animationメソッドを呼び出す
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
@@ -325,7 +325,7 @@ module Miyako
       @parts[name] = parts
       return self
     end
-  
+
     #===表示・描画対象のテキストボックスを選択する
     #[[Yukiスクリプトとして利用可能]]
     #_box_:: テキストボックスのインスタンス
@@ -335,7 +335,7 @@ module Miyako
       @text_box = box
       return self
     end
-  
+
     #===表示・描画対象のコマンドボックスを選択する
     #[[Yukiスクリプトとして利用可能]]
     #_box_:: テキストボックスのインスタンス
@@ -345,7 +345,7 @@ module Miyako
       @command_box = box
       return self
     end
-  
+
     #===テキストボックスを取得する
     #[[Yukiスクリプトとして利用可能]]
     #テキストボックスが登録されていないときはnilを返す
@@ -353,7 +353,7 @@ module Miyako
     def textbox
       return @text_box
     end
-  
+
     #===コマンドボックスを取得する
     #[[Yukiスクリプトとして利用可能]]
     #コマンドボックスが登録されていないときはnilを返す
@@ -361,7 +361,7 @@ module Miyako
     def commandbox
       return @command_box
     end
-  
+
     #===オブジェクトの登録を解除する
     #[[Yukiスクリプトとして利用可能]]
     #パーツnameとして登録されているオブジェクトを登録から解除する。
@@ -372,7 +372,7 @@ module Miyako
       @parts.delete(name)
       return self
     end
-  
+
     #===パーツで指定したオブジェクトを先頭に表示する
     #[[Yukiスクリプトとして利用可能]]
     #描画時に、指定したパーツを描画する
@@ -386,7 +386,7 @@ module Miyako
       }
       return self
     end
-  
+
     #===パーツで指定したオブジェクトを隠蔽する
     #[[Yukiスクリプトとして利用可能]]
     #描画時に、指定したパーツを描画させないよう指定する
@@ -399,7 +399,7 @@ module Miyako
       }
       return self
     end
-  
+
     #===パーツで指定したオブジェクトの処理を開始する
     #[[Yukiスクリプトとして利用可能]]
     #nameで指定したパーツが持つ処理(例：アニメーション)を開始する。
@@ -410,7 +410,7 @@ module Miyako
       @parts[name].start
       return self
     end
-  
+
     #===パーツで指定したオブジェクトを再生する
     #[[Yukiスクリプトとして利用可能]]
     #nameで指定したパーツを再生(例:BGM)する。
@@ -421,7 +421,7 @@ module Miyako
       @parts[name].play
       return self
     end
-  
+
     #===パーツで指定したオブジェクトの処理を停止する
     #[[Yukiスクリプトとして利用可能]]
     #nameで指定したパーツが持つ処理を停止する。
@@ -432,7 +432,7 @@ module Miyako
       @parts[name].stop
       return self
     end
-  
+
     #===遷移図の処理が終了するまで待つ
     #[[Yukiスクリプトとして利用可能]]
     #nameで指定した遷移図の処理が終了するまで、プロットを停止する
@@ -475,7 +475,7 @@ module Miyako
       end
       return self
     end
-  
+
     #===シーンのセットアップ時に実行する処理
     #
     #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
@@ -502,13 +502,13 @@ module Miyako
 
       @now_page = nil
       @first_page = nil
-      
+
       raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if proc
-      
+
       return self
     end
-  
+
     #===実行するプロットと登録する
     #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
     #返却値:: 自分自身を返す
@@ -540,7 +540,7 @@ module Miyako
       @executing_fiber.resume
       return self
     end
-  
+
     #===プロット処理を更新する
     #ポーズ中、コマンド選択中、 Yuki#wait メソッドによるウェイトの状態確認を行う。
     #プロット処理の実行確認は出来ない
@@ -557,7 +557,7 @@ module Miyako
       @select_amount = [0, 0]
       @executing_fiber.resume
     end
-  
+
     #===プロット用ブロックをYukiへ渡すためのインスタンスを作成する
     #プロット用に用意したブロック(ブロック引数無し)を、Yukiでの選択結果や移動先として利用できる
     #インスタンスに変換する
@@ -610,7 +610,7 @@ module Miyako
       return plot_proc ? self.instance_exec(&plot_proc) :
                          self.instance_exec(&plot_block)
     end
-  
+
     #===プロット処理が実行中かどうかを確認する
     #返却値:: プロット処理実行中の時はtrueを返す
     def executing?
@@ -722,7 +722,7 @@ module Miyako
     def result
       return @plot_result
     end
-  
+
     #===プロット処理の結果を設定する
     #[[Yukiスクリプトとして利用可能]]
     #_ret_:: 設定する結果。デフォルトはnil
@@ -756,7 +756,7 @@ module Miyako
     def canceled?
       return result == @cancel
     end
-      
+
     #===ブロックを条件として設定する
     #[[Yukiスクリプトとして利用可能]]
     #メソッドをMethodクラスのインスタンスに変換する
@@ -765,28 +765,28 @@ module Miyako
     def condition(&block)
       return block
     end
-    
+
     #===コマンド選択中の問い合わせメソッド
     #[[Yukiスクリプトとして利用可能]]
     #返却値:: コマンド選択中の時はtrueを返す
     def selecting?
       return @selecting
     end
-    
+
     #===Yuki#waitメソッドによる処理待ちの問い合わせメソッド
     #[[Yukiスクリプトとして利用可能]]
     #返却値:: 処理待ちの時はtrueを返す
     def waiting?
       return @waiting
     end
-    
+
     #===メッセージ送り待ちの問い合わせメソッド
     #[[Yukiスクリプトとして利用可能]]
     #返却値:: メッセージ送り待ちの時はtrueを返す
     def pausing?
       return @pausing
     end
-  
+
     #===条件に合っていればポーズをかける
     #[[Yukiスクリプトとして利用可能]]
     #引数で設定した条件（Proc,メソッドインスタンス,ブロック）を評価した結果、trueのときはポーズを行い、
@@ -799,7 +799,7 @@ module Miyako
       return cond.call ? pause_and_clear : cr if cond
       return self
     end
-  
+
     #===テキストボックスに文字を表示する方法を指定する
     #引数に、:charを渡すと１文字ごと、:stringを渡すと文字列ごとに表示される。それ以外を指定したときは例外が発生
     #ブロックを渡せば、ブロックの評価中のみ設定が有効になる。
@@ -816,7 +816,7 @@ module Miyako
       end
       return self
     end
-  
+
     #===テキストボックスに文字を表示する
     #[[Yukiスクリプトとして利用可能]]
     #テキストボックスとして用意している画像に文字を描画する。
@@ -835,7 +835,7 @@ module Miyako
       return self if txt.empty?
       return @text_methods[@text_method_name].call(txt)
     end
-  
+
     #===テキストボックスに文字を1文字ずつ表示する
     #[[Yukiスクリプトとして利用可能]]
     #引数txtの値は、内部で１文字ずつ分割され、１文字描画されるごとに、
@@ -859,7 +859,7 @@ module Miyako
       }
       return self
     end
-  
+
     #===テキストボックスに文字を表示する
     #[[Yukiスクリプトとして利用可能]]
     #文字列が描画されるごとに、update_textメソッドが呼び出され、
@@ -897,9 +897,9 @@ module Miyako
     def is_outer_height #:nodoc:
       return @text_box.locate.y + @text_box.max_height >= @text_box.textarea.h
     end
-    
+
     private :is_outer_height
-    
+
     #===文字色を変更する
     #[[Yukiスクリプトとして利用可能]]
     #ブロック内で指定した文字列を、指定の色で描画する
@@ -937,7 +937,7 @@ module Miyako
       }
       return self
     end
-  
+
     #===太文字を描画する
     #[[Yukiスクリプトとして利用可能]]
     #ブロック内で指定した文字列を太文字で表示する
@@ -947,7 +947,7 @@ module Miyako
       @text_box.font_bold{ text block.call }
       return self
     end
-  
+
     #===斜体文字を描画する
     #[[Yukiスクリプトとして利用可能]]
     #ブロック内で指定した文字列を斜体で表示する
@@ -957,7 +957,7 @@ module Miyako
       @text_box.font_italic{ text block.call }
       return self
     end
-  
+
     #===下線付き文字を描画する
     #[[Yukiスクリプトとして利用可能]]
     #ブロック内で指定した文字列を下線付きで表示する
@@ -984,7 +984,7 @@ module Miyako
     #[[Yukiスクリプトとして利用可能]]
     #開業後にupdate_clearテンプレートメソッドが１回呼ばれる
     #返却値:: 自分自身を返す
-    def clear 
+    def clear
       @text_box.clear
       @update_clear.call(self)
       return self
@@ -1019,7 +1019,7 @@ module Miyako
       @pausing = false
       @pause_release = false
     end
-  
+
     #===ポーズをかけて、テキストボックスの内容を消去する
     #[[Yukiスクリプトとして利用可能]]
     #ポーズをかけ、ポーズを解除するときにテキストボックスの内容を消去する
@@ -1097,7 +1097,7 @@ module Miyako
         reset_selecting
       end
     end
-  
+
     def reset_selecting #:nodoc:
       @select_ok = false
       @select_cancel = false
@@ -1157,7 +1157,7 @@ module Miyako
       @now_page = nil
       return name
     end
-    
+
     #===シナリオ上の現在のページを返す
     #[[Yukiスクリプトとして利用可能]]
     #呼び出し当時、シナリオ上、pageメソッドでくくられていない場合は、nilを返す
@@ -1165,7 +1165,7 @@ module Miyako
     def now_page
       return @now_page
     end
-    
+
     #===プロット上の最初に実行するページを指定知る
     #[[Yukiスクリプトとして利用可能]]
     #但し、ページ名を指定しないときはnilを指定する。
@@ -1173,16 +1173,16 @@ module Miyako
     def select_first_page(name)
       @first_page = name
     end
-    
+
     #===インスタンスで使用しているオブジェクトを解放する
     def dispose
       @update_inner  = nil
       @update_text   = nil
       @update_cr     = nil
       @update_clear  = nil
-      
+
       @executing_fiber = nil
-      
+
       @parts.clear
       @parts = nil
       @visibles.clear

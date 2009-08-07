@@ -19,7 +19,7 @@ class Title
     @visible = false
 
     @title = Sprite.new(:file=>"image/mittsu_no_oheya.png", :type=>:ck)
-    
+
     @exec = self.method(:view_in)
   end
 
@@ -52,7 +52,7 @@ class Title
     end
     return TitleCall
   end
-  
+
   def update
     return nil if (Input.pushed_any?(:esc) || Input.quit?)
     return @exec.call
@@ -79,7 +79,7 @@ class TitleCall
     @man.center!.bottom!
     @alpha = 0.0
     @wait = WaitCounter.new(0.2)
-    @exec = self.method(:view_in)
+    @exec = :view_in
   end
 
   def setup
@@ -92,19 +92,24 @@ class TitleCall
 
   def update
     return nil if (Input.pushed_any?(:esc) || Input.quit?)
-    return @exec.call
+    case @exec
+      when :view_in
+        return view_in
+      when :exec_yuki
+        return exec_yuki
+    end
   end
-  
+
   def final
     message_box.stop
   end
-  
+
   def view_in
     if @wait.finish?
       if @alpha == 1.0
-        @yuki.start_plot
-        @exec = self.method(:exec_yuki)
+        @exec = :exec_yuki
         message_box.start
+        @yuki.start_plot
         return @now
       end
       @alpha += 0.15
@@ -119,7 +124,7 @@ class TitleCall
     @yuki.update
     return @yuki.result ? @yuki.result : @now
   end
-  
+
   def plot
     yuki_plot do
       text("「レディ〜ス　エ〜ン　ジェントルメ〜ン！」").pause.cr
@@ -179,6 +184,6 @@ class TitleCall
 
   def render
     Bitmap.dec_alpha(@man, Screen, @alpha)
-    message_box.render if @exec == self.method(:exec_yuki)
+    message_box.render if @exec == :exec_yuki
   end
 end

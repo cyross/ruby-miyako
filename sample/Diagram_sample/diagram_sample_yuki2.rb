@@ -3,19 +3,19 @@
 # Diagram sample for Miyako v2.0
 # 2009.1.16 Cyross Makoto
 
-require 'Miyako/miyako'
+require 'miyako'
 
 include Miyako
 
 # 移動が遅いスクロール
 class MoveSlower
   include Diagram::NodeBase
-  
+
   def initialize(spr)
     @spr = spr
     @finish = false # 終了フラグ
   end
-  
+
   def start
     @spr.move_to!(640, @spr.y) # 画面を出たところまで移動
   end
@@ -29,7 +29,7 @@ class MoveSlower
   def render
     @spr.render
   end
-  
+
   def finish?
     return @finish
   end
@@ -38,12 +38,12 @@ end
 # 移動が速いスクロール
 class MoveFaster
   include Diagram::NodeBase
-  
+
   def initialize(spr)
     @spr = spr
     @finish = false # 終了フラグ
   end
-  
+
   def start
     @spr.move_to!(640, @spr.y) # 画面を出たところまで移動
   end
@@ -57,7 +57,7 @@ class MoveFaster
   def render
     @spr.render
   end
-  
+
   def finish?
     return @finish
   end
@@ -69,19 +69,19 @@ class WaitTrigger
   def initialize(wait=0.1)
     @timer = WaitCounter.new(wait)
   end
-  
+
   def pre_process
     @timer.start
   end
-  
+
   def update?
     @timer.finish?
   end
-  
+
   def post_update
     @timer.start
   end
-  
+
   def post_process
     @timer.stop
   end
@@ -90,7 +90,7 @@ end
 # 移動アニメーションノード
 class Moving
   include Diagram::NodeBase
-  
+
   def initialize(parts, wait)
     @parts = parts
     @pr = {}
@@ -98,7 +98,7 @@ class Moving
       dia.add :scroll, MoveFaster.new(@parts[:c1]), WaitTrigger.new(wait)
       dia.add_arrow(:scroll, nil)
     }
-    
+
     @pr[:slow] = Diagram::Processor.new{|dia|
       dia.add :scroll, MoveSlower.new(@parts[:c2]), WaitTrigger.new(wait)
       dia.add_arrow(:scroll, nil)
@@ -115,13 +115,13 @@ class Moving
     @finished = @pr.keys.inject(true){|r, k|
       @pr[k].update
       r &= @pr[k].finish?
-    } # アニメーション処理が終了するまで繰り返し    
+    } # アニメーション処理が終了するまで繰り返し
   end
 
   def stop
     @pr.keys.each{|k| @pr[k].stop }
   end
-  
+
   def render
     @parts[:bk].render
     # 通常なら。@pr[:fast].render,@pr[:slow].renderが筋だが、
@@ -129,7 +129,7 @@ class Moving
     @parts[:c1].render
     @parts[:c2].render
   end
-  
+
   def finish?
     return @finished
   end
@@ -138,7 +138,7 @@ end
 # Yukiプロット開始
 class StartPlot
   include Diagram::NodeBase
-  
+
   def initialize(manager, parts, imgs)
     @manager = manager
     @parts = parts
@@ -157,13 +157,13 @@ class StartPlot
 
   def stop
   end
-  
+
   def render
     @imgs[:bk].render
     @imgs[:c1].render
     @imgs[:c2].render
   end
-  
+
   def finish?
     return @finished
   end
@@ -172,7 +172,7 @@ end
 # Yukiプロット実行
 class Plotting
   include Diagram::NodeBase
-  
+
   def initialize(manager, parts, imgs, set_wait)
     @manager = manager
     @parts = parts
@@ -202,10 +202,10 @@ class Plotting
     @manager.render
     @parts.render
   end
-  
+
   def stop
   end
-  
+
   def finish?
     return @finished
   end
@@ -240,13 +240,13 @@ class MainScene
 
     @yuki = Yuki.new
     @yuki.update_text = self.method(:update_text)
-    
+
     @imgs = {}
     @imgs[:c1] = Sprite.new(:file=>"chr01.png", :type=>:ac).bottom!
     @imgs[:c2] = Sprite.new(:file=>"chr02.png", :type=>:ac).bottom!
     @imgs[:bk] = Sprite.new(:file=>"back.png", :type=>:as).centering!
 
-    
+
     @pr = Diagram::Processor.new{|dia|
       dia.add :move,  Moving.new(@imgs, 0.01)
       dia.add :start, StartPlot.new(@yuki, @parts, @imgs)
@@ -268,7 +268,7 @@ class MainScene
       select_first_page nil # nil, :page1, :page2が選択可能
     }
   end
-  
+
   def update
     return nil if Input.quit_or_escape?
     @pr.update_input
@@ -276,11 +276,11 @@ class MainScene
     return nil if @pr.finish?
     return @now
   end
-  
+
   def render
     @pr.render
   end
-  
+
   def plot
     yuki_plot{
       text_method :string do
@@ -307,7 +307,7 @@ class MainScene
       end
     }
   end
-  
+
   def update_text(yuki, ch)
     yuki.wait @wait # １文字ずつ表示させる
   end
@@ -319,7 +319,7 @@ class MainScene
   def reset_wait
     @wait = @base_wait
   end
-  
+
   def final
     @pr.stop
   end

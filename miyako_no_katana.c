@@ -47,11 +47,12 @@ static VALUE cMap = Qnil;
 static VALUE cMapLayer = Qnil;
 static VALUE cFixedMap = Qnil;
 static VALUE cFixedMapLayer = Qnil;
-static VALUE cProcessor = Qnil;
+static VALUE cTextbox = Qnil;
 static VALUE nZero = Qnil;
 static VALUE nOne = Qnil;
 static volatile ID id_update     = Qnil;
 static volatile ID id_kakko      = Qnil;
+static volatile ID id_kakko_eq   = Qnil;
 static volatile ID id_render     = Qnil;
 static volatile ID id_render_to  = Qnil;
 static volatile ID id_to_a       = Qnil;
@@ -62,6 +63,14 @@ static volatile ID id_pos        = Qnil;
 static volatile ID id_clear      = Qnil;
 static volatile int zero         = Qnil;
 static volatile int one          = Qnil;
+static const char *str_visible       = "@visible";
+static const char *str_textarea      = "@textarea";
+static const char *str_waiting       = "@waiting";
+static const char *str_wait_cursor   = "@wait_cursor";
+static const char *str_selecting     = "@selecting";
+static const char *str_select_cursor = "@select_cursor";
+static const char *str_choices       = "@choices";
+
 
 // from rubysdl_video.c
 static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
@@ -79,17 +88,19 @@ extern void Init_miyako_font();
 extern void Init_miyako_utility();
 extern void Init_miyako_sprite2();
 extern void Init_miyako_input_audio();
+extern void Init_miyako_diagram();
+extern void Init_miyako_yuki();
 
 static VALUE miyako_main_loop(VALUE self)
 {
   rb_need_block();
   for(;;)
   {
-    rb_funcall(mAudio, id_update, 0);
-    rb_funcall(mInput, id_update, 0);
-    rb_funcall(mScreen, id_clear, 0);
+    _miyako_audio_update();
+    _miyako_input_update();
+    _miyako_screen_clear();
     rb_yield(Qnil);
-    rb_funcall(mScreen, id_render, 0);
+    _miyako_screen_render();
   }
   return Qnil;
 }
@@ -189,12 +200,12 @@ static VALUE sprite_b_render_xy(VALUE self, VALUE vx, VALUE vy)
     rb_funcall(self, id_render, 0);
     return self;
   }
-  VALUE *p_pos = RSTRUCT_PTR(rb_iv_get(self, "@pos"));
+  VALUE *p_pos = RSTRUCT_PTR(_miyako_layout_pos(self));
   VALUE x = *(p_pos + 0);
   VALUE y = *(p_pos + 1);
-  rb_funcall(self, id_move_to, 2, vx, vy);
+  _miyako_layout_move_to(self, vx, vy);
   rb_funcall(self, id_render, 0);
-  rb_funcall(self, id_move_to, 2, x, y);
+  _miyako_layout_move_to(self, x, y);
   return self;
 }
 
@@ -209,12 +220,12 @@ static VALUE sprite_b_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALU
     rb_funcall(self, id_render_to, 1, vdst);
     return self;
   }
-  VALUE *p_pos = RSTRUCT_PTR(rb_iv_get(self, "@pos"));
+  VALUE *p_pos = RSTRUCT_PTR(_miyako_layout_pos(self));
   VALUE x = *(p_pos + 0);
   VALUE y = *(p_pos + 1);
-  rb_funcall(self, id_move_to, 2, vx, vy);
+  _miyako_layout_move_to(self, vx, vy);
   rb_funcall(self, id_render_to, 1, vdst);
-  rb_funcall(self, id_move_to, 2, x, y);
+  _miyako_layout_move_to(self, x, y);
   return self;
 }
 
@@ -235,13 +246,35 @@ static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 */
 static VALUE sprite_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
-  if(visible == Qfalse) return self;
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  _miyako_setup_unit_2(self, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
-  render_inner(&src, &dst);
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  VALUE src_unit = rb_iv_get(self, "@unit");
+  VALUE dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  SDL_Surface  *src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  SDL_Surface  *dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  SDL_Rect srect, drect;
+
+  VALUE *s_p = RSTRUCT_PTR(src_unit);
+  srect.x = NUM2INT(*(s_p + 1));
+  srect.y = NUM2INT(*(s_p + 2));
+  srect.w = NUM2INT(*(s_p + 3));
+  srect.h = NUM2INT(*(s_p + 4));
+
+  VALUE *d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(*(s_p + 5));
+  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(*(s_p + 6));
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
+}
+
+VALUE _miyako_sprite_render(VALUE sprite)
+{
+  return sprite_render(sprite);
 }
 
 /*
@@ -249,8 +282,7 @@ static VALUE sprite_render(VALUE self)
 */
 static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
-  if(visible == Qfalse) return self;
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
 	MiyakoBitmap src, dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
@@ -263,15 +295,35 @@ static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE sprite_render_xy(VALUE self, VALUE vx, VALUE vy)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
-  if(visible == Qfalse) return self;
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  _miyako_setup_unit_2(self, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
-  src.x = NUM2INT(vx);
-  src.y = NUM2INT(vy);
-  render_inner(&src, &dst);
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  VALUE src_unit = rb_iv_get(self, "@unit");
+  VALUE dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  SDL_Surface  *src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  SDL_Surface  *dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  SDL_Rect srect, drect;
+
+  VALUE *s_p = RSTRUCT_PTR(src_unit);
+  srect.x = NUM2INT(*(s_p + 1));
+  srect.y = NUM2INT(*(s_p + 2));
+  srect.w = NUM2INT(*(s_p + 3));
+  srect.h = NUM2INT(*(s_p + 4));
+
+  VALUE *d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(vx);
+  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(vy);
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
+}
+
+VALUE _miyako_sprite_render_xy(VALUE sprite, VALUE x, VALUE y)
+{
+  return sprite_render_xy(sprite, x, y);
 }
 
 /*
@@ -311,13 +363,23 @@ static VALUE screen_update_tick(VALUE self)
   return Qnil;
 }
 
+void _miyako_screen_update_tick()
+{
+  screen_update_tick(mScreen);
+}
+
 /*
 :nodoc:
 */
 static VALUE screen_pre_render(VALUE self)
 {
-  rb_funcall(rb_iv_get(mScreen, "@@pre_render_array"), id_render, 0);
+  _miyako_sprite_list_render(rb_iv_get(mScreen, "@@pre_render_array"));
   return Qnil;
+}
+
+void _miyako_screen_pre_render()
+{
+  screen_pre_render(mScreen);
 }
 
 /*
@@ -329,7 +391,9 @@ static VALUE screen_render(VALUE self)
 	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
 
-  rb_funcall(rb_iv_get(mScreen, "@@auto_render_array"), id_render, 0);
+  _miyako_sprite_list_render(rb_iv_get(cSprite, "@@sprites"));
+
+  _miyako_sprite_list_render(rb_iv_get(mScreen, "@@auto_render_array"));
 
   if(fps_view == Qtrue){
     char str[256];
@@ -359,6 +423,11 @@ static VALUE screen_render(VALUE self)
   return Qnil;
 }
 
+void _miyako_screen_render()
+{
+  screen_render(mScreen);
+}
+
 /*
 インスタンスの内容を画面に描画する
 */
@@ -371,6 +440,10 @@ static VALUE screen_render_screen(VALUE self, VALUE vsrc)
   return self;
 }
 
+void _miyako_screen_render_screen(VALUE src)
+{
+  screen_render_screen(mScreen, src);
+}
 
 /*
 ===マップレイヤー転送インナーメソッド
@@ -986,30 +1059,59 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 /*
 :nodoc:
 */
-static VALUE processor_mainloop(VALUE self)
+static VALUE textbox_render(VALUE self)
 {
-  VALUE diagram = rb_iv_get(self, "@diagram");
-  VALUE states = rb_iv_get(self, "@states");
-  VALUE mutex = rb_iv_get(self, "@mutex");
-  VALUE str_execute = rb_str_new2("execute");
-  VALUE sym_execute = rb_funcall(str_execute, rb_intern("to_sym"), 0);
-  VALUE str_pause = rb_str_new2("pause");
-  VALUE sym_pause = rb_funcall(str_pause, rb_intern("to_sym"), 0);
-  rb_funcall(diagram, rb_intern("start"), 0);
-  VALUE executing = rb_funcall(states, id_kakko, 1, sym_execute);
-  while(executing == Qtrue){
-    VALUE pausing = rb_funcall(states, id_kakko, 1, sym_pause);
-    if(pausing == Qfalse){
-        rb_funcall(mutex, rb_intern("lock"), 0);
-        rb_funcall(diagram, id_update, 0);
-        rb_funcall(mutex, rb_intern("unlock"), 0);
-        rb_funcall(cThread, rb_intern("pass"), 0);
-        VALUE is_finish = rb_funcall(diagram, rb_intern("finish?"), 0);
-        if(is_finish == Qtrue){ rb_funcall(states, rb_intern("[]="), 2, sym_execute, Qfalse); }
+  if(rb_iv_get(self, str_visible) == Qfalse){ return self; }
+  sprite_render(rb_iv_get(self, str_textarea));
+  VALUE wait_cursor = rb_iv_get(self, str_wait_cursor);
+  if(wait_cursor != Qnil)
+  {
+    VALUE waiting = rb_iv_get(self, str_waiting);
+    if(waiting == Qtrue)
+    {
+      rb_funcall(wait_cursor, id_render, 0);
     }
-    executing = rb_funcall(states, id_kakko, 1, sym_execute);
   }
-  rb_funcall(diagram, rb_intern("stop"), 0);
+
+  if(rb_iv_get(self, str_selecting) == Qtrue)
+  {
+    rb_funcall(rb_iv_get(self, str_choices), id_render, 0);
+    VALUE select_cursor = rb_iv_get(self, str_select_cursor);
+    if(select_cursor != Qnil)
+    {
+      rb_funcall(select_cursor, id_render, 0);
+    }
+  }
+  return self;
+}
+
+/*
+:nodoc:
+*/
+static VALUE textbox_render_to(VALUE self, VALUE dst)
+{
+
+  if(rb_iv_get(self, str_visible) == Qfalse){ return self; }
+  sprite_render_to_sprite(rb_iv_get(self, str_textarea), dst);
+  VALUE wait_cursor = rb_iv_get(self, str_wait_cursor);
+  if(wait_cursor != Qnil)
+  {
+    VALUE waiting = rb_iv_get(self, str_waiting);
+    if(waiting == Qtrue)
+    {
+      rb_funcall(wait_cursor, id_render_to, 1, dst);
+    }
+  }
+
+  if(rb_iv_get(self, str_selecting) == Qtrue)
+  {
+    rb_funcall(rb_iv_get(self, str_choices), id_render_to, 1, dst);
+    VALUE select_cursor = rb_iv_get(self, str_select_cursor);
+    if(select_cursor != Qnil)
+    {
+      rb_funcall(select_cursor, id_render_to, 1, dst);
+    }
+  }
   return self;
 }
 
@@ -1033,10 +1135,11 @@ void Init_miyako_no_katana()
   cMapLayer = rb_define_class_under(cMap, "MapLayer", rb_cObject);
   cFixedMap = rb_define_class_under(mMiyako, "FixedMap", rb_cObject);
   cFixedMapLayer = rb_define_class_under(cFixedMap, "FixedMapLayer", rb_cObject);
-  cProcessor = rb_define_class_under(mDiagram, "Processor", rb_cObject);
+  cTextbox = rb_define_class_under(mMiyako, "TextBox", rb_cObject);
 
   id_update     = rb_intern("update");
   id_kakko      = rb_intern("[]");
+  id_kakko_eq   = rb_intern("[]=");
   id_render     = rb_intern("render");
   id_render_to  = rb_intern("render_to");
   id_to_a       = rb_intern("to_a");
@@ -1076,8 +1179,6 @@ void Init_miyako_no_katana()
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);
 
-  rb_define_method(cProcessor, "main_loop", processor_mainloop, 0);
-
   rb_define_method(cMapLayer, "render", maplayer_render, 0);
   rb_define_method(cFixedMapLayer, "render", fixedmaplayer_render, 0);
   rb_define_method(cMap, "render", map_render, 0);
@@ -1086,6 +1187,9 @@ void Init_miyako_no_katana()
   rb_define_method(cFixedMap, "render_to", fixedmap_render_to_sprite, 1);
   rb_define_method(cMapLayer, "render_to", maplayer_render_to_sprite, 1);
   rb_define_method(cFixedMapLayer, "render_to", fixedmaplayer_render_to_sprite, 1);
+
+  rb_define_method(cTextbox, "render", textbox_render, 0);
+  rb_define_method(cTextbox, "render_to", textbox_render_to, 1);
 
   use_opengl = rb_gv_get("$miyako_use_opengl");
 
@@ -1100,4 +1204,6 @@ void Init_miyako_no_katana()
   Init_miyako_font();
   Init_miyako_utility();
   Init_miyako_input_audio();
+  Init_miyako_diagram();
+  Init_miyako_yuki();
 }

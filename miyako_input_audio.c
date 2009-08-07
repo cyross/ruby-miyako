@@ -72,19 +72,19 @@ static VALUE input_update(VALUE self)
   int i;
   VALUE *ptr;
 
-  VALUE btn = rb_iv_get(self, "@@btn");    
-  VALUE mouse = rb_iv_get(self, "@@mouse");    
-  VALUE process = rb_iv_get(self, "@@process");    
-  VALUE toggle = rb_iv_get(self, "@@toggle_screen_mode");    
+  VALUE btn = rb_iv_get(self, "@@btn");
+  VALUE mouse = rb_iv_get(self, "@@mouse");
+  VALUE process = rb_iv_get(self, "@@process");
+  VALUE toggle = rb_iv_get(self, "@@toggle_screen_mode");
 
   VALUE trigger = rb_hash_lookup(btn, sy_trigger);
   VALUE pushed  = rb_hash_lookup(btn, sy_pushed);
   VALUE click   = rb_hash_lookup(mouse, sy_click);
   VALUE drop    = rb_hash_lookup(mouse, sy_drop);
   VALUE pos     = rb_hash_lookup(mouse, sy_pos);
-  
+
   rb_funcall(cJoystick, id_update_all, 0);
-  
+
   VALUE keys = rb_funcall(pushed, rb_intern("keys"), 0);
   ptr = RARRAY_PTR(keys);
   for(i=0; i<RARRAY_LEN(keys); i++)
@@ -100,7 +100,7 @@ static VALUE input_update(VALUE self)
   rb_hash_aset(drop, sy_left, Qfalse);
   rb_hash_aset(drop, sy_middle, Qfalse);
   rb_hash_aset(drop, sy_right, Qfalse);
-  
+
   VALUE e_list = rb_ary_new();
   VALUE e = rb_funcall(cEvent, id_poll, 0);
   while(e != Qnil)
@@ -125,8 +125,13 @@ static VALUE input_update(VALUE self)
       rb_hash_aset(pushed, sy_ent, nZero);
     }
   }
-  
+
   return Qnil;
+}
+
+void _miyako_input_update()
+{
+  input_update(mInput);
 }
 
 /*
@@ -136,7 +141,7 @@ static VALUE bgm_update(VALUE self)
 {
   VALUE nua = rb_gv_get("$not_use_audio");
   if(nua == Qfalse) return Qnil;
-  
+
   VALUE pb = rb_iv_get(self, "@@playin_bgm");
   if(pb == Qnil) return Qnil;
 
@@ -167,14 +172,14 @@ static VALUE se_update(VALUE self)
 {
   VALUE nua = rb_gv_get("$not_use_audio");
   if(nua == Qfalse) return Qnil;
-  
+
   VALUE playings = rb_iv_get(self, "@@playings");
   VALUE *ptr = RARRAY_PTR(playings);
   int i;
   for(i=0; i<RARRAY_LEN(playings); i++)
   {
     VALUE pl = *(ptr+i);
-    
+
   if(rb_funcall(pl, id_is_playing_wo_loop, 0) == Qfalse &&
        rb_funcall(pl, id_in_the_loop, 0) == Qtrue)
     {
@@ -192,7 +197,7 @@ static VALUE se_update(VALUE self)
       rb_funcall(pl, id_allow_countup, 0);
     }
   }
-  
+
   return Qnil;
 }
 
@@ -204,6 +209,11 @@ static VALUE audio_update(VALUE self)
   bgm_update(cBGM);
   se_update(cSE);
   return self;
+}
+
+void _miyako_audio_update()
+{
+  audio_update(mAudio);
 }
 
 void Init_miyako_input_audio()

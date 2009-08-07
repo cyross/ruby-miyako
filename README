@@ -934,9 +934,12 @@ v2.1.0(2009.7.9)
 　(ただし、Audio::BGM,Audio::SEは、内部データを複製すると落ちるため、複製していない)
 ・Yuki#select_plotで渡したプロットの引数チェックを行っていなかったバグを修正
 ・Alt+Enterを押してもフルスクリーンにならないバグを修正
+・Collision.collisionが正しく値を返さないバグを修正
+・FixedMapクラスでpos,sizeメソッドの値がレイアウトの位置になっていなかった問題を修正
 <仕様変更>
 ・"require 'miyako'"でもロード可能
 ・miyako.rbで組み込んでいるライブラリの順番を変更
+・標準のウインドウモードをフルスクリーンモードに変更
 ・$miyako_auto_openグローバル変数により、強制的な画面のオープンを解除
 　必要な部分だけ呼び出し(Miyako.init,Audio.init,Screen.init,Font.init)
 　(Miyako.open/Screen.open呼び出し前のSprite作成不可)
@@ -1004,13 +1007,22 @@ v2.1.0(2009.7.9)
 ・Miyako.main_loopを再び高速化
 ・Story#runの内部ループをloop do～からMiyako.main_loop～に変更
 ・Map.new、FixedMap.newのインタフェースを変更(CSVファイル以外からのマップデータ生成を容易に)
+・OverSceneを廃止
+・Screen.pre_render_array、Screen.auto_render_arrayを配列からSpriteListに変更
+・Fiberを使用しないYuki、InitiatieYukiクラスを追加
+・SpriteBase.#render,render_to、Bitmapクラスの各種画像効果メソッドでのブロックの使用を廃止
+・MapLayer#collision?,meet?,cover?,can_accessメソッドの引数を追加(ignores引数)
+・FixedMapLayer#collision?,meet?,cover?,can_accessメソッドの引数を追加(ignores引数)
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
+・miyako_diagram.c
+・miyako_yuki.c
 ・lib/Miyako/miyako_require_only.rb
 ・lib/miyako.rb
 ・lib/miyako_require_only.rb
 ・lib/Miyako/API/exceptions.rb
+・lib/Miyako/API/i_yuki.rb
 ・lib/Miyako/API/sprite_list.rb
 <グローバル変数追加>
 ・$miyako_auto_open(require時に、同時に画面などの初期化を行うかどうかのフラグ)
@@ -1026,6 +1038,7 @@ v2.1.0(2009.7.9)
 ・CollisionEx
 ・CircleCollisionEx
 ・CollisionsEx
+・InitiativeYuki
 ・ListPairStruct
 ・MapStructStruct
 ・MapStructFactory
@@ -1040,6 +1053,7 @@ v2.1.0(2009.7.9)
 ・MapDir(AccessIndexから変更)
 <モジュール追加>
 ・DeepCopy
+・InitiativeYukiTemplate
 ・SpriteArray
 <mixin>
 ・ArrayクラスにSpriteArrayモジュールをmixin
@@ -1058,11 +1072,19 @@ v2.1.0(2009.7.9)
 ・Font.init
 ・Font.initialized?
 ・MapChipFactory.create
+・MapChipFactory.create_with_size
+・MapChipFactory.all_access_table
+・MapChipFactory.not_access_table
+・MapStructFactory.create
+・MapStructFactory.undefined_layer
 ・Miyako.init
 ・Miyako.initialized?
 ・Miyako.open
 ・Screen.init
 ・Screen.initialized?
+・Sprite.sprites
+・Sprite.[]
+・Sprite.[]=
 ・Utility.interval
 ・Utility.theta
 ・Yuki.add_method
@@ -1088,7 +1110,17 @@ v2.1.0(2009.7.9)
 ・Collisions#covered?
 ・Collisions#covers_all?
 ・Collisions#covered_all?
+・FiexedMap#map_size(size -> map_size)
+・FiexedMap#map_w(w -> map_w)
+・FiexedMap#map_h(h -> map_h)
+・FiexedMapLayer#ignore_list
+・FiexedMapLayer#layer
 ・Layout#include_snap_child?
+・Map#map_size(alias size)
+・Map#map_w(alias w)
+・Map#map_h(alias h)
+・MapLayer#ignore_list
+・MapLayer#layer
 ・Scene#story
 ・Scene#prev_scene
 ・Scene#now_scene

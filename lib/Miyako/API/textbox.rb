@@ -76,9 +76,9 @@ module Miyako
       @on_pause = lambda{}
 
       @on_release = lambda{}
-      
+
       @on_draw = lambda{}
-      
+
       @command_page_size = params[:page_size] || @base[1]
 
       @choices = Choices.new
@@ -87,7 +87,7 @@ module Miyako
 
       @now_choice = nil
       @pre_attach = false
-      
+
       @waiting = false
       @select_type = :left
       @selecting = false
@@ -114,9 +114,9 @@ module Miyako
                      lambda{                       },
                      lambda{                       }]
                    ]
-                  
+
     end
-    
+
     #===複写時に呼び出されるメソッド
     #複写と同時に、本インスタンスに対するスナップの関係を解消するが、
     #内部で使用するスプライトとはスナップをやり直す
@@ -140,9 +140,9 @@ module Miyako
       @on_pause = @on_pause.dup
 
       @on_release = @on_release.dup
-      
+
       @on_draw = @on_draw.dup
-      
+
       @choices = @choices.dup
       @choices.snap(self)
       @choices.left!.top!
@@ -211,14 +211,14 @@ module Miyako
     # 内部でFiberが評価中ならば、Fiberに処理を移す
     #返却値:: 自分自身を返す
     def update
-      begin 
+      begin
         @fiber.resume if @fiber
       rescue FiberError
         @fiber = nil
       end
       return self
     end
-    
+
     #===テキストボックスのアニメーションを開始する
     #返却値:: 自分自身を返す
     def start
@@ -256,7 +256,7 @@ module Miyako
       f = false
       f |= @textarea.update_animation
       f |= @wait_cursor.update_animation if (@wait_cursor && @waiting)
-      if @selecting 
+      if @selecting
         f |= @choices.update_animation.any?
         f |= @select_cursor.update_animation if @select_cursor
       end
@@ -291,7 +291,7 @@ module Miyako
       rect = self.rect.to_a
       rect_list = []
       rect_list << @wait_cursor.broad_rect if (@wait_cursor && @waiting)
-      if @selecting 
+      if @selecting
         rect_list << @choices.broad_rect
         rect_list << @select_cursor.broad_rect if @select_cursor
       end
@@ -307,34 +307,30 @@ module Miyako
 
     #===画面に描画する
     #現在のテキストエリア・カーソルを、現在の状態で描画する
-    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
-    #ブロックの引数は、|インスタンスのSpriteUnit, 画面のSpriteUnit|となる。
     #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
-    def render(&block)
+    def render
       return unless @visible
-      @textarea.render(&block)
-      @wait_cursor.render(&block) if (@wait_cursor && @waiting)
-      if @selecting 
-        @choices.render(&block)
-        @select_cursor.render(&block) if @select_cursor
+      @textarea.render
+      @wait_cursor.render if (@wait_cursor && @waiting)
+      if @selecting
+        @choices.render
+        @select_cursor.render if @select_cursor
       end
       return self
     end
 
     #===画面に描画する
     #現在のテキストエリア・カーソルを、現在の状態で描画する
-    #ブロック付きで呼び出し可能(レシーバに対応したSpriteUnit構造体が引数として得られるので、補正をかけることが出来る。
-    #ブロックの引数は、|インスタンスのSpriteUnit, 転送先のSpriteUnit|となる。
     #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
-    def render_to(dst, &block)
+    def render_to(dst)
       return unless @visible
-      @textarea.render_to(dst, &block)
-      @wait_cursor.render(dst, &block) if (@wait_cursor && @waiting)
-      if @selecting 
-        @choices.render(dst, &block)
-        @select_cursor.render(dst, &block) if @select_cursor
+      @textarea.render_to(dst)
+      @wait_cursor.render(dst) if (@wait_cursor && @waiting)
+      if @selecting
+        @choices.render(dst)
+        @select_cursor.render(dst) if @select_cursor
       end
       return self
     end
@@ -497,10 +493,10 @@ module Miyako
       }
       return choices2
     end
-    
+
     #===コマンド選択を設定する
     #コマンド選択処理に移る(self#selecting?メソッドがtrueになる)
-    # 
+    #
     # 引数choicesに配列を渡すとき、各要素の構成は以下のようになる
     # [コマンド文字列・画像,選択時コマンド文字列・画像,選択した結果(オブジェクト)]
     #

@@ -275,7 +275,7 @@ module Miyako
       middle!
       return self
     end
-    
+
     #===mixinしたインスタンスの位置を左端(x軸)に移動させたときの位置を返す
 		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
 		#基準となる空間の内側に設置されたとして算出する
@@ -445,21 +445,21 @@ module Miyako
     #=== mixin されたインスタンスの位置情報(x,yの値)を取得する
     #返却値:: インスタンスの位置情報(@layout［:pos］の値)
     def pos
-      return @layout.pos.dup
+      return @layout.pos
     end
-    
+
     #=== mixin されたインスタンスのサイズ情報(w,hの値)を取得する
     #返却値:: インスタンスのサイズ情報(@layout［:size］の値)
     def size
-      return @layout.size.dup
+      return @layout.size
     end
-    
+
     #=== mixin されたインスタンスの表示上の幅を取得する
     #返却値:: インスタンスの幅(@layout［:size］［0］の値)
     def ow
       return @layout.size[0]
     end
-    
+
     #=== mixin されたインスタンスの表示上の高さを取得する
     #返却値:: インスタンスの高さ(@layout［:size］［0］の値)
     def oh
@@ -506,7 +506,7 @@ module Miyako
       @layout.base = @layout.snap.sprite || Screen
       return self
     end
-    
+
     #===すべてのインスタンスとの依存関係を解消する
 		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #返却値:: 自分自身を返す
@@ -516,24 +516,24 @@ module Miyako
       @layout.snap.children = Array.new
       return self
     end
-    
+
     #===すでに指定したスプライトがスナップ元として登録されているかどうか確認する
     #返却値:: スナップ元として登録されていればtrue、登録されていなければfalse
     def include_snap_child?(spr)
       @layout.snap.children.include?(spr)
       return self
     end
-    
+
     def add_snap_child(spr) #:nodoc:
       @layout.snap.children << spr unless @layout.snap.children.include?(spr)
       return self
     end
-    
+
     def delete_snap_child(spr) #:nodoc:
       spr.each{|s| @layout.snap.children.delete(s) }
       return self
     end
-    
+
     def get_snap_children #:nodoc:
       return @layout.snap.children
     end
@@ -624,7 +624,7 @@ module Miyako
       init_layout
       set_layout_size(*(size.to_a))
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       copy_layout
     end

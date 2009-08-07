@@ -49,7 +49,7 @@ module Miyako
       @pos = Point.new(0, 0)
       @visible = true
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @sprite = @sprite.dup
       @pos = @pos.dup
@@ -137,7 +137,7 @@ module Miyako
     def dispose
       @sprite.dispose
     end
-    
+
     #===画面に描画を指示する
     #現在表示できるプレーンを、現在の状態で描画するよう指示する
     #--
@@ -148,13 +148,13 @@ module Miyako
       @size.h.times{|y|
         @size.w.times{|x|
           u = @sprite.to_unit
-          u.move_to(x * @sprite.ow + @pos.x, y * @sprite.oh + @pos.y)
+          u.move_to!(x * @sprite.ow + @pos.x, y * @sprite.oh + @pos.y)
           Screen.render_screen(u) if u.x >= 0 && u.y >= 0 && u.x + u.ow <= Screen.bitmap.w && u.y + u.oh <= Screen.bitmap.h
         }
       }
       return self
     end
-    
+
     #===描画の素になるスプライトのアニメーションを更新する
     #返却値:: 更新した結果、パターンが変わった・アニメーションが終了したときはtrue、それ以外はfalseを返す
     def update_animation

@@ -95,9 +95,9 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
   Uint8 alpha;
   Uint32 color;
   int i, vertexes;
-  
+
   rb_scan_args(argc, argv, "32", &vdst, &pairs, &mcolor, &fill, &aa);
-  
+
   // bitmapメソッドを持っていれば、メソッドの値をvdstとする
   VALUE methods = rb_funcall(vdst, rb_intern("methods"), 0);
   if(rb_ary_includes(methods, rb_str_intern(rb_str_new2("to_unit"))) == Qfalse &&
@@ -112,7 +112,7 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
   // 頂点数チェック
   if(vertexes > 65536)
     rb_raise(eMiyakoError, "too many pairs. pairs is less than 65536.");
-  
+
   // 範囲チェック
   for(i=0; i<vertexes; i++)
   {
@@ -120,7 +120,7 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
     Sint16 x, y;
     get_position(vertex, &x, &y);
   }
-  
+
 	SDL_Surface  *dst = GetSurface(vdst)->surface;
 
   color = value_2_color(rb_funcall(cColor, rb_intern("to_rgb"), 1, mcolor), dst->format, &alpha);
@@ -135,7 +135,7 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
     VALUE vertex = *(RARRAY_PTR(pairs)+i);
     get_position(vertex, px+i, py+i);
   }
-  
+
   if(!RTEST(fill) && !RTEST(aa) && alpha == 255)
   {
     for(i=0; i<vertexes-1; i++)
@@ -166,11 +166,29 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
     sge_FilledPolygonAlpha(dst, (Uint16)vertexes, px, py, color, alpha);
   else if(RTEST(fill) && RTEST(aa) && alpha == 255)
     sge_AAFilledPolygon(dst, (Uint16)vertexes, px, py, color);
-  
+
   free(py);
   free(px);
 
   return Qnil;
+}
+
+/*
+ポリゴン描画
+*/
+static VALUE screen_clear(VALUE self)
+{
+  VALUE dst = rb_iv_get(mScreen, "@@unit");
+  SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
+
+  sge_ClearSurface(pdst, 0);
+
+  return self;
+}
+
+void _miyako_screen_clear()
+{
+  screen_clear(mScreen);
 }
 
 void Init_miyako_drawing()
@@ -182,6 +200,7 @@ void Init_miyako_drawing()
   eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
   cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
   cColor = rb_define_class_under(mMiyako, "Color", rb_cObject);
-  
+
   rb_define_singleton_method(mDrawing, "polygon", drawing_draw_polygon, -1);
+  rb_define_singleton_method(mScreen, "clear", screen_clear, 0);
 }

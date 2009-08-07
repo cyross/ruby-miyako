@@ -93,10 +93,18 @@ static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, V
   double r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
   double b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
 
-  if(l1 <= l2 && l2 <= r1 && t1 <= t2 && t2 <= b1) return Qtrue;
-  if(l1 <= r2 && r2 <= r1 && t1 <= b2 && b2 <= b1) return Qtrue;
-  if(l2 <= l1 && l1 <= r2 && t2 <= t1 && t1 <= b2) return Qtrue;
-  if(l2 <= r1 && r1 <= r2 && t2 <= b1 && b1 <= b2) return Qtrue;
+  if(l2 <= r1 && r1 <= r2)
+  {
+    if(t2 <= b1 && b1 <= b2) return Qtrue;
+    if(t2 <= t1 && t1 <= b2) return Qtrue;
+    return Qfalse;
+  }
+  if(l2 <= l1 && l1 <= r2)
+  {
+    if(t2 <= b1 && b1 <= b2) return Qtrue;
+    if(t2 <= t1 && t1 <= b2) return Qtrue;
+    return Qfalse;
+  }
   return Qfalse;
 }
 

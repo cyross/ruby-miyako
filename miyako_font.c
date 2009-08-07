@@ -63,7 +63,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   StringValue(str);
 
   str = rb_funcall(str, id_encode, 1, rb_const_get(cEncoding, id_utf8));
-  
+
   TTF_Font *font = Get_TTFont(rb_iv_get(self, "@font"))->font;
 
   VALUE *p_font_color = RARRAY_PTR(rb_iv_get(self, "@color"));
@@ -98,6 +98,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   src.y = dst.y;
 
 	int x, y;
+  Uint32 sr, sg, sb, sa;
+	Uint32 dr, dg, db, da;
 
   if(use_shadow == Qtrue)
   {
@@ -105,10 +107,10 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
 
     if(ssrc2 == NULL) return INT2NUM(src.x);
     Uint32 *psrc2 = (Uint32 *)(ssrc2->pixels);
-	
+
     src.x += shadow_margin_x;
     src.y += shadow_margin_y;
-    
+
 		MiyakoSize size2;
 		size2.w = dst.rect.w - (src.x < 0 ? -(src.x) : src.x);
 		size2.h = dst.rect.h - (src.y < 0 ? -(src.y) : src.y);
@@ -117,7 +119,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
 
     SDL_LockSurface(ssrc2);
     SDL_LockSurface(dst.surface);
-  
+
     for(y = 0; y < size2.h; y++)
     {
       Uint32 *ppsrc2 = psrc2 + y * ssrc2->w;
@@ -125,48 +127,63 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
       for(x = 0; x < size2.w; x++)
       {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-				dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
-	      src.color.a = (Uint32)(((*ppsrc2) >> 24) << ssrc2->format->Aloss) & 0xff;
-        if(src.color.a == 0){ ppsrc2++; ppdst++; continue; }
-        if(dst.color.a == 0 || src.color.a == 255){
+        da = (*ppdst >> 24) | dst.a255;
+        sa = *ppsrc2 >> 24;
+        if(sa == 0){ ppsrc2++; ppdst++; continue; }
+        if(da == 0 || sa == 255){
           *ppdst = *ppsrc2;
           ppsrc2++;
           ppdst++;
           continue;
         }
-				dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-				dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-				dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-	      src.color.r = (Uint32)(((*ppsrc2) >> 16)) & 0xff;
-	      src.color.g = (Uint32)(((*ppsrc2) >> 8)) & 0xff;
-	      src.color.b = (Uint32)(((*ppsrc2))) & 0xff;
-        int a1 = src.color.a + 1;
-        int a2 = 256 - src.color.a;
-        *ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-                 (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-                 (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-                 (255 >> dst.fmt->Aloss) << 24;
+#if 0
+        dr = (Uint32)((*ppdst >> 16)) & 0xff;
+        dg = (Uint32)((*ppdst >> 8)) & 0xff;
+        db = (Uint32)((*ppdst)) & 0xff;
+        sr = (Uint32)((*ppsrc2 >> 16)) & 0xff;
+        sg = (Uint32)((*ppsrc2 >> 8)) & 0xff;
+        sb = (Uint32)((*ppsrc2)) & 0xff;
+        int a1 = sa + 1;
+        int a2 = 256 - sa;
+        *ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
+                 (((sg * a1 + dg * a2) >> 8)) << 8 |
+                 (((sb * a1 + db * a2) >> 8)) |
+                 0xff000000;
 #else
-				dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
-	      src.color.a = (Uint32)(((*ppsrc2 & ssrc2->format->Amask)) << ssrc2->format->Aloss);
-        if(src.color.a == 0){ ppsrc2++; ppdst++; continue; }
-        if(dst.color.a == 0 || src.color.a == 255){
+        dr = *ppdst & 0xff0000;
+        dg = *ppdst & 0xff00;
+        db = *ppdst & 0xff;
+        sr = *ppsrc2 & 0xff0000;
+        sg = *ppsrc2 & 0xff00;
+        sb = *ppsrc2 & 0xff;
+        int a1 = sa + 1;
+        int a2 = 256 - sa;
+        *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
+                  (sg * a1 + dg * a2) & 0xff0000   |
+                  (sb * a1 + db * a2)) >> 8        |
+                 0xff000000;
+#endif
+#else
+				da = (Uint32)(((*ppdst & dst.fmt->Amask) | dst.a255;
+	      sa = (Uint32)(((*ppsrc2 & ssrc2->format->Amask)));
+        if(sa == 0){ ppsrc2++; ppdst++; continue; }
+        if(da == 0 || sa == 255){
           *ppdst = *ppsrc2;
           ppsrc2++;
           ppdst++;
           continue;
         }
-				dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-				dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-				dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-	      src.color.r = (Uint32)(((*ppsrc2 & ssrc2->format->Rmask) >> ssrc2->format->Rshift));
-	      src.color.g = (Uint32)(((*ppsrc2 & ssrc2->format->Gmask) >> ssrc2->format->Gshift));
-	      src.color.b = (Uint32)(((*ppsrc2 & ssrc2->format->Bmask) >> ssrc2->format->Bshift));
-        int a1 = src.color.a + 1;
-        int a2 = 256 - src.color.a;
-        *ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-                 (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-                 (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+				dr = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+				dg = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+				db = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+	      sr = (Uint32)(((*ppsrc2 & ssrc2->format->Rmask) >> ssrc2->format->Rshift));
+	      sg = (Uint32)(((*ppsrc2 & ssrc2->format->Gmask) >> ssrc2->format->Gshift));
+	      sb = (Uint32)(((*ppsrc2 & ssrc2->format->Bmask) >> ssrc2->format->Bshift));
+        int a1 = sa + 1;
+        int a2 = 256 - sa;
+        *ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
+                 (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
+                 (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
                  (255 >> dst.fmt->Aloss);
 #endif
         ppsrc2++;
@@ -197,7 +214,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
 
   SDL_LockSurface(ssrc);
   SDL_LockSurface(dst.surface);
-  
+
 	for(y = 0; y < size.h; y++)
 	{
 		Uint32 *ppsrc = psrc + y * ssrc->w;
@@ -205,48 +222,63 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
 		for(x = 0; x < size.w; x++)
 		{
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-			dst.color.a = (Uint32)(((*ppdst) >> 24) << dst.fmt->Aloss) & 0xff | dst.a255;
-			src.color.a = (Uint32)(((*ppsrc) >> 24) << ssrc->format->Aloss) & 0xff;
-			if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
-			if(dst.color.a == 0 || src.color.a == 255){
+			da = (*ppdst >> 24) | dst.a255;
+			sa = *ppsrc >> 24;
+			if(sa == 0){ ppsrc++; ppdst++; continue; }
+			if(da == 0 || sa == 255){
 				*ppdst = *ppsrc;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
-			dst.color.r = (Uint32)(((*ppdst) >> 16)) & 0xff;
-			dst.color.g = (Uint32)(((*ppdst) >> 8)) & 0xff;
-			dst.color.b = (Uint32)(((*ppdst))) & 0xff;
-			src.color.r = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-			src.color.g = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-			src.color.b = (Uint32)(((*ppsrc))) & 0xff;
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << 16 |
-							 (((src.color.g * a1 + dst.color.g * a2) >> 8)) << 8 |
-							 (((src.color.b * a1 + dst.color.b * a2) >> 8)) |
-							 (255 >> dst.fmt->Aloss) << 24;
+#if 0
+			dr = (Uint32)(((*ppdst) >> 16)) & 0xff;
+			dg = (Uint32)(((*ppdst) >> 8)) & 0xff;
+			db = (Uint32)(((*ppdst))) & 0xff;
+			sr = (Uint32)(((*ppsrc) >> 16)) & 0xff;
+			sg = (Uint32)(((*ppsrc) >> 8)) & 0xff;
+			sb = (Uint32)(((*ppsrc))) & 0xff;
+			int a1 = sa + 1;
+			int a2 = 256 - sa;
+			*ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
+							 (((sg * a1 + dg * a2) >> 8)) << 8 |
+							 (((sb * a1 + db * a2) >> 8)) |
+							 0xff000000;
 #else
-			dst.color.a = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
-			src.color.a = (Uint32)(((*ppsrc & ssrc->format->Amask)) << ssrc->format->Aloss);
-			if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
-			if(dst.color.a == 0 || src.color.a == 255){
+      dr = *ppdst & 0xff0000;
+      dg = *ppdst & 0xff00;
+      db = *ppdst & 0xff;
+      sr = *ppsrc & 0xff0000;
+      sg = *ppsrc & 0xff00;
+      sb = *ppsrc & 0xff;
+      int a1 = sa + 1;
+      int a2 = 256 - sa;
+      *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
+                (sg * a1 + dg * a2) & 0xff0000   |
+                (sb * a1 + db * a2)) >> 8        |
+               0xff000000;
+#endif
+#else
+			da = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+			sa = (Uint32)(((*ppsrc & ssrc->format->Amask)) << ssrc->format->Aloss);
+			if(sa == 0){ ppsrc++; ppdst++; continue; }
+			if(da == 0 || sa == 255){
 				*ppdst = *ppsrc;
 				ppsrc++;
 				ppdst++;
 				continue;
 			}
-			dst.color.r = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-			dst.color.g = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-			dst.color.b = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-			src.color.r = (Uint32)(((*ppsrc & ssrc->format->Rmask) >> ssrc->format->Rshift));
-			src.color.g = (Uint32)(((*ppsrc & ssrc->format->Gmask) >> ssrc->format->Gshift));
-			src.color.b = (Uint32)(((*ppsrc & ssrc->format->Bmask) >> ssrc->format->Bshift));
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r * a1 + dst.color.r * a2) >> 8)) << dst.fmt->Rshift |
-							 (((src.color.g * a1 + dst.color.g * a2) >> 8)) << dst.fmt->Gshift |
-							 (((src.color.b * a1 + dst.color.b * a2) >> 8)) << dst.fmt->Bshift |
+			dr = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+			dg = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+			db = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+			sr = (Uint32)(((*ppsrc & ssrc->format->Rmask) >> ssrc->format->Rshift));
+			sg = (Uint32)(((*ppsrc & ssrc->format->Gmask) >> ssrc->format->Gshift));
+			sb = (Uint32)(((*ppsrc & ssrc->format->Bmask) >> ssrc->format->Bshift));
+			int a1 = sa + 1;
+			int a2 = 256 - sa;
+			*ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
+							 (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
+							 (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
 							 (255 >> dst.fmt->Aloss);
 #endif
       ppsrc++;

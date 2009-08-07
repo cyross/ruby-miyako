@@ -28,7 +28,7 @@ module Miyako
   class Viewport
     include SpriteBase
     include Animation
-    
+
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
 
     #===ビューポートのインスタンスを生成する
@@ -42,7 +42,7 @@ module Miyako
       @sq = Rect.new(x, y, x+w-1, y+h-1)
       @visible = true
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @rect = @rect.dup
       @sq = @sq.dup
@@ -168,19 +168,19 @@ module Miyako
       raise MiyakoValueError, "Illegal size! w:#{w} h:#{h}" if (w <= 0 || h <= 0)
       @rect.dup.resize_to!(w,h)
     end
-    
+
     #===インスタンスを解放する
     def dispose
       @rect = nil
       @sq   = nil
     end
-    
+
     #===ビューポートのインスタンスを複製する
     #返却値:: 自分自身の複製
     def viewport
       return self.dup
     end
-    
+
     #===ビューポートのインスタンスを「左、右、上、下」の形式で取得する
     #返却値:: ビューポートの矩形(Square構造体インスタンス)の複製
     def square
