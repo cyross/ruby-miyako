@@ -70,6 +70,10 @@ module Miyako
     @@num2bsym = [:btn1,  :btn2,  :btn3,  :btn4,  :btn5,  :btn6,
                   :btn7,  :btn8,  :btn9,  :btn10, :btn11, :btn12]
 
+    @@enable_keyboard = true
+    @@enable_joypad = true
+    @@enable_mouse = true
+
     def Input::create_btns #:nodoc:
       return {:btn1  => 0, :btn2  => 0, :btn3  => 0,
               :btn4  => 0, :btn5  => 0, :btn6  => 0,
@@ -116,21 +120,69 @@ module Miyako
       @@initialized = true
     end
 
+    #===キーボードを使用可能にする
+    def Input.keyboard_enable
+      @@enable_keyboard = true
+    end
+
+    #===キーボードを使用不可にする
+    def Input.keyboard_disable
+      @@enable_keyboard = false
+    end
+
+    #===キーボードを使用可能かどうか問い合わせる
+    def Input.keyboad_enable?
+      @@enable_keyboard
+    end
+
+    #===ゲームパッドを使用可能にする
+    def Input.joypad_enable
+      @@enable_joypad= true
+    end
+
+    #===ゲームパッドを使用不可にする
+    def Input.joypad_disable
+      @@enable_joypad = false
+    end
+
+    #===ゲームパッドを使用可能かどうか問い合わせる
+    def Input.joypad_enable?
+      @@enable_joypad
+    end
+
+    #===マウスを使用可能にする
+    def Input.mouse_enable
+      @@enable_mouse = true
+    end
+
+    #===マウスを使用不可にする
+    def Input.mouse_disable
+      @@enable_mouse = false
+    end
+
+    #===マウスを使用可能かどうか問い合わせる
+    def Input.mouse_enable?
+      @@enable_mouse
+    end
+
     def Input::process_quit(e) #:nodoc:
       @@quit = true
     end
 
     def Input::process_keydown(e) #:nodoc:
+      return unless @@enable_keyboard
       set_btn(@@btn2sym[e.sym]) if @@btn2sym.include?(e.sym)
       @@mods.each{|m| set_btn(@@btn2sym[m]) if e.mod & m == m}
     end
 
     def Input::process_keyup(e) #:nodoc:
+      return unless @@enable_keyboard
       reset_btn(@@btn2sym[e.sym]) if @@btn2sym.include?(e.sym)
       @@mods.each{|m| reset_btn(@@btn2sym[m]) if e.mod & m == m}
     end
 
     def Input::process_joyaxis(e) #:nodoc:
+      return unless @@enable_joypad
       if e.axis == 0
         if e.value >= 16384
           set_btn(:right)
@@ -153,14 +205,17 @@ module Miyako
     end
 
     def Input::process_joybuttondown(e) #:nodoc:
+      return unless @@enable_joypad
       set_btn(@@num2bsym[e.button]) if e.button < BTNS
     end
 
     def Input::process_joybuttonup(e) #:nodoc:
+      return unless @@enable_joypad
       reset_btn(@@num2bsym[e.button]) if e.button < BTNS
     end
 
     def Input::process_mousemotion(e) #:nodoc:
+      return unless @@enable_mouse
       @@mouse[:pos][:x]  = e.x
       @@mouse[:pos][:y]  = e.y
       @@mouse[:pos][:dx] = e.xrel
@@ -168,6 +223,7 @@ module Miyako
     end
 
     def Input::process_mousebuttondown(e) #:nodoc:
+      return unless @@enable_mouse
       set_mouse_button(:trigger, e.button)
       return unless @@mouse[:inner]
       click_mouse_button(:click, e.button)
@@ -178,6 +234,7 @@ module Miyako
     end
 
     def Input::process_mousebuttonup(e) #:nodoc:
+      return unless @@enable_mouse
       reset_mouse_button(:trigger, e.button)
       click_interval = SDL.getTicks - @@click_start_tick
       if click_interval < @@mouse[:click][:interval]
@@ -192,6 +249,7 @@ module Miyako
     end
 
     def Input::process_active(e) #:nodoc:
+      return unless @@enable_mouse
       @@mouse[:inner] = e.gain if e.state == 1
     end
 
@@ -352,6 +410,7 @@ module Miyako
     #原点は、画面領域の左上を{:x=>0,:y=>0}とする
     #返却値:: マウスカーソルの位置を示すPoint構造体
     def Input::get_mouse_position
+      return Point.new(-1,-1) unless @@enable_mouse
       return Point.new(@@mouse[:pos][:x],@@mouse[:pos][:y])
     end
 
@@ -360,6 +419,7 @@ module Miyako
     #移動量は、右下方向を正とする
     #返却値:: マウスカーソルの移動量を示すSize構造体
     def Input::get_mouse_amount
+      return Size.new(0,0) unless @@enable_mouse
       return Size.new(@@mouse[:pos][:dx],@@mouse[:pos][:dy])
     end
 
@@ -375,6 +435,7 @@ module Miyako
     #_btn_:: 問い合わせるボタンを示すシンボル(可変個)
     #返却値:: ボタンが押されていれば true を返す
     def Input::click?(btn)
+      return false unless @@enable_mouse
       btns = (btn == :any ? [:left, :middle, :right] : [btn])
       ret = btns.inject(false){|r, f| r |= @@mouse[:click][f]}
       return ret
@@ -391,6 +452,7 @@ module Miyako
     #_btn_:: 問い合わせるボタンを示すシンボル(可変個)
     #返却値:: ボタンが押されていれば true を返す
     def Input::mouse_trigger?(btn)
+      return false unless @@enable_mouse
       return btn == :any ? (@@mouse[:trigger][:left] || @@mouse[:trigger][:middle] || @@mouse[:trigger][:right]) : @@mouse[:trigger][btn]
     end
 
@@ -406,6 +468,7 @@ module Miyako
     #_btn_:: 問い合わせるボタンを示すシンボル(可変個)
     #返却値:: ドラッグアンドドロップが成功していれば、true を返す
     def Input::drag_and_drop?(btn)
+      return false unless @@enable_mouse
       return @@mouse[:drop][:succeed] && (btn == :any ? (@@mouse[:drop][:left] || @@mouse[:drop][:middle] || @@mouse[:drop][:right]) : @@mouse[:click][btn])
     end
 
@@ -414,6 +477,7 @@ module Miyako
     #{:drag_x => ドラッグが行われた x 座標, :drag_y => ドラッグが行われた y 座標, :drop_x => ドロップが行われた x 座業, :drop_y => ドロップが行われた y 座標}
     #返却値:: ドラッグアンドドロップが成功していれば、移動範囲を示すハッシュ、失敗していれば nil を返す
     def Input::get_drag_and_drop_range
+      return nil unless @@enable_mouse
       return @@mouse[:drop][:succeed] ? {:drag_x => @@mouse[:drag][:x], :drag_y => @@mouse[:drag][:y], :drop_x => @@mouse[:pos][:x], :drop_y => @@mouse[:pos][:y]} : nil
     end
 
@@ -434,6 +498,7 @@ module Miyako
     #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
     #返却値:: マウスカーソルが画面内ならtrueを返す
     def Input::mouse_cursor_inner?
+      return false unless @@enable_mouse
       return @@mouse[:inner]
     end
 

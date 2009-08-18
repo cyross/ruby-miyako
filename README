@@ -1013,6 +1013,7 @@ v2.1.0(2009.7.9)
 ・SpriteBase.#render,render_to、Bitmapクラスの各種画像効果メソッドでのブロックの使用を廃止
 ・MapLayer#collision?,meet?,cover?,can_accessメソッドの引数を追加(ignores引数)
 ・FixedMapLayer#collision?,meet?,cover?,can_accessメソッドの引数を追加(ignores引数)
+・マウス、キーボード、ゲームパッドの利用選択が可能に(enable、disableの設定が可能に)
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
@@ -1067,6 +1068,16 @@ v2.1.0(2009.7.9)
 ・Audio::SE.update
 ・Audio::SE.playing_any?
 ・Audio::SE.channels
+・Input.init
+・Input.keyboard_enable
+・Input.keyboard_disable
+・Input.keyboard_enable?
+・Input.joypad_enable
+・Input.joypad_disable
+・Input.joypad_enable?
+・Input.mouse_enable
+・Input.mouse_disable
+・Input.mouse_enable?
 ・Input.init
 ・Layout.copy_layout
 ・Font.init
@@ -1142,6 +1153,7 @@ v2.1.0(2009.7.9)
 ・Yuki#parts_names
 ・Yuki#render_to
 ・Yuki#update_animation
+・Yuki#process
 ・Audio::BGM#loop_count
 ・Audio::BGM#in_the_loop?
 ・Audio::BGM#loop_count_up

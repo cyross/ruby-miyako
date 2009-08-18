@@ -859,7 +859,7 @@ module Miyako
     #返却値:: 登録された自分自身
     def []=(name, sprite)
       return self.push([name, sprite]) unless self.names.include?(name)
-      @list << ListPair.new(name, sprite)
+      @list[self.names.index(name)].body = sprite
       return self
     end
 
