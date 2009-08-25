@@ -194,6 +194,7 @@ static void render_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 */
 static VALUE sprite_b_render_xy(VALUE self, VALUE vx, VALUE vy)
 {
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
   VALUE cls = rb_obj_class(self);
   if(rb_funcall(cls, id_defined, ID2SYM(id_move_to)) == Qfalse ||
       rb_funcall(cls, id_defined, ID2SYM(id_pos)) == Qfalse ){
@@ -214,6 +215,7 @@ static VALUE sprite_b_render_xy(VALUE self, VALUE vx, VALUE vy)
 */
 static VALUE sprite_b_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE vy)
 {
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
   VALUE cls = rb_obj_class(self);
   if(rb_funcall(cls, id_defined, ID2SYM(id_move_to)) == Qfalse ||
       rb_funcall(cls, id_defined, ID2SYM(id_pos)) == Qfalse ){
@@ -331,7 +333,7 @@ VALUE _miyako_sprite_render_xy(VALUE sprite, VALUE x, VALUE y)
 */
 static VALUE sprite_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE vy)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap src, dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -667,7 +669,7 @@ static void fixedmaplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
 */
 static VALUE maplayer_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -681,7 +683,7 @@ static VALUE maplayer_render(VALUE self)
 */
 static VALUE fixedmaplayer_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -695,7 +697,7 @@ static VALUE fixedmaplayer_render(VALUE self)
 */
 static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -709,7 +711,7 @@ static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -723,7 +725,7 @@ static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE map_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -742,7 +744,7 @@ static VALUE map_render(VALUE self)
 */
 static VALUE fixedmap_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -761,7 +763,7 @@ static VALUE fixedmap_render(VALUE self)
 */
 static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -781,7 +783,7 @@ static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
 	MiyakoBitmap dst;
 	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
@@ -898,7 +900,7 @@ static VALUE sa_update(VALUE self)
 */
 static VALUE sa_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   VALUE vsrc = rb_iv_get(self, "@now");
   VALUE *runit = RSTRUCT_PTR(vsrc);
@@ -938,7 +940,7 @@ static VALUE sa_render(VALUE self)
 */
 static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   VALUE vsrc = rb_iv_get(self, "@now");
   VALUE *runit = RSTRUCT_PTR(vsrc);
@@ -979,7 +981,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE plane_render(VALUE self)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   VALUE sprite = rb_iv_get(self, "@sprite");
 
@@ -1020,7 +1022,7 @@ static VALUE plane_render(VALUE self)
 */
 static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
 {
-  VALUE visible = rb_iv_get(self, "@visible");
+  VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   VALUE sprite = rb_iv_get(self, "@sprite");
 

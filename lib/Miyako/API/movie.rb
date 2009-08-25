@@ -32,7 +32,7 @@ module Miyako
     @@movie_list = []
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
-    
+
     #===動画のインスタンスを作成する
     #(但し、現在の所、loopパラメータは利用できない)
     #_fname_:: 動画ファイル名
@@ -43,7 +43,7 @@ module Miyako
 
       @x = 0
       @y = 0
-      
+
       raise MiyakoIOError.no_file(fname) unless File.exist?(fname)
       @movie = SDL::MPEG.load(fname)
       @size = Size.new(@movie.info.width, @movie.info.height)
@@ -52,11 +52,11 @@ module Miyako
       @visible = true
       @sprite = Sprite.new({:size=>@size , :type=>:movie})
       @sprite.snap(self)
-      
+
       @movie.enable_audio(true) unless $not_use_audio
       @movie.enable_video(true)
       @movie.set_loop(loops)
-      
+
       @movie.set_display(@sprite.bitmap)
       @movie.scale(1.0)
       @@movie_list.push(self)
@@ -67,13 +67,13 @@ module Miyako
       @y = @layout.pos[1]
       @sprite.move_to!(*@layout.pos)
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @sprite = @sprite.dup
       @size = @size.dup
       copy_layout
     end
-    
+
     #===動画再生時の音量を指定する
     #_v_:: 指定する音量。(0～100までの整数)
     def set_volume(v)
@@ -150,11 +150,11 @@ module Miyako
     #visibleメソッドの値がfalseのときは描画されない。
     #返却値:: 自分自身を返す
     def render
-      return slef nless @visible
+      return self unless @visible
       @sprite.render
       return self
     end
-    
+
     #===一時停止中の動画の再生を再開する
     #Miyako::Movie#pause メソッドを実行した後に呼び出す
     def_delegators(:@movie, :rewind)

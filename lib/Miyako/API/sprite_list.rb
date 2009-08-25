@@ -259,6 +259,13 @@ module Miyako
     end
 
     #===スプライト名配列を取得する
+    #SpriteList#show,hideメソッドを呼び出す際、すべての要素を表示・非表示にするときに使う
+    #返却値:: スプライト名配列
+    def all
+      @list.map{|pair| pair.name }
+    end
+
+    #===スプライト名配列を取得する
     #名前が登録されている順に渡ってくる
     #返却値:: スプライト名配列
     def names
@@ -1184,6 +1191,60 @@ module Miyako
     def to_last!(*names)
       names.each{|name| pickup_inner(name) }
       self
+    end
+
+    #===要素全体もしくは一部を描画可能状態にする
+    #他のshowメソッドとの違いは、名前のリストを引数に取れること(省略可)。
+    #paramsで指定した名前に対応したスプライトのみ描画可能にする
+    #paramsの省略時は自分自身を描画可能にする(現在、どの要素が描画可能かは考えない。他クラスのshowと同じ動作)
+    #すべての要素を描画可能にしたいときは、引数にSpriteList#allを使用する
+    #paramsに登録されていない名前が含まれているときは無視される
+    #また、ブロック(名前nameとスプライトbodyが引数)を渡したときは、リストに渡した名前一覧のうち、
+    #ブロックを評価した結果がtrueのときのみ描画可能にする。
+    #(引数paramsを省略したときは、すべての要素に対してブロックを評価すると見なす)
+    #_params_:: 表示対象に名前リスト。
+    def show(*params)
+      if block_given?
+        if params == []
+          @list.each{|pair| pair.body.show if yield(pair.name, pair.body) }
+        else
+          @list.each{|pair|
+            next unless params.include?(pair.name)
+            pair.body.show if yield(pair.name, pair.body)
+          }
+        end
+      elsif params == []
+        self.visible = true
+      else
+        @list.each{|pair| pair.body.show if params.include?(pair.name) }
+      end
+    end
+
+    #===要素全体もしくは一部を描画不可能状態にする
+    #他のhideメソッドとの違いは、名前のリストを引数に取れること(省略可)。
+    #paramsで指定した名前に対応したスプライトのみ描画不可能にする
+    #paramsの省略時は自分自身を描画不可にする(現在、どの要素が描画不可になっているかは考えない。他クラスのhideと同じ動作)
+    #すべての要素を描画不可能にしたいときは、引数にSpriteList#allを使用する
+    #paramsに登録されていない名前が含まれているときは無視される
+    #また、ブロック(名前nameとスプライトbodyが引数)を渡したときは、リストに渡した名前一覧のうち、
+    #ブロックを評価した結果がtrueのときのみ描画可能にする。
+    #(引数paramsを省略したときは、すべての要素に対してブロックを評価すると見なす)
+    #_params_:: 表示対象に名前リスト。
+    def hide(*params)
+      if block_given?
+        if params == []
+          @list.each{|pair| pair.body.hide if yield(pair.name, pair.body) }
+        else
+          @list.each{|pair|
+            next unless params.include?(pair.name)
+            pair.body.hide if yield(pair.name, pair.body)
+          }
+        end
+      elsif params == []
+        self.visible = false
+      else
+        @list.each{|pair| pair.body.hide if params.include?(pair.name) }
+      end
     end
 
     #===各要素のアニメーションを開始する

@@ -49,6 +49,7 @@ static volatile ID id_sprite_only = Qnil;
 static volatile int zero = 0;
 static volatile int one = 1;
 static char *str_list = "@list";
+static char *str_visible = "@visible";
 
 /*
 :nodoc:
@@ -528,6 +529,7 @@ VALUE _miyako_sprite_list_update_animation(VALUE splist)
 */
 static VALUE sprite_list_render(VALUE self)
 {
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
   sprite_list_inner(self, id_render);
   return self;
 }
@@ -546,6 +548,7 @@ VALUE _miyako_sprite_list_render(VALUE splist)
 */
 static VALUE sprite_list_render_to(VALUE self, VALUE dst)
 {
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
   VALUE array = rb_iv_get(self, str_list);
   int i;
   for(i=0; i<RARRAY_LEN(array); i++)
