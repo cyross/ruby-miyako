@@ -1247,6 +1247,54 @@ module Miyako
       end
     end
 
+    #===要素全体もしくは一部のみ描画可能状態にする
+    #paramsで指定した名前に対応したスプライトのみ描画可能にし、それ以外を描画不可能にする
+    #paramsに登録されていない名前が含まれているときは無視される
+    #paramsを省略したときは、すべての要素を描画可能にする
+    #また、ブロック(名前nameとスプライトbodyが引数)を渡したときは、リストに渡した名前一覧のうち、
+    #ブロックを評価した結果がtrueのときのみ描画可能にする。
+    #_params_:: 表示対象に名前リスト。
+    def show_only(*params)
+      if block_given?
+        if params == []
+          @list.each{|pair| yield(pair.name, pair.body) ? pair.body.show : pair.body.hide }
+        else
+          @list.each{|pair|
+            next unless params.include?(pair.name)
+            yield(pair.name, pair.body) ? pair.body.show : pair.body.hide
+          }
+        end
+      elsif params == []
+        @list.each{|pair| pair.body.show }
+      else
+        @list.each{|pair| params.include?(pair.name) ? pair.body.show : pair.body.hide }
+      end
+    end
+
+    #===要素全体もしくは一部のみ描画不可能状態にする
+    #paramsで指定した名前に対応したスプライトのみ描画不可能にし、それ以外を描画可能にする
+    #paramsに登録されていない名前が含まれているときは無視される
+    #paramsを省略したときは、すべての要素を描画不可能にする
+    #また、ブロック(名前nameとスプライトbodyが引数)を渡したときは、リストに渡した名前一覧のうち、
+    #ブロックを評価した結果がtrueのときのみ描画可能にする。
+    #_params_:: 表示対象に名前リスト。
+    def hide_only(*params)
+      if block_given?
+        if params == []
+          @list.each{|pair| yield(pair.name, pair.body) ? pair.body.hide : pair.body.show }
+        else
+          @list.each{|pair|
+            next unless params.include?(pair.name)
+            yield(pair.name, pair.body) ? pair.body.hide : pair.body.show
+          }
+        end
+      elsif params == []
+        @list.each{|pair| pair.body.hide }
+      else
+        @list.each{|pair| params.include?(pair.name) ? pair.body.hide : pair.body.show }
+      end
+    end
+
     #===各要素のアニメーションを開始する
     #各要素のstartメソッドを呼び出す
     #返却値:: 自分自身を返す
