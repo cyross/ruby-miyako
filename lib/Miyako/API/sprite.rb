@@ -281,6 +281,24 @@ module Miyako
       set_layout_size(@unit.ow, v)
     end
 
+    #=== スプライトの部分描画矩形を返す
+    #返却値:: Rect構造体インスタンス
+    def part_rect
+      return Rect.new(self.ox,self.oy,self.ow,self.oh)
+    end
+
+    #=== スプライトの元画像の大きさを返す
+    #返却値:: Size構造体インスタンス
+    def image_size
+      return Size.new(self.bitmap.w,self.bitmap.h)
+    end
+
+    #=== スプライトの元画像の矩形を返す
+    #返却値:: Rect構造体インスタンス
+    def image_rect
+      return Rect.new(0,0,self.bitmap.w, self.bitmap.h)
+    end
+
     #===画像の回転・拡大・縮小の中心座標を取得する
     #x方向の中心座標を取得する
     #返却値:: 中心座標。

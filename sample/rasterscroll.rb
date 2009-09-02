@@ -1,5 +1,5 @@
 # encoding: utf-8
-# ƒ‰ƒXƒ^ƒXƒNƒ[ƒ‹ƒTƒ“ƒvƒ‹
+# ãƒ©ã‚¹ã‚¿ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã‚µãƒ³ãƒ—ãƒ«
 # 2009.4.12 Cyross Makoto
 
 require 'Miyako/miyako'
@@ -7,9 +7,9 @@ require 'Miyako/EXT/raster_scroll'
 
 include Miyako
 
-#1•bŒã‚Éƒ‰ƒXƒ^ƒXƒNƒ[ƒ‹‚ÌƒtƒF[ƒhƒAƒEƒg‚ğİ’è‚·‚é
+#1ç§’å¾Œã«ãƒ©ã‚¹ã‚¿ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã®ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¢ã‚¦ãƒˆã‚’è¨­å®šã™ã‚‹
 wait = WaitCounter.new(1.0).start
-# 0.05•b‚²‚Æ‚ÉA2ƒ‰ƒCƒ“‚¸‚ÂA8ƒsƒNƒZƒ‹’PˆÊ‚Ìƒ‰ƒXƒ^ƒXƒNƒ[ƒ‹‚ğs‚¤
+# 0.05ç§’ã”ã¨ã«ã€2ãƒ©ã‚¤ãƒ³ãšã¤ã€8ãƒ”ã‚¯ã‚»ãƒ«å˜ä½ã®ãƒ©ã‚¹ã‚¿ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã‚’è¡Œã†
 sprite = Sprite.new(:file => "Animation2/lex_body.png", :type => :ck).centering!
 rs = RasterScroll.new(sprite).start({:lines => 2, :size => 8, :wait=>WaitCounter.new(0.05)})
 fade = false
@@ -18,7 +18,7 @@ Miyako.main_loop do
   break if Input.quit_or_escape?
   rs.effecting? ? rs.update.render : sprite.render
   if fade == false && wait.finish?
-    #1•bŒã‚²‚Æ‚ÉAƒ‰ƒXƒ^ƒXƒNƒ[ƒ‹‚Ì•‚ğk‚ß‚é
+    #1ç§’å¾Œã”ã¨ã«ã€ãƒ©ã‚¹ã‚¿ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã®å¹…ã‚’ç¸®ã‚ã‚‹
     rs.fade_out(1, WaitCounter.new(1.0))
     fade = true
   end

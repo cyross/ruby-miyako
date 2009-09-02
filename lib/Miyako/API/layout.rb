@@ -454,18 +454,6 @@ module Miyako
       return @layout.size
     end
 
-    #=== mixin されたインスタンスの表示上の幅を取得する
-    #返却値:: インスタンスの幅(@layout［:size］［0］の値)
-    def ow
-      return @layout.size[0]
-    end
-
-    #=== mixin されたインスタンスの表示上の高さを取得する
-    #返却値:: インスタンスの高さ(@layout［:size］［0］の値)
-    def oh
-      return @layout.size[1]
-    end
-
     #===インスタンスのサイズをレイアウト情報に反映させる
 		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #_w_:: インスタンスの幅(たとえば、Sprite#ow の値)
@@ -490,6 +478,12 @@ module Miyako
     #返却値:: Rect構造体
     def rect
       return Rect.new(@layout.pos[0], @layout.pos[1], @layout.size[0], @layout.size[1])
+    end
+
+    #===領域の最大矩形を取得するメソッドのテンプレート
+    #返却値:: Rect構造体インスタンス(デフォルトはnil)
+    def broad_rect
+      return self.rect
     end
 
     #===インスタンスのレイアウトを指定の別のインスタンスに依存(スナップ)させる
@@ -627,13 +621,6 @@ module Miyako
 
     def initialize_copy(obj) #:nodoc:
       copy_layout
-    end
-
-    #===現在の画面の最大の大きさを矩形で取得する
-    #但し、LayoutSpaceの場合は最大の大きさ=スプライトの大きさなので、rectと同じ値が得られる
-    #返却値:: 生成された矩形(Rect構造体のインスタンス)
-    def broad_rect
-      return self.rect
     end
 
     #===インスタンスを解放させる

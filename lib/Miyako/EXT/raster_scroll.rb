@@ -39,7 +39,7 @@ module Miyako
       @fo_size = 0
       @effecting = false
     end
-    
+
     #===ラスタスクロールを開始する
     #ラスタスクロール実行用に設定する引数は以下の通り
     #:lines -> ライン数(:lines=>3を指定すると、3ラインずつラスタスクロールを行う)。デフォルトは1（ライン）
@@ -62,7 +62,7 @@ module Miyako
       @wait.start
       return self
     end
-  
+
     #===ラスタスクロール処理を更新する
     #返却値:: 自分自身を返す
     def update
@@ -106,22 +106,44 @@ module Miyako
     #===ラスタスクロールを画面に描画する
     def render
       angle = @sangle
+      ty = @src.oy
+      th = @src.oh
+      pos = @src.pos
+      @src.oh = @lines
+      @src.oy = 0
       @h.times{|y|
         rsx = @size * Math.sin(angle)
-        @src.render{|src, dst| src.x += rsx; src.y += y * @lines; src.oy += y * @lines; src.oh = @lines }
+        @src.render_xy @src.x + rsx, @src.y + y * @lines
+        ny = @src.oy + @lines
+        @src.oh = @src.h - ny if (@src.h - ny < @lines)
+        @src.oy = ny
         angle = angle + @dangle
       }
+      @src.oy = ty
+      @src.oh = th
+      @src.move_to!(*pos)
     end
-    
+
     #===ラスタスクロールを画像に描画する
     #_dst_:: 描画先画像
     def render_to(dst)
-      @angle = @sangle
+      angle = @sangle
+      ty = @src.oy
+      th = @src.oh
+      pos = @src.pos
+      @src.oh = @lines
+      @src.oy = 0
       @h.times{|y|
-        rsx = @size * Math.sin(@angle)
-        @src.render_to(dst){|src, dst| src.x += rsx; src.y += y * @lines; src.oy += y * @lines; src.oh = @lines }
-        @angle = @angle + @dangle
+        rsx = @size * Math.sin(angle)
+        @src.render_xy_to dst, @src.x + rsx, @src.y + y * @lines
+        ny = @src.oy + @lines
+        @src.oh = @src.h - ny if (@src.h - ny < @lines)
+        @src.oy = ny
+        angle = angle + @dangle
       }
+      @src.oy = ty
+      @src.oh = th
+      @src.move_to!(*pos)
     end
 
     #===ラスタスクロールをフェードアウトさせる

@@ -478,5 +478,17 @@ module Miyako
          c.body.update_animation) if c.condition.call
       }
     end
+
+    #=== mixin されたインスタンスの部分矩形幅を取得する
+    #返却値:: インスタンスの幅(デフォルトは0)
+    def ow
+      return self.size[0]
+    end
+
+    #=== mixin されたインスタンスの部分矩形高を取得する
+    #返却値:: インスタンスの高さ(デフォルトは0)
+    def oh
+      return self.size[1]
+    end
   end
 end

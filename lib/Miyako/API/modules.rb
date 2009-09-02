@@ -62,14 +62,9 @@ module Miyako
     end
 
     #===領域の矩形を取得するメソッドのテンプレート
-    #返却値:: nilを返す
+    #Spriteクラスの時は部分矩形が返ってくることに注意
+    #返却値:: Rect構造体インスタンス(デフォルトはnil)
     def rect
-      return nil
-    end
-
-    #===領域の最大矩形を取得するメソッドのテンプレート
-    #返却値:: nilを返す
-    def broad_rect
       return nil
     end
 
@@ -79,16 +74,46 @@ module Miyako
       return nil
     end
 
-    #===画像内での描画開始位置(x座標)を取得するメソッドのテンプレート
-    #返却値:: 0を返す
+    #=== mixin されたインスタンスの部分矩形開始位置(x軸)を取得する
+    #返却値:: 部分矩形開始位置(デフォルトは0)
     def ox
       return 0
     end
 
-    #===画像内での描画開始位置(y座標)を取得するメソッドのテンプレート
-    #返却値:: 0を返す
+    #=== mixin されたインスタンスの部分矩形開始位置(y軸)を取得する
+    #返却値::部分矩形開始位置(デフォルトは0)
     def oy
       return 0
+    end
+
+    #=== mixin されたインスタンスの部分矩形幅を取得する
+    #返却値:: インスタンスの幅(デフォルトは0)
+    def ow
+      return 0
+    end
+
+    #=== mixin されたインスタンスの部分矩形高を取得する
+    #返却値:: インスタンスの高さ(デフォルトは0)
+    def oh
+      return 0
+    end
+
+    #=== スプライトの部分矩形を返す
+    #返却値:: Rect構造体インスタンス(デフォルトはnil)
+    def part_rect
+      return nil
+    end
+
+    #=== スプライトの元画像の大きさを返す
+    #返却値:: Size構造体インスタンス(デフォルトはnil)
+    def image_size
+      return nil
+    end
+
+    #=== スプライトの元画像の矩形を返す
+    #返却値:: Rect構造体インスタンス(デフォルトはnil)
+    def image_rect
+      return nil
     end
 
     def update
