@@ -287,72 +287,6 @@ module Miyako
       return Rect.new(self.ox,self.oy,self.ow,self.oh)
     end
 
-    def adjust_part!
-      if self.ox < 0
-        self.ow += self.ox
-        self.ox = 0
-      end
-      if self.oy < 0
-        self.oh += self.oy
-        self.oy = 0
-      end
-      self.ow = 1 if self.ow <= 0
-      self.oh = 1 if self.oh <= 0
-      if self.ox + self.ow > self.w
-        self.ow = self.w - self.ox
-        if self.ow == 0
-          self.ox -= 1
-          self.ow = 1
-        end
-      end
-      if self.oy + self.oh > self.h
-        self.oh = self.h - self.oy
-        if self.oh == 0
-          self.oy -= 1
-          self.oh = 1
-        end
-      end
-    end
-
-    private :adjust_part!
-
-    #=== 範囲を画像の大きさに合わせながら、部分描画開始位置を移動させる
-    #
-    #返却値:: 自分自身
-    def part_move!(dx, dy)
-      self.ox += dx if dx
-      self.oy += dy if dy
-      adjust_part!
-      return self
-    end
-
-    #=== 範囲を画像の大きさに合わせながら、部分描画開始位置を移動させる
-    #返却値:: 自分自身
-    def part_move_to!(x, y)
-      self.ox = x if x
-      self.oy = y if y
-      adjust_part!
-      return self
-    end
-
-    #=== 範囲を画像の大きさに合わせながら、部分描画の大きさを変える
-    #返却値:: 自分自身
-    def part_resize!(dw, dh)
-      self.ow += dw if dw
-      self.oh += dh if dh
-      adjust_part!
-      return self
-    end
-
-    #=== 範囲を画像の大きさに合わせながら、部分描画の大きさを変える
-    #返却値:: 自分自身
-    def part_resize_to!(w, h)
-      self.ow = w if w
-      self.oh = h if h
-      adjust_part!
-      return self
-    end
-
     def adjust_part(ox, oy, ow, oh)
       if ox < 0
         ow += ox
@@ -382,6 +316,59 @@ module Miyako
     end
 
     private :adjust_part
+
+    #=== 範囲を画像の大きさに合わせながら、部分描画開始位置を移動させる
+    #
+    #返却値:: 自分自身
+    def part_move!(dx, dy)
+      @unit.ox, @unit.oy, @unit.ow, @unit.oh =
+        adjust_part(
+          dx ? @unit.ox+dx : @unit.ox,
+          dy ? @unit.oy+dy : @unit.oy,
+          @unit.ow,
+          @unit.oh
+        )
+      return self
+    end
+
+    #=== 範囲を画像の大きさに合わせながら、部分描画開始位置を移動させる
+    #返却値:: 自分自身
+    def part_move_to!(x, y)
+      @unit.ox, @unit.oy, @unit.ow, @unit.oh =
+        adjust_part(
+          x ? x : @unit.ox,
+          y ? y : @unit.oy,
+          @unit.ow,
+          @unit.oh
+        )
+      return self
+    end
+
+    #=== 範囲を画像の大きさに合わせながら、部分描画の大きさを変える
+    #返却値:: 自分自身
+    def part_resize!(dw, dh)
+      @unit.ox, @unit.oy, @unit.ow, @unit.oh =
+        adjust_part(
+          @unit.ox,
+          @unit.oy,
+          dw ? @unit.ow+dw : @unit.ow,
+          dh ? @unit.oh+dh : @unit.oh
+        )
+      return self
+    end
+
+    #=== 範囲を画像の大きさに合わせながら、部分描画の大きさを変える
+    #返却値:: 自分自身
+    def part_resize_to!(w, h)
+      @unit.ox, @unit.oy, @unit.ow, @unit.oh =
+        adjust_part(
+          @unit.ox,
+          @unit.oy,
+          w ? w : @unit.ow,
+          h ? h : @unit.oh
+        )
+      return self
+    end
 
     #=== 範囲を画像の大きさに合わせながら、部分描画開始位置を移動させる
     #ただし、移動した後の矩形を得られるだけで、内部を変更しない
