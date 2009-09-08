@@ -1158,6 +1158,8 @@ v2.1.0(2009.7.9)
 ・Sprite#part_move_to
 ・Sprite#part_resize
 ・Sprite#part_resize_to
+・SpriteAnimation#characters
+・SpriteAnimation#patterns
 ・SpriteBase#render_to
 ・SpriteBase#visible
 ・SpriteBase#visible=

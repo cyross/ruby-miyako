@@ -30,7 +30,7 @@ module Miyako
     include SingleEnumerable
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
-    
+
     #===インスタンスの作成
     #アニメーションを行うための初期設定を行う。
     #アニメーションは２種類の方法があり、
@@ -219,7 +219,7 @@ module Miyako
       @now.move_to!(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
                     @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
-    
+
     #===複写時に呼び出されるメソッド
     #複写と同時に、本インスタンスに対するスナップの関係を解消するが、
     #新しいパターンスプライトとスナップをやり直す
@@ -235,25 +235,25 @@ module Miyako
     end
 
     attr_accessor :visible
- 
+
     #=== 現在表示しているスプライトの x 座標の値を取得する
     #返却値:: x 座標の値
     def x
       return @now.x
     end
- 
+
     #=== 現在表示しているスプライトの y 座標の値を取得する
     #返却値:: y 座標の値
     def y
       return @now.y
     end
- 
+
     #=== 現在表示しているスプライトの幅を取得する
     #返却値:: 現在表示しているスプライトの幅(ピクセル単位)
     def w
       return @now.ow
     end
- 
+
     #=== 現在表示しているスプライトの高さを取得する
     #返却値:: 現在表示しているスプライトの高さ(ピクセル単位)
     def h
@@ -291,6 +291,12 @@ module Miyako
       return @plist[@pnum]
     end
 
+    #===アニメーションのパターン数を取得する
+    #返却値:: パターン数(0以上の整数)
+    def patterns
+      return @pats
+    end
+
     #===キャラクター番号を設定する
 		#キャラクター番号(アニメーションさせるときに表示させるパターン群インデックス)
 		#を設定する。範囲外のキャラクター番号が設定された時は何も行わない
@@ -316,7 +322,13 @@ module Miyako
     def character
       return @cnum
     end
-    
+
+    #===キャラクター数を取得する
+    #返却値:: キャラクター数（0以上の整数）
+    def characters
+      return @chrs
+    end
+
     #===アニメーションを開始する
     #パターンがリセットされていないときは、一時停止から復帰した時と同じ動作をする
     #返却値:: 自分自身
@@ -382,7 +394,7 @@ module Miyako
       @cnt = @waits[@plist[@pnum]]
       return true
     end
-    
+
     def update_wait_counter #:nodoc:
       return false if @cnt.waiting?
       @pnum = (@pnum + 1) % @pats
@@ -430,13 +442,13 @@ module Miyako
     def to_unit
       return @now.dup
     end
-    
+
     #=== 現在実行中のパターンの画像を返す
     #返却値:: 現在表示している画像(bitmap)
     def bitmap
       return @now.bitmap
     end
-    
+
     #===現在実行中のパターンの元になったインスタンスを返す
     #取得するパターンは、元になったインスタンスのto_spriteメソッドを呼び出した時の値となる
     #引数1個のブロックを渡せば、スプライトに補正をかけることが出来る
@@ -450,7 +462,7 @@ module Miyako
     def rect
       return Rect.new(@now.x, @now.y, @now.ow, @now.oh)
     end
- 
+
     #===現在表示しているスプライトの最大の大きさを矩形で取得する
     #現在のパターンの大きさと同じため、rectメソッドの値と同一となる
     #返却値:: 生成された矩形(Rect構造体のインスタンス)
