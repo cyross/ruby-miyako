@@ -368,6 +368,112 @@ module Miyako
       return self
     end
 
+
+    #===指定のレイヤーのイベントに対してupdateメソッドを呼び出す
+    #イベントレイヤーidxの全てのイベントに対してupdateメソッドを呼び出す
+    #_idx_:: 更新するイベントレイヤーの番号
+    #_params_:: イベントのupdateメソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def event_update(idx, *params)
+      @event_layers[idx].each{|event| event.update(self, @event_layers[idx], *params) }
+      self
+    end
+
+    #===全てのイベントに対してupdateメソッドを呼び出す
+    #全レイヤーのイベントを呼び出すことに注意
+    #_params_:: イベントのupdateメソッドを呼び出すときに渡す引数。可変個数
+    def all_event_update(*params)
+      @event_layers.each{|el| el.each{|event| event.update(self, el, *params) } }
+      self
+    end
+
+    #===指定のレイヤーのイベントに対してupdate2メソッドを呼び出す
+    #イベントレイヤーidxの全てのイベントに対してupdateメソッドを呼び出す
+    #_idx_:: 更新するイベントレイヤーの番号
+    #_params_:: イベントのupdateメソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def event_update2(idx, *params)
+      @event_layers[idx].each{|event| event.update2(*params) }
+      self
+    end
+
+    #===全てのイベントに対してupdate2メソッドを呼び出す
+    #全レイヤーのイベントを呼び出すことに注意
+    #_params_:: イベントのupdate2メソッドを呼び出すときに渡す引数。可変個数
+    def all_event_update2(*params)
+      @event_layers.each{|el| el.each{|event| event.update2(*params) } }
+      self
+    end
+
+    #===指定のレイヤーのイベントに対してmove!メソッドを呼び出す
+    #イベントレイヤーidxの全てのイベントに対してmove!メソッドを呼び出す
+    #_idx_:: 更新するイベントレイヤーの番号
+    #_dx_:: x座標の移動量
+    #_dy_:: y座標の移動量
+    #_params_:: イベントのmove!メソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def event_move!(idx, dx, dy, *params)
+      @event_layers[idx].each{|event| event.move!(dx, dy, *params) }
+      self
+    end
+
+    #===全てのイベントに対してmove!メソッドを呼び出す
+    #全レイヤーのイベントを呼び出すことに注意
+    #_dx_:: x座標の移動量
+    #_dy_:: y座標の移動量
+    #_params_:: イベントのmove!メソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def all_event_move!(dx, dy, *params)
+      @event_layers.each{|el| el.each{|event| event.move!(dx, dy, *params) } }
+      self
+    end
+
+    #===指定のレイヤーのイベントに対してsprite_move!メソッドを呼び出す
+    #イベントレイヤーidxの全てのイベントに対してsprite_move!メソッドを呼び出す
+    #_idx_:: 更新するイベントレイヤーの番号
+    #_dx_:: x座標の移動量
+    #_dy_:: y座標の移動量
+    #_params_:: イベントのmove!メソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def event_sprite_move!(idx, dx, dy, *params)
+      @event_layers[idx].each{|event| event.sprite_move!(dx, dy, *params) }
+      self
+    end
+
+    #===全てのイベントに対してsprite_move!メソッドを呼び出す
+    #全レイヤーのイベントを呼び出すことに注意
+    #_dx_:: x座標の移動量
+    #_dy_:: y座標の移動量
+    #_params_:: イベントのmove!メソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def all_event_sprite_move!(dx, dy, *params)
+      @event_layers.each{|el| el.each{|event| event.sprite_move!(dx, dy, *params) } }
+      self
+    end
+
+    #===指定のレイヤーのイベントに対してsprite_move!メソッドを呼び出す
+    #イベントレイヤーidxの全てのイベントに対してsprite_move!メソッドを呼び出す
+    #_idx_:: 更新するイベントレイヤーの番号
+    #_dx_:: x座標の移動量
+    #_dy_:: y座標の移動量
+    #_params_:: イベントのmove!メソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def event_pos_move!(idx, dx, dy, *params)
+      @event_layers[idx].each{|event| event.pos_move!(dx, dy, *params) }
+      self
+    end
+
+    #===全てのイベントに対してsprite_move!メソッドを呼び出す
+    #全レイヤーのイベントを呼び出すことに注意
+    #_dx_:: x座標の移動量
+    #_dy_:: y座標の移動量
+    #_params_:: イベントのmove!メソッドを呼び出すときに渡す引数。可変個数
+    #返却値:: レシーバ
+    def all_event_pos_move!(dx, dy, *params)
+      @event_layers.each{|el| el.each{|event| event.pos_move!(dx, dy, *params) } }
+      self
+    end
+
     def update_layout_position #:nodoc:
       @map_layers.each{|ml| ml.pos.move_to!(*@layout.pos) }
     end

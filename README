@@ -1139,6 +1139,16 @@ v2.1.0(2009.7.9)
 ・FixedMap#map_w(w -> map_w)
 ・FixedMap#map_h(h -> map_h)
 ・FixedMap#append_event
+・FixedMap#event_update
+・FixedMap#all_event_update
+・FixedMap#event_update2
+・FixedMap#all_event_update2
+・FixedMap#event_move!
+・FixedMap#all_event_move!
+・FixedMap#event_sprite_move!
+・FixedMap#all_event_sprite_move!
+・FixedMap#event_pos_move!
+・FixedMap#all_event_pos_move!
 ・FiexedMapLayer#ignore_list
 ・FiexedMapLayer#layer
 ・Layout#include_snap_child?
@@ -1146,8 +1156,23 @@ v2.1.0(2009.7.9)
 ・Map#map_w(alias w)
 ・Map#map_h(alias h)
 ・Map#append_event
+・Map#event_update
+・Map#all_event_update
+・Map#event_update2
+・Map#all_event_update2
+・Map#event_move!
+・Map#all_event_move!
+・Map#event_sprite_move!
+・Map#all_event_sprite_move!
+・Map#event_pos_move!
+・Map#all_event_pos_move!
 ・MapLayer#ignore_list
 ・MapLayer#layer
+・MapEvent#.update2
+・MapEvent#.sprite_move!
+・MapEvent#.sprite_move_to!
+・MapEvent#.pos_move!
+・MapEvent#.pos_move_to!
 ・Scene#story
 ・Scene#prev_scene
 ・Scene#now_scene

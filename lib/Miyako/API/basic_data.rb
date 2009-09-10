@@ -69,10 +69,10 @@ module Miyako
     #返却値:: Point構造体
     def +(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] += other
         ret[1] += other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] += other[0]
         ret[1] += other[1]
       else
@@ -90,10 +90,10 @@ module Miyako
     #返却値:: Point構造体
     def -(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] -= other
         ret[1] -= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] -= other[0]
         ret[1] -= other[1]
       else
@@ -111,10 +111,10 @@ module Miyako
     #返却値:: Point構造体
     def *(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] *= other
         ret[1] *= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] *= other[0]
         ret[1] *= other[1]
       else
@@ -132,11 +132,11 @@ module Miyako
     #返却値:: Point構造体
     def /(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         raise MiyakoValueError, "0 div!" if other == 0
         ret[0] /= other
         ret[1] /= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] /= other[0]
         ret[1] /= other[1]
       else
@@ -198,10 +198,10 @@ module Miyako
     #返却値:: Point構造体
     def +(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] += other
         ret[1] += other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] += other[0]
         ret[1] += other[1]
       else
@@ -219,10 +219,10 @@ module Miyako
     #返却値:: Point構造体
     def -(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] -= other
         ret[1] -= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] -= other[0]
         ret[1] -= other[1]
       else
@@ -240,10 +240,10 @@ module Miyako
     #返却値:: Point構造体
     def *(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] *= other
         ret[1] *= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] *= other[0]
         ret[1] *= other[1]
       else
@@ -261,11 +261,11 @@ module Miyako
     #返却値:: Point構造体
     def /(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         raise MiyakoValueError, "0 div!" if other == 0
         ret[0] /= other
         ret[1] /= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
         ret[0] /= other[0]
         ret[1] /= other[1]
@@ -364,10 +364,10 @@ module Miyako
     #返却値:: Point構造体
     def +(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] += other
         ret[1] += other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] += other[0]
         ret[1] += other[1]
       else
@@ -385,10 +385,10 @@ module Miyako
     #返却値:: Point構造体
     def -(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] -= other
         ret[1] -= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] -= other[0]
         ret[1] -= other[1]
       else
@@ -406,10 +406,10 @@ module Miyako
     #返却値:: Point構造体
     def *(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] *= other
         ret[1] *= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] *= other[0]
         ret[1] *= other[1]
       else
@@ -427,11 +427,11 @@ module Miyako
     #返却値:: Point構造体
     def /(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         raise MiyakoValueError, "0 div!" if other == 0
         ret[0] /= other
         ret[1] /= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
         ret[0] /= other[0]
         ret[1] /= other[1]
@@ -567,12 +567,12 @@ module Miyako
     #返却値:: Point構造体
     def +(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] += other
         ret[1] += other
         ret[2] += other
         ret[3] += other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] += other[0]
         ret[1] += other[1]
         ret[2] += other[2]
@@ -592,12 +592,12 @@ module Miyako
     #返却値:: Point構造体
     def -(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] -= other
         ret[1] -= other
         ret[2] -= other
         ret[3] -= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] -= other[0]
         ret[1] -= other[1]
         ret[2] -= other[2]
@@ -617,12 +617,12 @@ module Miyako
     #返却値:: Point構造体
     def *(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] *= other
         ret[1] *= other
         ret[2] *= other
         ret[3] *= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] *= other[0]
         ret[1] *= other[1]
         ret[2] *= other[2]
@@ -642,13 +642,13 @@ module Miyako
     #返却値:: Point構造体
     def /(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         raise MiyakoValueError, "0 div!" if other == 0
         ret[0] /= other
         ret[1] /= other
         ret[2] /= other
         ret[3] /= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
         ret[0] /= other[0]
         ret[1] /= other[1]
@@ -817,10 +817,10 @@ module Miyako
     #返却値:: Point構造体
     def +(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] += other
         ret[1] += other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] += other[0]
         ret[1] += other[1]
       else
@@ -838,10 +838,10 @@ module Miyako
     #返却値:: Point構造体
     def -(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] -= other
         ret[1] -= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] -= other[0]
         ret[1] -= other[1]
       else
@@ -859,10 +859,10 @@ module Miyako
     #返却値:: Point構造体
     def *(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         ret[0] *= other
         ret[1] *= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         ret[0] *= other[0]
         ret[1] *= other[1]
       else
@@ -880,11 +880,11 @@ module Miyako
     #返却値:: Point構造体
     def /(other)
       ret = self.dup
-      if other.kinf_of?(Numeric)
+      if other.kind_of?(Numeric)
         raise MiyakoValueError, "0 div!" if other == 0
         ret[0] /= other
         ret[1] /= other
-      elsif other.methods.include?([])
+      elsif other.methods.include?(:[])
         raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
         ret[0] /= other[0]
         ret[1] /= other[1]
