@@ -51,7 +51,7 @@ module Miyako
       @map = nil
       @id2event = Hash.new
     end
-    
+
     def initialize_copy(obj) #:nodoc:
       @map = @map.dup if @map
       @id2event = @id2event.dup
@@ -112,7 +112,7 @@ module Miyako
   module MapEvent
     include SpriteBase
     include Animation
-    
+
     #===イベントのインスタンスを作成する
     #引数として渡せるX,Y座標の値は、表示上ではなく理論上の座標位置
     #_map_obj_:: 関連づけられたMap/FixedMapクラスのインスタンス
@@ -130,7 +130,7 @@ module Miyako
     #_y_:: マップ上のY座標の値
     def init(map_obj, x, y)
     end
-    
+
     #===インスタンス内の表示やデータを更新するテンプレートメソッド
     #マップ画像が更新された時に呼び出される
     #_map_obj_:: インスタンスが組み込まれているMap/FixedMapクラスのインスタンス
@@ -142,33 +142,37 @@ module Miyako
     #===イベントを指定の分量で移動させる(テンプレートメソッド)
     #_dx_:: 移動量(x座標)。単位はピクセル
     #_dy_:: 移動量(y座標)。単位はピクセル
+    #_params_:: move呼び出し時に渡された引数。可変個数
     #返却値:: 自分自身を返す
-    def move!(dx,dy)
+    def move!(dx,dy,*params)
       return self
     end
 
     #===イベントを指定の位置へ移動させる(テンプレートメソッド)
     #_x_:: 移動先の位置(x座標)。単位はピクセル
     #_y_:: 移動先の位置(y座標)。単位はピクセル
+    #_params_:: move呼び出し時に渡された引数。可変個数
     #返却値:: 自分自身を返す
-    def move_to!(x,y)
+    def move_to!(x,y,*params)
       return self
     end
 
     #===イベントを指定の分量で移動させたときの値を求める(テンプレートメソッド)
     #_dx_:: 移動量(x座標)。単位はピクセル
     #_dy_:: 移動量(y座標)。単位はピクセル
+    #_params_:: move呼び出し時に渡された引数。可変個数
     #返却値:: 移動した位置のインスタンスを返す
-    def move(dx,dy)
-      return Position.new(0,0)
+    def move(dx,dy,*params)
+      return Point.new(0,0)
     end
 
     #===イベントを指定の位置へ移動させたときの値を求める(テンプレートメソッド)
     #_x_:: 移動先の位置(x座標)。単位はピクセル
     #_y_:: 移動先の位置(y座標)。単位はピクセル
+    #_params_:: move呼び出し時に渡された引数。可変個数
     #返却値:: 移動した位置のインスタンスを返す
-    def move_to(x,y)
-      return Position.new(0,0)
+    def move_to(x,y,*params)
+      return Point.new(0,0)
     end
 
     #===イベント発生可否問い合わせ(テンプレートメソッド)
@@ -178,7 +182,7 @@ module Miyako
     def met?(*params)
       return false
     end
-    
+
     #===画面に画像を描画する(テンプレートメソッド)
     #イベントで所持している画像を描画するメソッドを実装する
     #(イベント内部で用意している画像の描画用テンプレートメソッド)
@@ -192,7 +196,7 @@ module Miyako
     def start(*params)
       return self
     end
-    
+
     #===イベントを停止・終了させる(テンプレートメソッド)
     #ここに、イベント停止・終了イベントを実装する。更新はupdateメソッドに実装する
     #_param_:: イベント発生に必要なパラメータ群。デフォルトはnil
@@ -200,7 +204,7 @@ module Miyako
     def stop(*params)
       return self
     end
-    
+
     #===イベント発生中問い合わせ(テンプレートメソッド)
     #ここに、イベント発生中の問い合わせ処理を実装する。
     #_param_:: あとで書く
@@ -208,7 +212,7 @@ module Miyako
     def executing?
       return false
     end
-    
+
     #===イベント終了後の後処理(テンプレートメソッド)
     #ここに、イベント終了後の後処理を実装する。
     def final

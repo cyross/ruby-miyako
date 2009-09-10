@@ -59,7 +59,92 @@ module Miyako
     def move_to(x, y)
       self.dup.move_to!(x, y)
     end
-    
+
+    #===インスタンスの足し算
+    #もう一方が整数のとき、x,yにotherを足したものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を足したものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def +(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] += other
+        ret[1] += other
+      elsif other.methods.include?([])
+        ret[0] += other[0]
+        ret[1] += other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの引き算
+    #もう一方が整数のとき、x,yからotherを引いたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を引いたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def -(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] -= other
+        ret[1] -= other
+      elsif other.methods.include?([])
+        ret[0] -= other[0]
+        ret[1] -= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスのかけ算
+    #もう一方が整数のとき、x,yにotherを掛けたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を掛けたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def *(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] *= other
+        ret[1] *= other
+      elsif other.methods.include?([])
+        ret[0] *= other[0]
+        ret[1] *= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの割り算
+    #もう一方が整数のとき、x,yからotherを割ったものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を割ったものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def /(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        raise MiyakoValueError, "0 div!" if other == 0
+        ret[0] /= other
+        ret[1] /= other
+      elsif other.methods.include?([])
+        ret[0] /= other[0]
+        ret[1] /= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
     def to_ary #:nodoc:
       [self[0], self[1]]
     end
@@ -83,7 +168,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def resize_to!(w, h)
     end
-    
+
     #===サイズを変更したインスタンスを返す(変化量を指定)
     #引数で指定したぶん変えたときの大きさを新しくインスタンスを生成して返す
     #自分自身の値は変わらない
@@ -103,7 +188,93 @@ module Miyako
     def resize_to(w, h)
       self.dup.resize_to!(w,h)
     end
-    
+
+    #===インスタンスの足し算
+    #もう一方が整数のとき、w,hにotherを足したものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を足したものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def +(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] += other
+        ret[1] += other
+      elsif other.methods.include?([])
+        ret[0] += other[0]
+        ret[1] += other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの引き算
+    #もう一方が整数のとき、w,hからotherを引いたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を引いたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def -(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] -= other
+        ret[1] -= other
+      elsif other.methods.include?([])
+        ret[0] -= other[0]
+        ret[1] -= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスのかけ算
+    #もう一方が整数のとき、w,hにotherを掛けたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を掛けたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def *(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] *= other
+        ret[1] *= other
+      elsif other.methods.include?([])
+        ret[0] *= other[0]
+        ret[1] *= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの割り算
+    #もう一方が整数のとき、w,hからotherを割ったものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を割ったものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def /(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        raise MiyakoValueError, "0 div!" if other == 0
+        ret[0] /= other
+        ret[1] /= other
+      elsif other.methods.include?([])
+        raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
+        ret[0] /= other[0]
+        ret[1] /= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
     def to_ary #:nodoc:
       [self[0], self[1]]
     end
@@ -163,7 +334,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def resize_to!(w, h)
     end
-    
+
     #===サイズを変更したインスタンスを返す(変化量を指定)
     #引数で指定したぶん変えたときの大きさを新しくインスタンスを生成して返す
     #自分自身の値は変わらない
@@ -182,6 +353,92 @@ module Miyako
     #返却値:: 自分自身の複製を更新したインスタンス
     def resize_to(w, h)
       self.dup.resize_to!(w,h)
+    end
+
+    #===インスタンスの足し算
+    #もう一方が整数のとき、x,yにotherを足したものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を足したものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def +(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] += other
+        ret[1] += other
+      elsif other.methods.include?([])
+        ret[0] += other[0]
+        ret[1] += other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの引き算
+    #もう一方が整数のとき、x,yからotherを引いたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を引いたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def -(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] -= other
+        ret[1] -= other
+      elsif other.methods.include?([])
+        ret[0] -= other[0]
+        ret[1] -= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスのかけ算
+    #もう一方が整数のとき、x,yにotherを掛けたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を掛けたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def *(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] *= other
+        ret[1] *= other
+      elsif other.methods.include?([])
+        ret[0] *= other[0]
+        ret[1] *= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの割り算
+    #もう一方が整数のとき、x,yからotherを割ったものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を割ったものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def /(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        raise MiyakoValueError, "0 div!" if other == 0
+        ret[0] /= other
+        ret[1] /= other
+      elsif other.methods.include?([])
+        raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
+        ret[0] /= other[0]
+        ret[1] /= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
     end
 
     #===指定の座標が矩形の範囲内かを問い合わせる
@@ -211,14 +468,14 @@ module Miyako
     def size
       return Size.new(self[2], self[3])
     end
-    
+
     #===矩形情報を配列に変換する
     #[left, top, width, height]の配列を生成して返す。
     #返却値:: 生成した配列
     def to_ary
       [self[0], self[1], self[2], self[3]]
     end
-    
+
     #===矩形情報をSquare構造体に変換する
     #返却値:: 生成したSquare構造体
     def to_square
@@ -280,7 +537,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def resize_to!(w, h)
     end
-    
+
     #===サイズを変更したインスタンスを返す(変化量を指定)
     #引数で指定したぶん変えたときの大きさを新しくインスタンスを生成して返す
     #自分自身の値は変わらない
@@ -299,6 +556,108 @@ module Miyako
     #返却値:: 自分自身の複製を更新したインスタンス
     def resize_to(w, h)
       self.dup.resize_to!(w,h)
+    end
+
+    #===インスタンスの足し算
+    #もう一方が整数のとき、x,yにotherを足したものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を足したものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def +(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] += other
+        ret[1] += other
+        ret[2] += other
+        ret[3] += other
+      elsif other.methods.include?([])
+        ret[0] += other[0]
+        ret[1] += other[1]
+        ret[2] += other[2]
+        ret[3] += other[3]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの引き算
+    #もう一方が整数のとき、x,yからotherを引いたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を引いたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def -(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] -= other
+        ret[1] -= other
+        ret[2] -= other
+        ret[3] -= other
+      elsif other.methods.include?([])
+        ret[0] -= other[0]
+        ret[1] -= other[1]
+        ret[2] -= other[2]
+        ret[3] -= other[3]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスのかけ算
+    #もう一方が整数のとき、x,yにotherを掛けたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を掛けたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def *(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] *= other
+        ret[1] *= other
+        ret[2] *= other
+        ret[3] *= other
+      elsif other.methods.include?([])
+        ret[0] *= other[0]
+        ret[1] *= other[1]
+        ret[2] *= other[2]
+        ret[3] *= other[3]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの割り算
+    #もう一方が整数のとき、x,yからotherを割ったものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を割ったものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def /(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        raise MiyakoValueError, "0 div!" if other == 0
+        ret[0] /= other
+        ret[1] /= other
+        ret[2] /= other
+        ret[3] /= other
+      elsif other.methods.include?([])
+        raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
+        ret[0] /= other[0]
+        ret[1] /= other[1]
+        ret[2] /= other[2]
+        ret[3] /= other[3]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
     end
 
     #===指定の座標が矩形の範囲内かを問い合わせる
@@ -328,14 +687,14 @@ module Miyako
     def size
       return Size.new(self[2]-self[0]+1, self[3]-self[1]+1)
     end
-    
+
     #===矩形情報を配列に変換する
     #[left, top, right, bottom]の配列を生成して返す。
     #返却値:: 生成した配列
     def to_ary
       [self[0], self[1], self[2], self[3]]
     end
-    
+
     #===矩形情報をRect構造体に変換する
     #返却値:: 生成したRect構造体
     def to_rect
@@ -430,7 +789,7 @@ module Miyako
       self[1] = self[0] + v - 1
       return self
     end
-    
+
     #===サイズを変更したインスタンスを返す(変化量を指定)
     #引数で指定したぶん変えたときの大きさを新しくインスタンスを生成して返す
     #自分自身の値は変わらない
@@ -449,6 +808,92 @@ module Miyako
       self.dup.resize_to!(v)
     end
 
+    #===インスタンスの足し算
+    #もう一方が整数のとき、x,yにotherを足したものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を足したものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def +(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] += other
+        ret[1] += other
+      elsif other.methods.include?([])
+        ret[0] += other[0]
+        ret[1] += other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの引き算
+    #もう一方が整数のとき、x,yからotherを引いたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を引いたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def -(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] -= other
+        ret[1] -= other
+      elsif other.methods.include?([])
+        ret[0] -= other[0]
+        ret[1] -= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスのかけ算
+    #もう一方が整数のとき、x,yにotherを掛けたものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を掛けたものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def *(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        ret[0] *= other
+        ret[1] *= other
+      elsif other.methods.include?([])
+        ret[0] *= other[0]
+        ret[1] *= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
+    #===インスタンスの割り算
+    #もう一方が整数のとき、x,yからotherを割ったものを返す
+    #Point構造体や配列など、[]メソッドがつかえるもののとき、x,y同士を割ったものを返す
+    #それ以外の時は例外が発生する
+    #自分自身の値は変わらない
+    #_other_:: 整数もしくはPoint構造体
+    #返却値:: Point構造体
+    def /(other)
+      ret = self.dup
+      if other.kinf_of?(Numeric)
+        raise MiyakoValueError, "0 div!" if other == 0
+        ret[0] /= other
+        ret[1] /= other
+      elsif other.methods.include?([])
+        raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
+        ret[0] /= other[0]
+        ret[1] /= other[1]
+      else
+        raise MiyakoError, "this parameter cannot access!"
+      end
+      ret
+    end
+
     #===線分情報を変更する
     #minとmaxを一緒に更新する
     #min>maxのときは、それぞれの値を入れ替える
@@ -460,7 +905,7 @@ module Miyako
       self[0], self[1] = self[1], self[0] if self[0] > self[1]
       self
     end
-    
+
     #===線分情報を配列に変換する
     #[min, max]の配列を生成して返す。
     #返却値:: 生成した配列
@@ -580,7 +1025,7 @@ module Miyako
   #本クラスでは、X方向・Y方向2つのSegmentを管理する。
   #位置変更メソッドを追加
   class Segments
-  
+
     #===x座標の線分を返す
     #(例)segments = (x:[10,20],y:[100,200])
     #    segments.x => segment[10,20]
@@ -592,7 +1037,7 @@ module Miyako
     #    segment.y => segment[100,200]
     #返却値:: Segment構造体
     attr_reader :y
-    
+
     #===矩形情報からSegmentsインスタンスを生成する
     #入力した矩形情報(Rect構造体、[x,y,w,h]で表される配列)から、構造体インスタンスを生成する
     #(前バージョンまでの互換性のために残している)
@@ -602,7 +1047,7 @@ module Miyako
       return Segments.new(Segment.new(rect[0], rect[0] + rect[2] - 1),
                           Segment.new(rect[1], rect[1] + rect[3] - 1))
     end
-    
+
     #===矩形情報からSegmentsインスタンスを生成する
     #入力した情報から、Segment構造体二つを持ったインスタンスを生成する
     #引数には、Rect構造体、Square構造体、[(x)[min,max],(y)[min,max]],[min_x,max_x,min_y,max_y]の形式を持つ
@@ -638,7 +1083,7 @@ module Miyako
           raise MiyakoValueError, "illegal params : params is 0,1,2,4! params = #{params.length}"
       end
     end
-    
+
     #===インデックスから対象のSegment構造体を取得する
     #インデックスの値に対応した
     #上記以外のインデックスを渡したときはnilを返す
@@ -719,7 +1164,7 @@ module Miyako
       @y.resize_to!(h)
       return self
     end
-    
+
     #===サイズを変更したインスタンスを返す(変化量を指定)
     #引数で指定したぶん変えたときの大きさを新しくインスタンスを生成して返す
     #自分自身の値は変わらない
@@ -752,7 +1197,7 @@ module Miyako
       @x.reset!(min_x, max_x)
       @y.reset!(min_y, max_y)
     end
-   
+
     #===線分情報を配列に変換する
     #[[min, max],[min, max]]の配列を生成して返す。
     #返却値:: 生成した配列
@@ -1007,11 +1452,11 @@ module Miyako
     #WaitCounterインスタンス固有の名前
     #デフォルトはインスタンスIDを文字列化したもの
     attr_accessor :name
-    
+
     def WaitCounter.get_second_to_tick(s) #:nodoc:
       return (SECOND2TICK * s).to_i
     end
-    
+
     #===インスタンスを生成する
     #_seconds_:: タイマーとして設定する秒数(実数で指定可能)
     #_name_:: インスタンス固有の名称。デフォルトはnil
@@ -1031,7 +1476,7 @@ module Miyako
     def length
       return @wait
     end
-    
+
     #===残りウェイトの長さを求める
     #タイマー実行中のときウェイトの長さをミリセカンド単位で取得する
     #返却値:: 残りウェイトの長さ(実行していない時はウェイトの長さ)
@@ -1040,7 +1485,7 @@ module Miyako
       cnt = SDL.getTicks - @st
       return @wait < cnt ? 0 : @wait - cnt
     end
-    
+
     #===タイマー処理を開始する
     #返却値:: 自分自身を返す
     def start
@@ -1065,7 +1510,7 @@ module Miyako
       @counting = false
       return !f
     end
-    
+
     private :wait_inner
 
     #===タイマー処理中かを返す

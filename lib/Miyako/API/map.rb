@@ -310,6 +310,8 @@ module Miyako
         }
       end
 
+      @event_layers << [] if @event_layers.empty?
+
       mc = @mapchips.cycle
       @mapchips = mc.take(map_struct.layer_num)
       @map_layers = []
@@ -332,13 +334,22 @@ module Miyako
     # EventManagerが登録されていないときや登録されていないイベント番号で追加したときは例外を返す
     #_idx_:: 追加するイベントレイヤの指標
     #_code_:: イベント番号(Map.newメソッドで渡したイベント番号に対応)
-    #_x_:: マップ上の位置(x方向)
-    #_y_:: マップ常温位置(y方向)
+    #_x_:: マップ上の初期位置(x方向)
+    #_y_:: マップ上の初期位置(y方向)
     #返却値:: 自分自身を返す
     def add_event(idx, code, x, y)
       raise MiyakoError "Event Manager is not registered!" unless @em
       raise MiyakoError "Unregisted event code! : #{code}" unless @em.include?(code)
       @event_layers[idx].push(@em.create(code, x, y))
+      return self
+    end
+
+    #===マップに生成済みのイベントを追加する
+    #_idx_:: 追加するイベントレイヤの指標
+    #_event_:: イベント番号(Map.newメソッドで渡したイベント番号に対応)
+    #返却値:: 自分自身を返す
+    def append_event(idx, event)
+      @event_layers[idx].push(event)
       return self
     end
 

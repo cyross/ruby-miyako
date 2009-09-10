@@ -937,6 +937,7 @@ v2.1.0(2009.7.9)
 ・Alt+Enterを押してもフルスクリーンにならないバグを修正
 ・Collision.collisionが正しく値を返さないバグを修正
 ・FixedMapクラスでpos,sizeメソッドの値がレイアウトの位置になっていなかった問題を修正
+・MapEventモジュールのmove,move_toメソッドで存在しない構造体を生成していた問題を修正
 <仕様変更>
 ・"require 'miyako'"でもロード可能
 ・miyako.rbで組み込んでいるライブラリの順番を変更
@@ -1014,6 +1015,8 @@ v2.1.0(2009.7.9)
 ・SpriteBase.#render,render_to、Bitmapクラスの各種画像効果メソッドでのブロックの使用を廃止
 ・MapLayer#collision?,meet?,cover?,can_accessメソッドの引数を追加(ignores引数)
 ・FixedMapLayer#collision?,meet?,cover?,can_accessメソッドの引数を追加(ignores引数)
+・MapEvent#.move!,move_to!,move,move_toの後ろに可変引数を追加(移動時の細かい設定)
+・Map.new、FixedMap.newで、イベントが無いときでも0番レイヤーを生成するように変更
 ・マウス、キーボード、ゲームパッドの利用選択が可能に(enable、disableの設定が可能に)
 <ファイル追加>
 ・miyako_sprite2.c
@@ -1132,15 +1135,17 @@ v2.1.0(2009.7.9)
 ・Collisions#covered?
 ・Collisions#covers_all?
 ・Collisions#covered_all?
-・FiexedMap#map_size(size -> map_size)
-・FiexedMap#map_w(w -> map_w)
-・FiexedMap#map_h(h -> map_h)
+・FixedMap#map_size(size -> map_size)
+・FixedMap#map_w(w -> map_w)
+・FixedMap#map_h(h -> map_h)
+・FixedMap#append_event
 ・FiexedMapLayer#ignore_list
 ・FiexedMapLayer#layer
 ・Layout#include_snap_child?
 ・Map#map_size(alias size)
 ・Map#map_w(alias w)
 ・Map#map_h(alias h)
+・Map#append_event
 ・MapLayer#ignore_list
 ・MapLayer#layer
 ・Scene#story
@@ -1194,10 +1199,22 @@ v2.1.0(2009.7.9)
 ・Plane::update_animation
 ・Parts#parts_move!
 ・Parts#parts_move_to!
+・Point#+
+・Point#-
+・Point#*
+・Point#/
+・Size#+
+・Size#-
+・Size#*
+・Size#/
 ・Rect#between?
 ・Rect#pos
 ・Rect#size
 ・Rect#to_square
+・Rect#+
+・Rect#-
+・Rect#*
+・Rect#/
 ・Scene#upper_scene
 ・Scene#next_scene
 ・Segment#x
@@ -1206,10 +1223,18 @@ v2.1.0(2009.7.9)
 ・Segment#max?
 ・Segment#in_range?
 ・Segment#between?
+・Segment#+
+・Segment#-
+・Segment#*
+・Segment#/
 ・Square#between?
 ・Square#pos
 ・Square#size
 ・Square#to_rect
+・Square#+
+・Square#-
+・Square#*
+・Square#/
 ・WaitCounter#call
 <インスタンスメソッド廃止>
 ・Segments#min_x
