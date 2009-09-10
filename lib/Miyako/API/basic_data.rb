@@ -617,16 +617,18 @@ module Miyako
     #返却値:: Point構造体
     def *(other)
       ret = self.dup
+      w = ret[2] - ret[0]
+      h = ret[3] - ret[1]
       if other.kind_of?(Numeric)
         ret[0] *= other
         ret[1] *= other
-        ret[2] *= other
-        ret[3] *= other
+        ret[2] = ret[0] + w
+        ret[3] = ret[1] + h
       elsif other.methods.include?(:[])
         ret[0] *= other[0]
         ret[1] *= other[1]
-        ret[2] *= other[2]
-        ret[3] *= other[3]
+        ret[2] = ret[0] + w
+        ret[3] = ret[1] + h
       else
         raise MiyakoError, "this parameter cannot access!"
       end
@@ -642,18 +644,20 @@ module Miyako
     #返却値:: Point構造体
     def /(other)
       ret = self.dup
+      w = ret[2] - ret[0]
+      h = ret[3] - ret[1]
       if other.kind_of?(Numeric)
         raise MiyakoValueError, "0 div!" if other == 0
         ret[0] /= other
         ret[1] /= other
-        ret[2] /= other
-        ret[3] /= other
+        ret[2] = ret[0] + w
+        ret[3] = ret[1] + h
       elsif other.methods.include?(:[])
         raise MiyakoValueError, "0 div!" if (other[0] == 0 || other[1] == 0)
         ret[0] /= other[0]
         ret[1] /= other[1]
-        ret[2] /= other[2]
-        ret[3] /= other[3]
+        ret[2] = ret[0] + w
+        ret[3] = ret[1] + h
       else
         raise MiyakoError, "this parameter cannot access!"
       end
