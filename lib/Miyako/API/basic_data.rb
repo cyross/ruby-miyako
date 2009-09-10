@@ -575,8 +575,8 @@ module Miyako
       elsif other.methods.include?(:[])
         ret[0] += other[0]
         ret[1] += other[1]
-        ret[2] += other[2]
-        ret[3] += other[3]
+        ret[2] += other[0]
+        ret[3] += other[1]
       else
         raise MiyakoError, "this parameter cannot access!"
       end
@@ -600,8 +600,8 @@ module Miyako
       elsif other.methods.include?(:[])
         ret[0] -= other[0]
         ret[1] -= other[1]
-        ret[2] -= other[2]
-        ret[3] -= other[3]
+        ret[2] -= other[0]
+        ret[3] -= other[1]
       else
         raise MiyakoError, "this parameter cannot access!"
       end
