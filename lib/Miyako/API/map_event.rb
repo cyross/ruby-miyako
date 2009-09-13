@@ -169,7 +169,7 @@ module Miyako
     #_dy_:: 移動量(y座標)。単位はピクセル
     #_params_:: move呼び出し時に渡された引数。可変個数
     #返却値:: 自分自身を返す
-    def sprie_move!(dx,dy,*params)
+    def sprite_move!(dx,dy,*params)
       return self
     end
 
@@ -179,7 +179,7 @@ module Miyako
     #_y_:: 移動先の位置(y座標)。単位はピクセル
     #_params_:: move呼び出し時に渡された引数。可変個数
     #返却値:: 自分自身を返す
-    def sprie_move_to!(x,y,*params)
+    def sprite_move_to!(x,y,*params)
       return self
     end
 
