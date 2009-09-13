@@ -161,7 +161,7 @@ static VALUE sprite_array_sprite_only(VALUE self)
   for(i=0; i<RARRAY_LEN(self); i++)
   {
     VALUE e = *(ptr+i);
-    VALUE c = CLASS_OF(*(RSTRUCT_PTR(e)+1));
+    VALUE c = rb_obj_class(e);
     if(rb_mod_include_p(c, mSpriteBase) == Qtrue ||
        rb_mod_include_p(c, mSpriteArray) == Qtrue)
     {
