@@ -62,8 +62,7 @@ module Miyako
     end
 
     #===イベントクラスをマップに追加登録する
-    #_id_:: マップ(イベントレイヤ)上の番号。
-    #イベントレイヤ上に存在しない番号を渡してもエラーや警告は発しない
+    #_id_:: イベント番号(0以上の整数)
     #_event_:: イベントクラス。クラスのインスタンスではないことに注意！
     #返却値:: 自分自身を返す
     def add(id, event)
@@ -71,12 +70,30 @@ module Miyako
       return self
     end
 
+    #===イベント番号に関連づけれられているイベントクラスを返す
+    #引数で渡した番号に対応するイベントクラス(クラスそのもの)を返す
+    #引数idが未登録のイベント番号だったときはnilが返る
+    #_id_:: イベント番号
+    #返却値:: イベントクラス(classクラスインスタンス)もしくはnil
+    def [](id)
+      return @id2event[id]
+    end
+
+    #===イベントクラスに関連づけれられているイベント番号を返す
+    #引数で渡したイベントクラスに対応するイベント番号を返す
+    #引数eventが未登録のイベント番号だったときはnilが返る
+    #_event_:: イベントクラス
+    #返却値:: イベント番号(0以上の整数)もしくはnil
+    def to_id(event)
+      return @id2event.key(event)
+    end
+
     #===イベントが登録されているかを確認する
     #引数で渡した番号に対応するイベントクラスが登録されているかどうかを確認する
-    #_id_:: イベントクラスに対応した番号
-    #返却値:: イベントクラスが登録されている時はtrueを返す
+    #idに関連づけられたイベントクラスが登録されている時はtrueを返す
+    #_id_:: イベント番号
+    #返却値:: true/false
     def include?(id)
-      raise MiyakoError, "This MapEventManager instance is not set Map/FixedMap instance!" unless @map
       return @id2event.has_key?(id)
     end
 

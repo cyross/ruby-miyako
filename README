@@ -1009,6 +1009,7 @@ v2.1.0(2009.7.9)
 ・Miyako.main_loopを再び高速化
 ・Story#runの内部ループをloop do～からMiyako.main_loop～に変更
 ・Map.new、FixedMap.newのインタフェースを変更(CSVファイル以外からのマップデータ生成を容易に)
+・MapEventManager#include?メソッドで、マップに登録されていないときも例外を発せしないように変更
 ・OverSceneを廃止
 ・Screen.pre_render_array、Screen.auto_render_arrayを配列からSpriteListに変更
 ・Fiberを使用しないYuki、InitiatieYukiクラスを追加
@@ -1166,6 +1167,8 @@ v2.1.0(2009.7.9)
 ・Map#all_event_sprite_move!
 ・Map#event_pos_move!
 ・Map#all_event_pos_move!
+・MapEventManager#[]
+・MapEventManager#to_id
 ・MapLayer#ignore_list
 ・MapLayer#layer
 ・MapEvent#.update2
