@@ -448,11 +448,17 @@ module Miyako
       return @layout.pos
     end
 
+    #alias: layout_pos: posメソッドの別名。mixinのときに、posメソッドが再定義された場合に使う
+    alias :layout_pos :pos
+
     #=== mixin されたインスタンスのサイズ情報(w,hの値)を取得する
     #返却値:: インスタンスのサイズ情報(@layout［:size］の値)
     def size
       return @layout.size
     end
+
+    #alias: layout_size: sizeメソッドの別名。mixinのときに、sizeメソッドが再定義された場合に使う
+    alias :layout_size :size
 
     #===インスタンスのサイズをレイアウト情報に反映させる
 		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意

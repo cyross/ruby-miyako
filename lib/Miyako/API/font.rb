@@ -28,13 +28,16 @@ module Miyako
 フォントは、等幅フォント奨励(プロポーショナルフォントを選ぶと、文字が正しく描画されない可能性あり）
 =end
   class Font
+    include SpriteBase
+    include Animation
+    include Layout
     extend Forwardable
 
 #    OS_MAC_OS_X = "mac_osx"
 #    ORG_ENC = "UTF-8"
 #    NEW_ENC = "UTF-8-MAC"
-    
-    attr_reader :size, :line_skip, :height, :ascent, :descent
+
+    attr_reader :size, :line_skip, :height, :ascent, :descent, :text
     attr_accessor :color, :use_shadow, :shadow_color, :shadow_margin, :vspace, :hspace
 
     @@font_cache = {}
@@ -132,6 +135,7 @@ module Miyako
     #_size_:: フォントの大きさ。単位はピクセル。デフォルトは 16
     #返却値:: 生成されたインスタンスを返す
     def initialize(fname, size=16)
+      init_layout
       @size = size
       @color = [255, 255, 255]
       @fname = fname
@@ -148,6 +152,8 @@ module Miyako
       @shadow_color = [128, 128, 128]
       @shadow_margin = [2, 2]
       @unit = SpriteUnitFactory.create
+      @text = ""
+      set_layout_size(*self.text_size(@text))
     end
 
     def initialize_copy(obj) #:nodoc:
@@ -157,6 +163,17 @@ module Miyako
       @shadow_color = @shadow_color.dup
       @shadow_margin = @shadow_margin.dup
       @unit = @unit.dup
+      @text = @text.dup
+    end
+
+    #===描画する文字列を変更する
+    #_str_:: 描画する文字列。文字列以外でも、to_sメソッドで文字列、endocdeメソッドでUTF-8に変換する
+    #返却値:: 自分自身を返す
+    def text=(str)
+      @text = str.to_s
+      @text = @text.encode(Encoding::UTF_8)
+      set_layout_size(*self.text_size(@text))
+      return self
     end
 
     #===フォントの大きさを変更する
@@ -165,10 +182,11 @@ module Miyako
     def size=(sz)
       @size = sz
       @font = Font.get_font_inner(@fname, @fpath, @size)
-      @font.style = (@bold ? SDL::TTF::STYLE_BOLD : 0) | 
+      @font.style = (@bold ? SDL::TTF::STYLE_BOLD : 0) |
                     (@italic ? SDL::TTF::STYLE_ITALIC : 0) |
                     (@under_line ? SDL::TTF::STYLE_UNDERLINE : 0)
       init_height
+      set_layout_size(*self.text_size(@text))
       return self
     end
 
@@ -218,9 +236,9 @@ module Miyako
     def get_fit_size(size)
       path = Font.findFontPath(@fname)
       font = SDL::TTF.open(path, size)
-      return (size.to_f * (size.to_f / font.line_skip.to_f)).to_i 
+      return (size.to_f * (size.to_f / font.line_skip.to_f)).to_i
     end
-    
+
     #===フォントサイズ(yやjなどの下にはみ出る箇所も算出)を取得する
     #返却値:: 算出されたフォントサイズ
     def line_height
@@ -246,13 +264,13 @@ module Miyako
       end
       return self
     end
-    
+
     #===フォントのbold属性の有無を返す
     #返却値:: bold属性かどうか(true/false)
     def bold?
       return @bold
     end
-    
+
     #===フォントのbold属性を設定する
     #_f_:: bold属性かどうか(true/false)
     def bold=(f)
@@ -261,7 +279,7 @@ module Miyako
       @font.style -= SDL::TTF::STYLE_BOLD unless @bold
       return self
     end
-    
+
     #===フォントの属性をitalic(斜め)に設定する
     #ブロックを渡したときは、ブロック評価中のみ斜体文字になる
     #文字が領域外にはみ出る場合があるので注意！
@@ -276,13 +294,13 @@ module Miyako
       end
       return self
     end
-    
+
     #===フォントのitalic属性の有無を返す
     #返却値:: italic属性かどうか(true/false)
     def italic?
       return @italic
     end
-    
+
     #===フォントのitalic属性を設定する
     #_f_:: italic属性かどうか(true/false)
     def italic=(f)
@@ -291,7 +309,7 @@ module Miyako
       @font.style -= SDL::TTF::STYLE_ITALIC unless @italic
       return self
     end
-    
+
     #===フォントの属性をunder_line(下線)に設定する
     #ブロックを渡したときは、ブロック評価中のみ下線付き文字になる
     #返却値:: 自分自身
@@ -305,13 +323,13 @@ module Miyako
       end
       return self
     end
-    
+
     #===フォントのunder_line属性の有無を返す
     #返却値:: under_line属性かどうか(true/false)
     def under_line?
       return @under_line
     end
-    
+
     #===フォントのunder_line属性を設定する
     #_f_:: under_line属性かどうか(true/false)
     def under_line=(f)
@@ -327,7 +345,7 @@ module Miyako
       @font.style = 0
       return self
     end
-    
+
     #===文字列を描画する
     #対象のスプライトに文字列を描画する
     #_dst_:: 描画先スプライト
@@ -358,6 +376,17 @@ module Miyako
       return x
     end
 
+    #===文字列を画面に描画する
+    def render
+      draw_text(Screen, @text, @layout[:pos][0], @layout[:pos][1])
+    end
+
+    #===文字列をスプライトに描画する
+    #_dst_:: 描画先スプライト
+    def render_to(dst)
+      draw_text(dst, @text, @layout[:pos][0], @layout[:pos][1])
+    end
+
     #===文字列描画したときの大きさを取得する
     #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。
     #_txt_:: 算出したい文字列
@@ -365,7 +394,7 @@ module Miyako
     def chr_size_inner(char)
       return (char.bytesize == 1 ? @size >> 1 : @size) + (@use_shadow ? @shadow_margin[0] : 0) + @hspace
     end
-    
+
     private :chr_size_inner
 
     #===文字列描画したときの大きさを取得する
@@ -374,11 +403,11 @@ module Miyako
     #返却値:: 文字列を描画したときの大きさ([w,h]の配列)
     def text_size(txt)
       width = txt.chars.inject(0){|r, c|
-        r += (c.bytesize == 1 ? @size >> 1 : @size) } + 
+        r += (c.bytesize == 1 ? @size >> 1 : @size) } +
              ((@use_shadow ? @shadow_margin[0] : 0) + @hspace) * (txt.chars.to_a.length - 1)
       return [width, self.line_height]
     end
-    
+
     #===指定した高さで描画する際のマージンを求める
     #現在のフォントの設定で指定の文字列を描画したとき、予想される描画サイズを返す。実際に描画は行われない。
     #第1引数に渡す"align"は、以下の3種類のシンボルのどれかを渡す
@@ -417,7 +446,7 @@ module Miyako
     #返却値:: OSごとに設定されたフォントイン寸タンス(フォントサイズは16)
     def Font::sans_serif
       filename = @@font_base_name[Miyako::getOSName].
-                   detect{|base| 
+                   detect{|base|
                      Font.findFontPath(base[:sans_serif])
                    }[:sans_serif]
       return Font.new(filename)
