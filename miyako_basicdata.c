@@ -170,6 +170,7 @@ static VALUE counter_remain(VALUE self)
 */
 static VALUE counter_reset(VALUE self)
 {
+  if(rb_iv_get(self, "@counting") == Qtrue){ return self; }
   rb_iv_set(self, "@st", INT2NUM(0));
   rb_iv_set(self, "@stop_tick", Qnil);
   rb_iv_set(self, "@counting", Qfalse);
@@ -195,15 +196,20 @@ static VALUE counter_resume(VALUE self)
 */
 static VALUE counter_wait_inner(VALUE self, VALUE f)
 {
-  if(rb_iv_get(self, "@counting") == Qfalse)
-  {
-    return f == Qtrue ? Qfalse : Qtrue;
-  }
-
-  Uint32 t = SDL_GetTicks();
   Uint32 st = NUM2INT(rb_iv_get(self, "@st"));
   Uint32 wait = NUM2INT(rb_iv_get(self, "@wait"));
-  if((t - st) >= wait)
+  Uint32 cnt = 0;
+
+  VALUE stop_tick = rb_iv_get(self, "@stop_tick");
+  if(stop_tick != Qnil)
+  {
+    cnt = NUM2INT(stop_tick) - st;
+  }
+  else
+  {
+    cnt = SDL_GetTicks() - st;
+  }
+  if(cnt >= wait)
   {
     return f == Qtrue ? Qfalse : Qtrue;
   }

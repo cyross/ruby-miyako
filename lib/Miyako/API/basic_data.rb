@@ -1543,8 +1543,10 @@ module Miyako
 
     #===タイマーを開始前の状態に戻す
     #remain,nowの結果がstart前の状態に戻る
+    #ただし、停止中の時にしか戻せない
     #返却値:: 自分自身を返す
     def reset
+      return self if @counting
       @st = 0
       @stop_tick = nil
       return self
@@ -1571,8 +1573,8 @@ module Miyako
     alias :executing? :execute?
 
     def wait_inner(f) #:nodoc:
-      return !f unless @counting
-      (SDL.getTicks - @st) >= @wait ? !f : f
+      now_time = @stop_tick ? @stop_tick : SDL.getTicks
+      (now_time - @st) >= @wait ? !f : f
     end
 
     private :wait_inner
