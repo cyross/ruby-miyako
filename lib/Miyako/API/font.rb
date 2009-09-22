@@ -414,7 +414,7 @@ module Miyako
     #引数textは、内部でto_sメソッドを呼び出して文字列化している
     #_text_:: 描画対象の文字列
     #返却値:: 自分自身を返す
-    def render_text(text)
+    def render_str(text)
       draw_text(Screen, text.to_s, @layout[:pos][0], @layout[:pos][1])
       return self
     end
@@ -424,7 +424,7 @@ module Miyako
     #_dst_:: 描画先スプライト
     #_text_:: 描画対象の文字列
     #返却値:: 自分自身を返す
-    def render_to(dst, text)
+    def render_str_to(dst, text)
       draw_text(dst, text.to_s, @layout[:pos][0], @layout[:pos][1])
       return self
     end
