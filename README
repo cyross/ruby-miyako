@@ -1020,6 +1020,7 @@ v2.1.0(2009.7.9)
 ・Map.new、FixedMap.newで、イベントが無いときでも0番レイヤーを生成するように変更
 ・マウス、キーボード、ゲームパッドの利用選択が可能に(enable、disableの設定が可能に)
 ・FontクラスにSpriteBase、Animastion、Layoutモジュールをmixin、スプライトとして扱うことが可能に
+・WaitCounter#remind(->remainにalias)の返却値の仕様を変更(未スタート:制限時間->制限時間+1、制限時間オーバー:0->-1)
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
@@ -1111,6 +1112,7 @@ v2.1.0(2009.7.9)
 ・Utility.interval
 ・Utility.theta
 ・Yuki.add_method
+・WaitCounter.tick
 <クラス・モジュールメソッド廃止>
 ・Layout#.ow
 ・Layout#.oh
@@ -1155,6 +1157,10 @@ v2.1.0(2009.7.9)
 ・FiexedMapLayer#layer
 ・Font#text
 ・Font#text=
+・Font#render_xy
+・Font#render_xy_to
+・Font#render_str
+・Font#render_str_to
 ・Layout#.include_snap_child?
 ・Layout#.laout_pos
 ・Layout#.laout_size
@@ -1269,6 +1275,9 @@ v2.1.0(2009.7.9)
 ・Square#*
 ・Square#/
 ・WaitCounter#call
+・WaitCounter#now
+・WaitCounter#remain
+・WaitCounter#size
 <インスタンスメソッド廃止>
 ・Segments#min_x
 ・Segments#min_y

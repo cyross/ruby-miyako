@@ -377,14 +377,56 @@ module Miyako
     end
 
     #===文字列を画面に描画する
+    #返却値:: 自分自身を返す
     def render
       draw_text(Screen, @text, @layout[:pos][0], @layout[:pos][1])
+      return self
     end
 
     #===文字列をスプライトに描画する
     #_dst_:: 描画先スプライト
+    #返却値:: 自分自身を返す
     def render_to(dst)
       draw_text(dst, @text, @layout[:pos][0], @layout[:pos][1])
+      return self
+    end
+
+    #===文字列を画面の指定の位置に描画する
+    #_x_:: x方向位置
+    #_y_:: y方向位置
+    #返却値:: 自分自身を返す
+    def render_xy(x, y)
+      draw_text(Screen, @text, x, y)
+      return self
+    end
+
+    #===文字列をスプライトの指定の位置に描画する
+    #_dst_:: 描画先スプライト
+    #_x_:: x方向位置
+    #_y_:: y方向位置
+    #返却値:: 自分自身を返す
+    def render_xy_to(dst, x, y)
+      draw_text(dst, @text, x, y)
+      return self
+    end
+
+    #===文字列を画面に描画する
+    #引数textは、内部でto_sメソッドを呼び出して文字列化している
+    #_text_:: 描画対象の文字列
+    #返却値:: 自分自身を返す
+    def render_text(text)
+      draw_text(Screen, text.to_s, @layout[:pos][0], @layout[:pos][1])
+      return self
+    end
+
+    #===文字列をスプライトに描画する
+    #引数textは、内部でto_sメソッドを呼び出して文字列化している
+    #_dst_:: 描画先スプライト
+    #_text_:: 描画対象の文字列
+    #返却値:: 自分自身を返す
+    def render_to(dst, text)
+      draw_text(dst, text.to_s, @layout[:pos][0], @layout[:pos][1])
+      return self
     end
 
     #===文字列描画したときの大きさを取得する

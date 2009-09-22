@@ -1457,6 +1457,13 @@ module Miyako
     #デフォルトはインスタンスIDを文字列化したもの
     attr_accessor :name
 
+    #===起算時からのミリ秒数を取得する
+    #起算時からのミリ秒数を整数で取得する
+    #返却値:: 起算時からのミリ秒数(整数)
+    def WaitCounter.tick
+      return SDL.getTicks
+    end
+
     def WaitCounter.get_second_to_tick(s) #:nodoc:
       return (SECOND2TICK * s).to_i
     end
@@ -1475,20 +1482,37 @@ module Miyako
     end
 
     #===設定されているウェイトの長さを求める
-    #ウェイトの長さをミリセカンド単位で取得する
+    #ウェイトの長さをミリ秒単位で取得する
     #返却値:: ウェイトの長さ
     def length
       return @wait
     end
 
-    #===残りウェイトの長さを求める
-    #タイマー実行中のときウェイトの長さをミリセカンド単位で取得する
-    #返却値:: 残りウェイトの長さ(実行していない時はウェイトの長さ)
-    def remind
-      return @wait unless @counting
+    alias :size :length
+
+    #===開始からの経過時間を求める
+    #タイマー実行中のとき現在の経過時間をミリ秒単位(0以上の整数)で取得する
+    #制限時間を超えていれば、制限時間+1を返す
+    #まだスタートしてないときは-1を返す
+    #返却値:: 現在の経過長
+    def now
+      return -1 unless @counting
       cnt = SDL.getTicks - @st
-      return @wait < cnt ? 0 : @wait - cnt
+      return @wait < cnt ? @wait+1 : cnt
     end
+
+    #===開始からの残り時間を求める
+    #タイマー実行中のとき、残り時間の長さをミリ秒単位(0以上の整数)で取得する
+    #制限時間を超えていれば-1を返す
+    #まだスタートしてないときは制限時間+1を返す
+    #返却値:: 残り時間の長さ
+    def remain
+      return @wait+1 unless @counting
+      cnt = SDL.getTicks - @st
+      return @wait < cnt ? -1 : @wait - cnt
+    end
+
+    alias :remind :remain
 
     #===タイマー処理を開始する
     #返却値:: 自分自身を返す
@@ -1538,6 +1562,26 @@ module Miyako
         t = SDL.getTicks
       end
       return self
+    end
+
+    #===残り時間に応じたブロックを呼び出す
+    #タイマー処理の状態に応じてブロックを評価して、その結果を渡す
+    #タイマー開始前はpre、タイマー実行中はwaiting、制限時間オーバー後はpostに渡したブロックを評価する
+    #callを呼び出すときに、ブロックに渡すparamsの数とブロックで定義したparamsの数との整合に注意する(例外が発生する)
+    #_waiting_:: タイマー実行中に行うブロック。省略時は空のブロックを渡す
+    #_pre_:: タイマー開始前に行うブロック。省略時は空のブロックを渡す
+    #_post_:: タイマー制限時間オーバ後に実行中に行うブロック。省略時は空のブロックを渡す
+    #_params_:: ブロックに渡す引数。可変引数
+    #返却値:: 各ブロックを評価した結果
+    def call(waiting=lambda{|*params|}, pre=lambda{|*params|}, post=lambda{|*params|}, *params)
+      case self.now
+      when -1
+        return pre.call(*params)
+      when @wait+1
+        return post.call(*params)
+      else
+        return waiting.call(*params)
+      end
     end
 
     #===インスタンスないで所持している領域を開放する
