@@ -48,6 +48,7 @@ sprites = Array.new(Sprites){|n|
 
   # :collisioned => 当たり判定した？
   {
+   :name => "sprite_#{n}",
    :sprite => sprite,
    :collision => collision,
    :amount => get_amount_one
@@ -66,7 +67,7 @@ cautions = {
 collision_type = collision_list.next
 
 # 一気にレンダリング
-Screen.pre_render_array << sprites.map{|m| m[:sprite]}
+sprites.each{|m| Screen.pre_render_array << [m[:name], m[:sprite]] }
 
 # 判定を切り替えるタイミングを決めるタイマー
 wait = WaitCounter.new(1.0)

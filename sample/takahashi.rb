@@ -32,9 +32,9 @@ shape2 = Shape.text(:font=>Font.serif, :align=>:right){|v|
 					text("DEFG")
         }
 
-# 自動描画配列にshape1、shape2を組み込み
-Screen.auto_render_array << shape1
-Screen.auto_render_array << shape2
+# オートレンダー(SpriteList)にshape1、shape2を組み込み
+Screen.auto_render_array << [:shape1, shape1]
+Screen.auto_render_array << [:shape2, shape2]
 
 Miyako.main_loop do
 	break if Input.quit_or_escape?

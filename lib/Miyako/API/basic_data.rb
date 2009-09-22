@@ -1265,7 +1265,7 @@ module Miyako
     #返却値:: 範囲内のときはtrue、範囲外の時はfalseを返す
     def in_bounds?(idx, big_segment, d, flag = false)
       raise MiyakoError, "illegal index : #{idx}" unless [0,1,:x,:y].include?(idx)
-      return self[idx].in_bounds?(big_segment, d, flag)
+      return self[idx].in_bounds?(big_segment[idx], d, flag)
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別して、その状態によって値を整数で返す
@@ -1279,7 +1279,7 @@ module Miyako
     #返却値:: 判別の結果
     def in_bounds_ex?(idx, big_segment, d, flag = false)
       raise MiyakoError, "illegal index : #{idx}" unless [0,1,:x,:y].include?(idx)
-      return self[idx].in_bounds_ex?(big_segment, d, flag)
+      return self[idx].in_bounds_ex?(big_segment[idx], d, flag)
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
@@ -1293,7 +1293,7 @@ module Miyako
     #返却値:: 判別の結果
     def in_bounds_rev?(idx, big_segment, d, flag = false)
       raise MiyakoError, "illegal index : #{idx}" unless [0,1,:x,:y].include?(idx)
-      return self[idx].in_bounds_rev?(big_segment, d, flag)
+      return self[idx].in_bounds_rev?(big_segment[idx], d, flag)
     end
 
     #===移動先が表示範囲内かどうかを判別して、その状態によって値を整数で返す
@@ -1307,7 +1307,7 @@ module Miyako
     #返却値:: 判別の結果
     def in_bounds_rev_ex?(idx, big_segment, d, flag = false)
       raise MiyakoError, "illegal index : #{idx}" unless [0,1,:x,:y].include?(idx)
-      return self[idx].in_bounds_rev_ex?(big_segment, d, flag)
+      return self[idx].in_bounds_rev_ex?(big_segment[idx], d, flag)
     end
   end
 
@@ -1496,6 +1496,10 @@ module Miyako
     #まだスタートしてないときは-1を返す
     #返却値:: 現在の経過長
     def now
+      if @stop_tick
+        cnt = @stop_tick - @st
+        return @wait < cnt ? @wait+1 : cnt
+      end
       return -1 unless @counting
       cnt = SDL.getTicks - @st
       return @wait < cnt ? @wait+1 : cnt
@@ -1507,6 +1511,10 @@ module Miyako
     #まだスタートしてないときは制限時間+1を返す
     #返却値:: 残り時間の長さ
     def remain
+      if @stop_tick
+        cnt = @stop_tick - @st
+        return @wait < cnt ? -1 : @wait - cnt
+      end
       return @wait+1 unless @counting
       cnt = SDL.getTicks - @st
       return @wait < cnt ? -1 : @wait - cnt
@@ -1514,29 +1522,57 @@ module Miyako
 
     alias :remind :remain
 
-    #===タイマー処理を開始する
+    #===タイマー処理を開始状態にする
     #返却値:: 自分自身を返す
     def start
       @st = SDL.getTicks
+      @stop_tick = nil
       @counting = true
       return self
     end
 
-    #===タイマー処理を停止する
-    #一旦タイマーを停止すると、復帰できない(一時停止ではない)
+    #===タイマー処理を停止状態にする
+    #この状態で、startメソッドを呼ぶと、開始前の状態に戻って処理を開始する
+    #resumeメソッドを呼ぶと、停止直前の状態に戻って処理を開始する
     #返却値:: 自分自身を返す
     def stop
+      @stop_tick = SDL.getTicks
       @counting = false
-      @st = 0
       return self
     end
 
+    #===タイマーを開始前の状態に戻す
+    #remain,nowの結果がstart前の状態に戻る
+    #返却値:: 自分自身を返す
+    def reset
+      @st = 0
+      @stop_tick = nil
+      return self
+    end
+
+    #===タイマー処理を再会する
+    #停止前の状態から再びタイマー処理を開始する
+    #返却値:: 自分自身を返す
+    def resume
+      return self unless @stop_tick
+      @st += (SDL.getTicks - @stop_tick)
+      @stop_tick = nil
+      @counting = true
+      return self
+    end
+
+    #===タイマー処理中かを返す
+    #タイマー処理中ならばtrue、停止中ならばfalseを返す
+    #返却値:: タイマー処理中かどうかを示すフラグ
+    def execute?
+      @counting
+    end
+
+    alias :executing? :execute?
+
     def wait_inner(f) #:nodoc:
       return !f unless @counting
-      t = SDL.getTicks
-      return f unless (t - @st) >= @wait
-      @counting = false
-      return !f
+      (SDL.getTicks - @st) >= @wait ? !f : f
     end
 
     private :wait_inner
@@ -1548,12 +1584,15 @@ module Miyako
       return wait_inner(true)
     end
 
-    #===タイマー処理が終了したかを返す
-    #タイマー処理が終了したらtrue、処理中ならfalseを返す
+    #===タイマーが制限時間に達したかを返す
+    #タイマーが制限時間に達した(もしくはオーバーした)らtrue、制限時間内ならfalseを返す
+    #タイマーが
     #返却値:: タイマー処理が終わったかどうかを示すフラグ
     def finish?
       return wait_inner(false)
     end
+
+    alias :finished? :finish?
 
     def wait #:nodoc:
       st = SDL.getTicks

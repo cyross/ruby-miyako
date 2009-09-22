@@ -1277,6 +1277,8 @@ v2.1.0(2009.7.9)
 ・WaitCounter#call
 ・WaitCounter#now
 ・WaitCounter#remain
+・WaitCounter#reset
+・WaitCounter#resume
 ・WaitCounter#size
 <インスタンスメソッド廃止>
 ・Segments#min_x

@@ -83,7 +83,8 @@ static void get_min_max(VALUE segment, VALUE *min, VALUE *max)
 */
 static VALUE counter_start(VALUE self)
 {
-  rb_iv_set(self, "@st", rb_funcall(mSDL, rb_intern("getTicks"), 0));
+  rb_iv_set(self, "@st", INT2NUM(SDL_GetTicks()));
+  rb_iv_set(self, "@stop_tick", Qnil);
   rb_iv_set(self, "@counting", Qtrue);
   return self;
 }
@@ -93,8 +94,99 @@ static VALUE counter_start(VALUE self)
 */
 static VALUE counter_stop(VALUE self)
 {
-  rb_iv_set(self, "@st", INT2NUM(0));
+  rb_iv_set(self, "@stop_tick", INT2NUM(SDL_GetTicks()));
   rb_iv_set(self, "@counting", Qfalse);
+  return self;
+}
+
+/*
+:nodoc:
+*/
+static VALUE counter_now(VALUE self)
+{
+  VALUE stop_tick = rb_iv_get(self, "@stop_tick");
+  Uint32 cnt = 0;
+  Uint32 wait = NUM2INT(rb_iv_get(self, "@wait"));
+  if(stop_tick != Qnil)
+  {
+    cnt = NUM2INT(stop_tick) - NUM2INT(rb_iv_get(self, "@st"));
+    if(wait < cnt)
+    {
+      return INT2NUM(wait+1);
+    }
+    else
+    {
+      return INT2NUM(cnt);
+    }
+  }
+  if(rb_iv_get(self, "@counting") == Qfalse){ return NUM2INT(-1); }
+  cnt = SDL_GetTicks() - NUM2INT(rb_iv_get(self, "@st"));
+  if(wait < cnt)
+  {
+    return INT2NUM(wait+1);
+  }
+  else
+  {
+    return INT2NUM(cnt);
+  }
+  return self;
+}
+
+/*
+:nodoc:
+*/
+static VALUE counter_remain(VALUE self)
+{
+  VALUE stop_tick = rb_iv_get(self, "@stop_tick");
+  Uint32 cnt = 0;
+  Uint32 wait = NUM2INT(rb_iv_get(self, "@wait"));
+  if(stop_tick != Qnil)
+  {
+    cnt = NUM2INT(stop_tick) - NUM2INT(rb_iv_get(self, "@st"));
+    if(wait < cnt)
+    {
+      return NUM2INT(-1);
+    }
+    else
+    {
+      return INT2NUM(wait-cnt);
+    }
+  }
+  if(rb_iv_get(self, "@counting") == Qfalse){ return INT2NUM(wait+1); }
+  cnt = SDL_GetTicks() - NUM2INT(rb_iv_get(self, "@st"));
+  if(wait < cnt)
+  {
+    return INT2NUM(-1);
+  }
+  else
+  {
+    return INT2NUM(wait-cnt);
+  }
+  return self;
+}
+
+/*
+:nodoc:
+*/
+static VALUE counter_reset(VALUE self)
+{
+  rb_iv_set(self, "@st", INT2NUM(0));
+  rb_iv_set(self, "@stop_tick", Qnil);
+  rb_iv_set(self, "@counting", Qfalse);
+  return self;
+}
+
+/*
+:nodoc:
+*/
+static VALUE counter_resume(VALUE self)
+{
+  VALUE stop_tick = rb_iv_get(self, "@stop_tick");
+  if(stop_tick == Qnil) return self;
+  Uint32 st = NUM2INT(rb_iv_get(self, "@st")) + SDL_GetTicks() - NUM2INT(stop_tick);
+  rb_iv_set(self, "@st", INT2NUM(st));
+  rb_iv_set(self, "@stop_tick", Qnil);
+  rb_iv_set(self, "@counting", Qtrue);
   return self;
 }
 
@@ -103,17 +195,19 @@ static VALUE counter_stop(VALUE self)
 */
 static VALUE counter_wait_inner(VALUE self, VALUE f)
 {
-  VALUE counting = rb_iv_set(self, "@counting", Qtrue);
-  if(counting == Qfalse){ return f == Qtrue ? Qfalse : Qtrue; }
+  if(rb_iv_get(self, "@counting") == Qfalse)
+  {
+    return f == Qtrue ? Qfalse : Qtrue;
+  }
 
-  int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
-  int st = NUM2INT(rb_iv_get(self, "@st"));
-  int wait = NUM2INT(rb_iv_get(self, "@wait"));
-  if((t - st) < wait){ return f; }
-
-  rb_iv_set(cWaitCounter, "@counting", Qfalse);
-
-  return f == Qtrue ? Qfalse : Qtrue;
+  Uint32 t = SDL_GetTicks();
+  Uint32 st = NUM2INT(rb_iv_get(self, "@st"));
+  Uint32 wait = NUM2INT(rb_iv_get(self, "@wait"));
+  if((t - st) >= wait)
+  {
+    return f == Qtrue ? Qfalse : Qtrue;
+  }
+  return f;
 }
 
 /*
@@ -137,9 +231,9 @@ static VALUE counter_finish(VALUE self)
 */
 static VALUE counter_wait(VALUE self)
 {
-  int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
-  int st = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
-  int wait = NUM2INT(rb_iv_get(self, "@wait"));
+  Uint32 t = SDL_GetTicks();
+  Uint32 st = NUM2INT(rb_iv_get(self, "@st"));
+  Uint32 wait = NUM2INT(rb_iv_get(self, "@wait"));
   while((t - st) < wait){
     t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
   }
@@ -315,7 +409,7 @@ static VALUE rect_in_range(VALUE self, VALUE vx, VALUE vy)
   int h = NUM2INT(*(st+3));
   int x = NUM2INT(vx);
   int y = NUM2INT(vy);
-  
+
   if(x >= l && y >= t && x < (l+w) && y < (t+h)){ return Qtrue; }
   return Qfalse;
 }
@@ -429,7 +523,7 @@ static VALUE square_in_range(VALUE self, VALUE vx, VALUE vy)
   int b = NUM2INT(*(st+3));
   int x = NUM2INT(vx);
   int y = NUM2INT(vy);
-  
+
   if(x >= l && y >= t && x <= r && y <= b){ return Qtrue; }
   return Qfalse;
 }
@@ -459,11 +553,17 @@ void Init_miyako_basicdata()
 
   rb_define_method(cWaitCounter, "start", counter_start, 0);
   rb_define_method(cWaitCounter, "stop",  counter_stop,  0);
+  rb_define_method(cWaitCounter, "reset", counter_reset, 0);
+  rb_define_method(cWaitCounter, "resume",  counter_resume,  0);
+  rb_define_method(cWaitCounter, "now", counter_now, 0);
+  rb_define_method(cWaitCounter, "remain",  counter_remain,  0);
+  rb_define_method(cWaitCounter, "remind",  counter_remain,  0);
   rb_define_method(cWaitCounter, "wait_inner", counter_wait_inner, 1);
   rb_define_method(cWaitCounter, "waiting?", counter_waiting, 0);
   rb_define_method(cWaitCounter, "finish?", counter_finish, 0);
+  rb_define_method(cWaitCounter, "finished?", counter_finish, 0);
   rb_define_method(cWaitCounter, "wait", counter_wait, 0);
-  
+
   rb_define_method(sSpriteUnit, "move!", su_move, 2);
   rb_define_method(sSpriteUnit, "move_to!", su_move_to, 2);
 

@@ -349,9 +349,9 @@ static VALUE sprite_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE 
 */
 static VALUE screen_update_tick(VALUE self)
 {
-  int t = NUM2INT(rb_funcall(mSDL, rb_intern("getTicks"), 0));
-  int tt = NUM2INT(rb_iv_get(mScreen, "@@t"));
-  int interval = t - tt;
+  Uint32 t = SDL_GetTicks();
+  Uint32 tt = NUM2INT(rb_iv_get(mScreen, "@@t"));
+  Uint32 interval = t - tt;
   int fps_cnt = NUM2INT(rb_iv_get(mScreen, "@@fpscnt"));
 
   while(interval < fps_cnt){
