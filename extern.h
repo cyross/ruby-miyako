@@ -29,6 +29,7 @@ extern void _miyako_yield_unit_1(MiyakoBitmap *src);
 extern void _miyako_yield_unit_2(MiyakoBitmap *src, MiyakoBitmap *dst);
 extern void _miyako_audio_update();
 extern void _miyako_input_update();
+extern void _miyako_counter_update();
 extern void _miyako_screen_render();
 extern void _miyako_screen_pre_render();
 extern void _miyako_screen_render_screen();

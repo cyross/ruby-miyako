@@ -98,6 +98,7 @@ static VALUE miyako_main_loop(VALUE self)
   {
     _miyako_audio_update();
     _miyako_input_update();
+    _miyako_counter_update();
     _miyako_screen_clear();
     rb_yield(Qnil);
     _miyako_screen_render();

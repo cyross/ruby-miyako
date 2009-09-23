@@ -1021,6 +1021,7 @@ v2.1.0(2009.7.9)
 ・マウス、キーボード、ゲームパッドの利用選択が可能に(enable、disableの設定が可能に)
 ・FontクラスにSpriteBase、Animastion、Layoutモジュールをmixin、スプライトとして扱うことが可能に
 ・WaitCounter#remind(->remainにalias)の返却値の仕様を変更(未スタート:制限時間->制限時間+1、制限時間オーバー:0->-1)
+・WaitCounter.updateを追加。簡易的なコールバック処理が可能に
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
@@ -1112,7 +1113,10 @@ v2.1.0(2009.7.9)
 ・Utility.interval
 ・Utility.theta
 ・Yuki.add_method
+・WaitCounter.callback
 ・WaitCounter.tick
+・WaitCounter.ticks
+・WaitCounter.update
 <クラス・モジュールメソッド廃止>
 ・Layout#.ow
 ・Layout#.oh
@@ -1274,6 +1278,7 @@ v2.1.0(2009.7.9)
 ・Square#-
 ・Square#*
 ・Square#/
+・WaitCounter#append_callback
 ・WaitCounter#call
 ・WaitCounter#now
 ・WaitCounter#remain

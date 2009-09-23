@@ -1453,6 +1453,9 @@ module Miyako
   class WaitCounter
     SECOND2TICK = 1000
 
+    @@callbacks = {}
+    @@initialized = false
+
     #WaitCounterインスタンス固有の名前
     #デフォルトはインスタンスIDを文字列化したもの
     attr_accessor :name
@@ -1464,8 +1467,33 @@ module Miyako
       return SDL.getTicks
     end
 
+    #===起算時からのミリ秒数を取得する
+    #起算時からのミリ秒数を整数で取得する
+    #返却値:: 起算時からのミリ秒数(整数)
+    def WaitCounter.ticks
+      return SDL.getTicks
+    end
+
     def WaitCounter.get_second_to_tick(s) #:nodoc:
       return (SECOND2TICK * s).to_i
+    end
+
+    #===コールバックハッシュを参照する
+    #コールバック処理を登録しているハッシュを参照する
+    def WaitCounter.callbacks
+      @@callbacks
+    end
+
+    #===コールバック処理を更新する
+    #WaitCounterの処理を確認して、タイマーが制限時間オーバーしたら登録しているブロックを評価する
+    def WaitCounter.update
+      @@callbacks.each{|wait, callback|
+        next unless wait.executing?
+        if wait.finished?
+          callback.call(wait)
+          wait.start
+        end
+      }
     end
 
     #===インスタンスを生成する
@@ -1479,6 +1507,13 @@ module Miyako
       @wait = WaitCounter.get_second_to_tick(@seconds)
       @st = 0
       @counting = false
+    end
+
+    #===自分自身をコールバック処理に追加する
+    def append_callback(&block)
+      raise MiyakoError, "This method needs some block!" unless block_given?
+      raise MiyakoError, "This block needs a parameter!" unless block.arity == 1
+      @@callbacks[self] = block
     end
 
     #===設定されているウェイトの長さを求める

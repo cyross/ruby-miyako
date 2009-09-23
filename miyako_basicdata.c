@@ -246,6 +246,42 @@ static VALUE counter_wait(VALUE self)
   return self;
 }
 
+/*
+:nodoc:
+*/
+static int counter_update_inner(VALUE key, VALUE val)
+{
+  if(rb_iv_get(key, "@counting") == Qfalse){ return 0; }
+  if(counter_finish(key) == Qtrue)
+  {
+    VALUE call_arg = rb_ary_new();
+    rb_ary_push(call_arg, key);
+    rb_proc_call(val, call_arg);
+    counter_start(key);
+  }
+
+  return 0;
+}
+
+/*
+:nodoc:
+*/
+static VALUE counter_update(VALUE self)
+{
+  VALUE callbacks = rb_iv_get(self, "@@callbacks");
+  rb_hash_foreach(callbacks, counter_update_inner, Qnil);
+
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+void _miyako_counter_update()
+{
+  counter_update(cWaitCounter);
+}
+
 static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -557,6 +593,7 @@ void Init_miyako_basicdata()
   one = 1;
   nOne = INT2NUM(one);
 
+  rb_define_singleton_method(cWaitCounter, "update", counter_update, 0);
   rb_define_method(cWaitCounter, "start", counter_start, 0);
   rb_define_method(cWaitCounter, "stop",  counter_stop,  0);
   rb_define_method(cWaitCounter, "reset", counter_reset, 0);
