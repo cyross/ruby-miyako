@@ -1412,7 +1412,7 @@ module Miyako
     #:dark_purple:: [ 80,  0, 80, 255]
     #:dark_yellow:: [ 80, 80,  0, 255]
     def Color.[](name, alpha = nil)
-      c = (@@symbol2color[name.to_sym] or raise MiyakoError, "Illegal Color Name! : #{name}")
+      c = (@@symbol2color[name.to_sym].dup or raise MiyakoError, "Illegal Color Name! : #{name}")
       c[3] = alpha if alpha
       return c
     end
