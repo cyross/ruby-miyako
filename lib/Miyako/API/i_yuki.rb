@@ -84,7 +84,9 @@ module Miyako
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
-    Command = Struct.new(:body, :body_selected, :condition, :result)
+    #_body_disable_:: 選択不可時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
+    #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
+    Command = Struct.new(:body, :body_selected, :condition, :result, :body_disable, :enable)
 
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
@@ -92,8 +94,10 @@ module Miyako
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
     #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
+    #_body_disable_:: 選択不可時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはnil
-    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc)
+    #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
+    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc, :body_disable, :enable)
 
     attr_reader :visibles, :base
     attr_reader :valign
@@ -104,7 +108,7 @@ module Miyako
     #cancel_checks:: コマンド選択解除（キャンセル）を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
     attr_reader :release_checks, :ok_checks, :cancel_checks
-    attr_reader :pre_pause, :pre_command, :pre_cancel, :post_pause, :post_command, :post_cancel
+    attr_reader :pre_pause, :pre_command, :pre_cancel, :post_pause, :post_command, :post_cancel, :on_disable
     #selecting_procs:: コマンド選択時に行うブロックの配列。
     #ブロックは4つの引数を取る必要がある。
     #(1)コマンド決定ボタンを押した？(true/false)
@@ -200,6 +204,7 @@ module Miyako
       @post_pause   = []
       @post_command = []
       @post_cancel  = []
+      @on_disable   = []
       @selecting_procs = []
 
       @is_outer_height = self.method(:is_outer_height)
@@ -1052,7 +1057,7 @@ module Miyako
       choices = []
       command_list.each{|cm|
         if (cm[:condition] == nil || cm[:condition].call)
-          cm_array = [cm[:body], cm[:body_selected], cm[:result]]
+          cm_array = [cm[:body], cm[:body_selected], cm[:body_disable], cm[:enable], cm[:result]]
           methods = cm.methods
           cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : nil)
           choices.push(cm_array)
@@ -1078,6 +1083,7 @@ module Miyako
           sp.call(@select_ok, @select_cansel, @select_amount, @mouse_amount)
         }
         if @select_ok
+          return @on_disable.each{|proc| proc.call} unless @command_box.enable_choice?
           @result = @command_box.result
           @command_box.finish_command
           @text_box.release

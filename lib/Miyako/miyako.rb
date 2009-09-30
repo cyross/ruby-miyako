@@ -156,14 +156,15 @@ module Miyako
   #<i>Screen::clear</i>、評価後に<i>Screen::render</i>を呼び出す
   #
   #ブロックを渡さないと例外が発生する
-  def Miyako.main_loop
+  def Miyako.main_loop(is_clear = true)
     raise MiyakoError, "Miyako.main_loop needs brock!" unless block_given?
     loop do
       Audio.update
       Input.update
       WaitCounter.update
-      Screen.clear
+      Screen.clear if is_clear
       yield
+      WaitCounter.post_update
       Screen.render
     end
   end

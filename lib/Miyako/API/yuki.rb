@@ -42,18 +42,22 @@ module Miyako
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
+    #_body_disable_:: 選択不可時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
+    #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
-    Command = Struct.new(:body, :body_selected, :condition, :result)
+    Command = Struct.new(:body, :body_selected, :body_disable, :enable, :condition, :result)
 
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
+    #_body_disable_:: 選択不可時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
+    #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
     #_condition_:: 表示条件（ブロック）。評価の結果、trueのときのみ表示
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
     #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
     #ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはnil
-    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc)
+    CommandEX = Struct.new(:body, :body_selected, :condition, :body_disable, :enable, :result, :end_select_proc)
 
     #===Yuki#update実行中に行わせる処理を実装するテンプレートメソッド
     #但し、メソッド本体は、update_inner=メソッドで設定する必要がある
@@ -93,7 +97,7 @@ module Miyako
     #cancel_checks:: コマンド選択解除（キャンセル）を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
     attr_reader :release_checks, :ok_checks, :cancel_checks
-    attr_reader :pre_pause, :pre_command, :pre_cancel, :post_pause, :post_command, :post_cancel
+    attr_reader :pre_pause, :pre_command, :pre_cancel, :post_pause, :post_command, :post_cancel, :on_disable
     #selecting_procs:: コマンド選択時に行うブロックの配列。
     #ブロックは4つの引数を取る必要がある。
     #(1)コマンド決定ボタンを押した？(true/false)
@@ -200,6 +204,7 @@ module Miyako
       @post_pause   = []
       @post_command = []
       @post_cancel  = []
+      @on_disable   = []
       @selecting_procs = []
 
       @is_outer_height = self.method(:is_outer_height)
@@ -1037,7 +1042,7 @@ module Miyako
     #引数無しのブロックを渡せば、コマンド選択開始前に、決定判別・キャンセル判別に必要な前処理を施すことが出来る
     #選択中、update_innerメソッドを呼び出し、続けて、処理をYuki#startもしくはYuki#update呼び出し直後に戻す
     #Yuki#updateが呼び出されても選択中の場合は、再び上記の処理を繰り返す
-    #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
+    #_command_list_:: 表示するコマンド群。各要素はCommand/CommandEx構造体の配列
     #_cancel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
@@ -1048,7 +1053,7 @@ module Miyako
       choices = []
       command_list.each{|cm|
         if (cm[:condition] == nil || cm[:condition].call)
-          cm_array = [cm[:body], cm[:body_selected], cm[:result]]
+          cm_array = [cm[:body], cm[:body_selected], cm[:body_disable], cm[:enable], cm[:result]]
           methods = cm.methods
           cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : nil)
           choices.push(cm_array)
@@ -1078,6 +1083,7 @@ module Miyako
         sp.call(@select_ok, @select_cansel, @select_amount, @mouse_amount)
       }
       if @select_ok
+        return @on_disable.each{|proc| proc.call} unless @command_box.enable_choice?
         @result = @command_box.result
         @command_box.finish_command
         @text_box.release

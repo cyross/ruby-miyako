@@ -153,6 +153,7 @@ module Miyako
       @shadow_margin = [2, 2]
       @unit = SpriteUnitFactory.create
       @text = ""
+      @visible = true
       set_layout_size(*self.text_size(@text))
     end
 
@@ -164,6 +165,21 @@ module Miyako
       @shadow_margin = @shadow_margin.dup
       @unit = @unit.dup
       @text = @text.dup
+    end
+
+    #===描画可能・不可状態を返す
+    #描画可能の時はtrue、不可能なときはfalseを返す
+    #返却値:: true/falseを返す
+    def visible
+      return @visible
+    end
+
+    #===描画可能・不可状態を設定する
+    #描画可能の時はtrue、不可能なときはfalseを渡す
+    #返却値:: 自分自身を返す
+    def visible=(v)
+      @visible = v
+      return self
     end
 
     #===描画する文字列を変更する
@@ -379,6 +395,7 @@ module Miyako
     #===文字列を画面に描画する
     #返却値:: 自分自身を返す
     def render
+      return self unless @visible
       draw_text(Screen, @text, @layout[:pos][0], @layout[:pos][1])
       return self
     end
@@ -387,6 +404,7 @@ module Miyako
     #_dst_:: 描画先スプライト
     #返却値:: 自分自身を返す
     def render_to(dst)
+      return self unless @visible
       draw_text(dst, @text, @layout[:pos][0], @layout[:pos][1])
       return self
     end
@@ -396,6 +414,7 @@ module Miyako
     #_y_:: y方向位置
     #返却値:: 自分自身を返す
     def render_xy(x, y)
+      return self unless @visible
       draw_text(Screen, @text, x, y)
       return self
     end
@@ -406,6 +425,7 @@ module Miyako
     #_y_:: y方向位置
     #返却値:: 自分自身を返す
     def render_xy_to(dst, x, y)
+      return self unless @visible
       draw_text(dst, @text, x, y)
       return self
     end
@@ -415,6 +435,7 @@ module Miyako
     #_text_:: 描画対象の文字列
     #返却値:: 自分自身を返す
     def render_str(text)
+      return self unless @visible
       draw_text(Screen, text.to_s, @layout[:pos][0], @layout[:pos][1])
       return self
     end
@@ -425,6 +446,7 @@ module Miyako
     #_text_:: 描画対象の文字列
     #返却値:: 自分自身を返す
     def render_str_to(dst, text)
+      return self unless @visible
       draw_text(dst, text.to_s, @layout[:pos][0], @layout[:pos][1])
       return self
     end

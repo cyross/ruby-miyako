@@ -21,6 +21,103 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
+  require 'delegate'
+
+  class ChoiceStruct < Struct
+    include SpriteBase
+    include Animation
+    include Layout
+
+    def initialize(*params)
+      super(*params)
+      init_layout
+      set_layout_size(1, 1)
+    end
+
+    def update_layout_position #:nodoc:
+      self[0].move_to!(*@layout.pos)
+      self[1].move_to!(*@layout.pos) if self[1] && self[0] != self[1]
+      self[2].move_to!(*@layout.pos) if self[2]
+    end
+
+    def process_sprites #:nodoc:
+      yield(self[0])
+      yield(self[1]) if self[1] && self[0] != self[1]
+      yield(self[2]) if self[2]
+    end
+
+    def start
+      return unless self[3].call
+      process_sprites{|spr| spr.start }
+    end
+
+    def stop
+      return unless self[3].call
+      process_sprites{|spr| spr.stop }
+    end
+
+    def reset
+      return unless self[3].call
+      process_sprites{|spr| spr.reset }
+    end
+
+    def update_animation
+      return unless self[3].call
+      process_sprites{|spr| spr.update_animation }
+    end
+
+    def render_src #:nodoc:
+      sprite = self[0]
+      if self[4]
+        sprite = self[1] if (self[5] && self[1])
+      else
+        sprite = self[2]
+      end
+      return sprite
+    end
+
+    def render
+      return unless self[3].call
+      render_src.render
+    end
+
+    def render_to(dst)
+      return unless self[3].call
+      render_src..render_to(dst)
+    end
+
+    #===レイアウト空間の大きさを更新する
+    # 新たにスプライトを登録したときに、全体の大きさをレイアウト空間の大きさとして更新する
+    #返却値:: 自分自身を返す
+    def update_layout_size
+      trect = self.broad_rect
+      set_layout_size(*trect.size)
+      self
+    end
+
+    #===選択肢の最大の大きさを矩形で取得する
+    # 現在登録しているスプライトから最大の矩形(broad_rect)を求める
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def broad_rect
+      return self[0].rect if (self[1].nil? && self[2].nil?)
+      list = [self[0]]
+      list << self[1] if (self[1] && self[0] != self[1])
+      list << self[2] if self[2]
+      xx = []
+      yy = []
+      list.each{|ch|
+        r = ch.rect
+        xx << r.x
+        yy << r.y
+        xx << r.x + r.w
+        yy << r.y + r.h
+      }
+      min_x, max_x = xx.minmax
+      min_y, max_y = yy.minmax
+      return Rect.new(min_x, min_y, max_x-min_x, max_y-min_y)
+    end
+  end
+
   #==選択肢構造体
   # 選択肢を構成する要素の集合
   #
@@ -29,7 +126,9 @@ module Miyako
   #
   #_body_:: 選択肢を示す画像
   #_body_selected_:: 選択肢を示す画像(選択時)
-  #_condition_:: 選択肢が選択できる条件を記述したブロック
+  #_body_disable_:: 選択肢を示す画像(選択不可時)
+  #_condition_:: 選択肢を表示できる条件を記述したブロック
+  #_enable_:: 選択肢を選択できるときはtrue、不可の時はfalse
   #_selected_:: 選択肢が選択されているときはtrue、選択されていないときはfalse
   #_result_:: 選択した結果を示すインスタンス
   #_left_:: 左方向を選択したときに参照するChoice構造体のインスタンス
@@ -41,18 +140,20 @@ module Miyako
   #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
   #ブロックは1つの引数を取る(コマンド選択テキストボックス))。
   #デフォルトはnil(何もしない)
-  Choice = Struct.new(:body, :body_selected, :condition, :selected, :result, :left, :right, :up, :down, :base, :attribute, :end_select_proc)
+  Choice = ChoiceStruct.new(:body, :body_selected, :body_disable,
+                            :condition, :enable, :selected, :result,
+                            :left, :right, :up, :down,
+                            :base, :attribute, :end_select_proc)
 
   #==選択肢を管理するクラス
   # 選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
-  class Choices
+  class Choices < Delegator
     include Layout
     include SpriteBase
     include Animation
-    include Enumerable
-    extend Forwardable
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+    attr_reader :choices #選択肢配列の集合
 
     # インスタンスを生成する
     # 返却値:: 生成された Choices クラスのインスタンス
@@ -64,7 +165,15 @@ module Miyako
       @last_selected = nil
       @result = nil
       @visible = true
+      @org_pos = Point.new(0,0)
       set_layout_size(1, 1)
+    end
+
+    def __getobj__
+      @choices
+    end
+
+    def __setobj__(obj)
     end
 
     def initialize_copy(obj) #:nodoc:
@@ -75,12 +184,7 @@ module Miyako
     def update_layout_position #:nodoc:
       dx = @layout.pos[0] - rect[0]
       dy = @layout.pos[1] - rect[1]
-      @choices.each{|ch|
-        ch.each{|cc|
-          cc.body.move!(dx, dy)
-          cc.body_selected.move!(dx, dy) if cc.body_selected && cc.body != cc.body_selected
-        }
-      }
+      @choices.each{|ch| ch.each{|cc| cc.move!(dx, dy) } }
     end
 
     # 選択肢を作成する
@@ -89,9 +193,11 @@ module Miyako
     #_body_:: 選択肢を示す画像
     #_body_selected_:: 選択肢を示す画像(選択時)。デフォルトはnil
     #_selected_:: 生成時に選択されているときはtrue、そうでないときはfalseを設定する
+    #_body_disable_:: 選択肢を示す画像(選択不可時)。デフォルトはnil
+    #_enable_:: 生成時に選択可能なときはtrue、不可の時はfalseを設定する
     #返却値:: 生成された Choice構造体のインスタンス
-    def Choices.create_choice(body, body_selected = nil, selected = false)
-      choice = Choice.new(body, body_selected, Proc.new{ true }, selected,
+    def Choices.create_choice(body, body_selected = nil, selected = false, body_disable = nil, enable = true)
+      choice = Choice.new(body, body_selected, body_disable, Proc.new{ true }, enable, selected,
                           nil, nil, nil, nil, nil, nil, {}, nil)
       choice.left = choice
       choice.right = choice
@@ -106,7 +212,7 @@ module Miyako
       @choices.push(choices)
       @last_selected = @choices[0][0] if (@choices.length == 1 && @last_selcted == nil)
       rect = self.broad_rect
-      set_layout_size(rect.w, rect.h)
+      set_layout_size(*rect.size)
       return self
     end
 
@@ -116,13 +222,6 @@ module Miyako
       @choices.clear
       @choices = []
     end
-
-    def each #:nodoc:
-      return self.to_enum(:each) unless block_given?
-      @choices.each{|ch| yield ch }
-    end
-
-    def_delegators(:@choices, :push, :pop, :shift, :unshift, :[], :[]=, :clear, :length)
 
     #===選択を開始しているかどうかを問い合わせる
     # start_choiceメソッドを呼び出して、コマンド選択が始まっているかどうかを問い合わせ、始まっているときはtrueを返す
@@ -227,6 +326,15 @@ module Miyako
       return !@non_select
     end
 
+    #===選択肢が選択可能かどうかを問い合わせる
+    #現在指している選択肢が選択可能か選択不可かを問い合わせる
+    #返却値:: 選択可能ならtrue、選択不可ならfalseを返す
+    def enable?
+      return false if @non_select
+      return false unless @now
+      return @now.enable
+    end
+
     #===選択肢を変更する
     #指定の位置の現在の選択状態を、選択状態にする
     #_x_:: x方向位置
@@ -295,11 +403,7 @@ module Miyako
     def render
       return unless @visible
       return self unless @now
-      @now.base.each{|c|
-        ((c.body_selected && c.selected) ?
-          c.body_selected.render :
-          c.body.render) if c.condition.call
-      }
+      @now.base.each{|c| c.render }
       return self
     end
 
@@ -313,11 +417,7 @@ module Miyako
     def render_to(dst)
       return self unless @visible
       return self unless @now
-      @now.base.each{|c|
-        ((c.body_selected && c.selected) ?
-          c.body_selected.render_to(dst) :
-          c.body.render_to(dst)) if c.condition.call
-      }
+      @now.base.each{|c| c.render_to(dst) }
       return self
     end
 
@@ -337,6 +437,16 @@ module Miyako
       return sprite
     end
 
+    #===レイアウト空間の大きさを更新する
+    # 生成後、選択肢を追加した後の全体の大きさをレイアウト空間の大きさとして更新する
+    # ただし、create_choicesめそっどを呼び出したときはこのメソッドを自動的に呼び出している
+    #返却値:: 自分自身を返す
+    def update_layout_size
+      trect = self.broad_rect
+      set_layout_size(*trect.size)
+      self
+    end
+
     #===現在登録している選択肢の最大の大きさを矩形で取得する
     # 現在インスタンスが所持している選択肢全てから左上座標、右下座標を取得し、矩形の形式で返す
     # 但し、選択肢が一つも登録されていない時はRect(0,0,1,1)を返す
@@ -347,17 +457,16 @@ module Miyako
       yy = []
       @choices.each{|ch|
         ch.each{|cc|
-          xx << cc.body.x
-          yy << cc.body.y
-          if cc.body_selected
-            xx << cc.body_selected.x
-            yy << cc.body_selected.y
-          end
+          r = cc.broad_rect
+          xx << r.x
+          yy << r.y
+          xx << r.x + r.w
+          yy << r.y + r.h
         }
       }
       min_x, max_x = xx.minmax
       min_y, max_y = yy.minmax
-      return Rect.new(min_x, min_y, max_x-min_x+1, max_y-min_y+1)
+      return Rect.new(min_x, min_y, max_x-min_x, max_y-min_y)
     end
 
     #===現在登録している選択肢の大きさを矩形で取得する
@@ -428,12 +537,7 @@ module Miyako
     # 返却値:: 自分自身を返す
     def start
       return self unless @now
-      @now.base.each{|c|
-        if c.condition.call
-          c.body.start
-          c.body_selected.start if c.body != c.body_selected
-        end
-      }
+      @now.base.each{|c| c.start }
       return self
     end
 
@@ -442,12 +546,7 @@ module Miyako
     # 返却値:: 自分自身を返す
     def stop
       return self unless @now
-      @now.base.each{|c|
-        if c.condition.call
-          c.body.stop
-          c.body_selected.stop if c.body != c.body_selected
-        end
-      }
+      @now.base.each{|c| c.stop }
       return self
     end
 
@@ -456,12 +555,7 @@ module Miyako
     # 返却値:: 自分自身を返す
     def reset
       return self unless @now
-      @now.base.each{|c|
-        if c.condition.call
-          c.body.reset
-          c.body_selected.reset if c.body != c.body_selected
-        end
-      }
+      @now.base.each{|c| c.reset }
       return self
     end
 
@@ -472,11 +566,7 @@ module Miyako
     # ただし、現在選択中の配列リストではないときは[false]を返す
     def update_animation
       return [false] unless @now
-      @now.base.map{|c|
-        ((c.body_selected && c.selected) ?
-         c.body_selected.update_animation :
-         c.body.update_animation) if c.condition.call
-      }
+      @now.base.map{|c| c.update_animation }
     end
 
     #=== mixin されたインスタンスの部分矩形幅を取得する

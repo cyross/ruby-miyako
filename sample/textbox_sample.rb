@@ -40,11 +40,13 @@ box_bg.fill([128,0,64,128])
 
 # 選択肢の作成
 list = [
-        [Shape.text(:font=>font, :text=>"選択肢１"), nil, 1],
-        [Shape.text(:font=>font, :text=>"選択肢２"), nil, 2],
-        [Shape.text(:font=>font, :text=>"選択肢３"), nil, 3]
+        ["選択肢１", "選択肢１", "選択肢１", true,  1],
+        ["選択肢２", "選択肢２", "選択肢２", true,  2],
+        ["選択肢３", "選択肢３", "選択肢３", true,  3],
+        ["選択肢４", "選択肢４", "選択肢４", false, 4]
        ]
 @choices = @parts[:box].create_choices_chain(list)
+#@choices[0][3].enable = false
 
 # カーソルのアニメーションの開始
 @parts[:box].start
@@ -181,7 +183,7 @@ Miyako.main_loop do
     # カーソルの移動
     @parts[:box].move_cursor(*Input.pushed_amount)
     # １ボタンを押したとき、選択状態を解除する
-    @parts[:box].finish_command if Input.pushed_any?(:btn1)
+    @parts[:box].finish_command if (Input.pushed_any?(:btn1) && @parts[:box].enable_choice?)
     process_textbox
     next
   end

@@ -448,12 +448,17 @@ module Miyako
     #===選択肢の集合をTextBoxインスタンスに見合う形のChoicesクラスインスタンスの配列に変換する
     #ブロック(引数一つのブロックのみ有効)を渡したときは、ブロックを評価して変換したChoicesクラスの配列を作成する。
     #引数は、以下の構成を持つ配列のリスト。
-    #[非選択時スプライト(文字列可),選択時スプライト(文字列・nil可),選択結果インスタンス]
+    #[非選択時スプライト(文字列可),選択時スプライト(文字列・nil可),選択不可時スプライト(文字列・nil可),
+    # 使用可・不可フラグ,選択結果インスタンス]
     # 非選択時スプライト：自身が選択されていない時に表示するスプライト。文字列の時は、Shapeクラスなどでスプライトに変更する
     # 選択時スプライト：自身が選択されている時に表示するスプライト。文字列の時は、Shapeクラスなどでスプライトに変更する
     # (そのとき、文字色が赤色になる)。
     # nilを渡すと、非選択時スプライトが使われる
+    # 選択不可時スプライト：自身が選択不可の時に表示するスプライト。文字列の時は、Shapeクラスなどでスプライトに変更する
+    # (そのとき、文字色が灰色になる)。
+    # nilを渡すと、非選択時スプライトが使われる
     # 注：スプライトは、画面にスナップしておくこと
+    # 使用可・使用不可フラグ：自身が使用可のときはtrue、使用不可の時はfalseを返す
     # 選択結果インスタンス：コマンドが決定したときに、resultメソッドの値として渡すインスタンス。
     # デフォルト処理の選択肢の位置は、画面左上から下へ順番に設定される
     # 注：ブロックを渡すとき、選択肢の位置計算が、全選択肢の左上位置が[0,0]とする相対座標になっていること
@@ -469,10 +474,12 @@ module Miyako
         body = v[0].method(:to_sprite).arity == 0 ? v[0].to_sprite : v[0].to_sprite(@font)
         @font.color = Color[:red]
         body_selected = v[1] ? (v[1].method(:to_sprite).arity == 0 ? v[1].to_sprite : v[1].to_sprite(@font)) : body
+        @font.color = Color[:dark_gray]
+        body_disable  = v[2] ? (v[2].method(:to_sprite).arity == 0 ? v[2].to_sprite : v[2].to_sprite(@font)) : body
         @font.color = org_font_color
-        choice = Choices.create_choice(body, body_selected)
-        choice.result = v[2]
-        choice.end_select_proc = v[3]
+        choice = Choices.create_choice(body, body_selected, false, body_disable, v[3])
+        choice.result = v[4]
+        choice.end_select_proc = v[5]
         next choice
       }
       choices2 = choices.each_slice(@command_page_size).to_a
@@ -486,8 +493,10 @@ module Miyako
           v.up = cc[y - 1]
           v.right = right[y] || right.last
           v.left = left[y] || left.last
-          v.body.move_to!(0, yp)
-          v.body_selected.move_to!(0, yp)
+          v.move_to!(0, yp)
+#          v.body.move_to!(0, yp)
+#          v.body_selected.move_to!(0, yp)
+#          v.body_disable.move_to!(0, yp)
           yp += [v.body.broad_rect.h, v.body_selected.broad_rect.h].max
         }
       }
@@ -530,6 +539,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def start_command
       raise MiyakoValueError, "don't set Choice!" if @choices.length == 0
+      @choices.start
       @choices.start_choice
       if @select_cursor
         @select_cursor.snap(@choices.body)
@@ -545,6 +555,7 @@ module Miyako
     def finish_command
       @choices.end_choice(self)
       @choices.left!.top!
+      @choices.stop
       @selecting = false
       return self
     end
@@ -595,6 +606,13 @@ module Miyako
     #返却値:: マウスカーソルがどれかのコマンドにあるときはtrueを返す
     def attach_any_command?(x, y)
       return @choices.attach(x, y)
+    end
+
+    #===選択した選択肢が利用可能か問い合わせる
+    # 選択した選択肢(Choice構造体)が選択可能(Chices#enable?の値)のときはtrue、選択不可の時はfalseを返す
+    #返却値:: true/false
+    def enable_choice?
+      @choices.enable?
     end
 
     def update_layout_position #:nodoc:

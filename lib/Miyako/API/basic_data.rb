@@ -1454,6 +1454,7 @@ module Miyako
     SECOND2TICK = 1000
 
     @@callbacks = {}
+    @@post_callbacks = {}
     @@initialized = false
 
     #WaitCounterインスタンス固有の名前
@@ -1484,10 +1485,28 @@ module Miyako
       @@callbacks
     end
 
+    #===コールバックハッシュを参照する
+    #コールバック処理を登録しているハッシュを参照する
+    def WaitCounter.post_callbacks
+      @@post_callbacks
+    end
+
     #===コールバック処理を更新する
     #WaitCounterの処理を確認して、タイマーが制限時間オーバーしたら登録しているブロックを評価する
     def WaitCounter.update
       @@callbacks.each{|wait, callback|
+        next unless wait.executing?
+        if wait.finished?
+          callback.call(wait)
+          wait.start
+        end
+      }
+    end
+
+    #===コールバック処理を更新する
+    #WaitCounterの処理を確認して、タイマーが制限時間オーバーしたら登録しているブロックを評価する
+    def WaitCounter.post_update
+      @@post_callbacks.each{|wait, callback|
         next unless wait.executing?
         if wait.finished?
           callback.call(wait)
@@ -1514,6 +1533,13 @@ module Miyako
       raise MiyakoError, "This method needs some block!" unless block_given?
       raise MiyakoError, "This block needs a parameter!" unless block.arity == 1
       @@callbacks[self] = block
+    end
+
+    #===自分自身をコールバック処理に追加する
+    def append_post_callback(&block)
+      raise MiyakoError, "This method needs some block!" unless block_given?
+      raise MiyakoError, "This block needs a parameter!" unless block.arity == 1
+      @@post_callbacks[self] = block
     end
 
     #===設定されているウェイトの長さを求める

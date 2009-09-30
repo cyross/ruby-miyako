@@ -939,6 +939,7 @@ v2.1.0(2009.7.9)
 ・FixedMapクラスでpos,sizeメソッドの値がレイアウトの位置になっていなかった問題を修正
 ・MapEventモジュールのmove,move_toメソッドで存在しない構造体を生成していた問題を修正
 ・Color.[]で、勝手に透明度部分が書き換わる問題を修正
+・Choices#broad_rectで、大きさを正しく取得できない問題を修正
 <仕様変更>
 ・"require 'miyako'"でもロード可能
 ・miyako.rbで組み込んでいるライブラリの順番を変更
@@ -1023,6 +1024,10 @@ v2.1.0(2009.7.9)
 ・FontクラスにSpriteBase、Animastion、Layoutモジュールをmixin、スプライトとして扱うことが可能に
 ・WaitCounter#remind(->remainにalias)の返却値の仕様を変更(未スタート:制限時間->制限時間+1、制限時間オーバー:0->-1)
 ・WaitCounter.updateを追加。簡易的なコールバック処理が可能に
+・選択肢の状態に「選択不可時」を追加(Choice構造体にenable, body_disableを追加)
+・Choiceクラスをスプライト扱いに変更(SpriteBaseをmixin)
+・Choices.newメソッドの引数インタフェースを変更(ただし、既存の処理に影響しない)
+・Miyako.main_loopの引数インタフェース変更(ただし、既存の処理に影響しない)
 <ファイル追加>
 ・miyako_sprite2.c
 ・miyako_input_audio.c
@@ -1045,6 +1050,7 @@ v2.1.0(2009.7.9)
 ・MapStruct
 ・ScenePool
 <クラス追加>
+・ChoiceStruct
 ・CollisionEx
 ・CircleCollisionEx
 ・CollisionsEx
@@ -1077,6 +1083,10 @@ v2.1.0(2009.7.9)
 ・Audio::SE.update
 ・Audio::SE.playing_any?
 ・Audio::SE.channels
+・CircleCollision.covers?
+・CircleCollision.covered?
+・Collision.covers?
+・Collision.covered?
 ・Input.init
 ・Input.keyboard_enable
 ・Input.keyboard_disable
@@ -1114,17 +1124,30 @@ v2.1.0(2009.7.9)
 ・Utility.interval
 ・Utility.theta
 ・Yuki.add_method
-・WaitCounter.callback
+・WaitCounter.callbacks
+・WaitCounter.post_callbacks
 ・WaitCounter.tick
 ・WaitCounter.ticks
 ・WaitCounter.update
+・WaitCounter.post_update
 <クラス・モジュールメソッド廃止>
 ・Layout#.ow
 ・Layout#.oh
 ・SpriteBase#.broad_rect
 <インスタンスメソッド追加>
-・Collision.covers?
-・Collision.covered?
+・Choise#body_disable
+・Choise#enable
+・Choice#broad_rect
+・Choice#update_layout_size
+・Choices#enable?
+・Choices#choices
+・Choices#update_layout_size
+・CircleCollision#to_ex
+・CircleCollision#covers?
+・CircleCollision#covered?
+・CircleCollision#body
+・CircleCollision#body=
+・CircleCollision#rect
 ・Collision#to_ex
 ・Collision#covers?
 ・Collision#covered?
@@ -1132,14 +1155,6 @@ v2.1.0(2009.7.9)
 ・Collision#body=
 ・Collision#center
 ・Collision#radius
-・CircleCollision.covers?
-・CircleCollision.covered?
-・CircleCollision#to_ex
-・CircleCollision#covers?
-・CircleCollision#covered?
-・CircleCollision#body
-・CircleCollision#body=
-・CircleCollision#rect
 ・Collisions#covers?
 ・Collisions#covered?
 ・Collisions#covers_all?
@@ -1216,6 +1231,7 @@ v2.1.0(2009.7.9)
 ・SpriteBase#hide
 ・SpriteBase#render_xy
 ・SpriteBase#render_xy_to
+・Textbox#enable_choice?
 ・Yuki#add_method
 ・Yuki#over_exec
 ・Yuki#wait_over_exec
@@ -1224,6 +1240,11 @@ v2.1.0(2009.7.9)
 ・Yuki#render_to
 ・Yuki#update_animation
 ・Yuki#process
+・Yuki#on_disable
+・Yuki::Command#body_disable
+・Yuki::Command#enable
+・Yuki::CommandEx#body_disable
+・Yuki::CommandEx#enable
 ・Audio::BGM#loop_count
 ・Audio::BGM#in_the_loop?
 ・Audio::BGM#loop_count_up
@@ -1280,6 +1301,7 @@ v2.1.0(2009.7.9)
 ・Square#*
 ・Square#/
 ・WaitCounter#append_callback
+・WaitCounter#append_post_callback
 ・WaitCounter#call
 ・WaitCounter#now
 ・WaitCounter#remain

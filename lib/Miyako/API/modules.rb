@@ -46,7 +46,7 @@ module Miyako
     end
 
     #===描画可能・不可状態を設定するメソッドのテンプレート
-    #返却値:: falseを返す
+    #返却値:: 自分自身を返す
     def visible=(v)
       return self
     end

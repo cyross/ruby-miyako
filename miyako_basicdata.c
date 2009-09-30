@@ -282,6 +282,25 @@ void _miyako_counter_update()
   counter_update(cWaitCounter);
 }
 
+/*
+:nodoc:
+*/
+static VALUE counter_post_update(VALUE self)
+{
+  VALUE callbacks = rb_iv_get(self, "@@post_callbacks");
+  rb_hash_foreach(callbacks, counter_update_inner, Qnil);
+
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+void _miyako_counter_post_update()
+{
+  counter_post_update(cWaitCounter);
+}
+
 static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -594,6 +613,7 @@ void Init_miyako_basicdata()
   nOne = INT2NUM(one);
 
   rb_define_singleton_method(cWaitCounter, "update", counter_update, 0);
+  rb_define_singleton_method(cWaitCounter, "post_update", counter_post_update, 0);
   rb_define_method(cWaitCounter, "start", counter_start, 0);
   rb_define_method(cWaitCounter, "stop",  counter_stop,  0);
   rb_define_method(cWaitCounter, "reset", counter_reset, 0);

@@ -91,16 +91,22 @@ extern void Init_miyako_input_audio();
 extern void Init_miyako_diagram();
 extern void Init_miyako_yuki();
 
-static VALUE miyako_main_loop(VALUE self)
+static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
 {
+  VALUE clear = Qnil;
+  int is_clear = 0;
+  if(argc == 0){ is_clear = 1; }
+  rb_scan_args(argc, argv, "01", &clear);
+  if(clear != Qnil && clear != Qfalse){ is_clear = 1; }
   rb_need_block();
   for(;;)
   {
     _miyako_audio_update();
     _miyako_input_update();
     _miyako_counter_update();
-    _miyako_screen_clear();
+    if(is_clear){ _miyako_screen_clear(); }
     rb_yield(Qnil);
+    _miyako_counter_post_update();
     _miyako_screen_render();
   }
   return Qnil;
@@ -1157,7 +1163,7 @@ void Init_miyako_no_katana()
   one = 1;
   nOne = INT2NUM(one);
 
-  rb_define_module_function(mMiyako, "main_loop", miyako_main_loop, 0);
+  rb_define_module_function(mMiyako, "main_loop", miyako_main_loop, -1);
 
   rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
   rb_define_module_function(mScreen, "pre_render", screen_pre_render, 0);

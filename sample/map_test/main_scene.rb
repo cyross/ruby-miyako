@@ -20,14 +20,19 @@ class MainScene
     @map.move!(*@chr.margin)
     # マップの実座標を設定する
     @map.move!(*@chr.position)
-    
+
     @parts = CommonParts.instance
     #Yukiの初期化
     @yuki = Yuki.new
     @yuki.select_textbox(@parts.box[:box])
     @yuki.select_commandbox(@parts.cbox[:box])
+    @yuki.vars[:command] = [
+      Yuki::Command.new("話す", "話す", "話す", true, nil, talk),
+      Yuki::Command.new("調べる", "調べる", "調べる", true, nil, check),
+      Yuki::Command.new("その他", "その他", "その他", false, nil, check)
+    ]
   end
-  
+
   def setup
     @map.start
     @chr.start
@@ -56,8 +61,6 @@ class MainScene
         if event_flags.none?
           #標準のコマンドを表示
           @yuki.vars[:now] = @now
-          @yuki.vars[:talk] = talk
-          @yuki.vars[:check] = check
           @yuki.start_plot(command_plot)
         else
           #キャラの立ち位置が重なっているイベントを起動
@@ -93,7 +96,7 @@ class MainScene
       end
     }
     @executing_flags = @map.events[0].map{|e| e.executing? }
-   
+
     #コマンド選択の結果、イベントが実行されたときは、結果として@nowを返す
     return @now unless @yuki.is_scene?(@yuki.result)
     return @yuki.result || @now
@@ -112,8 +115,7 @@ class MainScene
 
   def command_plot
     yuki_plot do
-      command([Yuki::Command.new("話す", "話す", nil, vars[:talk]),
-               Yuki::Command.new("調べる", "調べる", nil, vars[:check])], vars[:now])
+      command(vars[:command], vars[:now])
       call_plot(select_result) if is_scenario?(select_result)
       vars[:now]
     end
@@ -128,7 +130,7 @@ class MainScene
       clear
     end
   end
-  
+
   #コマンドウィンドウの「話す」を選んだときの処理
   def talk
     yuki_plot do
@@ -139,13 +141,13 @@ class MainScene
       clear
     end
   end
-  
+
   def final
     @parts.stop
     @map.stop
     @chr.stop
   end
-  
+
   def dispose
     @map.dispose
     @chr.dispose
