@@ -28,10 +28,14 @@ module Miyako
     include Animation
     include Layout
 
+    attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
+
     def initialize(*params)
       super(*params)
       init_layout
-      set_layout_size(1, 1)
+      @visible = true
+      tsize = self.broad_rect.size
+      set_layout_size(*tsize)
     end
 
     def update_layout_position #:nodoc:
@@ -77,11 +81,13 @@ module Miyako
     end
 
     def render
+      return unless @visible
       return unless self[3].call
       render_src.render
     end
 
     def render_to(dst)
+      return unless @visible
       return unless self[3].call
       render_src..render_to(dst)
     end

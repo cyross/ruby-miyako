@@ -46,7 +46,8 @@ list = [
         ["選択肢４", "選択肢４", "選択肢４", false, 4]
        ]
 @choices = @parts[:box].create_choices_chain(list)
-#@choices[0][3].enable = false
+#@choices[0][1].visible = false
+#@choices[0][2].enable = false
 
 # カーソルのアニメーションの開始
 @parts[:box].start

@@ -1025,7 +1025,7 @@ v2.1.0(2009.7.9)
 ・WaitCounter#remind(->remainにalias)の返却値の仕様を変更(未スタート:制限時間->制限時間+1、制限時間オーバー:0->-1)
 ・WaitCounter.updateを追加。簡易的なコールバック処理が可能に
 ・選択肢の状態に「選択不可時」を追加(Choice構造体にenable, body_disableを追加)
-・Choiceクラスをスプライト扱いに変更(SpriteBaseをmixin)
+・Choiceクラスをスプライト扱いに変更(SpriteBase,Animation,Layoutをmixin)
 ・Choices.newメソッドの引数インタフェースを変更(ただし、既存の処理に影響しない)
 ・Miyako.main_loopの引数インタフェース変更(ただし、既存の処理に影響しない)
 <ファイル追加>
