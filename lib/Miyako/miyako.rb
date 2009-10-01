@@ -117,6 +117,13 @@ end
 
 require 'Miyako/API/exceptions'
 require 'Miyako/API/utility'
+require 'Miyako/API/struct_point'
+require 'Miyako/API/struct_size'
+require 'Miyako/API/struct_rect'
+require 'Miyako/API/struct_square'
+require 'Miyako/API/struct_segment'
+require 'Miyako/API/color'
+require 'Miyako/API/wait_counter'
 require 'Miyako/API/basic_data'
 require 'Miyako/API/modules'
 require 'Miyako/API/yuki'
