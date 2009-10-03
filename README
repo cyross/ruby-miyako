@@ -1025,7 +1025,9 @@ v2.1.0(2009.7.9)
 ・WaitCounter#remind(->remainにalias)の返却値の仕様を変更(未スタート:制限時間->制限時間+1、制限時間オーバー:0->-1)
 ・WaitCounter.updateを追加。簡易的なコールバック処理が可能に
 ・選択肢の状態に「選択不可時」を追加(Choice構造体にenable, body_disableを追加)
-・Choiceクラスをスプライト扱いに変更(SpriteBase,Animation,Layoutをmixin)
+・Choice構造体をスプライト扱いに変更(SpriteBase,Animation,Layoutをmixin)
+・Choice構造体に名前を付けられるようになった。Choices#[]メソッドでも参照可
+・Choicesクラスにレイアウト空間(LayoutSpace)を登録できるハッシュを追加した
 ・Choices.newメソッドの引数インタフェースを変更(ただし、既存の処理に影響しない)
 ・Miyako.main_loopの引数インタフェース変更(ただし、既存の処理に影響しない)
 ・Windows版1.9でのrcairoが簡単に使えるようになるまで、MiyakoCairoクラスの添付を配布を中止します
@@ -1150,9 +1152,13 @@ v2.1.0(2009.7.9)
 ・Choise#enable
 ・Choice#broad_rect
 ・Choice#update_layout_size
+・Choice#name
 ・Choices#enable?
 ・Choices#choices
 ・Choices#update_layout_size
+・Choices#name_to_choice
+・Choices#layout_spaces
+・Choices#regist_layout_space
 ・CircleCollision#to_ex
 ・CircleCollision#covers?
 ・CircleCollision#covered?

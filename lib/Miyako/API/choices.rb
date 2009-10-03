@@ -146,10 +146,11 @@ module Miyako
   #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
   #ブロックは1つの引数を取る(コマンド選択テキストボックス))。
   #デフォルトはnil(何もしない)
+  #_name_:: 選択肢の名前。名前を明示的に指定しないときは、オブジェクトIDを文字列化したものが入る
   Choice = ChoiceStruct.new(:body, :body_selected, :body_disable,
                             :condition, :enable, :selected, :result,
                             :left, :right, :up, :down,
-                            :base, :attribute, :end_select_proc)
+                            :base, :attribute, :end_select_proc, :name)
 
   #==選択肢を管理するクラス
   # 選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
@@ -160,12 +161,16 @@ module Miyako
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
     attr_reader :choices #選択肢配列の集合
+    attr_reader :name_to_choice #名前と選択肢を関連づけているハッシュ
+    attr_reader :layout_spaces #選択肢の位置決めに使うレイアウト空間をハッシュで管理
 
     # インスタンスを生成する
     # 返却値:: 生成された Choices クラスのインスタンス
     def initialize
       init_layout
       @choices = []
+      @name_to_choice = {}
+      @layout_spaces = {}
       @now = nil
       @non_select = false
       @last_selected = nil
@@ -196,25 +201,35 @@ module Miyako
     # 選択肢を作成する
     # Choice 構造体のインスタンスを作成する
     # 構造体には、引数bodyと、必ず true を返す条件ブロックが登録されている。残りは nil
+    # name引数の省略時にはnilが渡され、内部で、オブジェクトIDを文字列化したものを入れる
     #_body_:: 選択肢を示す画像
     #_body_selected_:: 選択肢を示す画像(選択時)。デフォルトはnil
     #_selected_:: 生成時に選択されているときはtrue、そうでないときはfalseを設定する
     #_body_disable_:: 選択肢を示す画像(選択不可時)。デフォルトはnil
     #_enable_:: 生成時に選択可能なときはtrue、不可の時はfalseを設定する
+    #_name_:: 選択肢の名前
     #返却値:: 生成された Choice構造体のインスタンス
-    def Choices.create_choice(body, body_selected = nil, selected = false, body_disable = nil, enable = true)
+    def Choices.create_choice(body, body_selected = nil, selected = false, body_disable = nil, enable = true, name = nil)
       choice = Choice.new(body, body_selected, body_disable, Proc.new{ true }, enable, selected,
-                          nil, nil, nil, nil, nil, nil, {}, nil)
+                          nil, nil, nil, nil, nil, nil, {}, nil, nil)
       choice.left = choice
       choice.right = choice
       choice.up = choice
       choice.down = choice
+      choice.name = name || choice.object_id.to_s
       return choice
     end
 
-    # 選択肢集合(Choice 構造体の配列)を選択肢リストに登録する
+    #=== 選択肢を登録する
+    # 選択肢集合(画面に一度に表示する選択肢群、Choice 構造体の配列)を選択肢リストに登録する
+    # またこのとき、対象の選択肢をChoices#[]メソッドで参照できるようになる
+    # _choices_:: 選択肢(Choice構造体)の配列
+    # 返却値:: レシーバ
     def create_choices(choices)
-      choices.each{|v| v.base = choices}
+      choices.each{|v|
+        v.base = choices
+        @name_to_choice[v.name] = v
+      }
       @choices.push(choices)
       @last_selected = @choices[0][0] if (@choices.length == 1 && @last_selcted == nil)
       rect = self.broad_rect
@@ -222,7 +237,17 @@ module Miyako
       return self
     end
 
-    # 選択肢データを解放する
+    #=== 名前から選択肢を参照する
+    #create_choicesメソッドで登録した選択肢を、名前からもとめる
+    #登録されていない名前を渡したときはnilを返す
+    #_name_:: 登録されているの名前。文字列
+    #返却値:: 対応する選択肢インスタンス
+    def regist_layout_space(name, layout_space)
+      @layout_spaces[name] = layout_space
+      layout_space.snap(self)
+    end
+
+    #=== 選択肢データを解放する
     def dispose
       @choices.each{|c| c.clear }
       @choices.clear
