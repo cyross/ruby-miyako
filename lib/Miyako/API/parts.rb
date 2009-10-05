@@ -34,8 +34,8 @@ module Miyako
   class Parts < Delegator
     include SpriteBase
     include Animation
-    include Enumerable
     include Layout
+    include Enumerable
     extend Forwardable
 
     #===Partsクラスインスタンスを生成

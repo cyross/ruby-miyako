@@ -26,6 +26,7 @@ module Miyako
   class ListPairStruct < Struct
     include SpriteBase
     include Animation
+    include Layout
 
     # ディープコピー
     def deep_dup
@@ -132,6 +133,7 @@ module Miyako
   class SpriteList
     include SpriteBase
     include Animation
+    include Layout
     include Enumerable
 
     attr_accessor :visible

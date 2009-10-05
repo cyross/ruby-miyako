@@ -155,9 +155,9 @@ module Miyako
   #==選択肢を管理するクラス
   # 選択肢は、Shapeクラスから生成したスプライトもしくは画像で構成される
   class Choices < Delegator
-    include Layout
     include SpriteBase
     include Animation
+    include Layout
 
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
     attr_reader :choices #選択肢配列の集合

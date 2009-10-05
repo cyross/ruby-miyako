@@ -171,6 +171,43 @@ VALUE _miyako_layout_move_to(VALUE self, VALUE x, VALUE y)
   return layout_move_to(self, x, y);
 }
 
+static VALUE layout_relative_move_to(VALUE self, VALUE x, VALUE y)
+{
+  //      bpos = @layout.base.pos
+  // Size.new(bpos.x+x,bpos.y+y)
+  VALUE *pos = RSTRUCT_PTR(*(RSTRUCT_PTR(get_layout(self))));
+  VALUE *pox = pos+0;
+  VALUE *poy = pos+1;
+  VALUE tx = *pox;
+  VALUE ty = *poy;
+
+  VALUE base = *(RSTRUCT_PTR(get_layout(self))+2);
+  VALUE *bpos = RSTRUCT_PTR(rb_funcall(base, rb_intern("pos"), 0));
+
+  *pox = INT2NUM(NUM2INT(x)+NUM2INT(*(bpos+0)));
+  *poy = INT2NUM(NUM2INT(y)+NUM2INT(*(bpos+1)));
+
+  VALUE dx = INT2NUM(NUM2INT(*pox)-NUM2INT(tx));
+  VALUE dy = INT2NUM(NUM2INT(*poy)-NUM2INT(ty));
+  layout_update_layout(self, dx, dy);
+  VALUE on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
+  int i;
+  for(i=0; i<RARRAY_LEN(on_move); i++)
+  {
+    rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
+  }
+  if(rb_block_given_p() == Qtrue){
+    VALUE ret = rb_yield(self);
+    if(ret == Qnil || ret == Qfalse)
+    {
+      *pox = tx;
+      *poy = ty;
+      layout_update_layout(self, INT2NUM(-(NUM2INT(dx))), INT2NUM(-(NUM2INT(dy))));
+    }
+  }
+  return self;
+}
+
 static VALUE layout_add_snap_child(VALUE self, VALUE spr)
 {
   VALUE layout   = get_layout(self);
@@ -244,6 +281,7 @@ void Init_miyako_layout()
   rb_define_method(mLayout, "size", layout_size, 0);
 	rb_define_method(mLayout, "move!", layout_move, 2);
 	rb_define_method(mLayout, "move_to!", layout_move_to, 2);
+  rb_define_method(mLayout, "relative_move_to!", layout_relative_move_to, 2);
 	rb_define_method(mLayout, "update_layout", layout_update_layout, 2);
 	rb_define_method(mLayout, "snap", layout_snap, -1);
 	rb_define_method(mLayout, "add_snap_child", layout_add_snap_child, 1);

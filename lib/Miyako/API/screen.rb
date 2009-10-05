@@ -57,6 +57,7 @@ module Miyako
     @@freezing  = false
     @@mode      = FULLSCREEN_MODE
     @@unit      = SpriteUnitFactory.create
+    @@pos       = Size.new(0,0)
 
     @@size      = Size.new(DefaultWidth, DefaultHeight)
     @@in_the_scene = false
@@ -166,6 +167,13 @@ module Miyako
     #返却値:: 画面の高さ(ピクセル)
     def Screen::h
       return @@size[1]
+    end
+
+    #===画面の左上位置を取得する
+    #位置は必ず[0,0]を返す
+    #返却値:: Size構造体
+    def Screen::pos
+      return @@pos.dup
     end
 
     #===画面を管理するSpriteUnitを取得する
