@@ -177,6 +177,40 @@ module Miyako
 アニメーションの基本メソッドで構成されるテンプレートモジュール
 =end
   module Animation
+    @@anim_hash = {}
+
+    def Animation.[](key)
+      @@anim_hash[key]
+    end
+
+    def Animation.[]=(key, value)
+      @@anim_hash[key] = value
+    end
+
+    def Animation.anim_hash
+      @@anim_hash
+    end
+
+    def Animation.start
+      @@anim_hash.each_value{|v| v.start if v }
+    end
+
+    def Animation.stop
+      @@anim_hash.each_value{|v| v.stop if v }
+    end
+
+    def Animation.reset
+      @@anim_hash.each_value{|v| v.reset if v }
+    end
+
+    def update
+      @@anim_hash.each_value{|v| v.update_animation if v }
+    end
+
+    def update_animation
+      @@anim_hash.each_value{|v| v.update_animation if v }
+    end
+
     #===アニメーションを開始するメソッドのテンプレート
     #返却値:: 自分自身を返す
     def start

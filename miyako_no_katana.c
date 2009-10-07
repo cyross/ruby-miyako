@@ -35,6 +35,7 @@ static VALUE mScreen = Qnil;
 static VALUE mAudio = Qnil;
 static VALUE mInput = Qnil;
 static VALUE mSpriteBase = Qnil;
+static VALUE mAnimation = Qnil;
 static VALUE mDiagram = Qnil;
 static VALUE cSurface = Qnil;
 static VALUE cGL = Qnil;
@@ -61,6 +62,11 @@ static volatile ID id_move_to    = Qnil;
 static volatile ID id_defined    = Qnil;
 static volatile ID id_pos        = Qnil;
 static volatile ID id_clear      = Qnil;
+static volatile ID id_ua         = Qnil;
+static volatile ID id_start      = Qnil;
+static volatile ID id_stop       = Qnil;
+static volatile ID id_reset      = Qnil;
+static volatile ID id_exec_anim_inner = Qnil;
 static volatile int zero         = Qnil;
 static volatile int one          = Qnil;
 static const char *str_visible       = "@visible";
@@ -70,7 +76,7 @@ static const char *str_wait_cursor   = "@wait_cursor";
 static const char *str_selecting     = "@selecting";
 static const char *str_select_cursor = "@select_cursor";
 static const char *str_choices       = "@choices";
-
+static const char *str_ahash          = "@@anim_hash";
 
 // from rubysdl_video.c
 static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
@@ -91,6 +97,8 @@ extern void Init_miyako_input_audio();
 extern void Init_miyako_diagram();
 extern void Init_miyako_yuki();
 
+static VALUE anim_m_update(VALUE self);
+
 static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
 {
   VALUE clear = Qnil;
@@ -107,6 +115,7 @@ static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
     if(is_clear){ _miyako_screen_clear(); }
     rb_yield(Qnil);
     _miyako_counter_post_update();
+    anim_m_update(mAnimation);
     _miyako_screen_render();
   }
   return Qnil;
@@ -453,6 +462,57 @@ void _miyako_screen_render_screen(VALUE src)
 {
   screen_render_screen(mScreen, src);
 }
+
+static int anim_m_hash_inner(VALUE key, VALUE val)
+{
+  if(val == Qnil){ return 0; }
+  rb_funcall(val, id_exec_anim_inner, 0);
+  return 0;
+}
+
+static void anim_m_exec_inner(VALUE sa, ID method)
+{
+  VALUE ahash = rb_iv_get(sa, str_ahash);
+  id_exec_anim_inner = method;
+  rb_hash_foreach(ahash, anim_m_hash_inner, Qnil);
+}
+
+/*
+:nodoc:
+*/
+static VALUE anim_m_start(VALUE self)
+{
+  anim_m_exec_inner(self, id_start);
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE anim_m_stop(VALUE self)
+{
+  anim_m_exec_inner(self, id_stop);
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE anim_m_reset(VALUE self)
+{
+  anim_m_exec_inner(self, id_reset);
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE anim_m_update(VALUE self)
+{
+  anim_m_exec_inner(self, id_ua);
+  return Qnil;
+}
+
 
 /*
 ===マップレイヤー転送インナーメソッド
@@ -1132,6 +1192,7 @@ void Init_miyako_no_katana()
   mAudio = rb_define_module_under(mMiyako, "Audio");
   mInput = rb_define_module_under(mMiyako, "Input");
   mSpriteBase = rb_define_module_under(mMiyako, "SpriteBase");
+  mAnimation = rb_define_module_under(mMiyako, "Animation");
   mDiagram = rb_define_module_under(mMiyako, "Diagram");
   cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
   cGL  = rb_define_module_under(mSDL, "GL");
@@ -1156,7 +1217,10 @@ void Init_miyako_no_katana()
   id_move_to    = rb_intern("move_to!");
   id_defined    = rb_intern("method_defined?");
   id_pos        = rb_intern("pos");
-  id_clear      = rb_intern("clear");
+  id_start      = rb_intern("start");
+  id_stop       = rb_intern("stop");
+  id_reset      = rb_intern("reset");
+  id_ua         = rb_intern("update_animation");
 
   zero = 0;
   nZero = INT2NUM(zero);
@@ -1169,6 +1233,12 @@ void Init_miyako_no_katana()
   rb_define_module_function(mScreen, "pre_render", screen_pre_render, 0);
   rb_define_module_function(mScreen, "render", screen_render, 0);
   rb_define_module_function(mScreen, "render_screen", screen_render_screen, 1);
+
+  rb_define_module_function(mAnimation, "start", anim_m_start, 0);
+  rb_define_module_function(mAnimation, "stop", anim_m_stop, 0);
+  rb_define_module_function(mAnimation, "reset", anim_m_reset, 0);
+  rb_define_module_function(mAnimation, "update", anim_m_update, 0);
+  rb_define_module_function(mAnimation, "update_animation", anim_m_update, 0);
 
   rb_define_method(cSpriteAnimation, "update_animation", sa_update, 0);
   rb_define_method(cSpriteAnimation, "update_frame", sa_update_frame, 0);

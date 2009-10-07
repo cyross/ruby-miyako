@@ -1088,6 +1088,14 @@ v2.1.0(2009.7.9)
 ・ArrayクラスにSpriteArrayモジュールをmixin
 ・ObjectクラスにDeepCopyモジュールをmixin
 <クラス・モジュールメソッド追加>
+・Animation.[]
+・Animation.[]=
+・Animation.anim_hash
+・Animation.reset
+・Animation.start
+・Animation.stop
+・Animation.update
+・Animation.update_animation
 ・Audio.init
 ・Audio.initialized?
 ・Audio.update

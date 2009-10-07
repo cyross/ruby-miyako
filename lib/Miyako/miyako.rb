@@ -160,7 +160,8 @@ module Miyako
   #===Miyakoのメインループ
   #ブロックを受け取り、そのブロックを評価する
   #ブロック評価前に<i>Audio::update</i>と<i>Input::update</i>、<i>WaitCounter::update</i>、
-  #<i>Screen::clear</i>、評価後に<i>Screen::render</i>を呼び出す
+  #<i>Screen::clear</i>、評価後に<i>WaitCounter::post_update</i>、<i>Animation::update</i>、
+  #<i>Screen::render</i>を呼び出す
   #
   #ブロックを渡さないと例外が発生する
   def Miyako.main_loop(is_clear = true)
@@ -172,6 +173,7 @@ module Miyako
       Screen.clear if is_clear
       yield
       WaitCounter.post_update
+      Animation.update
       Screen.render
     end
   end
