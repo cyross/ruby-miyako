@@ -19,7 +19,7 @@ class Green
     var[:midori_talk]         = 0     if var[:midori_talk]         == nil
 
     @talks = Array.new(6){|i| self.method("talk#{i}".to_sym).call}
-    
+
     @yuki.vars[:var] = var
     @yuki.vars[:main_command] = main_command
     @yuki.vars[:command] = get_command
@@ -45,21 +45,21 @@ class Green
     end
     return r
   end
-  
+
   def render
     @room.render
     @yuki.render
     message_box.render
     command_box.render if @yuki.selecting?
   end
-  
+
   def get_command
-    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:midori_aisatsu]==false}, green2),
-            Yuki::Command.new("辺りを見る", nil, lambda{var[:midori_aisatsu]==true}, look_green),
-            Yuki::Command.new("話す",       nil, lambda{var[:midori_aisatsu]==true}, talk),
-            Yuki::Command.new("戻る",       nil, lambda{var[:midori_aisatsu]==true}, MainScene)]
+    return [Yuki::Command.new("挨拶する",   nil, nil, true, lambda{var[:midori_aisatsu]==false}, green2),
+            Yuki::Command.new("辺りを見る", nil, nil, true, lambda{var[:midori_aisatsu]==true}, look_green),
+            Yuki::Command.new("話す",       nil, nil, true, lambda{var[:midori_aisatsu]==true}, talk),
+            Yuki::Command.new("戻る",       nil, nil, true, lambda{var[:midori_aisatsu]==true}, MainScene)]
   end
-  
+
   def plot
     yuki_plot do
       text "緑の扉から中に入った。"
@@ -72,7 +72,7 @@ class Green
       vars[:main_command]
     end
   end
-  
+
   def main_command
     yuki_plot do
     loop do

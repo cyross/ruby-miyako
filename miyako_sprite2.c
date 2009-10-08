@@ -32,6 +32,7 @@ static VALUE mSDL = Qnil;
 static VALUE mMiyako = Qnil;
 static VALUE mSpriteArray = Qnil;
 static VALUE mSpriteBase = Qnil;
+static VALUE cSprite = Qnil;
 static VALUE cSpriteList = Qnil;
 static VALUE cListPairStruct = Qnil;
 static VALUE nZero = Qnil;
@@ -269,7 +270,9 @@ static VALUE sprite_array_update_animation(VALUE self)
   int i;
   for(i=0; i<RARRAY_LEN(array); i++)
   {
-    rb_ary_push(ret, rb_funcall(*(RARRAY_PTR(array)+i), id_update_animation, 0));
+    VALUE v = *(RARRAY_PTR(array)+i);
+    VALUE r = rb_funcall(v, id_update_animation, 0);
+    rb_ary_push(ret, r);
   }
   return ret;
 }
@@ -607,6 +610,7 @@ void Init_miyako_sprite2()
   mMiyako = rb_define_module("Miyako");
   mSpriteArray = rb_define_module_under(mMiyako, "SpriteArray");
   mSpriteBase = rb_define_module_under(mMiyako, "SpriteBase");
+  cSprite = rb_define_class_under(mMiyako, "Sprite", rb_cObject);
   cSpriteList = rb_define_class_under(mMiyako, "SpriteList", rb_cObject);
   cListPairStruct = rb_define_class_under(mMiyako, "ListPairStruct", rb_cStruct);
 

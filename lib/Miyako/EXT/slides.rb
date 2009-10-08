@@ -40,7 +40,7 @@ module Miyako
       tmp[:color] ||= Color[:white]
       return Parts.new(tmp[:size]).tap{|obj| obj[:___base___] = Sprite.new(tmp).fill(tmp[:color])}
     end
-    
+
     @@templates["320x240"]    = {:size=>Size.new(320,240)}
     @@templates["640x480"]    = {}
     @@templates["800x600"]    = {:size=>Size.new(800,600)}
@@ -63,7 +63,7 @@ module Miyako
     def Slide.[](sym = "640x480")
       return Slide.create(@@templates[sym])
     end
-    
+
     #===スライドのテンプレートを追加する
     #指定できるテンプレートの内容は、Sprite.newメソッドの引数がそのまま使える(Hashクラスインスタンスとして渡す)
     #また、追加として、:colorパラメータを使って塗りつぶす色を指定することが出来る。
@@ -84,13 +84,13 @@ module Miyako
       set_layout_size(*(@body.size))
       @body.snap(self)
     end
-    
+
     def piece
       return self
     end
-    
+
     private :piece
-    
+
     #===名前に対応したパーツを取得する
     #_title_:: 取得したいパーツに対応したシンボル
     #返却値:: シンボルに対応したパーツ
@@ -151,7 +151,7 @@ module Miyako
     #===@bodyに登録したオブジェクトとは別に作成していたインスタンスを解放する
     def dispose
     end
-    
+
     def_delegators(:@body, :remove, :each, :start, :stop, :reset, :update, :update_animation)
   end
 end

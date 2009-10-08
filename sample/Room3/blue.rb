@@ -48,34 +48,34 @@ class Blue
     end
     return r
   end
-  
+
   def render
     @room.render
     @yuki.render
     message_box.render
     command_box.render if @yuki.selecting?
   end
-  
+
   def get_command
-    return [Yuki::Command.new("挨拶する", nil, lambda{var[:aoyama_aisatsu]==false}, blue2),
-             Yuki::Command.new("辺りを見る", nil, lambda{var[:aoyama_aisatsu]==true}, look_blue),
-             Yuki::Command.new("話す", nil, lambda{var[:aoyama_aisatsu]==true}, talk),
-             Yuki::Command.new("渡す", nil, lambda{var[:aoyama_aisatsu]==true && var[:release_aoyama_book]==true && var[:release_akamatsu_book]==false}, send1),
-             Yuki::Command.new("探す", nil, lambda{var[:search_bookmark]==true && var[:get_bookmark]==false}, search),
-             Yuki::Command.new("戻る", nil, lambda{var[:aoyama_aisatsu]==true}, MainScene)]
+    return [Yuki::Command.new("挨拶する",   nil, nil, true, lambda{var[:aoyama_aisatsu]==false}, blue2),
+            Yuki::Command.new("辺りを見る", nil, nil, true, lambda{var[:aoyama_aisatsu]==true}, look_blue),
+            Yuki::Command.new("話す",       nil, nil, true, lambda{var[:aoyama_aisatsu]==true}, talk),
+            Yuki::Command.new("渡す",       nil, nil, true, lambda{var[:aoyama_aisatsu]==true && var[:release_aoyama_book]==true && var[:release_akamatsu_book]==false}, send1),
+            Yuki::Command.new("探す",       nil, nil, true, lambda{var[:search_bookmark]==true && var[:get_bookmark]==false}, search),
+            Yuki::Command.new("戻る",       nil, nil, true, lambda{var[:aoyama_aisatsu]==true}, MainScene)]
   end
-  
+
   def get_search
-    return [Yuki::Command.new("壁", nil, nil, wall),
-             Yuki::Command.new("テレビ", nil, nil, tv),
-             Yuki::Command.new("テレビ台", nil, nil, tv_base),
-             Yuki::Command.new("ビデオデッキ", nil, lambda{var[:look_video_base] == true}, video),
-             Yuki::Command.new("テレビゲーム機", nil, lambda{var[:look_video_base] == true}, tv_game),
-             Yuki::Command.new("ソファー", nil, nil, sofar),
-             Yuki::Command.new("ベッド", nil, nil, bed),
-             Yuki::Command.new("戻る", nil, nil, "ret")]
+    return [Yuki::Command.new("壁",             nil, nil, true, nil, wall),
+            Yuki::Command.new("テレビ",         nil, nil, true, nil, tv),
+            Yuki::Command.new("テレビ台",       nil, nil, true, nil, tv_base),
+            Yuki::Command.new("ビデオデッキ",   nil, nil, true, lambda{var[:look_video_base] == true}, video),
+            Yuki::Command.new("テレビゲーム機", nil, nil, true, lambda{var[:look_video_base] == true}, tv_game),
+            Yuki::Command.new("ソファー",       nil, nil, true, nil, sofar),
+            Yuki::Command.new("ベッド",         nil, nil, true, nil, bed),
+            Yuki::Command.new("戻る",           nil, nil, true, nil, "ret")]
   end
-  
+
   def plot
     yuki_plot do
       text "青の扉から中に入った。"
@@ -88,7 +88,7 @@ class Blue
       vars[:main_command]
     end
   end
-  
+
   def main_command
     yuki_plot do
       loop do

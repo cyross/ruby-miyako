@@ -203,11 +203,11 @@ module Miyako
       @@anim_hash.each_value{|v| v.reset if v }
     end
 
-    def update
+    def Animation.update
       @@anim_hash.each_value{|v| v.update_animation if v }
     end
 
-    def update_animation
+    def Animation.update_animation
       @@anim_hash.each_value{|v| v.update_animation if v }
     end
 

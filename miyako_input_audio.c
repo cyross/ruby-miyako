@@ -257,8 +257,8 @@ void Init_miyako_input_audio()
   one = 1;
   nOne = INT2NUM(one);
 
-  rb_define_module_function(mInput, "update", input_update, 0);
-  rb_define_module_function(mAudio, "update", audio_update, 0);
+  rb_define_singleton_method(mInput, "update", input_update, 0);
+  rb_define_singleton_method(mAudio, "update", audio_update, 0);
   rb_define_singleton_method(cBGM, "update", bgm_update, 0);
   rb_define_singleton_method(cSE, "update", se_update, 0);
 }

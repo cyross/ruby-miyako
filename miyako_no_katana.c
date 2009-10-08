@@ -61,12 +61,10 @@ static volatile ID id_move       = Qnil;
 static volatile ID id_move_to    = Qnil;
 static volatile ID id_defined    = Qnil;
 static volatile ID id_pos        = Qnil;
-static volatile ID id_clear      = Qnil;
 static volatile ID id_ua         = Qnil;
 static volatile ID id_start      = Qnil;
 static volatile ID id_stop       = Qnil;
 static volatile ID id_reset      = Qnil;
-static volatile ID id_exec_anim_inner = Qnil;
 static volatile int zero         = Qnil;
 static volatile int one          = Qnil;
 static const char *str_visible       = "@visible";
@@ -463,18 +461,32 @@ void _miyako_screen_render_screen(VALUE src)
   screen_render_screen(mScreen, src);
 }
 
-static int anim_m_hash_inner(VALUE key, VALUE val)
+static int anim_m_hash_start(VALUE key, VALUE val)
 {
   if(val == Qnil){ return 0; }
-  rb_funcall(val, id_exec_anim_inner, 0);
+  rb_funcall(val, id_start, 0);
   return 0;
 }
 
-static void anim_m_exec_inner(VALUE sa, ID method)
+static int anim_m_hash_stop(VALUE key, VALUE val)
 {
-  VALUE ahash = rb_iv_get(sa, str_ahash);
-  id_exec_anim_inner = method;
-  rb_hash_foreach(ahash, anim_m_hash_inner, Qnil);
+  if(val == Qnil){ return 0; }
+  rb_funcall(val, id_stop, 0);
+  return 0;
+}
+
+static int anim_m_hash_reset(VALUE key, VALUE val)
+{
+  if(val == Qnil){ return 0; }
+  rb_funcall(val, id_reset, 0);
+  return 0;
+}
+
+static int anim_m_hash_update(VALUE key, VALUE val)
+{
+  if(val == Qnil){ return 0; }
+  rb_funcall(val, id_ua, 0);
+  return 0;
 }
 
 /*
@@ -482,7 +494,7 @@ static void anim_m_exec_inner(VALUE sa, ID method)
 */
 static VALUE anim_m_start(VALUE self)
 {
-  anim_m_exec_inner(self, id_start);
+  rb_hash_foreach(rb_iv_get(self, str_ahash), anim_m_hash_start, Qnil);
   return Qnil;
 }
 
@@ -491,7 +503,7 @@ static VALUE anim_m_start(VALUE self)
 */
 static VALUE anim_m_stop(VALUE self)
 {
-  anim_m_exec_inner(self, id_stop);
+  rb_hash_foreach(rb_iv_get(self, str_ahash), anim_m_hash_stop, Qnil);
   return Qnil;
 }
 
@@ -500,7 +512,7 @@ static VALUE anim_m_stop(VALUE self)
 */
 static VALUE anim_m_reset(VALUE self)
 {
-  anim_m_exec_inner(self, id_reset);
+  rb_hash_foreach(rb_iv_get(self, str_ahash), anim_m_hash_reset, Qnil);
   return Qnil;
 }
 
@@ -509,10 +521,9 @@ static VALUE anim_m_reset(VALUE self)
 */
 static VALUE anim_m_update(VALUE self)
 {
-  anim_m_exec_inner(self, id_ua);
+  rb_hash_foreach(rb_iv_get(self, str_ahash), anim_m_hash_update, Qnil);
   return Qnil;
 }
-
 
 /*
 ===マップレイヤー転送インナーメソッド
@@ -1227,6 +1238,20 @@ void Init_miyako_no_katana()
   one = 1;
   nOne = INT2NUM(one);
 
+#if 1
+  rb_define_singleton_method(mMiyako, "main_loop", miyako_main_loop, -1);
+
+  rb_define_singleton_method(mScreen, "update_tick", screen_update_tick, 0);
+  rb_define_singleton_method(mScreen, "pre_render", screen_pre_render, 0);
+  rb_define_singleton_method(mScreen, "render", screen_render, 0);
+  rb_define_singleton_method(mScreen, "render_screen", screen_render_screen, 1);
+
+  rb_define_singleton_method(mAnimation, "start", anim_m_start, 0);
+  rb_define_singleton_method(mAnimation, "stop", anim_m_stop, 0);
+  rb_define_singleton_method(mAnimation, "reset", anim_m_reset, 0);
+  rb_define_singleton_method(mAnimation, "update", anim_m_update, 0);
+  rb_define_singleton_method(mAnimation, "update_animation", anim_m_update, 0);
+#else
   rb_define_module_function(mMiyako, "main_loop", miyako_main_loop, -1);
 
   rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
@@ -1239,7 +1264,7 @@ void Init_miyako_no_katana()
   rb_define_module_function(mAnimation, "reset", anim_m_reset, 0);
   rb_define_module_function(mAnimation, "update", anim_m_update, 0);
   rb_define_module_function(mAnimation, "update_animation", anim_m_update, 0);
-
+#endif
   rb_define_method(cSpriteAnimation, "update_animation", sa_update, 0);
   rb_define_method(cSpriteAnimation, "update_frame", sa_update_frame, 0);
   rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);

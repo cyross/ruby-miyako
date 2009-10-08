@@ -74,7 +74,7 @@ module Miyako
       sprite = self[0]
       if self[4]
         sprite = self[1] if (self[5] && self[1])
-      else
+      elsif self[2]
         sprite = self[2]
       end
       return sprite

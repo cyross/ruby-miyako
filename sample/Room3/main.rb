@@ -2,7 +2,7 @@
 class MainScene
   include Story::Scene
   include MainComponent
-    
+
   def init
     @yuki = Yuki.new(message_box[:box], command_box[:box]){|box, cbox|
       select_textbox(box)
@@ -31,7 +31,7 @@ class MainScene
     command_box.start
     @yuki.start_plot(plot)
   end
-  
+
   def update
     return nil if Input.quit_or_escape?
     message_box.update_animation
@@ -41,15 +41,15 @@ class MainScene
     @yuki.start_plot(plot) if (@yuki.executing? == false && r == @now)
     return r
   end
-  
+
   def get_command
-    return [Yuki::Command.new("緑の扉から入る", nil, nil, Green),
-             Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == true }, red_sekkaku),
-             Yuki::Command.new("赤の扉から入る", nil, lambda{var[:sekkaku] == false}, Red),
-             Yuki::Command.new("青の扉から入る", nil, nil, Blue),
-             Yuki::Command.new("合い言葉を言う", nil, lambda{var[:aikotoba] == true}, tell_aikotoba)]
+    return [Yuki::Command.new("緑の扉から入る", nil, nil, true, nil, Green),
+            Yuki::Command.new("赤の扉から入る", nil, nil, true, lambda{var[:sekkaku] == true }, red_sekkaku),
+            Yuki::Command.new("赤の扉から入る", nil, nil, true, lambda{var[:sekkaku] == false}, Red),
+            Yuki::Command.new("青の扉から入る", nil, nil, true, nil, Blue),
+            Yuki::Command.new("合い言葉を言う", nil, nil, true, lambda{var[:aikotoba] == true}, tell_aikotoba)]
   end
-  
+
   def plot
     yuki_plot{
       ret = vars[:now]
@@ -68,7 +68,7 @@ class MainScene
 
   def main_command
   end
-  
+
   def red_sekkaku
     yuki_plot{
       text "せっかくだから、赤の扉に入ってみよう"
@@ -76,7 +76,7 @@ class MainScene
       vars[:red]
     }
   end
-  
+
   def tell_aikotoba
     yuki_plot{
       text "「こんなゲーム、"
@@ -88,7 +88,7 @@ class MainScene
       vars[:ending]
     }
   end
-  
+
   def render
     @doors.render
     message_box.render

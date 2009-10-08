@@ -36,7 +36,6 @@ module Miyako
     include Animation
     include Layout
     include Enumerable
-    extend Forwardable
 
     #===Partsクラスインスタンスを生成
     #_size_:: パーツ全体の大きさ。Size構造体のインスタンスもしくは要素数が2の配列
@@ -169,20 +168,64 @@ module Miyako
       @list.dispose
     end
 
-    # mixinしたモジュールが優先して呼ばれるメソッドを再び移譲
-    def_delegators(:@list, :render, :render_to, :visible, :visible=, :show, :hide)
-    def_delegators(:@list, :start, :stop, :reset, :update_animation, :each)
+    def render
+      @list.render
+    end
 
-    #===各部品を移動させる
-    #Parts#move!はすでに予約されているため、
-    #SpriteList#move!はParts#parts_move!に改名。
-    #詳細は、SpriteList#move!を参照。
-    def_delegator(:@list, :move!, :parts_move!)
+    def render_to(dst)
+      @list.render_to(dst)
+    end
 
-    #===各部品を移動させる
-    #Parts#move_to!はすでに予約されているため、
-    #SpriteList#move_to!はParts#parts_move_to!に改名。
-    #詳細は、SpriteList#move_to!を参照。
-    def_delegator(:@list, :move_to!, :parts_move_to!)
+    def visible
+      @list.visible
+    end
+
+    def visible=(f)
+      @list.visible=f
+    end
+
+    def show
+      @list.show
+    end
+
+    def hide
+      @list.hide
+    end
+
+    def start
+      @list.start
+    end
+
+    def stop
+      @list.stop
+    end
+
+    def reset
+      @list.reset
+    end
+
+    def update_animation
+      @list.update_animation
+    end
+
+    def each
+      @list.each
+    end
+
+    def move!(dx, dy, &block)
+      @list.move!(dx, dy, &block)
+    end
+
+    def move_to!(x, y, &block)
+      @list.move_to!(x, y, &block)
+    end
+
+    def part_move!(dx, dy)
+      @list.part_move!(dx, dy)
+    end
+
+    def part_move_to!(x, y)
+      @list.part_move_to!(x, y)
+    end
   end
 end

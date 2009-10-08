@@ -24,7 +24,7 @@ class Red
     var[:release_akamatsu_book] = false if var[:release_akamatsu_book] == nil
     var[:search_bookmark]       = false if var[:search_bookmark]       == nil
     var[:get_bookmark]          = false if var[:get_bookmark]          == nil
-    
+
     @yuki.vars[:var] = var
     @yuki.vars[:command] = get_command
     @yuki.vars[:main_loop] = main_loop
@@ -36,16 +36,16 @@ class Red
     command_box.start
     @yuki.start_plot(plot)
   end
-  
+
   def get_command
-    return [Yuki::Command.new("挨拶する",   nil, lambda{var[:akamatsu_aisatsu] == false}, red2),
-             Yuki::Command.new("辺りを見る", nil, lambda{var[:akamatsu_aisatsu]==true }, look),
-             Yuki::Command.new("話す",       nil, lambda{var[:akamatsu_aisatsu]==true }, talk),
-             Yuki::Command.new("渡す",       nil, lambda{var[:akamatsu_aisatsu] && var[:release_akamatsu_book] && var[:search_bookmark]==false}, send1),
-             Yuki::Command.new("渡す",       nil, lambda{var[:search_bookmark] && var[:get_bookmark] && var[:aikotoba]==false}, send2),
-             Yuki::Command.new("戻る",       nil, lambda{var[:akamatsu_aisatsu]==true}, MainScene)]
+    return [Yuki::Command.new("挨拶する",   nil, nil, true, lambda{var[:akamatsu_aisatsu] == false}, red2),
+            Yuki::Command.new("辺りを見る", nil, nil, true, lambda{var[:akamatsu_aisatsu]==true }, look),
+            Yuki::Command.new("話す",       nil, nil, true, lambda{var[:akamatsu_aisatsu]==true }, talk),
+            Yuki::Command.new("渡す",       nil, nil, true, lambda{var[:akamatsu_aisatsu] && var[:release_akamatsu_book] && var[:search_bookmark]==false}, send1),
+            Yuki::Command.new("渡す",       nil, nil, true, lambda{var[:search_bookmark] && var[:get_bookmark] && var[:aikotoba]==false}, send2),
+            Yuki::Command.new("戻る",       nil, nil, true, lambda{var[:akamatsu_aisatsu]==true}, MainScene)]
   end
-  
+
   def update
     return nil if Input.quit_or_escape?
     message_box.update_animation
@@ -65,7 +65,7 @@ class Red
     message_box.render
     command_box.render if @yuki.selecting?
   end
-  
+
   def plot
     yuki_plot do
       text "赤の扉から中に入った。"
@@ -78,7 +78,7 @@ class Red
       vars[:main_loop]
     end
   end
-  
+
   def main_loop
     yuki_plot do
       loop do
@@ -219,7 +219,7 @@ class Red
     message_box.stop
     command_box.stop
   end
-    
+
   def dispose
     @akamatsu.dispose
     @room.dispose
