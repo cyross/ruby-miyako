@@ -186,6 +186,17 @@ module Miyako
       array[2] - 1
     end
 
+    #===コールバックブロック内部でコールバックを終了させる
+    #コールバック内部で、何らかの理由で次からのコールバックを行わせないときに呼び出す
+    #コールバック回数が規定の回数に達したのと同じ効果を与えている
+    #現在実行しているブロックには、このメソッドによる影響を受けない
+    #返却値:: レシーバ
+    def stop_callback_inner
+      array = @@callbacks[self] || @@post_callbacks[self] || raise(MiyakoError, "This instance unregisterd to post-callback!")
+      array[2] = array[1]
+      return self
+    end
+
     #===設定されているウェイトの長さを求める
     #ウェイトの長さをミリ秒単位で取得する
     #返却値:: ウェイトの長さ

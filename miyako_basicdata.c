@@ -257,16 +257,14 @@ static int counter_update_inner(VALUE key, VALUE val)
     VALUE call_arg = rb_ary_new();
 
     VALUE *array_ptr = RARRAY_PTR(val);
-    VALUE vcount = *(array_ptr+1);
-    VALUE vncount = *(array_ptr+2);
 
     rb_ary_push(call_arg, key);
-    rb_ary_push(call_arg, vcount);
-    rb_ary_push(call_arg, vncount);
+    rb_ary_push(call_arg, *(array_ptr+1));
+    rb_ary_push(call_arg, *(array_ptr+2));
     rb_proc_call(*array_ptr, call_arg);
 
-    int count = NUM2INT(vcount);
-    int ncount = NUM2INT(vncount);
+    int count = NUM2INT(*(array_ptr+1));
+    int ncount = NUM2INT(*(array_ptr+2));
 
     if(ncount > count)
     {

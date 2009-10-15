@@ -1083,7 +1083,11 @@ module Miyako
           sp.call(@select_ok, @select_cansel, @select_amount, @mouse_amount)
         }
         if @select_ok
-          return @on_disable.each{|proc| proc.call} unless @command_box.enable_choice?
+          unless @command_box.enable_choice?
+            @on_disable.each{|proc| proc.call}
+            post_process
+            next
+          end
           @result = @command_box.result
           @command_box.finish_command
           @text_box.release

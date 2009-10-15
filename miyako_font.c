@@ -88,8 +88,9 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   int hspace = NUM2INT(rb_iv_get(self, "@hspace"));
 
   SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Rect drect;
 
-	MiyakoBitmap src, dst;
+  MiyakoBitmap src, dst;
   _miyako_setup_unit(vdst, scr, &dst, vx, vy, 0);
 
   char *sptr = RSTRING_PTR(str);
@@ -97,9 +98,9 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   src.x = dst.x;
   src.y = dst.y;
 
-	int x, y;
+  int x, y;
   Uint32 sr, sg, sb, sa;
-	Uint32 dr, dg, db, da;
+  Uint32 dr, dg, db, da;
 
   if(use_shadow == Qtrue)
   {
@@ -111,88 +112,136 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
     src.x += shadow_margin_x;
     src.y += shadow_margin_y;
 
-		MiyakoSize size2;
-		size2.w = dst.rect.w - (src.x < 0 ? -(src.x) : src.x);
-		size2.h = dst.rect.h - (src.y < 0 ? -(src.y) : src.y);
-		if(size2.w > ssrc2->w){ size2.w = ssrc2->w; }
-		if(size2.h > ssrc2->h){ size2.h = ssrc2->h; }
-
-    SDL_LockSurface(ssrc2);
-    SDL_LockSurface(dst.surface);
-
-    for(y = 0; y < size2.h; y++)
+    if(dst.surface == scr)
     {
-      Uint32 *ppsrc2 = psrc2 + y * ssrc2->w;
-      Uint32 *ppdst = dst.ptr + (src.y + y) * dst.surface->w + src.x;
-      for(x = 0; x < size2.w; x++)
-      {
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN
-        da = (*ppdst >> 24) | dst.a255;
-        sa = *ppsrc2 >> 24;
-        if(sa == 0){ ppsrc2++; ppdst++; continue; }
-        if(da == 0 || sa == 255){
-          *ppdst = *ppsrc2;
-          ppsrc2++;
-          ppdst++;
-          continue;
-        }
-#if 0
-        dr = (Uint32)((*ppdst >> 16)) & 0xff;
-        dg = (Uint32)((*ppdst >> 8)) & 0xff;
-        db = (Uint32)((*ppdst)) & 0xff;
-        sr = (Uint32)((*ppsrc2 >> 16)) & 0xff;
-        sg = (Uint32)((*ppsrc2 >> 8)) & 0xff;
-        sb = (Uint32)((*ppsrc2)) & 0xff;
-        int a1 = sa + 1;
-        int a2 = 256 - sa;
-        *ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
-                 (((sg * a1 + dg * a2) >> 8)) << 8 |
-                 (((sb * a1 + db * a2) >> 8)) |
-                 0xff000000;
-#else
-        dr = *ppdst & 0xff0000;
-        dg = *ppdst & 0xff00;
-        db = *ppdst & 0xff;
-        sr = *ppsrc2 & 0xff0000;
-        sg = *ppsrc2 & 0xff00;
-        sb = *ppsrc2 & 0xff;
-        int a1 = sa + 1;
-        int a2 = 256 - sa;
-        *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
-                  (sg * a1 + dg * a2) & 0xff0000   |
-                  (sb * a1 + db * a2)) >> 8        |
-                 0xff000000;
-#endif
-#else
-				da = (Uint32)(((*ppdst & dst.fmt->Amask) | dst.a255;
-	      sa = (Uint32)(((*ppsrc2 & ssrc2->format->Amask)));
-        if(sa == 0){ ppsrc2++; ppdst++; continue; }
-        if(da == 0 || sa == 255){
-          *ppdst = *ppsrc2;
-          ppsrc2++;
-          ppdst++;
-          continue;
-        }
-				dr = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-				dg = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-				db = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-	      sr = (Uint32)(((*ppsrc2 & ssrc2->format->Rmask) >> ssrc2->format->Rshift));
-	      sg = (Uint32)(((*ppsrc2 & ssrc2->format->Gmask) >> ssrc2->format->Gshift));
-	      sb = (Uint32)(((*ppsrc2 & ssrc2->format->Bmask) >> ssrc2->format->Bshift));
-        int a1 = sa + 1;
-        int a2 = 256 - sa;
-        *ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
-                 (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
-                 (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
-                 (255 >> dst.fmt->Aloss);
-#endif
-        ppsrc2++;
-        ppdst++;
-      }
+      drect.x = src.x;
+      drect.y = src.y;
+      SDL_BlitSurface(ssrc2, NULL, dst.surface, &(drect));
     }
+    else
+    {
+      MiyakoSize size2;
+      size2.w = dst.rect.w - (src.x < 0 ? 0 : src.x);
+      if(size2.w <= 0)
+      {
+        SDL_FreeSurface(ssrc2);
+        return INT2NUM(dst.x);
+      }
+      if(size2.w > ssrc2->w){ size2.w = ssrc2->w; }
 
-    SDL_UnlockSurface(ssrc2);
-    SDL_UnlockSurface(dst.surface);
+      int margin_x = 0;
+      if(src.x < 0)
+      {
+        int tmp_w = ssrc2->w + src.x;
+        if(tmp_w < size2.w) size2.w += src.x;
+        if(size2.w <= 0)
+        {
+          SDL_FreeSurface(ssrc2);
+          return INT2NUM(dst.x);
+        }
+        margin_x = -src.x;
+        src.x = 0;
+      }
+
+      size2.h = dst.rect.h - (src.y < 0 ? 0 : src.y);
+      if(size2.h <= 0)
+      {
+        SDL_FreeSurface(ssrc2);
+        return INT2NUM(dst.x);
+      }
+      if(size2.h > ssrc2->h){ size2.h = ssrc2->h; }
+
+      int margin_y = 0;
+      if(src.y < 0)
+      {
+        int tmp_h = ssrc2->h + src.y;
+        if(tmp_h < size2.h) size2.h += src.y;
+        if(size2.h <= 0)
+        {
+          SDL_FreeSurface(ssrc2);
+          return INT2NUM(dst.x);
+        }
+        margin_y = -src.y;
+        src.y = 0;
+      }
+
+      SDL_LockSurface(ssrc2);
+      SDL_LockSurface(dst.surface);
+
+      for(y = 0; y < size2.h; y++)
+      {
+        Uint32 *ppsrc2 = psrc2 + (y+margin_y) * ssrc2->w + margin_x;
+        Uint32 *ppdst = dst.ptr + (src.y + y) * dst.surface->w + src.x;
+        for(x = 0; x < size2.w; x++)
+        {
+  #if SDL_BYTEORDER == SDL_LIL_ENDIAN
+          da = (*ppdst >> 24) | dst.a255;
+          sa = *ppsrc2 >> 24;
+          if(sa == 0){ ppsrc2++; ppdst++; continue; }
+          if(da == 0 || sa == 255){
+            *ppdst = *ppsrc2;
+            ppsrc2++;
+            ppdst++;
+            continue;
+          }
+  #if 0
+          dr = (Uint32)((*ppdst >> 16)) & 0xff;
+          dg = (Uint32)((*ppdst >> 8)) & 0xff;
+          db = (Uint32)((*ppdst)) & 0xff;
+          sr = (Uint32)((*ppsrc2 >> 16)) & 0xff;
+          sg = (Uint32)((*ppsrc2 >> 8)) & 0xff;
+          sb = (Uint32)((*ppsrc2)) & 0xff;
+          int a1 = sa + 1;
+          int a2 = 256 - sa;
+          *ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
+                   (((sg * a1 + dg * a2) >> 8)) << 8 |
+                   (((sb * a1 + db * a2) >> 8)) |
+                   0xff000000;
+  #else
+          dr = *ppdst & 0xff0000;
+          dg = *ppdst & 0xff00;
+          db = *ppdst & 0xff;
+          sr = *ppsrc2 & 0xff0000;
+          sg = *ppsrc2 & 0xff00;
+          sb = *ppsrc2 & 0xff;
+          int a1 = sa + 1;
+          int a2 = 256 - sa;
+          *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
+                    (sg * a1 + dg * a2) & 0xff0000   |
+                    (sb * a1 + db * a2)) >> 8        |
+                   0xff000000;
+  #endif
+  #else
+          da = (Uint32)(((*ppdst & dst.fmt->Amask) | dst.a255;
+          sa = (Uint32)(((*ppsrc2 & ssrc2->format->Amask)));
+          if(sa == 0){ ppsrc2++; ppdst++; continue; }
+          if(da == 0 || sa == 255){
+            *ppdst = *ppsrc2;
+            ppsrc2++;
+            ppdst++;
+            continue;
+          }
+          dr = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+          dg = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+          db = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+          sr = (Uint32)(((*ppsrc2 & ssrc2->format->Rmask) >> ssrc2->format->Rshift));
+          sg = (Uint32)(((*ppsrc2 & ssrc2->format->Gmask) >> ssrc2->format->Gshift));
+          sb = (Uint32)(((*ppsrc2 & ssrc2->format->Bmask) >> ssrc2->format->Bshift));
+          int a1 = sa + 1;
+          int a2 = 256 - sa;
+          *ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
+                   (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
+                   (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
+                   (255 >> dst.fmt->Aloss);
+  #endif
+          ppsrc2++;
+          ppdst++;
+        }
+      }
+
+      SDL_UnlockSurface(ssrc2);
+      SDL_UnlockSurface(dst.surface);
+    }
 
     SDL_FreeSurface(ssrc2);
 
@@ -204,90 +253,139 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
 
   if(ssrc == NULL) return INT2NUM(src.x);
 
-  Uint32 *psrc = (Uint32 *)(ssrc->pixels);
+  if(dst.surface == scr)
+  {
+    drect.x = src.x;
+    drect.y = src.y;
+    SDL_BlitSurface(ssrc, NULL, dst.surface, &(drect));
+  }
+  else
+  {
+    Uint32 *psrc = (Uint32 *)(ssrc->pixels);
 
-	MiyakoSize size;
-	size.w = dst.rect.w - (src.x < 0 ? -(src.x) : src.x);
-	size.h = dst.rect.h - (src.y < 0 ? -(src.y) : src.y);
-	if(size.w > ssrc->w){ size.w = ssrc->w; }
-	if(size.h > ssrc->h){ size.h = ssrc->h; }
+    MiyakoSize size;
 
-  SDL_LockSurface(ssrc);
-  SDL_LockSurface(dst.surface);
+    size.w = dst.rect.w - (src.x < 0 ? 0 : src.x);
+    if(size.w <= 0)
+    {
+      SDL_FreeSurface(ssrc);
+      return INT2NUM(dst.x);
+    }
+    if(size.w > ssrc->w){ size.w = ssrc->w; }
 
-	for(y = 0; y < size.h; y++)
-	{
-		Uint32 *ppsrc = psrc + y * ssrc->w;
-		Uint32 *ppdst = dst.ptr + (src.y + y) * dst.surface->w + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+    int margin_x = 0;
+    if(src.x < 0)
+    {
+      int tmp_w = ssrc->w + src.x;
+      if(tmp_w < size.w) size.w += src.x;
+      if(size.w <= 0)
+      {
+        SDL_FreeSurface(ssrc);
+        return INT2NUM(dst.x);
+      }
+      margin_x = -src.x;
+      src.x = 0;
+    }
+
+    size.h = dst.rect.h - (src.y < 0 ? 0 : src.y);
+    if(size.h <= 0)
+    {
+      SDL_FreeSurface(ssrc);
+      return INT2NUM(dst.x);
+    }
+    if(size.h > ssrc->h){ size.h = ssrc->h; }
+
+    int margin_y = 0;
+    if(src.y < 0)
+    {
+      int tmp_h = ssrc->h + src.y;
+      if(tmp_h < size.h) size.h += src.y;
+      if(size.h <= 0)
+      {
+        SDL_FreeSurface(ssrc);
+        return INT2NUM(dst.x);
+      }
+      margin_y = -src.y;
+      src.y = 0;
+    }
+
+    SDL_LockSurface(ssrc);
+    SDL_LockSurface(dst.surface);
+
+    for(y = 0; y < size.h; y++)
+    {
+      Uint32 *ppsrc = psrc + (y+margin_y) * ssrc->w + margin_x;
+      Uint32 *ppdst = dst.ptr + (src.y + y) * dst.surface->w + src.x;
+      for(x = 0; x < size.w; x++)
+      {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-			da = (*ppdst >> 24) | dst.a255;
-			sa = *ppsrc >> 24;
-			if(sa == 0){ ppsrc++; ppdst++; continue; }
-			if(da == 0 || sa == 255){
-				*ppdst = *ppsrc;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
+        da = (*ppdst >> 24) | dst.a255;
+        sa = *ppsrc >> 24;
+        if(sa == 0){ ppsrc++; ppdst++; continue; }
+        if(da == 0 || sa == 255){
+          *ppdst = *ppsrc;
+          ppsrc++;
+          ppdst++;
+          continue;
+        }
 #if 0
-			dr = (Uint32)(((*ppdst) >> 16)) & 0xff;
-			dg = (Uint32)(((*ppdst) >> 8)) & 0xff;
-			db = (Uint32)(((*ppdst))) & 0xff;
-			sr = (Uint32)(((*ppsrc) >> 16)) & 0xff;
-			sg = (Uint32)(((*ppsrc) >> 8)) & 0xff;
-			sb = (Uint32)(((*ppsrc))) & 0xff;
-			int a1 = sa + 1;
-			int a2 = 256 - sa;
-			*ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
-							 (((sg * a1 + dg * a2) >> 8)) << 8 |
-							 (((sb * a1 + db * a2) >> 8)) |
-							 0xff000000;
+        dr = (Uint32)(((*ppdst) >> 16)) & 0xff;
+        dg = (Uint32)(((*ppdst) >> 8)) & 0xff;
+        db = (Uint32)(((*ppdst))) & 0xff;
+        sr = (Uint32)(((*ppsrc) >> 16)) & 0xff;
+        sg = (Uint32)(((*ppsrc) >> 8)) & 0xff;
+        sb = (Uint32)(((*ppsrc))) & 0xff;
+        int a1 = sa + 1;
+        int a2 = 256 - sa;
+        *ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
+                 (((sg * a1 + dg * a2) >> 8)) << 8 |
+                 (((sb * a1 + db * a2) >> 8)) |
+                 0xff000000;
 #else
-      dr = *ppdst & 0xff0000;
-      dg = *ppdst & 0xff00;
-      db = *ppdst & 0xff;
-      sr = *ppsrc & 0xff0000;
-      sg = *ppsrc & 0xff00;
-      sb = *ppsrc & 0xff;
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
-      *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
-                (sg * a1 + dg * a2) & 0xff0000   |
-                (sb * a1 + db * a2)) >> 8        |
-               0xff000000;
+        dr = *ppdst & 0xff0000;
+        dg = *ppdst & 0xff00;
+        db = *ppdst & 0xff;
+        sr = *ppsrc & 0xff0000;
+        sg = *ppsrc & 0xff00;
+        sb = *ppsrc & 0xff;
+        int a1 = sa + 1;
+        int a2 = 256 - sa;
+        *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
+                  (sg * a1 + dg * a2) & 0xff0000   |
+                  (sb * a1 + db * a2)) >> 8        |
+                 0xff000000;
 #endif
 #else
-			da = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
-			sa = (Uint32)(((*ppsrc & ssrc->format->Amask)) << ssrc->format->Aloss);
-			if(sa == 0){ ppsrc++; ppdst++; continue; }
-			if(da == 0 || sa == 255){
-				*ppdst = *ppsrc;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			dr = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
-			dg = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
-			db = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
-			sr = (Uint32)(((*ppsrc & ssrc->format->Rmask) >> ssrc->format->Rshift));
-			sg = (Uint32)(((*ppsrc & ssrc->format->Gmask) >> ssrc->format->Gshift));
-			sb = (Uint32)(((*ppsrc & ssrc->format->Bmask) >> ssrc->format->Bshift));
-			int a1 = sa + 1;
-			int a2 = 256 - sa;
-			*ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
-							 (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
-							 (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
-							 (255 >> dst.fmt->Aloss);
+        da = (Uint32)(((*ppdst & dst.fmt->Amask)) << dst.fmt->Aloss) | dst.a255;
+        sa = (Uint32)(((*ppsrc & ssrc->format->Amask)) << ssrc->format->Aloss);
+        if(sa == 0){ ppsrc++; ppdst++; continue; }
+        if(da == 0 || sa == 255){
+          *ppdst = *ppsrc;
+          ppsrc++;
+          ppdst++;
+          continue;
+        }
+        dr = (Uint32)(((*ppdst & dst.fmt->Rmask) >> dst.fmt->Rshift));
+        dg = (Uint32)(((*ppdst & dst.fmt->Gmask) >> dst.fmt->Gshift));
+        db = (Uint32)(((*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift));
+        sr = (Uint32)(((*ppsrc & ssrc->format->Rmask) >> ssrc->format->Rshift));
+        sg = (Uint32)(((*ppsrc & ssrc->format->Gmask) >> ssrc->format->Gshift));
+        sb = (Uint32)(((*ppsrc & ssrc->format->Bmask) >> ssrc->format->Bshift));
+        int a1 = sa + 1;
+        int a2 = 256 - sa;
+        *ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
+                 (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
+                 (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
+                 (255 >> dst.fmt->Aloss);
 #endif
-      ppsrc++;
-			ppdst++;
-		}
-	}
+        ppsrc++;
+        ppdst++;
+      }
+    }
 
-  SDL_UnlockSurface(ssrc);
-  SDL_UnlockSurface(dst.surface);
+    SDL_UnlockSurface(ssrc);
+    SDL_UnlockSurface(dst.surface);
+  }
   SDL_FreeSurface(ssrc);
 
   int i, n;
