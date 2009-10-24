@@ -29,7 +29,7 @@ mode = 0
 len_body = Sprite.new({:file=>sprintf("lex_body.png"), :type=>:ck})
 len_body.move_to!(425, 219)
 
-len_anim_param = { 
+len_anim_param = {
   :sprite => len_body,
   :wait => 0.1,
   :move_offset => [[0,0], [0,-1], [0,0], [0,1]]
@@ -40,7 +40,7 @@ len_anim.start
 road_roller = Sprite.new({:file=>sprintf("lex_roadroller.png"), :type=>:ck})
 road_roller.move_to!(310, 180)
 
-rr_anim_param = { 
+rr_anim_param = {
   :sprite => road_roller,
   :wait => 0.1,
   :move_offset => [[0,0], [0,1], [0,0], [0,-1]]

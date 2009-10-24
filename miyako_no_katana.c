@@ -124,21 +124,21 @@ static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
 */
 static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 {
-	if(sb->ptr == db->ptr){ return; }
+  if(sb->ptr == db->ptr){ return; }
 
-	MiyakoSize size;
+  MiyakoSize size;
   if(_miyako_init_rect(sb, db, &size) == 0) return;
 
-	SDL_LockSurface(sb->surface);
-	SDL_LockSurface(db->surface);
+  SDL_LockSurface(sb->surface);
+  SDL_LockSurface(db->surface);
 
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
+  int x, y;
+  for(y = 0; y < size.h; y++)
+  {
     Uint32 *psrc = sb->ptr + (sb->rect.y         + y) * sb->surface->w + sb->rect.x;
     Uint32 *pdst = db->ptr + (db->rect.y + sb->y + y) * db->surface->w + db->rect.x + sb->x;
-		for(x = 0; x < size.w; x++)
-		{
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       sb->color.a = (*psrc >> 24) & 0xff | sb->a255;
       if(sb->color.a == 0){ psrc++; pdst++; continue; }
@@ -157,10 +157,10 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
       db->color.r = (*pdst >> 16) & 0xff;
       db->color.g = (*pdst >>  8) & 0xff;
       db->color.b = (*pdst      ) & 0xff;
-			*pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << 16 |
-						  ((sb->color.g * a1 + db->color.g * a2) >> 8) <<  8 |
-							((sb->color.b * a1 + db->color.b * a2) >> 8)       |
-							0xff << 24;
+      *pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << 16 |
+              ((sb->color.g * a1 + db->color.g * a2) >> 8) <<  8 |
+              ((sb->color.b * a1 + db->color.b * a2) >> 8)       |
+              0xff << 24;
 #else
       sb->color.a = (*psrc & sb->fmt->Amask) | sb->a255;
       if(sb->color.a == 0){ psrc++; pdst++; continue; }
@@ -179,18 +179,18 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
       db->color.r = (*pdst & db->fmt->Rmask) >> db->fmt->Rshift;
       db->color.g = (*pdst & db->fmt->Gmask) >> db->fmt->Gshift;
       db->color.b = (*pdst & db->fmt->Bmask) >> db->fmt->Bshift;
-			*pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << db->fmt->Rshift |
-						  ((sb->color.g * a1 + db->color.g * a2) >> 8) << db->fmt->Gshift |
-							((sb->color.b * a1 + db->color.b * a2) >> 8) << db->fmt->Bshift |
-							0xff;
+      *pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << db->fmt->Rshift |
+              ((sb->color.g * a1 + db->color.g * a2) >> 8) << db->fmt->Gshift |
+              ((sb->color.b * a1 + db->color.b * a2) >> 8) << db->fmt->Bshift |
+              0xff;
 #endif
       psrc++;
       pdst++;
     }
   }
 
-	SDL_UnlockSurface(sb->surface);
-	SDL_UnlockSurface(db->surface);
+  SDL_UnlockSurface(sb->surface);
+  SDL_UnlockSurface(db->surface);
 }
 
 /*
@@ -198,8 +198,8 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 */
 static void render_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 {
-	db->rect.x += sb->x;
-	db->rect.y += sb->y;
+  db->rect.x += sb->x;
+  db->rect.y += sb->y;
   SDL_BlitSurface(sb->surface, &(sb->rect), db->surface, &(db->rect));
 }
 
@@ -299,8 +299,8 @@ VALUE _miyako_sprite_render(VALUE sprite)
 static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 {
   if(rb_iv_get(self, str_visible) == Qfalse) return self;
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
   render_to_inner(&src, &dst);
   return self;
@@ -349,8 +349,8 @@ static VALUE sprite_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE 
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
   src.x = NUM2INT(vx);
   src.y = NUM2INT(vy);
@@ -404,7 +404,7 @@ void _miyako_screen_pre_render()
 static VALUE screen_render(VALUE self)
 {
   VALUE dst = rb_iv_get(mScreen, "@@unit");
-	SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
+  SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
 
   _miyako_sprite_list_render(rb_iv_get(cSprite, "@@sprites"));
@@ -449,8 +449,8 @@ void _miyako_screen_render()
 */
 static VALUE screen_render_screen(VALUE self, VALUE vsrc)
 {
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(vsrc, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
   render_inner(&src, &dst);
   return self;
@@ -566,7 +566,7 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
   int my = pos_y % mc_chip_size_h;
 
   MiyakoBitmap src;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   int bx = dst->rect.x;
   int by = dst->rect.y;
@@ -580,7 +580,7 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
       int code = NUM2INT(*(RARRAY_PTR(mapdat2) + idx2));
       if(code == -1){ continue; }
       _miyako_setup_unit(
-			  rb_funcall(*(RARRAY_PTR(munits) + code),
+        rb_funcall(*(RARRAY_PTR(munits) + code),
                    rb_intern("to_unit"), 0),
         scr, &src,
         INT2NUM(x * ow - mx), INT2NUM(y * oh - my), 0);
@@ -613,7 +613,7 @@ static void fixedmaplayer_render_inner(VALUE self, MiyakoBitmap *dst)
   VALUE mapdat = rb_iv_get(self, "@mapdat");
 
   MiyakoBitmap src;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   int bx = dst->rect.x;
   int by = dst->rect.y;
@@ -676,7 +676,7 @@ static void maplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
   int my = pos_y % mc_chip_size_h;
 
   MiyakoBitmap src;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   int bx = dst->rect.x;
   int by = dst->rect.y;
@@ -720,7 +720,7 @@ static void fixedmaplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
   VALUE mapdat = rb_iv_get(self, "@mapdat");
 
   MiyakoBitmap src;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   int bx = dst->rect.x;
   int by = dst->rect.y;
@@ -749,8 +749,8 @@ static VALUE maplayer_render(VALUE self)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(mScreen, scr, &dst, Qnil, Qnil, 1);
   maplayer_render_inner(self, &dst);
   return self;
@@ -763,8 +763,8 @@ static VALUE fixedmaplayer_render(VALUE self)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(mScreen, scr, &dst, Qnil, Qnil, 1);
   fixedmaplayer_render_inner(self, &dst);
   return self;
@@ -777,8 +777,8 @@ static VALUE maplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
   maplayer_render_to_inner(self, &dst);
   return self;
@@ -791,8 +791,8 @@ static VALUE fixedmaplayer_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
   maplayer_render_inner(self, &dst);
   return self;
@@ -805,8 +805,8 @@ static VALUE map_render(VALUE self)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(mScreen, scr, &dst, Qnil, Qnil, 1);
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
@@ -824,8 +824,8 @@ static VALUE fixedmap_render(VALUE self)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(mScreen, scr, &dst, Qnil, Qnil, 1);
   VALUE map_layers = rb_iv_get(self, "@map_layers");
   int i;
@@ -843,8 +843,8 @@ static VALUE map_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -863,8 +863,8 @@ static VALUE fixedmap_render_to_sprite(VALUE self, VALUE vdst)
 {
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
-	MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
   VALUE map_layers = rb_iv_get(self, "@map_layers");
@@ -1001,8 +1001,8 @@ static VALUE sa_render(VALUE self)
   *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(*(move_off+0)));
   *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(*(move_off+1)));
 
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(vsrc, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
   render_inner(&src, &dst);
 
@@ -1042,8 +1042,8 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
   *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
   *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne )));
 
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
   render_to_inner(&src, &dst);
 
@@ -1063,32 +1063,22 @@ static VALUE plane_render(VALUE self)
   if(visible == Qfalse) return self;
   VALUE sprite = rb_iv_get(self, "@sprite");
 
-  VALUE ssize = rb_iv_get(mScreen, "@@size");
-  int ssw = NUM2INT(*(RSTRUCT_PTR(ssize) + 0));
-  int ssh = NUM2INT(*(RSTRUCT_PTR(ssize) + 1));
   VALUE pos = rb_iv_get(self, "@pos");
   VALUE size = rb_iv_get(self, "@size");
+  VALUE osize = rb_funcall(sprite, rb_intern("layout_size"), 0);
   int w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
   int h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
-
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	_miyako_setup_unit_2(sprite, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
-
-  int sw = src.rect.w;
-  int sh = src.rect.h;
+  int ow = NUM2INT(*(RSTRUCT_PTR(osize) + 0));
+  int oh = NUM2INT(*(RSTRUCT_PTR(osize) + 1));
 
   int x, y;
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
-      src.x = (x-1) * sw + pos_x;
-      src.y = (y-1) * sh + pos_y;
-      if(src.x > 0 || src.y > 0
-      || (src.x+sw) <= ssw || (src.y+sh) <= ssh){
-				render_inner(&src, &dst);
-      }
+      VALUE vx = INT2NUM(pos_x + x * ow);
+      VALUE vy = INT2NUM(pos_y + y * oh);
+      rb_funcall(sprite, rb_intern("render_xy"), 2, vx, vy);
     }
   }
 
@@ -1104,32 +1094,22 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
   if(visible == Qfalse) return self;
   VALUE sprite = rb_iv_get(self, "@sprite");
 
-  VALUE ssize = rb_iv_get(mScreen, "@@size");
-  int ssw = NUM2INT(*(RSTRUCT_PTR(ssize) + 0));
-  int ssh = NUM2INT(*(RSTRUCT_PTR(ssize) + 1));
   VALUE pos = rb_iv_get(self, "@pos");
   VALUE size = rb_iv_get(self, "@size");
+  VALUE osize = rb_funcall(sprite, rb_intern("layout_size"), 0);
   int w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
   int h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
   int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
   int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
-
-	MiyakoBitmap src, dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	_miyako_setup_unit_2(sprite, vdst, scr, &src, &dst, Qnil, Qnil, 1);
-
-  int sw = src.rect.w;
-  int sh = src.rect.h;
+  int ow = NUM2INT(*(RSTRUCT_PTR(osize) + 0));
+  int oh = NUM2INT(*(RSTRUCT_PTR(osize) + 1));
 
   int x, y;
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
-      src.x = (x-1) * sw + pos_x;
-      src.y = (y-1) * sh + pos_y;
-      if(src.x > 0 || src.y > 0
-      || (src.x+sw) <= ssw || (src.y+sh) <= ssh){
-        render_to_inner(&src, &dst);
-      }
+      VALUE vx = INT2NUM(pos_x + x * ow);
+      VALUE vy = INT2NUM(pos_y + y * oh);
+      rb_funcall(sprite, rb_intern("render_xy_to"), 3, vdst, vx, vy);
     }
   }
 
