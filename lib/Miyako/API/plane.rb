@@ -69,6 +69,16 @@ module Miyako
       return @pos.y
     end
 
+    def adjust_pos(pos) #:nodocs:
+      pos.x %= @sprite.ow if pos.x >= @sprite.ow
+      pos.y %= @sprite.oh if pos.y >= @sprite.oh
+      pos.x = -(-pos.x % @sprite.ow) if pos.x <= -@sprite.ow
+      pos.y = -(-pos.y % @sprite.oh) if pos.y <= -@sprite.oh
+      return pos
+    end
+
+    private :adjust_pos
+
     #===プレーンの表示位置を移動させる
     #画像スクロールと同じ効果を得る
     #_dx_:: 移動量(x 座標)
@@ -76,8 +86,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def move!(dx, dy)
       @pos.move!(dx, dy)
-      @pos.x %= @sprite.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
-      @pos.y %= @sprite.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
+      @pos = adjust_pos(@pos)
       return self
     end
 
@@ -88,8 +97,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def move_to!(x, y)
       @pos.move_to!(x, y)
-      @pos.x %= @screen.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
-      @pos.y %= @screen.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
+      @pos = adjust_pos(@pos)
       return self
     end
 
@@ -99,11 +107,8 @@ module Miyako
     #_dx_:: 移動量(x 座標)
     #_dy_:: 移動量(y 座標)
     #返却値:: 変更したPosition構造体を返す
-    def move!(dx, dy)
-      @pos.move!(dx, dy)
-      @pos.x %= @sprite.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
-      @pos.y %= @sprite.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
-      return self
+    def move(dx, dy)
+      return adjust_pos(@pos.move(dx, dy))
     end
 
     #===プレーンの表示位置を移動させたときの位置を求める(移動位置指定)
@@ -112,11 +117,8 @@ module Miyako
     #_x_:: 移動先の位置(x 座標)
     #_y_:: 移動先の位置(y 座標)
     #返却値:: 変更したPosition構造体を返す
-    def move_to!(x, y)
-      @pos.move_to!(x, y)
-      @pos.x %= @screen.ow if @pos.x >= @sprite.ow || @pos.x <= -@sprite.ow
-      @pos.y %= @screen.oh if @pos.y >= @sprite.oh || @pos.y <= -@sprite.oh
-      return self
+    def move_to(x, y)
+      return adjust_pos(@pos.move_to(x, y))
     end
 
     #===画像の表示矩形を取得する
@@ -136,23 +138,6 @@ module Miyako
     #===プレーンのデータを解放する
     def dispose
       @sprite.dispose
-    end
-
-    #===画面に描画を指示する
-    #現在表示できるプレーンを、現在の状態で描画するよう指示する
-    #--
-    #(但し、実際に描画されるのはScreen.renderメソッドが呼び出された時)
-    #++
-    #返却値:: 自分自身を返す
-    def render
-      @size.h.times{|y|
-        @size.w.times{|x|
-          u = @sprite.to_unit
-          u.move_to!(x * @sprite.ow + @pos.x, y * @sprite.oh + @pos.y)
-          Screen.render_screen(u) if u.x >= 0 && u.y >= 0 && u.x + u.ow <= Screen.bitmap.w && u.y + u.oh <= Screen.bitmap.h
-        }
-      }
-      return self
     end
 
     #===描画の素になるスプライトのアニメーションを更新する
@@ -190,6 +175,12 @@ module Miyako
     #画面の描画範囲は、src側SpriteUnitの(x,y)を起点に、タイリングを行いながら貼り付ける。
     #visibleメソッドの値がfalseのときは描画されない。
     def render
+      @size.h.times{|y|
+        @size.w.times{|x|
+          @sprite.render_xy(x * @sprite.ow + @pos.x, y * @sprite.oh + @pos.y)
+        }
+      }
+      return self
     end
 
     #===プレーンを画像に描画する
@@ -198,6 +189,12 @@ module Miyako
     #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     def render_to(dst)
+      @size.h.times{|y|
+        @size.w.times{|x|
+          @sprite.render_xy_to(dst, x * @sprite.ow + @pos.x, y * @sprite.oh + @pos.y)
+        }
+      }
+      return self
     end
 
     def_delegators(:sprite)
