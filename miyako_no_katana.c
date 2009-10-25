@@ -37,6 +37,7 @@ static VALUE mInput = Qnil;
 static VALUE mSpriteBase = Qnil;
 static VALUE mAnimation = Qnil;
 static VALUE mDiagram = Qnil;
+static VALUE eMiyakoError = Qnil;
 static VALUE cSurface = Qnil;
 static VALUE cGL = Qnil;
 static VALUE cFont = Qnil;
@@ -120,6 +121,37 @@ static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
 }
 
 /*
+:nodoc:
+*/
+static VALUE sprite_get_rect(VALUE src, int *dst)
+{
+  int i;
+  VALUE *tmp;
+  switch(TYPE(src))
+  {
+  case T_ARRAY:
+    if(RARRAY_LEN(src) < 4)
+      rb_raise(eMiyakoError, "rect needs 4 or much elements!");
+    tmp = RARRAY_PTR(src);
+    for(i=0; i<4; i++){ *dst++ = NUM2INT(*tmp++); }
+    break;
+  case T_STRUCT:
+    if(RSTRUCT_LEN(src) < 4)
+      rb_raise(eMiyakoError, "rect needs 4 or much members!");
+    tmp = RSTRUCT_PTR(src);
+    for(i=0; i<4; i++){ *dst++ = NUM2INT(*tmp++); }
+    break;
+  default:
+    *(dst+0) = NUM2INT(rb_funcall(src, rb_intern("x"), 0));
+    *(dst+1) = NUM2INT(rb_funcall(src, rb_intern("y"), 0));
+    *(dst+2) = NUM2INT(rb_funcall(src, rb_intern("w"), 0));
+    *(dst+3) = NUM2INT(rb_funcall(src, rb_intern("h"), 0));
+    break;
+  }
+  return Qnil;
+}
+
+/*
 ===内部用レンダメソッド
 */
 static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
@@ -135,18 +167,30 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
   int x, y;
   for(y = 0; y < size.h; y++)
   {
-    Uint32 *psrc = sb->ptr + (sb->rect.y         + y) * sb->surface->w + sb->rect.x;
-    Uint32 *pdst = db->ptr + (db->rect.y + sb->y + y) * db->surface->w + db->rect.x + sb->x;
+    Uint32 src_y = (sb->rect.y         + y);
+    Uint32 dst_y = (db->rect.y + sb->y + y);
+    Uint32 src_x = sb->rect.x;
+    Uint32 dst_x = db->rect.x + sb->x;
+
+    if(src_y < 0 || dst_y < 0){ continue; }
+    if(src_y >= sb->surface->h || dst_y >= db->surface->h){ break; }
+
+    Uint32 *psrc = sb->ptr + src_y * sb->surface->w + src_x;
+    Uint32 *pdst = db->ptr + dst_y * db->surface->w + dst_x;
     for(x = 0; x < size.w; x++)
     {
+      if(src_x < 0 || dst_x < 0){  psrc++; pdst++; src_x++; dst_x++; continue; }
+      if(src_x >= sb->surface->w || dst_x >= db->surface->w){ break; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       sb->color.a = (*psrc >> 24) & 0xff | sb->a255;
-      if(sb->color.a == 0){ psrc++; pdst++; continue; }
+      if(sb->color.a == 0){ psrc++; pdst++; src_x++; dst_x++; continue; }
       db->color.a = (*pdst >> 24) & 0xff | db->a255;
       if(db->color.a == 0 || sb->color.a == 255){
         *pdst = *psrc | (sb->a255 << 24);
         psrc++;
         pdst++;
+        src_x++;
+        dst_x++;
         continue;
       }
       int a1 = sb->color.a + 1;
@@ -163,12 +207,14 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
               0xff << 24;
 #else
       sb->color.a = (*psrc & sb->fmt->Amask) | sb->a255;
-      if(sb->color.a == 0){ psrc++; pdst++; continue; }
+      if(sb->color.a == 0){ psrc++; pdst++; src_x++; dst_x++; continue; }
       db->color.a = (*pdst & db->fmt->Amask) | db->a255;
       if(db->color.a == 0 || sb->color.a == 255){
         *pdst = *psrc | sb->a255;
         psrc++;
         pdst++;
+        src_x++;
+        dst_x++;
         continue;
       }
       int a1 = sb->color.a + 1;
@@ -186,6 +232,8 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 #endif
       psrc++;
       pdst++;
+      src_x++;
+      dst_x++;
     }
   }
 
@@ -352,6 +400,224 @@ static VALUE sprite_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE 
   MiyakoBitmap src, dst;
   SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
   _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+  src.x = NUM2INT(vx);
+  src.y = NUM2INT(vy);
+  render_to_inner(&src, &dst);
+  return self;
+}
+
+/*
+インスタンスの内容を画面に描画する
+*/
+static VALUE sprite_render_rect(VALUE self, VALUE vrect)
+{
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+
+  VALUE src_unit = rb_iv_get(self, "@unit");
+  VALUE dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  SDL_Surface  *src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  SDL_Surface  *dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  SDL_Rect srect, drect;
+
+  VALUE *s_p = RSTRUCT_PTR(src_unit);
+  srect.x = NUM2INT(*(s_p + 1)) + rect[0];
+  srect.y = NUM2INT(*(s_p + 2)) + rect[1];
+  srect.w = rect[2];
+  srect.h = rect[3];
+
+  VALUE *d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1));
+  drect.y = NUM2INT(*(d_p + 2));
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
+  return self;
+}
+
+/*
+インスタンスの内容を別のインスタンスに描画する
+*/
+static VALUE sprite_render_rect_to_sprite(VALUE self, VALUE vdst, VALUE vrect)
+{
+  VALUE visible = rb_iv_get(self, str_visible);
+  if(visible == Qfalse) return self;
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+  src.rect.x += rect[0];
+  src.rect.y += rect[1];
+  src.rect.w = rect[2];
+  src.rect.h = rect[3];
+  render_to_inner(&src, &dst);
+  return self;
+}
+
+/*
+インスタンスの内容を画面に描画する
+*/
+static VALUE sprite_render_rect2(VALUE self, VALUE vrect)
+{
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+
+  VALUE src_unit = rb_iv_get(self, "@unit");
+  VALUE dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  SDL_Surface  *src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  SDL_Surface  *dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  SDL_Rect srect, drect;
+
+  srect.x = rect[0];
+  srect.y = rect[1];
+  srect.w = rect[2];
+  srect.h = rect[3];
+
+  VALUE *d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1));
+  drect.y = NUM2INT(*(d_p + 2));
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
+  return self;
+}
+
+/*
+インスタンスの内容を別のインスタンスに描画する
+*/
+static VALUE sprite_render_rect2_to_sprite(VALUE self, VALUE vdst, VALUE vrect)
+{
+  VALUE visible = rb_iv_get(self, str_visible);
+  if(visible == Qfalse) return self;
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+  src.rect.x = rect[0];
+  src.rect.y = rect[1];
+  src.rect.w = rect[2];
+  src.rect.h = rect[3];
+  render_to_inner(&src, &dst);
+  return self;
+}
+
+/*
+インスタンスの内容を画面に描画する
+*/
+static VALUE sprite_render_rect_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
+{
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+
+  VALUE src_unit = rb_iv_get(self, "@unit");
+  VALUE dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  SDL_Surface  *src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  SDL_Surface  *dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  SDL_Rect srect, drect;
+
+  VALUE *s_p = RSTRUCT_PTR(src_unit);
+  srect.x = NUM2INT(*(s_p + 1)) + rect[0];
+  srect.y = NUM2INT(*(s_p + 2)) + rect[1];
+  srect.w = rect[2];
+  srect.h = rect[3];
+
+  VALUE *d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(vx);
+  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(vy);
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
+  return self;
+}
+
+/*
+インスタンスの内容を別のインスタンスに描画する
+*/
+static VALUE sprite_render_rect_xy_to_sprite(VALUE self, VALUE vdst, VALUE vrect, VALUE vx, VALUE vy)
+{
+  VALUE visible = rb_iv_get(self, str_visible);
+  if(visible == Qfalse) return self;
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+  src.rect.x += rect[0];
+  src.rect.y += rect[1];
+  src.rect.w = rect[2];
+  src.rect.h = rect[3];
+  src.x = NUM2INT(vx);
+  src.y = NUM2INT(vy);
+  render_to_inner(&src, &dst);
+  return self;
+}
+
+/*
+インスタンスの内容を画面に描画する
+*/
+static VALUE sprite_render_rect2_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
+{
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+
+  VALUE src_unit = rb_iv_get(self, "@unit");
+  VALUE dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  SDL_Surface  *src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  SDL_Surface  *dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  SDL_Rect srect, drect;
+
+  srect.x = rect[0];
+  srect.y = rect[1];
+  srect.w = rect[2];
+  srect.h = rect[3];
+
+  VALUE *d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(vx);
+  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(vy);
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
+  return self;
+}
+
+/*
+インスタンスの内容を別のインスタンスに描画する
+*/
+static VALUE sprite_render_rect2_xy_to_sprite(VALUE self, VALUE vdst, VALUE vrect, VALUE vx, VALUE vy)
+{
+  VALUE visible = rb_iv_get(self, str_visible);
+  if(visible == Qfalse) return self;
+  int rect[4];
+  sprite_get_rect(vrect, &(rect[0]));
+  MiyakoBitmap src, dst;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
+  src.rect.x = rect[0];
+  src.rect.y = rect[1];
+  src.rect.w = rect[2];
+  src.rect.h = rect[3];
   src.x = NUM2INT(vx);
   src.y = NUM2INT(vy);
   render_to_inner(&src, &dst);
@@ -1189,6 +1455,7 @@ void Init_miyako_no_katana()
   mSpriteBase = rb_define_module_under(mMiyako, "SpriteBase");
   mAnimation = rb_define_module_under(mMiyako, "Animation");
   mDiagram = rb_define_module_under(mMiyako, "Diagram");
+  eMiyakoError  = rb_define_class_under(mMiyako, "MiyakoError", rb_eException);
   cSurface = rb_define_class_under(mSDL, "Surface", rb_cObject);
   cGL  = rb_define_module_under(mSDL, "GL");
   cFont  = rb_define_class_under(mMiyako, "Font", rb_cObject);
@@ -1263,6 +1530,14 @@ void Init_miyako_no_katana()
   rb_define_method(cSprite, "render_to", sprite_render_to_sprite, 1);
   rb_define_method(cSprite, "render_xy", sprite_render_xy, 2);
   rb_define_method(cSprite, "render_xy_to", sprite_render_xy_to_sprite, 3);
+  rb_define_method(cSprite, "render_rect", sprite_render_rect, 1);
+  rb_define_method(cSprite, "render_rect_to", sprite_render_rect_to_sprite, 2);
+  rb_define_method(cSprite, "render_rect2", sprite_render_rect2, 1);
+  rb_define_method(cSprite, "render_rect2_to", sprite_render_rect2_to_sprite, 2);
+  rb_define_method(cSprite, "render_rect_xy", sprite_render_rect_xy, 3);
+  rb_define_method(cSprite, "render_rect_xy_to", sprite_render_rect_xy_to_sprite, 4);
+  rb_define_method(cSprite, "render_rect2_xy", sprite_render_rect2_xy, 3);
+  rb_define_method(cSprite, "render_rect2_xy_to", sprite_render_rect2_xy_to_sprite, 4);
 
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);

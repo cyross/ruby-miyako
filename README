@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.1.2
-【   作成日   】　2009/10/XX
+【   作成日   】　2009/10/25
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -1366,13 +1366,16 @@ v2.1.1(2009.10.16)
 ・WaitCounter#stop_callback_inner
 <インスタンスメソッド廃止>
 
-v2.1.2(2009.10.XX)
+v2.1.2(2009.10.25)
 <バグ修正>
 ・Plane#render,render_toメソッドで、画面より小さいスプライトを描画しようとしても何も描画されないバグを修正
 ・Plane#move!,move_to!メソッドで、描画時に画面の左上が描画されない時があるバグを修正
 ・Plane#move,move_toメソッドが、move!、move_to!と全く同じ動作をするバグを修正
 <機能改善>
+・各種render_toメソッドでの内部処理の安全性を高めた
 <仕様変更>
+・Sprite#part_move!,move_to!,resize!,resize_to!などのメソッドで、部分矩形の大きさを自動的に補正する処理を廃止
+・Sprite#ox=,oh=,ow=,oh=で、画像の範囲外の値を設定すると例外が発生する処理を廃止
 <ファイル追加>
 <ファイル削除>
 <グローバル変数追加>
@@ -1385,6 +1388,14 @@ v2.1.2(2009.10.XX)
 <クラス・モジュールメソッド追加>
 <クラス・モジュールメソッド廃止>
 <インスタンスメソッド追加>
+・Sprite#render_rect
+・Sprite#render_rect_to
+・Sprite#render_rect2
+・Sprite#render_rect2_to
+・Sprite#render_rect_xy
+・Sprite#render_rect_xy_to
+・Sprite#render_rect2_xy
+・Sprite#render_rect2_xy_to
 <インスタンスメソッド廃止>
 
 *******************************************************************************
