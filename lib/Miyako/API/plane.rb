@@ -70,10 +70,8 @@ module Miyako
     end
 
     def adjust_pos(pos) #:nodocs:
-      pos.x %= @sprite.ow if pos.x >= @sprite.ow
-      pos.y %= @sprite.oh if pos.y >= @sprite.oh
-      pos.x = -(-pos.x % @sprite.ow) if pos.x <= -@sprite.ow
-      pos.y = -(-pos.y % @sprite.oh) if pos.y <= -@sprite.oh
+      pos.x %= @sprite.ow if pos.x >= @sprite.ow || pos.x <= -@sprite.ow
+      pos.y %= @sprite.oh if pos.y >= @sprite.oh || pos.y <= -@sprite.oh
       return pos
     end
 

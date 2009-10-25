@@ -1076,6 +1076,8 @@ static VALUE plane_render(VALUE self)
   int x, y;
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
+      if(pos_x > 0) pos_x -= ow;
+      if(pos_y > 0) pos_y -= oh;
       VALUE vx = INT2NUM(pos_x + x * ow);
       VALUE vy = INT2NUM(pos_y + y * oh);
       rb_funcall(sprite, rb_intern("render_xy"), 2, vx, vy);
@@ -1107,6 +1109,8 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
   int x, y;
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
+      if(pos_x > 0) pos_x -= ow;
+      if(pos_y > 0) pos_y -= oh;
       VALUE vx = INT2NUM(pos_x + x * ow);
       VALUE vy = INT2NUM(pos_y + y * oh);
       rb_funcall(sprite, rb_intern("render_xy_to"), 3, vdst, vx, vy);
