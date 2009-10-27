@@ -26,7 +26,6 @@ module Miyako
   #ただし、インスタンス変数として、@bodyを予約済み
   module Slide
     include Layout
-    extend Forwardable
 
     @@templates = { }
 
@@ -48,6 +47,8 @@ module Miyako
     @@templates["gray"]       = {:color=>[128,128,128,255]}
     @@templates["black"]      = {:color=>[0,0,0,255]}
     @@templates["half-white"] = {:color=>[255,255,255,128]}
+
+    @@body = []
 
     #===スライドをテンプレート文字列から作成する
     #スライドを所定の名称で生成する。利用できるのは以下の7種類
@@ -74,15 +75,60 @@ module Miyako
       @@templates[sym] = params
     end
 
+    def initialize(obj)
+      __setobj(obj)
+    end
+
+    def clone
+      @@body[self.__id__].clone
+    end
+
+    def dup
+      @@body[self.__id__].dup
+    end
+
+    def __getobj__
+      @@body[self.__id__]
+    end
+
+    def marshal_dump
+      Marshal.dump(@@body[self.__id__])
+    end
+
+    def marshal_load(obj)
+      Marshal.load(obj)
+    end
+
+    def method_missing(m, *args, &block)
+      puts "missing: #{m}"
+      return @@body[self.__id__].__send__(m, *args, &block) if @@body[self.__id__].methods.include?(m)
+      @@body[self.__id__].method_missing(m, *args, &block)
+    end
+
+    def respond_to?(m)
+      @@body[self.__id__].respond_to?(m)
+    end
+
+    def __setobj__(obj)
+      @@body[self.__id__] = obj
+    end
+
     #===スライド情報を初期化する
     #(例)init_slide(Slide.create(:size=>Size.new(320,240), :color=>[255,0,0]))
     #(例)init_slide(Slide["640x480"]))
     #_template_:: 元となるPartsクラスインスタンス(Slide.createメソッドで作成もしくはSlide.[]で取得できるテンプレートスライド)
     def init_slide(template)
       init_layout
-      @body = template
-      set_layout_size(*(@body.size))
-      @body.snap(self)
+      @@body[self.__id__] = template
+      set_layout_size(*(@@body[self.__id__].size))
+      @@body[self.__id__].snap(self)
+    end
+
+    #===スライド本体を返す
+    #スライド本体を直接制御するときに使う
+    #返却値:: スライド本体
+    def slide_body
+      @@body[self.__id__]
     end
 
     def piece
@@ -95,7 +141,7 @@ module Miyako
     #_title_:: 取得したいパーツに対応したシンボル
     #返却値:: シンボルに対応したパーツ
     def [](title)
-      return @body[title]
+      return @@body[self.__id__][title]
     end
 
     #===パーツに名前を割り付けて設定する
@@ -104,7 +150,7 @@ module Miyako
     #(2)パーツと、スナップさせるパーツの名前(シンボル)
     #返却値:: 自分自身を返す
     def []=(title, objs)
-      @body[title] = objs
+      @@body[self.__id__][title] = objs
       return self
     end
 
@@ -129,12 +175,40 @@ module Miyako
       return slide_render_to(dst, &block)
     end
 
+    def show
+      slide_show
+    end
+
+    def hide
+      slide_hide
+    end
+
+    def update
+      slide_update
+    end
+
+    def update_animation
+      slide_update_animation
+    end
+
+    def start
+      slide_start
+    end
+
+    def stop
+      slide_stop
+    end
+
+    def reset
+      slide_reset
+    end
+
     #===スライドを画面に描画する
     #ブロックを渡すと、スライド,画面側のSpriteUnitを更新して、それを実際の転送に反映させることが出来る。
     #ブロックの引数は、|スライド側SpriteUnit,画面側SpriteUnit|となる。
     #返却値:: 自分自身を返す
     def slide_render(&block)
-      @body.render(&block)
+      @@body[self.__id__].render(&block) if @@body[self.__id__]
       return self
     end
 
@@ -144,14 +218,47 @@ module Miyako
     #_dst_:: 描画先画像(Spriteクラスインスタンスなど)
     #返却値:: 自分自身を返す
     def slide_render_to(dst, &block)
-      @body.render(dst, &block)
+      @@body[self.__id__].render(dst, &block) if @@body[self.__id__]
+      return self
+    end
+
+    def slide_show
+      @@body[self.__id__].show if @@body[self.__id__]
+      return self
+    end
+
+    def slide_hide
+      @@body[self.__id__].hide if @@body[self.__id__]
+      return self
+    end
+
+    def slide_update
+      @@body[self.__id__].update if @@body[self.__id__]
+      return self
+    end
+
+    def slide_update_animation
+      @@body[self.__id__].update_animation if @@body[self.__id__]
+      return self
+    end
+
+    def slide_start
+      @@body[self.__id__].start if @@body[self.__id__]
+      return self
+    end
+
+    def slide_stop
+      @@body[self.__id__].stop if @@body[self.__id__]
+      return self
+    end
+
+    def slide_reset
+      @@body[self.__id__].reset if @@body[self.__id__]
       return self
     end
 
     #===@bodyに登録したオブジェクトとは別に作成していたインスタンスを解放する
     def dispose
     end
-
-    def_delegators(:@body, :remove, :each, :start, :stop, :reset, :update, :update_animation)
   end
 end
