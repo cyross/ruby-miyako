@@ -37,6 +37,8 @@ module Miyako
       tmp[:size]  ||= Size.new(640, 480)
       tmp[:type]  ||= :ac
       tmp[:color] ||= Color[:white]
+      tmp[:empty] ||= false
+      return Parts.new(tmp[:size]) if tmp[:empty]
       return Parts.new(tmp[:size]).tap{|obj| obj[:___base___] = Sprite.new(tmp).fill(tmp[:color])}
     end
 

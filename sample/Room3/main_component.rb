@@ -46,6 +46,7 @@ module MainComponent
 
   @@command_box = self.create_textbox(Size.new( 8, 4), font, [0, 255, 0, 128])
   @@command_box.right!{|body| (0.05).ratio(body) }.top!{|body| (0.05).ratio(body) }
+  @@command_box.hide
 
   # メッセージボックスを動かさないこと前提
   def message_box

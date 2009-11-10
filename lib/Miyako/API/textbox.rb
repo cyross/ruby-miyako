@@ -29,7 +29,7 @@ module Miyako
     include Layout
     extend Forwardable
 
-    attr_accessor :textarea
+    attr_accessor :textarea, :visible
     attr_accessor :select_type, :waiting, :selecting
     attr_accessor :font, :margin
     attr_reader :wait_cursor, :select_cursor, :choices

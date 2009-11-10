@@ -4,9 +4,9 @@ class Red
   include MainComponent
 
   def init
-    @yuki = Yuki.new(message_box[:box], command_box[:box]) do |box, cbox|
-      select_textbox(box)
-      select_commandbox(cbox)
+    @yuki = Yuki.new(message_box, command_box) do |box, cbox|
+      select_textbox(box[:box], box)
+      select_commandbox(cbox[:box], cbox)
     end
     def @yuki.text_wait(txt, w = 0.3)
       text txt
@@ -14,11 +14,13 @@ class Red
     end
 
     @akamatsu = Sprite.new(:file => "image/akamatsu.png", :type => :ck)
+    @akamatsu.hide
     @akamatsu.center!.bottom!
-    @yuki.regist_parts(:akamatsu, @akamatsu)
+    @yuki.visibles[:akamatsu] = @akamatsu
 
     @room = Sprite.new(:file=>"image/room_red.png", :type=>:as)
     @room.center!.bottom!
+    @yuki.bgs[:room] = @room
 
     var[:akamatsu_aisatsu]      = false if var[:akamatsu_aisatsu]      == nil
     var[:release_akamatsu_book] = false if var[:release_akamatsu_book] == nil
@@ -32,8 +34,8 @@ class Red
 
   def setup
     @yuki.setup
-    message_box.start
-    command_box.start
+    @yuki.textbox_all.start
+    @yuki.commandbox_all.start
     @yuki.start_plot(plot)
   end
 
@@ -48,8 +50,8 @@ class Red
 
   def update
     return nil if Input.quit_or_escape?
-    message_box.update_animation
-    command_box.update_animation
+    @yuki.textbox_all.update_animation
+    @yuki.commandbox_all.update_animation
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     if @yuki.is_scenario?(r)
@@ -60,10 +62,10 @@ class Red
   end
 
   def render
-    @room.render
-    @yuki.render
-    message_box.render
-    command_box.render if @yuki.selecting?
+    @yuki.bgs.render
+    @yuki.visibles.render
+    @yuki.textbox_all.render
+    @yuki.commandbox_all.render
   end
 
   def plot
@@ -216,8 +218,8 @@ class Red
   end
 
   def final
-    message_box.stop
-    command_box.stop
+    @yuki.textbox_all.stop
+    @yuki.commandbox_all.stop
   end
 
   def dispose

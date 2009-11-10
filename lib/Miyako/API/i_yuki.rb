@@ -99,7 +99,7 @@ module Miyako
     #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
     CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc, :body_disable, :enable)
 
-    attr_reader :visibles, :base
+    attr_reader :visibles, :pre_visibles, :bgs, :base
     attr_reader :valign
     #release_checks:: ポーズ解除を問い合わせるブロックの配列。
     #callメソッドを持ち、true/falseを返すインスタンスを配列操作で追加・削除できる。
@@ -158,6 +158,8 @@ module Miyako
       @yuki = { }
       @text_box = nil
       @command_box = nil
+      @text_box_all = nil
+      @command_box_all = nil
 
       @exec_plot = nil
 
@@ -171,11 +173,15 @@ module Miyako
       @select_amount = [0, 0]
       @mouse_amount = nil
 
+      @mouse_enable = true
+
       @result = nil
       @plot_result = nil
 
       @parts = {}
       @visibles = SpriteList.new
+      @pre_visibles = SpriteList.new
+      @bgs = SpriteList.new
       @vars = {}
 
       @text_methods = {:char => self.method(:text_by_char),
@@ -184,15 +190,15 @@ module Miyako
 
       @valign = :middle
 
-      @release_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) }, lambda{ Input.click?(:left) } ]
+      @release_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) }, lambda{ @mouse_enable && Input.click?(:left) } ]
       @release_checks = @release_checks_default.dup
 
       @ok_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) },
-                            lambda{ self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) } ]
+                            lambda{ @mouse_enable && self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) } ]
       @ok_checks = @ok_checks_default.dup
 
       @cancel_checks_default = [lambda{ Input.pushed_any?(:btn2, :esc) },
-                                lambda{ Input.click?(:right) } ]
+                                lambda{ @mouse_enable && Input.click?(:right) } ]
       @cancel_checks = @cancel_checks_default.dup
 
       @key_amount_proc   = lambda{ Input.pushed_amount }
@@ -262,6 +268,33 @@ module Miyako
 
     def waiting_inner(yuki)
       @base.waiting_inner(yuki)
+    end
+
+    #===マウスでの制御を可能にする
+    #ゲームパッド・キーボードでのコマンド・ポーズ制御を行えるが、
+    #それに加えて、マウスでもゲームパッド・キーボードでの制御が行える
+    #Yukiクラスインスタンス生成時はマウス利用可能
+    #返却値:: 自分自身を返す
+    def enable_mouse
+      @mouse_enable = true
+      return self
+    end
+
+    #===マウスでの制御を不可にする
+    #ゲームパッド・キーボードでのコマンド・ポーズ制御を行えるが、
+    #マウスでの利用を制限する
+    #Yukiクラスインスタンス生成時はマウス利用可能
+    #返却値:: 自分自身を返す
+    def disable_mouse
+      @mouse_enable = false
+      return self
+    end
+
+    #===マウスでの制御を可・不可を問い合わせる
+    #マウスを利用できるときはtrue、利用できないときはfalseを返す
+    #返却値:: true/false
+    def mouse_enable?
+      @mouse_enable
     end
 
     #===Yuki#showで表示指定した画像を描画する
@@ -370,8 +403,32 @@ module Miyako
     #(例):[:a, :b, :c]の順に並んでいたら、:cが指すインスタンスが一番前に描画される。
     #
     #返却値:: 描画対象リスト
-    def visibles
+    def visibles_names
       @visibles.names
+    end
+
+    #===現在描画対象のパーツ名のリストを取得する
+    #[[Yukiスクリプトとして利用可能]]
+    #現在描画しているパーツ名の配列を参照する。
+    #実体のインスタンスは、partsメソッドで参照できるハッシュの値として格納されている。
+    #Yuki#renderで描画する際、配列の先頭から順に、要素に対応するインスタンスを描画する(つまり、配列の後ろにある方が前に描画される
+    #(例):[:a, :b, :c]の順に並んでいたら、:cが指すインスタンスが一番前に描画される。
+    #
+    #返却値:: 描画対象リスト
+    def pre_visibles_names
+      @pre_visibles.names
+    end
+
+    #===現在描画対象のパーツ名のリストを取得する
+    #[[Yukiスクリプトとして利用可能]]
+    #現在描画しているパーツ名の配列を参照する。
+    #実体のインスタンスは、partsメソッドで参照できるハッシュの値として格納されている。
+    #Yuki#renderで描画する際、配列の先頭から順に、要素に対応するインスタンスを描画する(つまり、配列の後ろにある方が前に描画される
+    #(例):[:a, :b, :c]の順に並んでいたら、:cが指すインスタンスが一番前に描画される。
+    #
+    #返却値:: 描画対象リスト
+    def bgs_names
+      @bgs.names
     end
 
     #===オブジェクトを登録する
@@ -388,29 +445,45 @@ module Miyako
     end
 
     #===表示・描画対象のテキストボックスを選択する
+    #第2引数として、テキストボックス全体を渡せる(省略可能)
+    #第1引数が、PartsやSpriteListの1部分のときに、第2引数を渡すことで、
+    #テキストボックス全体を制御可能
+    #第2引数を省略時は、全バージョンに引き続いて、テキストボックス本体のみを制御する
     #[[Yukiスクリプトとして利用可能]]
-    #_box_:: テキストボックスのインスタンス
+    #_box_:: テキストボックス本体
+    #_box_all_:: テキストボックス全体
     #
     #返却値:: 自分自身を返す
-    def select_textbox(box)
+    def select_textbox(box, box_all = nil)
       @text_box = box
+      @text_box_all = box_all || box
+      unless @command_box
+        @command_box = @text_box
+        @command_box_all = @text_box_all
+      end
       return self
     end
 
     #===表示・描画対象のコマンドボックスを選択する
+    #第2引数として、テキストボックス全体を渡せる(省略可能)
+    #第1引数が、PartsやSpriteListの1部分のときに、第2引数を渡すことで、
+    #テキストボックス全体を制御可能
+    #第2引数を省略時は、全バージョンに引き続いて、テキストボックス本体のみを制御する
     #[[Yukiスクリプトとして利用可能]]
-    #_box_:: テキストボックスのインスタンス
+    #_box_:: テキストボックス本体
+    #_box_all_:: テキストボックス全体
     #
     #返却値:: 自分自身を返す
-    def select_commandbox(box)
+    def select_commandbox(box, box_all = nil)
       @command_box = box
+      @command_box_all = box_all || box
       return self
     end
 
     #===テキストボックスを取得する
     #[[Yukiスクリプトとして利用可能]]
     #テキストボックスが登録されていないときはnilを返す
-    #返却値:: テキストボックスのインスタンス
+    #返却値:: テキストボックス
     def textbox
       return @text_box
     end
@@ -418,9 +491,66 @@ module Miyako
     #===コマンドボックスを取得する
     #[[Yukiスクリプトとして利用可能]]
     #コマンドボックスが登録されていないときはnilを返す
-    #返却値:: コマンドボックスのインスタンス
+    #返却値:: コマンドボックス
     def commandbox
       return @command_box
+    end
+
+    #===テキストボックス全体を取得する
+    #[[Yukiスクリプトとして利用可能]]
+    #テキストボックスが登録されていないときはnilを返す
+    #返却値:: テキストボックス全体
+    def textbox_all
+      return @text_box_all
+    end
+
+    #===コマンドボックス全体を取得する
+    #[[Yukiスクリプトとして利用可能]]
+    #コマンドボックスが登録されていないときはnilを返す
+    #返却値:: コマンドボックス全体
+    def commandbox_all
+      return @command_box_all
+    end
+
+    #===テキストボックスを描画可能にする
+    #[[Yukiスクリプトとして利用可能]]
+    #返却値:: レシーバ
+    def show_textbox
+      @text_box_all.show
+      return self
+    end
+
+    #===コマンドボックスを描画可能にする
+    #[[Yukiスクリプトとして利用可能]]
+    #返却値:: レシーバ
+    def show_commandbox
+      @command_box_all.show
+      return self
+    end
+
+    #===テキストボックスを描画不可能にする
+    #[[Yukiスクリプトとして利用可能]]
+    #返却値:: レシーバ
+    def hide_textbox
+      @text_box_all.hide
+      return self
+    end
+
+    #===コマンドボックスを描画不可能にする
+    #[[Yukiスクリプトとして利用可能]]
+    #返却値:: レシーバ
+    def hide_commandbox
+      @command_box_all.hide
+      return self
+    end
+
+    #===コマンドボックスとテキストボックスを共用しているか問い合わせる
+    #[[Yukiスクリプトとして利用可能]]
+    #テキストボックスとコマンドボックスを共用しているときはtrueを返す
+    #共用していなければfalseを返す
+    #返却値:: true/false
+    def box_shared?
+      @text_box_all.object_id == @command_box_all.object_id
     end
 
     #===オブジェクトの登録を解除する
@@ -441,9 +571,13 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
     #返却値:: 自分自身を返す
     def show(*names)
+      if names.length == 0
+        @visibles.each_value{|sprite| sprite.show}
+        return self
+      end
       names.each{|name|
-        @visibles.add(name, @parts[name])
-        @parts[name].show
+        @visibles.add(name, @parts[name]) unless @visibles.include?(name)
+        @visibles[name].show
       }
       return self
     end
@@ -454,10 +588,131 @@ module Miyako
     #_names_:: パーツ名（シンボル）、複数指定可能
     #返却値:: 自分自身を返す
     def hide(*names)
+      if names.length == 0
+        @visibles.each_value{|sprite| sprite.hide}
+        return self
+      end
+      names.each{|name| @visibles[name].hide }
+      return self
+    end
+
+    #===パーツで指定したオブジェクトを先頭に表示する
+    #[[Yukiスクリプトとして利用可能]]
+    #描画時に、指定したパーツを描画する
+    #すでにshowメソッドで表示指定している場合は、先頭に表示させる
+    #_names_:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
+    #返却値:: 自分自身を返す
+    def pre_show(*names)
+      if names.length == 0
+        @pre_visibles.each_value{|sprite| sprite.show}
+        return self
+      end
       names.each{|name|
-        @parts[name].hide
-        @visibles.delete(name)
+        @pre_visibles.add(name, @parts[name]) unless @pre_visibles.include?(name)
+        @pre_visibles[name].show
       }
+      return self
+    end
+
+    #===パーツで指定したオブジェクトを隠蔽する
+    #[[Yukiスクリプトとして利用可能]]
+    #描画時に、指定したパーツを描画させないよう指定する
+    #_names_:: パーツ名（シンボル）、複数指定可能
+    #返却値:: 自分自身を返す
+    def pre_hide(*names)
+      if names.length == 0
+        @pre_visibles.each_value{|sprite| sprite.hide}
+        return self
+      end
+      names.each{|name| @pre_visibles[name].hide }
+      return self
+    end
+
+    #===パーツで指定した背景を表示する
+    #[[Yukiスクリプトとして利用可能]]
+    #描画時に、指定したパーツを描画する
+    #すでにshowメソッドで表示指定している場合は、先頭に表示させる
+    #_names_:: パーツ名（シンボル）、複数指定可能(指定した順番に描画される)
+    #返却値:: 自分自身を返す
+    def bg_show(*names)
+      if names.length == 0
+        @bgs.each_value{|sprite| sprite.show}
+        return self
+      end
+      names.each{|name|
+        @bgs.add(name, @parts[name]) unless @bgs.include?(name)
+        @bgs[name].show
+      }
+      return self
+    end
+
+    #===パーツで指定した背景を隠蔽する
+    #[[Yukiスクリプトとして利用可能]]
+    #描画時に、指定したパーツを描画させないよう指定する
+    #_names_:: パーツ名（シンボル）、複数指定可能
+    #返却値:: 自分自身を返す
+    def bg_hide(*names)
+      if names.length == 0
+        @bgs.each_value{|sprite| sprite.hide}
+        return self
+      end
+      names.each{|name| @bgs[name].hide }
+      return self
+    end
+
+    #===ファイル名で指定したスプライトを登録する
+    #[[Yukiスクリプトとして利用可能]]
+    #画面に表示するスプライトを登録する
+    #すでにshowメソッドで表示指定している場合は、先頭に表示させる
+    #_name_:: スプライト名(重複するときは上書き)
+    #_filename_:: 読み込むファイル名
+    #_pre_:: pre_visiblesに登録するときはtrue、visiblesに登録するときはfalseを渡す
+    #        省略時はfalse
+    #返却値:: 自分自身を返す
+    def load_sprite(name, filename, pre=false)
+      spr = Sprite.new(:file=>filename, :type=>:ac)
+      @parts[name] = spr
+      @parts[name].hide
+      pre ? @pre_visibles.add(name, @parts[name]) :  @visibles.add(name, @parts[name])
+      return self
+    end
+
+    #===背景を登録する
+    #[[Yukiスクリプトとして利用可能]]
+    #画面に表示する背景を登録する
+    #すでにshowメソッドで表示指定している場合は、先頭に表示させる
+    #_name_:: スプライト名(重複するときは上書き)
+    #_filename_:: 読み込むファイル名
+    #返却値:: 自分自身を返す
+    def load_bg(name, filename)
+      spr = Sprite.new(:file=>filename, :type=>:ac)
+      @parts[name] = spr
+      @parts[name].hide
+      @bgs.add(name, @parts[name])
+      return self
+    end
+
+    #===BGMを登録する
+    #[[Yukiスクリプトとして利用可能]]
+    #音声ファイルを読み込み、BGMとして登録する
+    #登録したBGMはpartsメソッドを使って参照できる
+    #_name_:: スプライト名(重複するときは上書き)
+    #_filename_:: 読み込むファイル名
+    #返却値:: 自分自身を返す
+    def load_bgm(name, filename)
+      @parts[name] = Audio::BGM.new(filename)
+      return self
+    end
+
+    #===効果音を登録する
+    #[[Yukiスクリプトとして利用可能]]
+    #音声ファイルを読み込み、効果音として登録する
+    #登録した効果音はpartsメソッドを使って参照できる
+    #_name_:: スプライト名(重複するときは上書き)
+    #_filename_:: 読み込むファイル名
+    #返却値:: 自分自身を返す
+    def load_se(name, filename)
+      @parts[name] = Audio::SE.new(filename)
       return self
     end
 
@@ -1068,6 +1323,7 @@ module Miyako
       @pre_command.each{|proc| proc.call}
       @pre_cancel.each{|proc| proc.call}
       yield if block_given?
+      @command_box_all.show if @command_box_all.object_id != @text_box_all.object_id
       @command_box.command(@command_box.create_choices_chain(choices, &chain_block))
       @result = nil
       selecting = true
@@ -1090,12 +1346,14 @@ module Miyako
           end
           @result = @command_box.result
           @command_box.finish_command
+          @command_box_all.hide if @command_box_all.object_id != @text_box_all.object_id
           @text_box.release
           selecting = false
           reset_selecting
         elsif @select_cancel
           @result = @cancel
           @command_box.finish_command
+          @command_box_all.hide if @command_box_all.object_id != @text_box_all.object_id
           @text_box.release
           selecting = false
           reset_selecting
@@ -1103,7 +1361,7 @@ module Miyako
           @command_box.move_cursor(*@select_amount)
           reset_selecting
         elsif @mouse_amount
-          @command_box.attach_cursor(*@mouse_amount.to_a)
+          @command_box.attach_cursor(*@mouse_amount.to_a) if @mouse_enable
           reset_selecting
         end
         post_process

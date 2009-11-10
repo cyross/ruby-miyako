@@ -4,13 +4,13 @@ class MainScene
   include MainComponent
 
   def init
-    @yuki = Yuki.new(message_box[:box], command_box[:box]){|box, cbox|
-      select_textbox(box)
-      select_commandbox(cbox)
+    @yuki = Yuki.new(message_box, command_box){|box, cbox|
+      select_textbox(box[:box], box)
+      select_commandbox(cbox[:box], cbox)
     }
     @yuki.select_plot(plot)
-    @doors = Sprite.new(:file=>"image/three_doors.png", :type=>:as)
-    @doors.center!.bottom!
+    @yuki.load_bg :doors, "image/three_doors.png"
+    @yuki.bgs[:doors].center!.bottom!
 
     var[:sekkaku] = true if var[:sekkaku] == nil
     var[:aikotoba] = false if var[:aikotoba] == nil
@@ -27,15 +27,16 @@ class MainScene
 
   def setup
     @yuki.setup
-    message_box.start
-    command_box.start
+    @yuki.bg_show
+    @yuki.textbox_all.start
+    @yuki.commandbox_all.start
     @yuki.start_plot(plot)
   end
 
   def update
     return nil if Input.quit_or_escape?
-    message_box.update_animation
-    command_box.update_animation
+    @yuki.textbox_all.update_animation
+    @yuki.commandbox_all.update_animation
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     @yuki.start_plot(plot) if (@yuki.executing? == false && r == @now)
@@ -90,14 +91,14 @@ class MainScene
   end
 
   def render
-    @doors.render
-    message_box.render
-    command_box.render if @yuki.selecting?
+    @yuki.bgs.render
+    @yuki.textbox_all.render
+    @yuki.commandbox_all.render
   end
 
   def final
-    message_box.stop
-    command_box.stop
+    @yuki.textbox_all.stop
+    @yuki.commandbox_all.stop
   end
 end
 

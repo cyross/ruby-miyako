@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.2
-【   作成日   】　2009/10/25
+【 バージョン 】　2.1.4
+【   作成日   】　2009/11/10
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.1公式リリース版です。
+本バージョンは、2.1.4公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -1396,6 +1396,85 @@ v2.1.2(2009.10.25)
 ・Sprite#render_rect_xy_to
 ・Sprite#render_rect2_xy
 ・Sprite#render_rect2_xy_to
+<インスタンスメソッド廃止>
+
+v2.1.3(2009.10.28)
+<バグ修正>
+<機能改善>
+・Slideモジュールの見直し(update,update_animationなどをオーバーライドしやすいように)
+<仕様変更>
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+Slide#.slide_body
+Slide#.slide_show
+Slide#.slide_hide
+Slide#.slide_update
+Slide#.slide_update_animation
+Slide#.slide_start
+Slide#.slide_stop
+Slide#.slide_reset
+<インスタンスメソッド追加>
+<インスタンスメソッド廃止>
+
+v2.1.4(2009.11.10)
+<バグ修正>
+・Yuki#commandメソッドで、テキストボックスとコマンドボックスを強要している時、コマンド選択後にテキストボックスが描画されないバグを修正
+・TextBox#visible,visible=が機能していないバグを修正
+<機能改善>
+・Slide.createの引数に、:emptyを追加(スライドを示すスプライトを作るかどうか)
+・Yuki#select_textboxで指定した時に、自動的に同じボックスをコマンドボックスとして登録できるようにした(以前は同じボックスを共用するときでも、select_commandboxを呼び出す必要があった)
+・サンプルゲーム「３つの部屋」を2.1.4準拠に変更
+<仕様変更>
+・(Initiative)Yuki#select_textboxの引数に、省略可能な第2引数を追加(テキストボックス全体を渡せる)
+・(Initiative)Yuki#select_commandboxの引数に、省略可能な第2引数を追加(テキストボックス全体を渡せる)
+・メソッド名変更: (Initiative)Yuki#visibles -> visibles_names
+・(Initiative)Yuki#visibles の内容を変更(表示可能なスプライト→表示対象のスプライト)
+・(Initiative)Yuki#show,hideの引数を省略したときは、全ての画像を描画可能・不可能に変更
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+<インスタンスメソッド追加>
+・(Initiative)Yuki#textbox_all
+・(Initiative)Yuki#commandbox_all
+・(Initiative)Yuki#enable_mouse
+・(Initiative)Yuki#disenable_mouse
+・(Initiative)Yuki#mouse_enable?
+・(Initiative)Yuki#pre_visibles_names
+・(Initiative)Yuki#bgs_names
+・(Initiative)Yuki#pre_visibles
+・(Initiative)Yuki#bgs
+・(Initiative)Yuki#load_sprite
+・(Initiative)Yuki#load_bg
+・(Initiative)Yuki#load_bgm
+・(Initiative)Yuki#load_se
+・(Initiative)Yuki#pre_show
+・(Initiative)Yuki#pre_hide
+・(Initiative)Yuki#bg_show
+・(Initiative)Yuki#bg_hide
+・(Initiative)Yuki#show_textbox
+・(Initiative)Yuki#show_commandbox
+・(Initiative)Yuki#hide_textbox
+・(Initiative)Yuki#hide_commandbox
+・(Initiative)Yuki#box_shared?
 <インスタンスメソッド廃止>
 
 *******************************************************************************

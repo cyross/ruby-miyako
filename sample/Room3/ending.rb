@@ -14,7 +14,7 @@ class Ending
       }
     end
 
-    @yuki.select_textbox(message_box[:box])
+    @yuki.select_textbox(message_box[:box], message_box)
     @bg = Sprite.new(:file => "image/congratulation_bg.png", :type => :as)
     @bg.oh = @bg.h / 2
     @anim = SpriteAnimation.new(:sprite=>@bg, :wait=>0.5)
@@ -25,23 +25,23 @@ class Ending
     @cong_man.center!.bottom!
     @visible_cong_man = false
     @timer = WaitCounter.new(3)
-    @staff_roll = [Shape.text(:font=>message_box[:box].font, :align=>:center){
+    @staff_roll = [Shape.text(:font=>@yuki.textbox.font, :align=>:center){
                      text "シナリオ・グラフィック・"
                      cr
                      text "スクリプティング・その他雑用"
                      cr.cr
                      text "サイロス　誠"
                    },
-                   Shape.text(:font=>message_box[:box].font){ text "Powerd By Miyako 2.0" }
+                   Shape.text(:font=>@yuki.textbox.font){ text "Powerd By Miyako 2.1" }
                   ]
     @staff_roll.each{|st|
-      st.snap(message_box)
+      st.snap(@yuki.textbox_all)
       st.centering!
     }
     @index = -1
 
-    @end_roll = Shape.text(:font=>message_box[:box].font){ text "Ｔ　Ｈ　Ｅ　　Ｅ　Ｎ　Ｄ" }
-    @end_roll.snap(message_box)
+    @end_roll = Shape.text(:font=>@yuki.textbox.font){ text "Ｔ　Ｈ　Ｅ　　Ｅ　Ｎ　Ｄ" }
+    @end_roll.snap(@yuki.textbox_all)
     @end_roll.centering!
     @yuki.regist_parts(:end_roll, @end_roll)
     @yuki.vars[:staff_roll] = self.method(:staff_roll)
@@ -67,7 +67,7 @@ class Ending
     @cong_man.render if @visible_cong_man
     if @exec == self.method(:plot_executing)
       @yuki.render
-      message_box.render
+      @yuki.textbox_all.render
       @staff_roll[@index].render if @index >= 0
     end
   end
@@ -90,8 +90,7 @@ class Ending
   end
 
   def plot_executing
-    message_box.update_animation
-    command_box.update_animation
+    @yuki.textbox_all.update_animation
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     if @yuki.is_scenario?(r)

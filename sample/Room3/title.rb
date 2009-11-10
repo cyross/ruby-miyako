@@ -72,8 +72,8 @@ class TitleCall
   include MainComponent
 
   def init
-    @yuki = Yuki.new(message_box[:box]){|box|
-      select_textbox(box)
+    @yuki = Yuki.new(message_box){|box|
+      select_textbox(box[:box], box)
     }
     @man = Sprite.new(:file=>"image/start.png", :type=>:ck)
     @man.center!.bottom!
@@ -101,14 +101,14 @@ class TitleCall
   end
 
   def final
-    message_box.stop
+    @yuki.textbox_all.stop
   end
 
   def view_in
     if @wait.finish?
       if @alpha == 1.0
         @exec = :exec_yuki
-        message_box.start
+        @yuki.textbox_all.start
         @yuki.start_plot
         return @now
       end
@@ -120,7 +120,7 @@ class TitleCall
   end
 
   def exec_yuki
-    message_box.update_animation
+    @yuki.textbox_all.update_animation
     @yuki.update
     return @yuki.result ? @yuki.result : @now
   end
@@ -184,6 +184,6 @@ class TitleCall
 
   def render
     Bitmap.dec_alpha(@man, Screen, @alpha)
-    message_box.render if @exec == :exec_yuki
+    @yuki.textbox_all.render if @exec == :exec_yuki
   end
 end

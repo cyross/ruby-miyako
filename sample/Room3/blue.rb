@@ -5,14 +5,16 @@ class Blue
 
   def init
     @yuki = Yuki.new
-    @yuki.select_textbox(message_box[:box])
-    @yuki.select_commandbox(command_box[:box])
+    @yuki.select_textbox(message_box[:box], message_box)
+    @yuki.select_commandbox(command_box[:box], command_box)
     @aoyama = Sprite.new(:file => "image/aoyama.png", :type => :ck)
+    @aoyama.hide
     @aoyama.center!.bottom!
-    @yuki.regist_parts(:aoyama, @aoyama)
+    @yuki.visibles[:aoyama] = @aoyama
 
     @room = Sprite.new(:file => "image/room_blue.png", :type => :as)
     @room.center!.bottom!
+    @yuki.bgs[:room] = @room
 
     var[:aoyama_aisatsu]        = false if var[:aoyama_aisatsu]        == nil
     var[:release_aoyama_book]   = false if var[:release_aoyama_book]   == nil
@@ -31,15 +33,15 @@ class Blue
 
   def setup
     @yuki.setup
-    message_box.start
-    command_box.start
+    @yuki.textbox_all.start
+    @yuki.commandbox_all.start
     @yuki.start_plot(plot)
   end
 
   def update
     return nil if Input.quit_or_escape?
-    message_box.update_animation
-    command_box.update_animation
+    @yuki.textbox_all.update_animation
+    @yuki.commandbox_all.update_animation
     @yuki.update
     r = @yuki.executing? ? @now : @yuki.result
     if @yuki.is_scenario?(r)
@@ -50,10 +52,10 @@ class Blue
   end
 
   def render
-    @room.render
-    @yuki.render
-    message_box.render
-    command_box.render if @yuki.selecting?
+    @yuki.bgs.render
+    @yuki.visibles.render
+    @yuki.textbox_all.render
+    @yuki.commandbox_all.render
   end
 
   def get_command
@@ -286,8 +288,8 @@ class Blue
   end
 
   def final
-    message_box.stop
-    command_box.stop
+    @yuki.textbox_all.stop
+    @yuki.commandbox_all.stop
   end
 
   def dispose
