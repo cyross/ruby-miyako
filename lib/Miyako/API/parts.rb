@@ -21,9 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
-
-  require 'delegate'
-
   #==パーツ構成クラス
   #複数のスプライト・アニメーションをまとめて一つの部品として構成できるクラス
   #
@@ -218,14 +215,6 @@ module Miyako
 
     def move_to!(x, y, &block)
       @list.move_to!(x, y, &block)
-    end
-
-    def part_move!(dx, dy)
-      @list.part_move!(dx, dy)
-    end
-
-    def part_move_to!(x, y)
-      @list.part_move_to!(x, y)
     end
   end
 end

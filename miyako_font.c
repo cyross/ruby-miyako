@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -59,55 +59,65 @@ static GLOBAL_DEFINE_GET_STRUCT(TTFont, Get_TTFont, cTTFFont, "SDL::TT::Font");
 
 static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE vy)
 {
+  int font_size, shadow_margin_x, shadow_margin_y, hspace, x, y, a1, a2, margin_x, margin_y;
+  TTF_Font *font;
+  VALUE *p_font_color, *p_shadow_color;
+  VALUE use_shadow, shadow_margin, chr;
+  SDL_Color fore_color, shadow_color;
+  SDL_Surface *scr, *ssrc, *ssrc2;
+  SDL_Rect drect;
+  MiyakoBitmap src, dst;
+  char *sptr;
+  Uint32 sr, sg, sb, sa;
+  Uint32 dr, dg, db, da;
+  Uint32 *psrc2, *psrc, *ppsrc2, *ppdst;
+  int i, n, clen;
+  const char *ptr;
+  int len;
+  rb_encoding *enc;
+
   rb_secure(4);
   StringValue(str);
 
   str = rb_funcall(str, id_encode, 1, rb_const_get(cEncoding, id_utf8));
 
-  TTF_Font *font = Get_TTFont(rb_iv_get(self, "@font"))->font;
+  font = Get_TTFont(rb_iv_get(self, "@font"))->font;
 
-  VALUE *p_font_color = RARRAY_PTR(rb_iv_get(self, "@color"));
-  SDL_Color fore_color;
+  p_font_color = RARRAY_PTR(rb_iv_get(self, "@color"));
+
   fore_color.r = NUM2INT(*(p_font_color+0));
   fore_color.g = NUM2INT(*(p_font_color+1));
   fore_color.b = NUM2INT(*(p_font_color+2));
   fore_color.unused = 0;
 
-  VALUE *p_shadow_color = RARRAY_PTR(rb_iv_get(self, "@shadow_color"));
-  SDL_Color shadow_color;
+  p_shadow_color = RARRAY_PTR(rb_iv_get(self, "@shadow_color"));
   shadow_color.r = NUM2INT(*(p_shadow_color+0));
   shadow_color.g = NUM2INT(*(p_shadow_color+1));
   shadow_color.b = NUM2INT(*(p_shadow_color+2));
   shadow_color.unused = 0;
 
-  int font_size = NUM2INT(rb_iv_get(self, "@size"));
-  VALUE use_shadow = rb_iv_get(self, "@use_shadow");
-  VALUE shadow_margin = rb_iv_get(self, "@shadow_margin");
-  int shadow_margin_x = (use_shadow == Qtrue ? NUM2INT(*(RARRAY_PTR(shadow_margin)+0)) : 0);
-  int shadow_margin_y = (use_shadow == Qtrue ? NUM2INT(*(RARRAY_PTR(shadow_margin)+1)) : 0);
-  int hspace = NUM2INT(rb_iv_get(self, "@hspace"));
+  font_size = NUM2INT(rb_iv_get(self, "@size"));
+  use_shadow = rb_iv_get(self, "@use_shadow");
+  shadow_margin = rb_iv_get(self, "@shadow_margin");
+  shadow_margin_x = (use_shadow == Qtrue ? NUM2INT(*(RARRAY_PTR(shadow_margin)+0)) : 0);
+  shadow_margin_y = (use_shadow == Qtrue ? NUM2INT(*(RARRAY_PTR(shadow_margin)+1)) : 0);
+  hspace = NUM2INT(rb_iv_get(self, "@hspace"));
 
-  SDL_Surface *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  SDL_Rect drect;
+  scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
-  MiyakoBitmap src, dst;
   _miyako_setup_unit(vdst, scr, &dst, vx, vy, 0);
 
-  char *sptr = RSTRING_PTR(str);
+  sptr = RSTRING_PTR(str);
 
   src.x = dst.x;
   src.y = dst.y;
 
-  int x, y;
-  Uint32 sr, sg, sb, sa;
-  Uint32 dr, dg, db, da;
-
   if(use_shadow == Qtrue)
   {
-    SDL_Surface *ssrc2 = TTF_RenderUTF8_Blended(font, sptr, shadow_color);
+    ssrc2 = TTF_RenderUTF8_Blended(font, sptr, shadow_color);
 
     if(ssrc2 == NULL) return INT2NUM(src.x);
-    Uint32 *psrc2 = (Uint32 *)(ssrc2->pixels);
+    psrc2 = (Uint32 *)(ssrc2->pixels);
 
     src.x += shadow_margin_x;
     src.y += shadow_margin_y;
@@ -129,7 +139,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
       }
       if(size2.w > ssrc2->w){ size2.w = ssrc2->w; }
 
-      int margin_x = 0;
+      margin_x = 0;
       if(src.x < 0)
       {
         int tmp_w = ssrc2->w + src.x;
@@ -151,7 +161,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
       }
       if(size2.h > ssrc2->h){ size2.h = ssrc2->h; }
 
-      int margin_y = 0;
+      margin_y = 0;
       if(src.y < 0)
       {
         int tmp_h = ssrc2->h + src.y;
@@ -170,8 +180,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
 
       for(y = 0; y < size2.h; y++)
       {
-        Uint32 *ppsrc2 = psrc2 + (y+margin_y) * ssrc2->w + margin_x;
-        Uint32 *ppdst = dst.ptr + (src.y + y) * dst.surface->w + src.x;
+        ppsrc2 = psrc2 + (y+margin_y) * ssrc2->w + margin_x;
+        ppdst = dst.ptr + (src.y + y) * dst.surface->w + src.x;
         for(x = 0; x < size2.w; x++)
         {
   #if SDL_BYTEORDER == SDL_LIL_ENDIAN
@@ -191,8 +201,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
           sr = (Uint32)((*ppsrc2 >> 16)) & 0xff;
           sg = (Uint32)((*ppsrc2 >> 8)) & 0xff;
           sb = (Uint32)((*ppsrc2)) & 0xff;
-          int a1 = sa + 1;
-          int a2 = 256 - sa;
+          a1 = sa + 1;
+          a2 = 256 - sa;
           *ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
                    (((sg * a1 + dg * a2) >> 8)) << 8 |
                    (((sb * a1 + db * a2) >> 8)) |
@@ -204,8 +214,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
           sr = *ppsrc2 & 0xff0000;
           sg = *ppsrc2 & 0xff00;
           sb = *ppsrc2 & 0xff;
-          int a1 = sa + 1;
-          int a2 = 256 - sa;
+          a1 = sa + 1;
+          a2 = 256 - sa;
           *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
                     (sg * a1 + dg * a2) & 0xff0000   |
                     (sb * a1 + db * a2)) >> 8        |
@@ -227,8 +237,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
           sr = (Uint32)(((*ppsrc2 & ssrc2->format->Rmask) >> ssrc2->format->Rshift));
           sg = (Uint32)(((*ppsrc2 & ssrc2->format->Gmask) >> ssrc2->format->Gshift));
           sb = (Uint32)(((*ppsrc2 & ssrc2->format->Bmask) >> ssrc2->format->Bshift));
-          int a1 = sa + 1;
-          int a2 = 256 - sa;
+          a1 = sa + 1;
+          a2 = 256 - sa;
           *ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
                    (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
                    (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
@@ -249,7 +259,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
     src.y = dst.y;
   }
 
-  SDL_Surface *ssrc = TTF_RenderUTF8_Blended(font, sptr, fore_color);
+  ssrc = TTF_RenderUTF8_Blended(font, sptr, fore_color);
 
   if(ssrc == NULL) return INT2NUM(src.x);
 
@@ -261,7 +271,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   }
   else
   {
-    Uint32 *psrc = (Uint32 *)(ssrc->pixels);
+    psrc = (Uint32 *)(ssrc->pixels);
 
     MiyakoSize size;
 
@@ -273,7 +283,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
     }
     if(size.w > ssrc->w){ size.w = ssrc->w; }
 
-    int margin_x = 0;
+    margin_x = 0;
     if(src.x < 0)
     {
       int tmp_w = ssrc->w + src.x;
@@ -295,7 +305,7 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
     }
     if(size.h > ssrc->h){ size.h = ssrc->h; }
 
-    int margin_y = 0;
+    margin_y = 0;
     if(src.y < 0)
     {
       int tmp_h = ssrc->h + src.y;
@@ -335,8 +345,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
         sr = (Uint32)(((*ppsrc) >> 16)) & 0xff;
         sg = (Uint32)(((*ppsrc) >> 8)) & 0xff;
         sb = (Uint32)(((*ppsrc))) & 0xff;
-        int a1 = sa + 1;
-        int a2 = 256 - sa;
+        a1 = sa + 1;
+        a2 = 256 - sa;
         *ppdst = (((sr * a1 + dr * a2) >> 8)) << 16 |
                  (((sg * a1 + dg * a2) >> 8)) << 8 |
                  (((sb * a1 + db * a2) >> 8)) |
@@ -348,8 +358,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
         sr = *ppsrc & 0xff0000;
         sg = *ppsrc & 0xff00;
         sb = *ppsrc & 0xff;
-        int a1 = sa + 1;
-        int a2 = 256 - sa;
+        a1 = sa + 1;
+        a2 = 256 - sa;
         *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
                   (sg * a1 + dg * a2) & 0xff0000   |
                   (sb * a1 + db * a2)) >> 8        |
@@ -371,8 +381,8 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
         sr = (Uint32)(((*ppsrc & ssrc->format->Rmask) >> ssrc->format->Rshift));
         sg = (Uint32)(((*ppsrc & ssrc->format->Gmask) >> ssrc->format->Gshift));
         sb = (Uint32)(((*ppsrc & ssrc->format->Bmask) >> ssrc->format->Bshift));
-        int a1 = sa + 1;
-        int a2 = 256 - sa;
+        a1 = sa + 1;
+        a2 = 256 - sa;
         *ppdst = (((sr * a1 + dr * a2) >> 8)) << dst.fmt->Rshift |
                  (((sg * a1 + dg * a2) >> 8)) << dst.fmt->Gshift |
                  (((sb * a1 + db * a2) >> 8)) << dst.fmt->Bshift |
@@ -388,15 +398,14 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   }
   SDL_FreeSurface(ssrc);
 
-  int i, n;
-  const char *ptr = RSTRING_PTR(str);
-  int len = RSTRING_LEN(str);
-  rb_encoding *enc = rb_enc_get(str);
+  ptr = RSTRING_PTR(str);
+  len = RSTRING_LEN(str);
+  enc = rb_enc_get(str);
   for(i=0; i<len; i+=n)
   {
     n = rb_enc_mbclen(ptr+i, ptr+len, enc);
-    VALUE chr = rb_str_subseq(str, i, n);
-    int clen = RSTRING_LEN(chr);
+    chr = rb_str_subseq(str, i, n);
+    clen = RSTRING_LEN(chr);
     dst.x += (clen==1 ? font_size>>1 : font_size) + shadow_margin_x + hspace;
   }
   return INT2NUM(dst.x);
@@ -418,18 +427,19 @@ static VALUE font_text_size(VALUE self, VALUE str)
   int shadow_margin_x = (use_shadow == Qtrue ? NUM2INT(*(RARRAY_PTR(shadow_margin)+0)) : 0);
   int hspace = NUM2INT(rb_iv_get(self, "@hspace"));
 
-  int i, n, l=0;
+  VALUE chr, array;
+  int i, n, l=0, clen;
   const char *ptr = RSTRING_PTR(str);
   int len = RSTRING_LEN(str);
   rb_encoding *enc = rb_enc_get(str);
   for(i=0; i<len; i+=n)
   {
     n = rb_enc_mbclen(ptr+i, ptr+len, enc);
-    VALUE chr = rb_str_subseq(str, i, n);
-    int clen = RSTRING_LEN(chr);
+    chr = rb_str_subseq(str, i, n);
+    clen = RSTRING_LEN(chr);
     l += (clen==1 ? font_size>>1 : font_size) + shadow_margin_x + hspace;
   }
-  VALUE array = rb_ary_new();
+  array = rb_ary_new();
   rb_ary_push(array, INT2NUM(l));
   rb_ary_push(array, font_line_height(self));
   return array;

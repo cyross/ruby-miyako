@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-require 'csv'
-
 module Miyako
   #==マップチップ構造体に配列化メソッド(to_a)を定義するための構造体クラス
   #インデックス参照メソッドを追加

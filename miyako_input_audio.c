@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.1
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -69,8 +69,9 @@ static volatile VALUE sy_ent = Qnil;
 */
 static VALUE input_update(VALUE self)
 {
-  int i;
+  int i, len;
   VALUE *ptr;
+  VALUE keys, e_list, e;
 
   VALUE btn = rb_iv_get(self, "@@btn");
   VALUE mouse = rb_iv_get(self, "@@mouse");
@@ -85,7 +86,7 @@ static VALUE input_update(VALUE self)
 
   rb_funcall(cJoystick, id_update_all, 0);
 
-  VALUE keys = rb_funcall(pushed, rb_intern("keys"), 0);
+  keys = rb_funcall(pushed, rb_intern("keys"), 0);
   ptr = RARRAY_PTR(keys);
   for(i=0; i<RARRAY_LEN(keys); i++)
   {
@@ -101,8 +102,8 @@ static VALUE input_update(VALUE self)
   rb_hash_aset(drop, sy_middle, Qfalse);
   rb_hash_aset(drop, sy_right, Qfalse);
 
-  VALUE e_list = rb_ary_new();
-  VALUE e = rb_funcall(cEvent, id_poll, 0);
+  e_list = rb_ary_new();
+  e = rb_funcall(cEvent, id_poll, 0);
   while(e != Qnil)
   {
     rb_ary_push(e_list, e);
@@ -110,7 +111,7 @@ static VALUE input_update(VALUE self)
   }
 
   ptr = RARRAY_PTR(e_list);
-  int len = RARRAY_LEN(e_list);
+  len = RARRAY_LEN(e_list);
   for(i=0; i<len; i++)
   {
     VALUE e2 = *(ptr + len - i - 1);
@@ -139,10 +140,11 @@ void _miyako_input_update()
 */
 static VALUE bgm_update(VALUE self)
 {
-  VALUE nua = rb_gv_get("$not_use_audio");
+  VALUE nua, pb;
+  nua = rb_gv_get("$not_use_audio");
   if(nua == Qfalse) return Qnil;
 
-  VALUE pb = rb_iv_get(self, "@@playin_bgm");
+  pb = rb_iv_get(self, "@@playin_bgm");
   if(pb == Qnil) return Qnil;
 
   if(rb_funcall(pb, id_is_playing_wo_loop, 0) == Qfalse &&
@@ -170,17 +172,18 @@ static VALUE bgm_update(VALUE self)
 */
 static VALUE se_update(VALUE self)
 {
-  VALUE nua = rb_gv_get("$not_use_audio");
+  int i;
+  VALUE nua, playings, *ptr;
+  nua = rb_gv_get("$not_use_audio");
   if(nua == Qfalse) return Qnil;
 
-  VALUE playings = rb_iv_get(self, "@@playings");
-  VALUE *ptr = RARRAY_PTR(playings);
-  int i;
+  playings = rb_iv_get(self, "@@playings");
+  ptr = RARRAY_PTR(playings);
   for(i=0; i<RARRAY_LEN(playings); i++)
   {
     VALUE pl = *(ptr+i);
 
-  if(rb_funcall(pl, id_is_playing_wo_loop, 0) == Qfalse &&
+    if(rb_funcall(pl, id_is_playing_wo_loop, 0) == Qfalse &&
        rb_funcall(pl, id_in_the_loop, 0) == Qtrue)
     {
       rb_funcall(pl, id_countup, 0);

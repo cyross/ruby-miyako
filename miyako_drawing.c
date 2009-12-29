@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -92,14 +92,17 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
   VALUE mcolor;
   VALUE fill;
   VALUE aa;
+  VALUE methods;
   Uint8 alpha;
   Uint32 color;
+  Sint16 *px, *py;
   int i, vertexes;
+  SDL_Surface *dst;
 
   rb_scan_args(argc, argv, "32", &vdst, &pairs, &mcolor, &fill, &aa);
 
   // bitmapメソッドを持っていれば、メソッドの値をvdstとする
-  VALUE methods = rb_funcall(vdst, rb_intern("methods"), 0);
+  methods = rb_funcall(vdst, rb_intern("methods"), 0);
   if(rb_ary_includes(methods, rb_str_intern(rb_str_new2("to_unit"))) == Qfalse &&
      rb_ary_includes(methods, rb_str_intern(rb_str_new2("bitmap"))) == Qfalse
     )
@@ -121,15 +124,15 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
     get_position(vertex, &x, &y);
   }
 
-	SDL_Surface  *dst = GetSurface(vdst)->surface;
+	dst = GetSurface(vdst)->surface;
 
   color = value_2_color(rb_funcall(cColor, rb_intern("to_rgb"), 1, mcolor), dst->format, &alpha);
 
   if(RTEST(fill) && RTEST(aa) && alpha < 255)
     rb_raise(eMiyakoError, "can't draw filled antialiased alpha polygon");
 
-  Sint16 *px = (Sint16 *)malloc(sizeof(Sint16) * vertexes);
-  Sint16 *py = (Sint16 *)malloc(sizeof(Sint16) * vertexes);
+  px = (Sint16 *)malloc(sizeof(Sint16) * vertexes);
+  py = (Sint16 *)malloc(sizeof(Sint16) * vertexes);
   for(i=0; i<vertexes; i++)
   {
     VALUE vertex = *(RARRAY_PTR(pairs)+i);

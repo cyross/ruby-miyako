@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.1
 Copyright:: 2007-2009 Cyross Makoto
 License:: LGPL2.1
@@ -73,8 +73,9 @@ static VALUE yuki_is_exec(VALUE self)
 */
 static VALUE yuki_ua(VALUE self)
 {
+  VALUE over_yuki;
   _miyako_sprite_list_update_animation(rb_iv_get(self, str_visibles));
-  VALUE over_yuki = rb_iv_get(self, str_o_yuki);
+  over_yuki = rb_iv_get(self, str_o_yuki);
   if(over_yuki == Qnil) return self;
   if(yuki_is_exec(self) == Qtrue){
     yuki_ua(over_yuki);
@@ -87,10 +88,11 @@ static VALUE yuki_ua(VALUE self)
 */
 static VALUE yuki_render(VALUE self)
 {
+  VALUE over_yuki;
   if(rb_iv_get(self, str_visible) == Qtrue){
     _miyako_sprite_list_render(rb_iv_get(self, str_visibles));
   }
-  VALUE over_yuki = rb_iv_get(self, str_o_yuki);
+  over_yuki = rb_iv_get(self, str_o_yuki);
   if(over_yuki == Qnil) return self;
   if(yuki_is_exec(self) == Qtrue){
     yuki_render(over_yuki);
@@ -103,10 +105,11 @@ static VALUE yuki_render(VALUE self)
 */
 static VALUE yuki_render_to(VALUE self, VALUE dst)
 {
+  VALUE over_yuki;
   if(rb_iv_get(self, str_visible) == Qtrue){
     _miyako_sprite_list_render_to(rb_iv_get(self, str_visibles), dst);
   }
-  VALUE over_yuki = rb_iv_get(self, str_o_yuki);
+  over_yuki = rb_iv_get(self, str_o_yuki);
   if(over_yuki == Qnil) return self;
   if(yuki_is_exec(self) == Qtrue){
     yuki_render_to(over_yuki, dst);
@@ -143,11 +146,12 @@ static VALUE iyuki_post_process(VALUE self)
 */
 static VALUE iyuki_update(VALUE self)
 {
+  VALUE amt;
   rb_funcall(self, id_update_inner, 1, self);
   rb_iv_set(self, "@pause_release", Qfalse);
   rb_iv_set(self, "@select_ok", Qfalse);
   rb_iv_set(self, "@select_cansel", Qfalse);
-  VALUE amt = rb_iv_get(self, "@select_amount");
+  amt = rb_iv_get(self, "@select_amount");
   *(RARRAY_PTR(amt)+0) = nZero;
   *(RARRAY_PTR(amt)+1) = nZero;
   return self;

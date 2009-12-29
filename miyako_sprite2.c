@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.1
 Copyright:: 2007-2009 Cyross Makoto
 License:: LGPL2.1
@@ -381,12 +381,14 @@ static VALUE sprite_list_move_to(VALUE self, VALUE x, VALUE y)
 */
 static VALUE sprite_list_each(VALUE self)
 {
+  int i;
+  VALUE array, *ptr;
+
   RETURN_ENUMERATOR(self, 0, 0);
 
-  VALUE array = rb_iv_get(self, str_list);
+  array = rb_iv_get(self, str_list);
 
-  int i;
-  VALUE *ptr = RARRAY_PTR(array);
+  ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
     rb_yield_values(1, *(ptr+i));
 
@@ -398,12 +400,14 @@ static VALUE sprite_list_each(VALUE self)
 */
 static VALUE sprite_list_each_pair(VALUE self)
 {
+  int i;
+  VALUE array, *ptr;
+
   RETURN_ENUMERATOR(self, 0, 0);
 
-  VALUE array = rb_iv_get(self, str_list);
+  array = rb_iv_get(self, str_list);
 
-  int i;
-  VALUE *ptr = RARRAY_PTR(array);
+  ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
   {
     VALUE *sptr = RSTRUCT_PTR(*(ptr+i));
@@ -418,12 +422,14 @@ static VALUE sprite_list_each_pair(VALUE self)
 */
 static VALUE sprite_list_each_name(VALUE self)
 {
+  int i;
+  VALUE array, *ptr;
+
   RETURN_ENUMERATOR(self, 0, 0);
 
-  VALUE array = rb_iv_get(self, str_list);
+  array = rb_iv_get(self, str_list);
 
-  int i;
-  VALUE *ptr = RARRAY_PTR(array);
+  ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
     rb_yield_values(1, *(RSTRUCT_PTR(*(ptr+i))+0));
 
@@ -435,12 +441,14 @@ static VALUE sprite_list_each_name(VALUE self)
 */
 static VALUE sprite_list_each_value(VALUE self)
 {
+  int i;
+  VALUE array, *ptr;
+
   RETURN_ENUMERATOR(self, 0, 0);
 
-  VALUE array = rb_iv_get(self, str_list);
+  array = rb_iv_get(self, str_list);
 
-  int i;
-  VALUE *ptr = RARRAY_PTR(array);
+  ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
     rb_yield_values(1, *(RSTRUCT_PTR(*(ptr+i))+1));
 
@@ -452,11 +460,13 @@ static VALUE sprite_list_each_value(VALUE self)
 */
 static VALUE sprite_list_each_index(VALUE self)
 {
+int i;
+  VALUE array;
+ 
   RETURN_ENUMERATOR(self, 0, 0);
 
-  VALUE array = rb_iv_get(self, str_list);
+  array = rb_iv_get(self, str_list);
 
-  int i;
   for(i=0; i<RARRAY_LEN(array); i++)
     rb_yield_values(1, INT2NUM(i));
 
@@ -551,9 +561,11 @@ VALUE _miyako_sprite_list_render(VALUE splist)
 */
 static VALUE sprite_list_render_to(VALUE self, VALUE dst)
 {
-  if(rb_iv_get(self, str_visible) == Qfalse) return self;
-  VALUE array = rb_iv_get(self, str_list);
   int i;
+  VALUE array;
+
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+  array = rb_iv_get(self, str_list);
   for(i=0; i<RARRAY_LEN(array); i++)
   {
     VALUE pair = *(RARRAY_PTR(array)+i);

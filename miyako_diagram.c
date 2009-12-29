@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -74,10 +74,10 @@ static const char *str_arrow         = "@arrow";
 */
 static VALUE dbody_update_input(int argc, VALUE *argv, VALUE self)
 {
-  VALUE params;
+  VALUE params, node;
   rb_scan_args(argc, argv, "00*", &params);
 
-  VALUE node = rb_iv_get(self, str_node);
+  node = rb_iv_get(self, str_node);
   if(node == Qnil) return Qnil;
   rb_funcall2(node, id_update_input, argc, argv);
   return Qnil;
@@ -88,18 +88,18 @@ static VALUE dbody_update_input(int argc, VALUE *argv, VALUE self)
 */
 static VALUE dbody_update(int argc, VALUE *argv, VALUE self)
 {
-  VALUE params;
+  VALUE params, trigger, ntrigger, node;
   rb_scan_args(argc, argv, "00*", &params);
 
-  VALUE trigger = rb_iv_get(self, str_trigger);
+  trigger = rb_iv_get(self, str_trigger);
   if(rb_funcall(trigger, id_is_update, 0) == Qfalse) return Qnil;
 
-  VALUE node = rb_iv_get(self, str_node);
+  node = rb_iv_get(self, str_node);
   rb_funcall2(node, id_update, argc, argv);
   rb_funcall(trigger, id_post_update, 0);
   rb_funcall(node, id_reset_input, 0);
 
-  VALUE ntrigger = rb_iv_get(self, str_next_trigger);
+  ntrigger = rb_iv_get(self, str_next_trigger);
 
   if(ntrigger == Qnil) return Qnil;
 
@@ -113,9 +113,10 @@ static VALUE dbody_update(int argc, VALUE *argv, VALUE self)
 */
 static VALUE dbody_render(VALUE self)
 {
+  VALUE node;
   VALUE trigger = rb_iv_get(self, str_trigger);
   if(rb_funcall(trigger, id_is_render, 0) == Qfalse) return Qnil;
-  VALUE node = rb_iv_get(self, str_node);
+  node = rb_iv_get(self, str_node);
   rb_funcall(node, id_render, 0);
   rb_funcall(trigger, id_post_render, 0);
   return Qnil;
@@ -126,13 +127,13 @@ static VALUE dbody_render(VALUE self)
 */
 static VALUE dbody_go_next(VALUE self)
 {
+  int i;
   VALUE next_obj = self;
   VALUE arrows = rb_iv_get(self, str_arrow);
   VALUE *arrows_p = RARRAY_PTR(arrows);
   VALUE node = rb_iv_get(self, str_node);
   VALUE call_arg = rb_ary_new();
   rb_ary_push(call_arg, node);
-  int i;
   for(i=0;i<RARRAY_LEN(arrows);i++)
   {
     VALUE arrow = *(arrows_p+i);
@@ -186,10 +187,10 @@ static VALUE dbody_replace_trigger(int argc, VALUE *argv, VALUE self)
 */
 static VALUE manager_update_input(int argc, VALUE *argv, VALUE self)
 {
-  VALUE params;
+  VALUE params, ptr;
   rb_scan_args(argc, argv, "00*", &params);
 
-  VALUE ptr = rb_iv_get(self, str_ptr);
+  ptr = rb_iv_get(self, str_ptr);
   if(ptr == Qnil) return Qnil;
   dbody_update_input(argc, argv, ptr);
   return Qnil;
@@ -200,15 +201,15 @@ static VALUE manager_update_input(int argc, VALUE *argv, VALUE self)
 */
 static VALUE manager_update(int argc, VALUE *argv, VALUE self)
 {
-  VALUE params;
+  VALUE params, ptr, nxt;
   rb_scan_args(argc, argv, "00*", &params);
 
-  VALUE ptr = rb_iv_get(self, str_ptr);
+  ptr = rb_iv_get(self, str_ptr);
   if(ptr == Qnil) return Qnil;
 
   dbody_update(argc, argv, ptr);
 
-  VALUE nxt = rb_funcall(ptr, id_go_next, 0);
+  nxt = rb_funcall(ptr, id_go_next, 0);
 
   if(!rb_eql(ptr, nxt))
   {
@@ -236,13 +237,13 @@ static VALUE manager_render(VALUE self)
 */
 static VALUE processor_update_input(int argc, VALUE *argv, VALUE self)
 {
-  VALUE params;
+  VALUE params, states, diagram;
   rb_scan_args(argc, argv, "00*", &params);
 
-  VALUE states = rb_iv_get(self, str_states);
+  states = rb_iv_get(self, str_states);
   if(rb_hash_lookup(states, symPause) == Qtrue) return Qnil;
 
-  VALUE diagram = rb_iv_get(self, str_diagram);
+  diagram = rb_iv_get(self, str_diagram);
   manager_update_input(argc, argv, diagram);
   return Qnil;
 }
@@ -252,14 +253,14 @@ static VALUE processor_update_input(int argc, VALUE *argv, VALUE self)
 */
 static VALUE processor_update(int argc, VALUE *argv, VALUE self)
 {
-  VALUE params;
+  VALUE params, states, diagram;
   rb_scan_args(argc, argv, "00*", &params);
 
-  VALUE states = rb_iv_get(self, str_states);
+  states = rb_iv_get(self, str_states);
 
   if(rb_hash_lookup(states, symPause) == Qtrue) return Qnil;
 
-  VALUE diagram = rb_iv_get(self, str_diagram);
+  diagram = rb_iv_get(self, str_diagram);
   manager_update(argc, argv, diagram);
 
   if(rb_funcall(diagram, id_finish, 0) == Qtrue){

@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 =end
 
 module Miyako
-	@@modes = [:text, :txt_calc, :takahashi, :tk_calc]
-		
+  @@modes = [:text, :txt_calc, :takahashi, :tk_calc]
+
   #==テキストや図形を描画するクラス
   #図形は、長方形・丸み付き長方形・円・楕円が描画可能
   #文字列は、通常の文字列と高橋メソッド形式文字列が描画可能
@@ -36,7 +36,7 @@ module Miyako
       @edge = parameter[:edge] ||= nil
       @align = parameter[:align] ||= :left
       @valign = parameter[:valign] ||= :middle
-			@lines = parameter[:lines] ||= 2
+      @lines = parameter[:lines] ||= 2
       @vertexes = parameter[:vertexes] ||= []
     end
 
@@ -55,8 +55,8 @@ module Miyako
     end
 
     #===テキストを高橋メソッド形式で描画した画像を作成
-		#指定した大きさの矩形・行数で文字を描画する。
-		#指定した行数で描画を基準に文字サイズを算出する。
+    #指定した大きさの矩形・行数で文字を描画する。
+    #指定した行数で描画を基準に文字サイズを算出する。
     #但し、文字列が長すぎる時は、その文字数を基準に文字サイズを算出する。
     #ブロックに渡した行数が指定数より多くなると文字列がはみ出るため、注意すること。
     #_param_:: 設定パラメータ。ハッシュ形式。
@@ -123,7 +123,7 @@ module Miyako
 
     def create_text(param, text_block) #:nodoc:
       init_parameter(param)
-      text_block = lambda{ @text } if @text
+      text_block = Proc.new{ @text } if @text
       org_size = @font.size
       org_color = @font.color
       @margins = []
@@ -140,7 +140,7 @@ module Miyako
         when :right
           @margins = @margins.map{|v| area_size.w - v }
       end
-			@lines = @margins.length
+      @lines = @margins.length
       vmargin = 0
       case @valign
         when :top
@@ -162,9 +162,9 @@ module Miyako
       org_size = @font.size
       org_color = @font.color
       olines = @lines
-			# calc font size
+      # calc font size
       @font.size = @size[1] / @lines
-			# calc font size incldue line_height
+      # calc font size incldue line_height
       @font.size = @font.size * @font.size / @font.line_height
       set_font_size_inner(text_block)
       # over lines?
@@ -204,7 +204,7 @@ module Miyako
       @font.color = org_color
       return @sprite
     end
-    
+
     def set_font_size_inner(text_block) #:nodoc:
       @max_height = @font.line_height
       @margins = []
@@ -242,7 +242,7 @@ module Miyako
       end
       @img_size.w = [@locate.x, @img_size.w].max
     end
-		
+
     #===Shape.textメソッドのブロック内で使用する、文字描画指示メソッド
     #(例)Shape.text(){ text "abc" }
     #(例)Shape.takahashi(:size=>[200,200]){ text "名前重要" }
@@ -255,7 +255,7 @@ module Miyako
       @locate.x += @font.text_size(txt)[0]
       return self
     end
-    
+
     #===Shape.text/takahashiメソッドのブロック内で使用する、文字色指示メソッド
     #ブロック内で指定した範囲でのみ色が変更される
     #(例)Shape.text(){ text "abc"; cr; color(:red){"def"} }
@@ -278,7 +278,7 @@ module Miyako
       }
       return self
     end
-  
+
     def size_inner(margin, &block) #:nodoc:
       @locate.y += margin
       text instance_eval(&block)
@@ -294,7 +294,7 @@ module Miyako
       @font.bold{ text instance_eval(&block) }
       return self
     end
-  
+
     #===Shape.textメソッドのブロック内で使用する、斜体指示メソッド
     #ブロック内で指定した範囲でのみ斜体文字になる
     #(使用すると文字の端が切れてしまう場合あり！)
@@ -304,7 +304,7 @@ module Miyako
       @font.italic{ text instance_eval(&block) }
       return self
     end
-  
+
     #===Shape.textメソッドのブロック内で使用する、下線指示メソッド
     #ブロック内で指定した範囲でのみ文字に下線が付く
     #(例)Shape.text(){ text "abc"; cr; bold{"def"} }
@@ -331,7 +331,7 @@ module Miyako
       @locate.y += @max_height
       return self
     end
-    
+
     def box(param) #:nodoc:
       init_parameter(param)
       s = Sprite.new(size: [w, h], type: :alpha_channel)
@@ -410,15 +410,15 @@ module Miyako
 
     def polygon(param) #:nodoc:
       init_parameter(param)
-      
+
       min_x, max_x = @vertexes.map{|v| v[0]}.minmax
       min_y, max_y = @vertexes.map{|v| v[1]}.minmax
-      
+
       w = max_x - min_x
       h = max_y - min_y
-      
+
       @vertexes = @vertexes.map{|v| [v[0]-min_x, v[1]-min_y]}
-      
+
       s = Sprite.new(size: [w, h], type: :alpha_channel)
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])

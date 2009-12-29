@@ -20,15 +20,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-require 'delegate'
-
 module Miyako
   #==矩形当たり判定領域(コリジョン)クラス
   # コリジョンの範囲は、元データ(スプライト等)の左上端を[0.0,0.0]として考案する
   # コリジョンで使用する値は、実数での設定が可能
   class Collision
-    extend Forwardable
-
     # 関連づけられたインスタンス
     attr_reader :body
     # コリジョンの範囲([x,y,w,h])

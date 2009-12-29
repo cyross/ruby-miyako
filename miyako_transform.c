@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -48,13 +48,16 @@ static volatile int one = Qnil;
 static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 
 /*
-画像を回転させて貼り付ける
 */
 static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radian)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
   SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  double rad;
+  long isin, icos;
+  int x, y, a1, a2, nx, ny, px, py, pr, pb, qx, qy, qr, qb;
+  Uint32 sr, sg, sb, sa, dr, dg, db, da, *tp, *psrc;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
@@ -65,37 +68,34 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
 
   if(dst.rect.w >= 32768 || dst.rect.h >= 32768){ return Qnil; }
 
-  double rad = NUM2DBL(radian) * -1.0;
-  long isin = (long)(sin(rad)*4096.0);
-  long icos = (long)(cos(rad)*4096.0);
+  rad = NUM2DBL(radian) * -1.0;
+  isin = (long)(sin(rad)*4096.0);
+  icos = (long)(cos(rad)*4096.0);
 
-  int px = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+7)));
-  int py = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+8)));
-  int pr = src.rect.w + px;
-  int pb = src.rect.h + py;
-  int qx = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+7)));
-  int qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
-  int qr = dst.rect.w + qx;
-  int qb = dst.rect.h + qy;
-  Uint32 sr, sg, sb, sa;
-  Uint32 dr, dg, db, da;
+  px = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+7)));
+  py = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+8)));
+  pr = src.rect.w + px;
+  pb = src.rect.h + py;
+  qx = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+7)));
+  qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
+  qr = dst.rect.w + qx;
+  qb = dst.rect.h + qy;
 
   SDL_LockSurface(src.surface);
   SDL_LockSurface(dst.surface);
 
-  int x, y;
   for(y = qy; y < qb; y++)
   {
-    Uint32 *tp = dst.ptr + (dst.rect.y + y - qy) * dst.surface->w + dst.rect.x;
+    tp = dst.ptr + (dst.rect.y + y - qy) * dst.surface->w + dst.rect.x;
     for(x = qx; x < qr; x++)
     {
-      int nx = (x*icos-y*isin) >> 12;
+      nx = (x*icos-y*isin) >> 12;
       if(nx < px || nx >= pr){ tp++; continue; }
-      int ny = (x*isin+y*icos) >> 12;
+      ny = (x*isin+y*icos) >> 12;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       da = (*tp >> 24) | dst.a255;
-      Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
+      psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
       sa = (*psrc >> 24) | src.a255;
       if(sa == 0){ tp++; continue; }
       if(da == 0 || sa == 255)
@@ -104,8 +104,8 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
         tp++;
         continue;
       }
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
+      a1 = sa + 1;
+      a2 = 256 - sa;
       dr = *tp & 0xff0000;
       dg = *tp & 0xff00;
       db = *tp & 0xff;
@@ -121,7 +121,7 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
       dg = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
       db = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
       da = (*tp & dst.fmt->Amask) | dst.a255;
-      Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
+      psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
       sa = (*psrc & src.fmt->Amask) | src.a255;
       if(sa == 0){ tp++; continue; }
       if(da == 0 || sa == 255)
@@ -130,8 +130,8 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
         tp++;
         continue;
       }
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
+      a1 = sa + 1;
+      a2 = 256 - sa;
       sr = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
       sg = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
       sb = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
@@ -151,15 +151,17 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
 }
 
 /*
-画像を拡大・縮小・鏡像(ミラー反転)させて貼り付ける
 */
 static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscale, VALUE yscale)
 {
+  Uint32 sr, sg, sb, sa;
+  Uint32 dr, dg, db, da;
   MiyakoBitmap src, dst;
   MiyakoSize   size;
   SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  Uint32 sr, sg, sb, sa;
-  Uint32 dr, dg, db, da;
+  double tscx, tscy;
+  int x, y, a1, a2, scx, scy, off_x, off_y, nx, ny, px, py, pr, pb, qx, qy, qr, qb;
+  Uint32 *tp, *psrc;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
@@ -169,42 +171,41 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
 
   if(dst.rect.w >= 32768 || dst.rect.h >= 32768){ return Qnil; }
 
-  double tscx = NUM2DBL(xscale);
-  double tscy = NUM2DBL(yscale);
+  tscx = NUM2DBL(xscale);
+  tscy = NUM2DBL(yscale);
 
   if(tscx == 0.0 || tscy == 0.0){ return Qnil; }
 
-  int scx = (int)(4096.0 / tscx);
-  int scy = (int)(4096.0 / tscy);
+  scx = (int)(4096.0 / tscx);
+  scy = (int)(4096.0 / tscy);
 
-  int off_x = scx < 0 ? 1 : 0;
-  int off_y = scy < 0 ? 1 : 0;
+  off_x = scx < 0 ? 1 : 0;
+  off_y = scy < 0 ? 1 : 0;
 
-  int px = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+7)));
-  int py = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+8)));
-  int pr = src.rect.w + px;
-  int pb = src.rect.h + py;
-  int qx = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+7)));
-  int qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
-  int qr = dst.rect.w + qx;
-  int qb = dst.rect.h + qy;
+  px = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+7)));
+  py = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+8)));
+  pr = src.rect.w + px;
+  pb = src.rect.h + py;
+  qx = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+7)));
+  qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
+  qr = dst.rect.w + qx;
+  qb = dst.rect.h + qy;
 
   SDL_LockSurface(src.surface);
   SDL_LockSurface(dst.surface);
 
-  int x, y;
   for(y = qy; y < qb; y++)
   {
-    Uint32 *tp = dst.ptr + (dst.rect.y + y - qy) * dst.surface->w + dst.rect.x;
+    tp = dst.ptr + (dst.rect.y + y - qy) * dst.surface->w + dst.rect.x;
     for(x = qx; x < qr; x++)
     {
-      int nx = (x*scx) >> 12 - off_x;
+      nx = (x*scx) >> 12 - off_x;
       if(nx < px || nx >= pr){ tp++; continue; }
-      int ny = (y*scy) >> 12 - off_y;
+      ny = (y*scy) >> 12 - off_y;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       da = (*tp >> 24) | dst.a255;
-      Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
+      psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
       sa = (*psrc >> 24) | src.a255;
       if(sa == 0){ tp++; continue; }
       if(da == 0 || sa == 255)
@@ -213,8 +214,8 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
         tp++;
         continue;
       }
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
+      a1 = sa + 1;
+      a2 = 256 - sa;
       dr = *tp & 0xff0000;
       dg = *tp & 0xff00;
       db = *tp & 0xff;
@@ -230,7 +231,7 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
       dg = (*tp & dst.fmt->Gmask) >> dst.fmt->Gshift;
       db = (*tp & dst.fmt->Bmask) >> dst.fmt->Bshift;
       da = (*tp & dst.fmt->Amask) | dst.a255;
-      Uint32 *psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
+      psrc = src.ptr + (src.rect.x + ny - py) * src.surface->w + src.rect.x + nx - px;
       sa = (*psrc & src.fmt->Amask) | src.a255;
       if(sa == 0){ tp++; continue; }
       if(da == 0 || sa == 255)
@@ -239,8 +240,8 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
         tp++;
         continue;
       }
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
+      a1 = sa + 1;
+      a2 = 256 - sa;
       sr = (*psrc & src.fmt->Rmask) >> src.fmt->Rshift;
       sg = (*psrc & src.fmt->Gmask) >> src.fmt->Gshift;
       sb = (*psrc & src.fmt->Bmask) >> src.fmt->Bshift;
@@ -260,58 +261,58 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
 }
 
 /*
-===回転・拡大・縮小・鏡像用インナーメソッド
 */
 static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, VALUE xscale, VALUE yscale)
 {
-  if(dst->rect.w >= 32768 || dst->rect.h >= 32768) return;
-
   MiyakoSize   size;
+  double rad, tscx, tscy;
+  long isin, icos;
+  int x, y, a1, a2, scx, scy, off_x, off_y, nx, ny, px, py, pr, pb, qx, qy, qr, qb;
+  Uint32 sr, sg, sb, sa, dr, dg, db, da, *tp, *psrc;
+
+  if(dst->rect.w >= 32768 || dst->rect.h >= 32768) return;
 
   if(_miyako_init_rect(src, dst, &size) == 0) return;
 
-  double rad = NUM2DBL(radian) * -1.0;
-  long isin = (long)(sin(rad)*4096.0);
-  long icos = (long)(cos(rad)*4096.0);
+  rad = NUM2DBL(radian) * -1.0;
+  isin = (long)(sin(rad)*4096.0);
+  icos = (long)(cos(rad)*4096.0);
 
-  double tscx = NUM2DBL(xscale);
-  double tscy = NUM2DBL(yscale);
+  tscx = NUM2DBL(xscale);
+  tscy = NUM2DBL(yscale);
 
   if(tscx == 0.0 || tscy == 0.0) return;
 
-  int scx = (int)(4096.0 / tscx);
-  int scy = (int)(4096.0 / tscy);
+  scx = (int)(4096.0 / tscx);
+  scy = (int)(4096.0 / tscy);
 
-  int off_x = scx < 0 ? 1 : 0;
-  int off_y = scy < 0 ? 1 : 0;
+  off_x = scx < 0 ? 1 : 0;
+  off_y = scy < 0 ? 1 : 0;
 
-  int px = -(NUM2INT(*(RSTRUCT_PTR(src->unit)+7)));
-  int py = -(NUM2INT(*(RSTRUCT_PTR(src->unit)+8)));
-  int pr = src->rect.w + px;
-  int pb = src->rect.h + py;
-  int qx = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+7)));
-  int qy = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+8)));
-  int qr = dst->rect.w + qx;
-  int qb = dst->rect.h + qy;
-  Uint32 sr, sg, sb, sa;
-  Uint32 dr, dg, db, da;
+  px = -(NUM2INT(*(RSTRUCT_PTR(src->unit)+7)));
+  py = -(NUM2INT(*(RSTRUCT_PTR(src->unit)+8)));
+  pr = src->rect.w + px;
+  pb = src->rect.h + py;
+  qx = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+7)));
+  qy = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+8)));
+  qr = dst->rect.w + qx;
+  qb = dst->rect.h + qy;
 
   SDL_LockSurface(src->surface);
   SDL_LockSurface(dst->surface);
 
-  int x, y;
   for(y = qy; y < qb; y++)
   {
-    Uint32 *tp = dst->ptr + (dst->rect.y + y - qy) * dst->surface->w + dst->rect.x;
+    tp = dst->ptr + (dst->rect.y + y - qy) * dst->surface->w + dst->rect.x;
     for(x = qx; x < qr; x++)
     {
-      int nx = (((x*icos-y*isin) >> 12) * scx) >> 12 - off_x;
+      nx = (((x*icos-y*isin) >> 12) * scx) >> 12 - off_x;
       if(nx < px || nx >= pr){ tp++; continue; }
-      int ny = (((x*isin+y*icos) >> 12) * scy) >> 12 - off_y;
+      ny = (((x*isin+y*icos) >> 12) * scy) >> 12 - off_y;
       if(ny < py || ny >= pb){ tp++; continue; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       da = (*tp >> 24) | dst->a255;
-      Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
+      psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
       sa = (*psrc >> 24) | src->a255;
       if(sa == 0){ tp++; continue; }
       if(da == 0 || sa == 255)
@@ -320,8 +321,8 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
         tp++;
         continue;
       }
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
+      a1 = sa + 1;
+      a2 = 256 - sa;
       dr = *tp & 0xff0000;
       dg = *tp & 0xff00;
       db = *tp & 0xff;
@@ -337,7 +338,7 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
       dg = (*tp & dst->fmt->Gmask) >> dst->fmt->Gshift;
       db = (*tp & dst->fmt->Bmask) >> dst->fmt->Bshift;
       da = (*tp & dst->fmt->Amask) | dst->a255;
-      Uint32 *psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
+      psrc = src->ptr + (src->rect.x + ny - py) * src->surface->w + src->rect.x + nx - px;
       sa = (*psrc & src->fmt->Amask) | src->a255;
       if(sa == 0){ tp++; continue; }
       if(da == 0 || sa == 255)
@@ -346,8 +347,8 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
         tp++;
         continue;
       }
-      int a1 = sa + 1;
-      int a2 = 256 - sa;
+      a1 = sa + 1;
+      a2 = 256 - sa;
       sr = (*psrc & src->fmt->Rmask) >> src->fmt->Rshift;
       sg = (*psrc & src->fmt->Gmask) >> src->fmt->Gshift;
       sb = (*psrc & src->fmt->Bmask) >> src->fmt->Bshift;
@@ -365,7 +366,6 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
 }
 
 /*
-画像を変形(回転・拡大・縮小・鏡像)させて貼り付ける
 */
 static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
@@ -381,14 +381,15 @@ static VALUE bitmap_miyako_transform(VALUE self, VALUE vsrc, VALUE vdst, VALUE r
 }
 
 /*
-インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
 */
 static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VALUE yscale)
 {
+  MiyakoBitmap src, dst;
+  SDL_Surface *scr;
+
   VALUE visible = rb_iv_get(self, "@visible");
   if(visible == Qfalse) return self;
-  MiyakoBitmap src, dst;
-  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   _miyako_setup_unit_2(self, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
 
@@ -399,14 +400,15 @@ static VALUE sprite_render_transform(VALUE self, VALUE radian, VALUE xscale, VAL
 }
 
 /*
-インスタンスの内容を画面に描画する(回転/拡大/縮小/鏡像付き)
 */
 static VALUE sprite_render_to_sprite_transform(VALUE self, VALUE vdst, VALUE radian, VALUE xscale, VALUE yscale)
 {
+  MiyakoBitmap src, dst;
+  SDL_Surface *scr;
+
   VALUE visible = rb_iv_get(self, "@visible");
   if(visible == Qfalse) return self;
-  MiyakoBitmap src, dst;
-  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
 
   _miyako_setup_unit_2(self, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 

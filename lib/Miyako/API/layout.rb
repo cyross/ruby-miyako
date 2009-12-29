@@ -521,7 +521,6 @@ module Miyako
     #返却値:: スナップ元として登録されていればtrue、登録されていなければfalse
     def include_snap_child?(spr)
       @layout.snap.children.include?(spr)
-      return self
     end
 
     def add_snap_child(spr) #:nodoc:

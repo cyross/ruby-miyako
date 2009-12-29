@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -92,10 +92,11 @@ VALUE _miyako_layout_y(VALUE self)
 
 static VALUE layout_update_layout(VALUE self, VALUE dx, VALUE dy)
 {
-  rb_funcall(self, rb_intern("update_layout_position"), 0);
-  VALUE layout   = get_layout(self);
-  VALUE children = *(RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+3))+1);
   int i;
+  VALUE layout, children;
+  rb_funcall(self, rb_intern("update_layout_position"), 0);
+  layout   = get_layout(self);
+  children = *(RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+3))+1);
   for(i=0; i<RARRAY_LEN(children); i++)
   {
     layout_move(*(RARRAY_PTR(children) + i), dx, dy);
@@ -105,6 +106,8 @@ static VALUE layout_update_layout(VALUE self, VALUE dx, VALUE dy)
 
 static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
 {
+  int i;
+  VALUE on_move;
   VALUE *pos = RSTRUCT_PTR(*(RSTRUCT_PTR(get_layout(self))));
   VALUE *pox = pos+0;
   VALUE *poy = pos+1;
@@ -113,8 +116,7 @@ static VALUE layout_move(VALUE self, VALUE dx, VALUE dy)
   *pox = INT2NUM(NUM2INT(tx)+NUM2INT(dx));
   *poy = INT2NUM(NUM2INT(ty)+NUM2INT(dy));
   layout_update_layout(self, dx, dy);
-  VALUE on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
-  int i;
+  on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
   for(i=0; i<RARRAY_LEN(on_move); i++)
   {
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
@@ -138,6 +140,8 @@ VALUE _miyako_layout_move(VALUE self, VALUE dx, VALUE dy)
 
 static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
 {
+  int i;
+  VALUE on_move, dx, dy;
   VALUE *pos = RSTRUCT_PTR(*(RSTRUCT_PTR(get_layout(self))));
   VALUE *pox = pos+0;
   VALUE *poy = pos+1;
@@ -145,11 +149,10 @@ static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
   VALUE ty = *poy;
   *pox = x;
   *poy = y;
-	VALUE dx = INT2NUM((NUM2INT(x))-(NUM2INT(tx)));
-	VALUE dy = INT2NUM((NUM2INT(y))-(NUM2INT(ty)));
+	dx = INT2NUM((NUM2INT(x))-(NUM2INT(tx)));
+	dy = INT2NUM((NUM2INT(y))-(NUM2INT(ty)));
   layout_update_layout(self, dx, dy);
-  VALUE on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
-  int i;
+  on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
   for(i=0; i<RARRAY_LEN(on_move); i++)
   {
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
@@ -173,6 +176,8 @@ VALUE _miyako_layout_move_to(VALUE self, VALUE x, VALUE y)
 
 static VALUE layout_relative_move_to(VALUE self, VALUE x, VALUE y)
 {
+  int i;
+  VALUE on_move, dx, dy;
   //      bpos = @layout.base.pos
   // Size.new(bpos.x+x,bpos.y+y)
   VALUE *pos = RSTRUCT_PTR(*(RSTRUCT_PTR(get_layout(self))));
@@ -187,11 +192,10 @@ static VALUE layout_relative_move_to(VALUE self, VALUE x, VALUE y)
   *pox = INT2NUM(NUM2INT(x)+NUM2INT(*(bpos+0)));
   *poy = INT2NUM(NUM2INT(y)+NUM2INT(*(bpos+1)));
 
-  VALUE dx = INT2NUM(NUM2INT(*pox)-NUM2INT(tx));
-  VALUE dy = INT2NUM(NUM2INT(*poy)-NUM2INT(ty));
+  dx = INT2NUM(NUM2INT(*pox)-NUM2INT(tx));
+  dy = INT2NUM(NUM2INT(*poy)-NUM2INT(ty));
   layout_update_layout(self, dx, dy);
-  VALUE on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
-  int i;
+  on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
   for(i=0; i<RARRAY_LEN(on_move); i++)
   {
     rb_funcall(*(RARRAY_PTR(on_move) + i), rb_intern("call"), 5, self, *pox, *poy, dx, dy);
@@ -236,11 +240,12 @@ static VALUE layout_delete_snap_child(VALUE self, VALUE spr)
 
 static VALUE layout_snap(int argc, VALUE *argv, VALUE self)
 {
+  VALUE layout, *sprite, *base;
   VALUE spr = Qnil;
   rb_scan_args(argc, argv, "01", &spr);
-  VALUE layout  = get_layout(self);
-  VALUE *sprite = RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+3));
-  VALUE *base   = RSTRUCT_PTR(layout)+2;
+  layout  = get_layout(self);
+  sprite = RSTRUCT_PTR(*(RSTRUCT_PTR(layout)+3));
+  base   = RSTRUCT_PTR(layout)+2;
   if(spr != Qnil)
   {
     if(*sprite != Qnil){ layout_delete_snap_child(*sprite, self); }

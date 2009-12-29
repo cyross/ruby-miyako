@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-require 'singleton'
-
 module Miyako
 
   #==画面管理モジュール
@@ -55,7 +53,8 @@ module Miyako
     @@min_interval_r = @@min_interval / 1000
     @@t = 0
     @@freezing  = false
-    @@mode      = FULLSCREEN_MODE
+#    @@mode      = FULLSCREEN_MODE
+    @@mode      = WINDOW_MODE
     @@unit      = SpriteUnitFactory.create
     @@pos       = Size.new(0,0)
 
@@ -241,7 +240,7 @@ module Miyako
     # 生成される線分は、x方向が[0,w-1]、y方向が[0,h-1]となる
     #返却値:: 生成したSegment構造体インスタンス
     def Screen::segment
-			return Segments.create([0, 0, @@size[0]-1, @@size[1]-1])
+      return Segments.create([0, 0, @@size[0]-1, @@size[1]-1])
     end
 
     #===画面のサーフェスを生成する

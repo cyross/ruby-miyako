@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-require 'singleton'
-
 module Miyako
   #==シーン実行クラス
   #用意したシーンインスタンスを実行

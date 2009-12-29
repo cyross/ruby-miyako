@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -39,13 +39,15 @@ static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 
 void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE x, VALUE y)
 {
+  VALUE *mb_p;
+
   mb->unit = unit;
   if(rb_obj_is_kind_of(mb->unit, sSpriteUnit) == Qfalse){
     mb->unit = rb_funcall(mb->unit, rb_intern("to_unit"), 0);
     if(mb->unit == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }
   }
 
-  VALUE *mb_p = RSTRUCT_PTR(mb->unit);
+  mb_p = RSTRUCT_PTR(mb->unit);
 
   mb->rect.x = NUM2INT(*(mb_p + 1));
   mb->rect.y = NUM2INT(*(mb_p + 2));
@@ -89,6 +91,8 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
                          MiyakoBitmap *mb_s, MiyakoBitmap *mb_d,
                          VALUE x, VALUE y)
 {
+  VALUE *ms_p, *md_p;
+
   mb_s->unit = unit_s;
   if(rb_obj_is_kind_of(mb_s->unit, sSpriteUnit) == Qfalse){
     mb_s->unit = rb_funcall(mb_s->unit, rb_intern("to_unit"), 0);
@@ -105,8 +109,8 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
 	mb_s->ptr = (Uint32 *)(mb_s->surface->pixels);
 	mb_s->fmt = mb_s->surface->format;
 
-  VALUE *ms_p = RSTRUCT_PTR(mb_s->unit);
-  VALUE *md_p = RSTRUCT_PTR(mb_d->unit);
+  ms_p = RSTRUCT_PTR(mb_s->unit);
+  md_p = RSTRUCT_PTR(mb_d->unit);
 
   mb_s->rect.x = NUM2INT(*(ms_p + 1));
   mb_s->rect.y = NUM2INT(*(ms_p + 2));
@@ -184,13 +188,8 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
   int dw = dst->rect.w;
   int dh = dst->rect.h;
 
-  // ox(oy)が画像のw(h)以上の時は転送不可
-
   if(src->rect.x >= src->surface->w || src->rect.y >= src->surface->h) return 0;
   if(dst->rect.x >= dst->surface->w || dst->rect.y >= dst->surface->h) return 0;
-
-  // ox(oy)がマイナスの時は、ow(oh)を減らしておいて、ox, oyをゼロにしておく
-  // 0以下になったら転送不可
 
   if(src->rect.x < 0){
     sw += src->rect.x;
@@ -213,9 +212,6 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
     if(dh <= 0) return 0;
   }
 
-  // ox(oy)+ow(oh)が、w(h)を越える場合は、ow(oh)を減らしておく
-  // 0以下になったら転送不可
-
   if(src->rect.x + sw > src->surface->w)
   {
     sw += (src->surface->w - src->rect.x - sw);
@@ -237,13 +233,8 @@ int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)
     if(dh <= 0) return 0;
   }
 
-  // ox(oy)が画像のw(h)以上、-w(-h)以下の時は転送不可
-
   if(src->x >= dw || src->x <= -dw) return 0;
   if(src->y >= dh || src->y <= -dh) return 0;
-
-  // x(y)がマイナスの時は、ow(oh)を減らしておいて、x, yをゼロにしておく
-  // 0以下になったら転送不可
 
   if(src->x < 0){
     dw += src->x;

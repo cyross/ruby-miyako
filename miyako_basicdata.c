@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -183,8 +183,9 @@ static VALUE counter_reset(VALUE self)
 static VALUE counter_resume(VALUE self)
 {
   VALUE stop_tick = rb_iv_get(self, "@stop_tick");
+  Uint32 st;
   if(stop_tick == Qnil) return self;
-  Uint32 st = NUM2INT(rb_iv_get(self, "@st")) + SDL_GetTicks() - NUM2INT(stop_tick);
+  st = NUM2INT(rb_iv_get(self, "@st")) + SDL_GetTicks() - NUM2INT(stop_tick);
   rb_iv_set(self, "@st", INT2NUM(st));
   rb_iv_set(self, "@stop_tick", Qnil);
   rb_iv_set(self, "@counting", Qtrue);
@@ -251,6 +252,7 @@ static VALUE counter_wait(VALUE self)
 */
 static int counter_update_inner(VALUE key, VALUE val)
 {
+  int count, ncount;
   if(rb_iv_get(key, "@counting") == Qfalse){ return 0; }
   if(counter_finish(key) == Qtrue)
   {
@@ -263,8 +265,8 @@ static int counter_update_inner(VALUE key, VALUE val)
     rb_ary_push(call_arg, *(array_ptr+2));
     rb_proc_call(*array_ptr, call_arg);
 
-    int count = NUM2INT(*(array_ptr+1));
-    int ncount = NUM2INT(*(array_ptr+2));
+    count = NUM2INT(*(array_ptr+1));
+    ncount = NUM2INT(*(array_ptr+2));
 
     if(ncount > count)
     {
@@ -322,6 +324,9 @@ void _miyako_counter_post_update()
   counter_post_update(cWaitCounter);
 }
 
+/*
+:nodoc:
+*/
 static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -342,6 +347,9 @@ static VALUE su_move(VALUE self, VALUE dx, VALUE dy)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE su_move_to(VALUE self, VALUE x, VALUE y)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -362,6 +370,9 @@ static VALUE su_move_to(VALUE self, VALUE x, VALUE y)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE point_move(VALUE self, VALUE dx, VALUE dy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -382,6 +393,9 @@ static VALUE point_move(VALUE self, VALUE dx, VALUE dy)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE point_move_to(VALUE self, VALUE x, VALUE y)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -402,6 +416,9 @@ static VALUE point_move_to(VALUE self, VALUE x, VALUE y)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE size_resize(VALUE self, VALUE dw, VALUE dh)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -422,6 +439,9 @@ static VALUE size_resize(VALUE self, VALUE dw, VALUE dh)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE size_resize_to(VALUE self, VALUE w, VALUE h)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -442,6 +462,9 @@ static VALUE size_resize_to(VALUE self, VALUE w, VALUE h)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE rect_resize(VALUE self, VALUE dw, VALUE dh)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -462,6 +485,9 @@ static VALUE rect_resize(VALUE self, VALUE dw, VALUE dh)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE rect_resize_to(VALUE self, VALUE w, VALUE h)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -482,6 +508,9 @@ static VALUE rect_resize_to(VALUE self, VALUE w, VALUE h)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE rect_in_range(VALUE self, VALUE vx, VALUE vy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -496,6 +525,9 @@ static VALUE rect_in_range(VALUE self, VALUE vx, VALUE vy)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 static VALUE square_move(VALUE self, VALUE dx, VALUE dy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -524,6 +556,9 @@ static VALUE square_move(VALUE self, VALUE dx, VALUE dy)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -554,6 +589,9 @@ static VALUE square_move_to(VALUE self, VALUE x, VALUE y)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE square_resize(VALUE self, VALUE dw, VALUE dh)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -574,6 +612,9 @@ static VALUE square_resize(VALUE self, VALUE dw, VALUE dh)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE square_resize_to(VALUE self, VALUE w, VALUE h)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -596,6 +637,9 @@ static VALUE square_resize_to(VALUE self, VALUE w, VALUE h)
   return self;
 }
 
+/*
+:nodoc:
+*/
 static VALUE square_in_range(VALUE self, VALUE vx, VALUE vy)
 {
   VALUE *st = RSTRUCT_PTR(self);
@@ -610,6 +654,9 @@ static VALUE square_in_range(VALUE self, VALUE vx, VALUE vy)
   return Qfalse;
 }
 
+/*
+:nodoc:
+*/
 void Init_miyako_basicdata()
 {
   mSDL = rb_define_module("SDL");

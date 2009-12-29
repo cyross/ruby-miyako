@@ -42,6 +42,9 @@ require 'forwardable'
 require 'iconv' if RUBY_VERSION < '1.9.0'
 require 'kconv'
 require 'rbconfig'
+require 'singleton'
+require 'csv'
+require 'delegate'
 
 #画面などの初期設定を自動的に行うかどうかの設定。デフォルトはtrue
 $miyako_auto_open = true if $miyako_auto_open.nil?

@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-=拡張ライブラリmiyako_no_katana
-Authors:: サイロス誠
+=miyako_no_katana
+Authors:: Cyross Makoto
 Version:: 2.0
 Copyright:: 2007-2008 Cyross Makoto
 License:: LGPL2.1
@@ -48,28 +48,28 @@ static volatile int one = Qnil;
 static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 
 /*
-画像をαチャネル付き画像へ転送する
+:nodoc:
 */
 static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx, VALUE vy)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y, a1, a2;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, vx, vy, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
     Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
     Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
@@ -86,8 +86,8 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
       src.color.b = (*ppsrc      ) & 0xff;
-      int a1 = src.color.a + 1;
-      int a2 = 256 - src.color.a;
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
       *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
                ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
@@ -120,35 +120,36 @@ static VALUE bitmap_miyako_blit_aa(VALUE self, VALUE vsrc, VALUE vdst, VALUE vx,
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-２つの画像のandを取る
+:nodoc:
 */
 static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
@@ -167,36 +168,37 @@ static VALUE bitmap_miyako_blit_and(VALUE self, VALUE vsrc, VALUE vdst)
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 
 /*
-２つの画像のorを取り、別の画像へ転送する
+:nodoc:
 */
 static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
@@ -215,36 +217,37 @@ static VALUE bitmap_miyako_blit_or(VALUE self, VALUE vsrc, VALUE vdst)
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 
 /*
-２つの画像のxorを取り、別の画像へ転送する
+:nodoc:
 */
 static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
@@ -263,40 +266,41 @@ static VALUE bitmap_miyako_blit_xor(VALUE self, VALUE vsrc, VALUE vdst)
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像をαチャネル付き画像へ転送する
+:nodoc:
 */
 static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALUE vdst, VALUE vcolor_key)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	MiyakoColor color_key;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoColor color_key;
+  int x, y;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
-  
+
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
 
-	color_key.r = NUM2INT(*(RARRAY_PTR(vcolor_key) + 0));
-	color_key.g = NUM2INT(*(RARRAY_PTR(vcolor_key) + 1));
-	color_key.b = NUM2INT(*(RARRAY_PTR(vcolor_key) + 2));
+  color_key.r = NUM2INT(*(RARRAY_PTR(vcolor_key) + 0));
+  color_key.g = NUM2INT(*(RARRAY_PTR(vcolor_key) + 1));
+  color_key.b = NUM2INT(*(RARRAY_PTR(vcolor_key) + 2));
 
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
@@ -315,35 +319,35 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel(VALUE self, VALUE vsrc, VALU
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像のαチャネルを255に拡張する
 */
 static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       *ppdst = *ppsrc | (0xff << 24);
 #else
@@ -354,35 +358,35 @@ static VALUE bitmap_miyako_reset_alphachannel(VALUE self, VALUE vsrc, VALUE vdst
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像をαチャネル付き画像へ転送する
 */
 static VALUE bitmap_miyako_colorkey_to_alphachannel_self(VALUE self, VALUE vdst, VALUE vcolor_key)
 {
   MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-	MiyakoColor color_key;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  MiyakoColor color_key;
+  int x, y;
+  Uint32 *ppdst;
 
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
-  
-	color_key.r = NUM2INT(*(RARRAY_PTR(vcolor_key) + 0));
-	color_key.g = NUM2INT(*(RARRAY_PTR(vcolor_key) + 1));
-	color_key.b = NUM2INT(*(RARRAY_PTR(vcolor_key) + 2));
 
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < dst.rect.h; y++)
-	{
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
-		for(x = 0; x < dst.rect.w; x++)
-		{
+  color_key.r = NUM2INT(*(RARRAY_PTR(vcolor_key) + 0));
+  color_key.g = NUM2INT(*(RARRAY_PTR(vcolor_key) + 1));
+  color_key.b = NUM2INT(*(RARRAY_PTR(vcolor_key) + 2));
+
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < dst.rect.h; y++)
+  {
+    ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
+    for(x = 0; x < dst.rect.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
@@ -400,29 +404,29 @@ static VALUE bitmap_miyako_colorkey_to_alphachannel_self(VALUE self, VALUE vdst,
     }
   }
 
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像のαチャネルを255に拡張する
 */
 static VALUE bitmap_miyako_reset_alphachannel_self(VALUE self, VALUE vdst)
 {
   MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppdst;
 
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < dst.rect.h; y++)
-	{
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
-		for(x = 0; x < dst.rect.w; x++)
-		{
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < dst.rect.h; y++)
+  {
+    ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
+    for(x = 0; x < dst.rect.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       *ppdst = *ppdst | 0xff << 24;
 #else
@@ -432,43 +436,44 @@ static VALUE bitmap_miyako_reset_alphachannel_self(VALUE self, VALUE vdst)
     }
   }
 
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像のαチャネルの値を一定の割合で変化させて転送する
 */
 static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y, a1, a2;
+  double deg;
+  Uint32 da, *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	double deg = NUM2DBL(degree);
+
+  deg = NUM2DBL(degree);
   if(deg < -1.0 || deg > 1.0){
     char buf[256];
     sprintf(buf, "Illegal degree! : %.15g", deg);
     rb_raise(eMiyakoError, buf);
   }
   deg = 1.0 - deg;
-  Uint32 da = (Uint32)(255.0 * deg);
+  da = (Uint32)(255.0 * deg);
 
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
@@ -490,8 +495,8 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
       dst.color.b = (*ppdst      ) & 0xff;
-      int a1 = src.color.a + 1;
-      int a2 = 256 - src.color.a;
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
       *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
                ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
@@ -505,18 +510,18 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
       if(src.color.a > 0x80000000){ src.color.a = 0; }
       if(src.color.a > 255){ src.color.a = 255; }
       dst.color.a = (*pdst & dst.fmt->Amask) | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = src.color.r << dst.fmt->Rshift |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = src.color.r << dst.fmt->Rshift |
                  src.color.g << dst.fmt->Gshift |
                  src.color.b << dst.fmt->Bshift |
                  src.color.a;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
-			*ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
                ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
                0xff;
@@ -526,44 +531,45 @@ static VALUE bitmap_miyako_dec_alpha(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像の色を一定の割合で黒に近づける(ブラックアウト)
 */
 static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y, a1, a2;
+  double deg;
+  Uint32 d, *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	double deg = NUM2DBL(degree);
+
+  deg = NUM2DBL(degree);
   if(deg < -1.0 || deg > 1.0){
     char buf[256];
     sprintf(buf, "Illegal degree! : %.15g", deg);
     rb_raise(eMiyakoError, buf);
   }
   deg = 1.0 - deg;
-  Uint32 d = (Uint32)(255.0 * deg);
+  d = (Uint32)(255.0 * deg);
 
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
@@ -584,17 +590,17 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
       dst.color.g = (*ppdst >>  8) & 0xff;
       dst.color.b = (*ppdst      ) & 0xff;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = src.color.r << 16 |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = src.color.r << 16 |
                  src.color.g <<  8 |
                  src.color.b       |
                  src.color.a << 24;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
       *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
                ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
@@ -616,18 +622,18 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         if(src.color.a > 0x80000000){ src.color.a = 0; }
       }
       dst.color.a = (*pdst & dst.fmt->Amask) | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = src.color.r << dst.fmt->Rshift |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = src.color.r << dst.fmt->Rshift |
                  src.color.g << dst.fmt->Gshift |
                  src.color.b << dst.fmt->Bshift |
                  src.color.a;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
-			*ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
                ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
                0xff;
@@ -637,44 +643,45 @@ static VALUE bitmap_miyako_black_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
-	return vdst;
+  return vdst;
 }
 
 /*
-画像の色を一定の割合で白に近づける(ホワイトアウト)
 */
 static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE degree)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y, a1, a2;
+  double deg;
+  Uint32 d, *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-  double deg = NUM2DBL(degree);
+
+  deg = NUM2DBL(degree);
   if(deg < -1.0 || deg > 1.0){
     char buf[256];
     sprintf(buf, "Illegal degree! : %.15g", deg);
     rb_raise(eMiyakoError, buf);
   }
   deg = 1.0 - deg;
-  Uint32 d = (Uint32)(255.0 * deg);
+  d = (Uint32)(255.0 * deg);
 
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
@@ -695,17 +702,17 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
       dst.color.g = (*ppdst >>  8) & 0xff;
       dst.color.b = (*ppdst      ) & 0xff;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = src.color.r << 16 |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = src.color.r << 16 |
                  src.color.g << 8 |
                  src.color.b |
                  src.color.a << 24;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
       *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << 16 |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) <<  8 |
                ((src.color.b * a1 + dst.color.b * a2) >> 8)       |
@@ -727,18 +734,18 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
         if(src.color.a > 255){ src.color.a = 255; }
       }
       dst.color.a = (*pdst & dst.fmt->Amask) | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = src.color.r << dst.fmt->Rshift |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = src.color.r << dst.fmt->Rshift |
                  src.color.g << dst.fmt->Gshift |
                  src.color.b << dst.fmt->Bshift |
                  src.color.a;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
-			*ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
+      *ppdst = ((src.color.r * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
                ((src.color.g * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
                ((src.color.b * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
                0xff;
@@ -748,56 +755,56 @@ static VALUE bitmap_miyako_white_out(VALUE self, VALUE vsrc, VALUE vdst, VALUE d
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
-	return vdst;
+  return vdst;
 }
 
 /*
-画像のRGB値を反転させる
 */
 static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y, a1, a2;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.a = (*ppsrc >> 24) & 0xff | src.a255;
-			if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
+      if(src.color.a == 0){ ppsrc++; ppdst++; continue; }
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
       src.color.b = (*ppsrc      ) & 0xff;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (src.color.r ^ 0xff) << 16 |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = (src.color.r ^ 0xff) << 16 |
                  (src.color.g ^ 0xff) <<  8 |
                  (src.color.b ^ 0xff)       |
                  (src.color.a       ) << 24;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
       dst.color.b = (*ppdst      ) & 0xff;
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
+      a1 = src.color.a + 1;
+      a2 = 256 - src.color.a;
       *ppdst = (((src.color.r ^ 0xff) * a1 + dst.color.r * a2) >> 8) << 16 |
                (((src.color.g ^ 0xff) * a1 + dst.color.g * a2) >> 8) <<  8 |
                (((src.color.b ^ 0xff) * a1 + dst.color.b * a2) >> 8)       |
@@ -808,18 +815,18 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
       src.color.b = (*ppsrc & src.fmt->Bmask) >> src.fmt->Bshift;
       src.color.a = (*ppsrc & src.fmt->Amask) | src.a255;
       dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
-			if(dst.color.a == 0 || src.color.a == 255){
-				*ppdst = (src.color.r ^ 0xff) << dst.fmt->Rshift |
+      if(dst.color.a == 0 || src.color.a == 255){
+        *ppdst = (src.color.r ^ 0xff) << dst.fmt->Rshift |
                  (src.color.g ^ 0xff) << dst.fmt->Gshift |
                  (src.color.b ^ 0xff) << dst.fmt->Bshift |
                  src.color.a;
-				ppsrc++;
-				ppdst++;
-				continue;
-			}
-			int a1 = src.color.a + 1;
-			int a2 = 256 - src.color.a;
-			*ppdst = (((src.color.r ^ 0xff) * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
+        ppsrc++;
+        ppdst++;
+        continue;
+      }
+      int a1 = src.color.a + 1;
+      int a2 = 256 - src.color.a;
+      *ppdst = (((src.color.r ^ 0xff) * a1 + dst.color.r * a2) >> 8) << dst.fmt->Rshift |
                (((src.color.g ^ 0xff) * a1 + dst.color.g * a2) >> 8) << dst.fmt->Gshift |
                (((src.color.b ^ 0xff) * a1 + dst.color.b * a2) >> 8) << dst.fmt->Bshift |
                0xff;
@@ -829,39 +836,40 @@ static VALUE bitmap_miyako_inverse(VALUE self, VALUE vsrc, VALUE vdst)
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
-	return vdst;
+  return vdst;
 }
 
 /*
-画像のαチャネルの値を一定の割合で変化させて転送する
 */
 static VALUE bitmap_miyako_dec_alpha_self(VALUE self, VALUE vdst, VALUE degree)
 {
   MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  double deg;
+  Uint32 da, *ppdst;
 
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
-	double deg = NUM2DBL(degree);
+  deg = NUM2DBL(degree);
   if(deg < -1.0 || deg > 1.0){
     char buf[256];
     sprintf(buf, "Illegal degree! : %.15g", deg);
     rb_raise(eMiyakoError, buf);
   }
   deg = 1.0 - deg;
-  Uint32 da = (Uint32)(255.0 * deg);
+  da = (Uint32)(255.0 * deg);
 
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < dst.rect.h; y++)
-	{
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
-		for(x = 0; x < dst.rect.w; x++)
-		{
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < dst.rect.h; y++)
+  {
+    ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
+    for(x = 0; x < dst.rect.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
@@ -891,38 +899,39 @@ static VALUE bitmap_miyako_dec_alpha_self(VALUE self, VALUE vdst, VALUE degree)
     }
   }
 
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像の色を一定の割合で黒に近づける(ブラックアウト)
 */
 static VALUE bitmap_miyako_black_out_self(VALUE self, VALUE vdst, VALUE degree)
 {
   MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  double deg;
+  Uint32 d, *ppdst;
 
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
-	double deg = NUM2DBL(degree);
+  deg = NUM2DBL(degree);
   if(deg < -1.0 || deg > 1.0){
     char buf[256];
     sprintf(buf, "Illegal degree! : %.15g", deg);
     rb_raise(eMiyakoError, buf);
   }
   deg = 1.0 - deg;
-  Uint32 d = (Uint32)(255.0 * deg);
+  d = (Uint32)(255.0 * deg);
 
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < dst.rect.h; y++)
-	{
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
-		for(x = 0; x < dst.rect.w; x++)
-		{
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < dst.rect.h; y++)
+  {
+    ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
+    for(x = 0; x < dst.rect.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
@@ -968,38 +977,39 @@ static VALUE bitmap_miyako_black_out_self(VALUE self, VALUE vdst, VALUE degree)
     }
   }
 
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像の色を一定の割合で白に近づける(ホワイトアウト)
 */
 static VALUE bitmap_miyako_white_out_self(VALUE self, VALUE vdst, VALUE degree)
 {
   MiyakoBitmap dst;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  double deg;
+  Uint32 d, *ppdst;
 
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
-	double deg = NUM2DBL(degree);
+  deg = NUM2DBL(degree);
   if(deg < -1.0 || deg > 1.0){
     char buf[256];
     sprintf(buf, "Illegal degree! : %.15g", deg);
     rb_raise(eMiyakoError, buf);
   }
   deg = 1.0 - deg;
-  Uint32 d = (Uint32)(255.0 * deg);
+  d = (Uint32)(255.0 * deg);
 
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < dst.rect.h; y++)
-	{
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
-		for(x = 0; x < dst.rect.w; x++)
-		{
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < dst.rect.h; y++)
+  {
+    ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
+    for(x = 0; x < dst.rect.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
@@ -1045,29 +1055,29 @@ static VALUE bitmap_miyako_white_out_self(VALUE self, VALUE vdst, VALUE degree)
     }
   }
 
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(dst.surface);
 
   return vdst;
 }
 
 /*
-画像のRGB値を反転させる
 */
 static VALUE bitmap_miyako_inverse_self(VALUE self, VALUE vdst)
 {
   MiyakoBitmap dst;
   SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppdst;
 
   _miyako_setup_unit(vdst, scr, &dst, Qnil, Qnil, 1);
 
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < dst.rect.h; y++)
-	{
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
-		for(x = 0; x < dst.rect.w; x++)
-		{
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < dst.rect.h; y++)
+  {
+    ppdst = dst.ptr + (dst.rect.y + y) * dst.surface->w + dst.rect.x;
+    for(x = 0; x < dst.rect.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       dst.color.r = (*ppdst >> 16) & 0xff;
       dst.color.g = (*ppdst >>  8) & 0xff;
@@ -1091,34 +1101,34 @@ static VALUE bitmap_miyako_inverse_self(VALUE self, VALUE vdst)
     }
   }
 
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(dst.surface);
 
-	return vdst;
+  return vdst;
 }
 
 /*
-2枚の画像の加算合成を行う
 */
 static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst)
 {
   MiyakoBitmap src, dst;
   MiyakoSize   size;
-	SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  SDL_Surface  *scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
+  int x, y;
+  Uint32 *ppsrc, *ppdst;
 
   _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
 
   if(_miyako_init_rect(&src, &dst, &size) == 0) return Qnil;
-  
-	SDL_LockSurface(src.surface);
-	SDL_LockSurface(dst.surface);
-  
-	int x, y;
-	for(y = 0; y < size.h; y++)
-	{
-    Uint32 *ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
-    Uint32 *ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
-		for(x = 0; x < size.w; x++)
-		{
+
+  SDL_LockSurface(src.surface);
+  SDL_LockSurface(dst.surface);
+
+  for(y = 0; y < size.h; y++)
+  {
+    ppsrc = src.ptr + (src.rect.y         + y) * src.surface->w + src.rect.x;
+    ppdst = dst.ptr + (dst.rect.y + src.y + y) * dst.surface->w + dst.rect.x + src.x;
+    for(x = 0; x < size.w; x++)
+    {
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
       src.color.r = (*ppsrc >> 16) & 0xff;
       src.color.g = (*ppsrc >>  8) & 0xff;
@@ -1129,12 +1139,12 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
       dst.color.b = (*ppdst      ) & 0xff;
       dst.color.a = (*ppdst >> 24) & 0xff | dst.a255;
       dst.color.r += src.color.r;
-			if(dst.color.r > 255){ dst.color.r = 255; }
-			dst.color.g += src.color.g;
-			if(dst.color.g > 255){ dst.color.g = 255; }
-			dst.color.b += src.color.b;
-			if(dst.color.b > 255){ dst.color.b = 255; }
-			dst.color.a = (dst.color.a > src.color.a ? dst.color.a : src.color.a);
+      if(dst.color.r > 255){ dst.color.r = 255; }
+      dst.color.g += src.color.g;
+      if(dst.color.g > 255){ dst.color.g = 255; }
+      dst.color.b += src.color.b;
+      if(dst.color.b > 255){ dst.color.b = 255; }
+      dst.color.a = (dst.color.a > src.color.a ? dst.color.a : src.color.a);
       *ppdst = dst.color.r << 16 |
                dst.color.g <<  8 |
                dst.color.b       |
@@ -1149,12 +1159,12 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
       dst.color.b = (*ppdst & dst.fmt->Bmask) >> dst.fmt->Bshift;
       dst.color.a = (*ppdst & dst.fmt->Amask) | dst.a255;
       dst.color.r += src.color.r;
-			if(dst.color.r > 255){ dst.color.r = 255; }
-			dst.color.g += src.color.g;
-			if(dst.color.g > 255){ dst.color.g = 255; }
-			dst.color.b += src.color.b;
-			if(dst.color.b > 255){ dst.color.b = 255; }
-			dst.color.a = (dst.color.a > src.color.a ? dst.color.a : src.color.a);
+      if(dst.color.r > 255){ dst.color.r = 255; }
+      dst.color.g += src.color.g;
+      if(dst.color.g > 255){ dst.color.g = 255; }
+      dst.color.b += src.color.b;
+      if(dst.color.b > 255){ dst.color.b = 255; }
+      dst.color.a = (dst.color.a > src.color.a ? dst.color.a : src.color.a);
       *ppdst = dst.color.r << dst.fmt->Rshift |
                dst.color.g << dst.fmt->Gshift |
                dst.color.b << dst.fmt->Bshift |
@@ -1165,14 +1175,13 @@ static VALUE bitmap_miyako_additive_synthesis(VALUE self, VALUE vsrc, VALUE vdst
     }
   }
 
-	SDL_UnlockSurface(src.surface);
-	SDL_UnlockSurface(dst.surface);
+  SDL_UnlockSurface(src.surface);
+  SDL_UnlockSurface(dst.surface);
 
-	return vdst;
+  return vdst;
 }
 
 /*
-2枚の画像の減算合成を行う
 */
 static VALUE bitmap_miyako_subtraction_synthesis(VALUE self, VALUE src, VALUE dst)
 {
@@ -1200,7 +1209,7 @@ void Init_miyako_bitmap()
   nZero = INT2NUM(zero);
   one = 1;
   nOne = INT2NUM(one);
-  
+
   rb_define_singleton_method(cBitmap, "blit_aa", bitmap_miyako_blit_aa, 4);
   rb_define_singleton_method(cBitmap, "blit_and", bitmap_miyako_blit_and, 2);
   rb_define_singleton_method(cBitmap, "blit_or", bitmap_miyako_blit_or, 2);
