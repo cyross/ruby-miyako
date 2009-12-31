@@ -20,50 +20,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ++
 =end
 
-#lambdaの別名として、yuki_plotメソッドを追加
-alias :yuki_plot :lambda
-
 #=シナリオ言語Yuki実装モジュール
 module Miyako
 
   #==InitiativeYukiクラスに対応したテンプレートモジュール
   module InitiativeYukiTemplate
-    def render_inner(yuki)
+    def render_inner(engine)
     end
 
-    def render_to_inner(yuki, dst)
+    def render_to_inner(engine, dst)
     end
 
-    def update_animation_inner(yuki)
+    def update_animation_inner(engine)
     end
 
-    def update_inner(yuki)
+    def update_inner(engine)
     end
 
-    def text_inner(yuki, ch)
+    def text_inner(engine, ch)
     end
 
-    def cr_inner(yuki)
+    def cr_inner(engine)
     end
 
-    def clear_inner(yuki)
+    def clear_inner(engine)
     end
 
-    def input_inner(yuki)
+    def input_inner(engine)
     end
 
-    def pausing_inner(yuki)
+    def pausing_inner(engine)
     end
 
-    def selecting_inner(yuki)
+    def selecting_inner(engine)
     end
 
-    def waiting_inner(yuki)
+    def waiting_inner(engine)
     end
 
     def plot
     end
   end
+
+  InitiativeScenarioEngineTemplate = InitiativeYukiTemplate
 
   #==主導権を持ったYuki本体クラス
   #Yukiの内容をオブジェクト化したクラス
@@ -227,47 +226,47 @@ module Miyako
     end
 
     def render_inner(yuki)
-      @base.render_inner(yuki)
+      @base.render_inner(yuki) if @base
     end
 
     def render_to_inner(yuki, dst)
-      @base.render_to_inner(yuki, dst)
+      @base.render_to_inner(yuki, dst) if @base
     end
 
     def update_animation_inner(yuki)
-      @base.update_animation_inner(yuki)
+      @base.update_animation_inner(yuki) if @base
     end
 
     def update_inner(yuki)
-      @base.update_inner(yuki)
+      @base.update_inner(yuki) if @base
     end
 
     def text_inner(yuki, ch)
-      @base.text_inner(yuki, ch)
+      @base.text_inner(yuki, ch) if @base
     end
 
     def cr_inner(yuki)
-      @base.cr_inner(yuki)
+      @base.cr_inner(yuki) if @base
     end
 
     def clear_inner(yuki)
-      @base.clear_inner(yuki)
+      @base.clear_inner(yuki) if @base
     end
 
     def input_inner(yuki)
-      @base.input_inner(yuki)
+      @base.input_inner(yuki) if @base
     end
 
     def pausing_inner(yuki)
-      @base.pausing_inner(yuki)
+      @base.pausing_inner(yuki) if @base
     end
 
     def selecting_inner(yuki)
-      @base.selecting_inner(yuki)
+      @base.selecting_inner(yuki) if @base
     end
 
     def waiting_inner(yuki)
-      @base.waiting_inner(yuki)
+      @base.waiting_inner(yuki) if @base
     end
 
     #===マウスでの制御を可能にする
@@ -302,7 +301,6 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render
-      @visibles.render
       render_inner(self)
       return self
     end
@@ -312,7 +310,6 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render_to(dst)
-      @visibles.render
       render_to_inner(self, dst)
       return self
     end
@@ -334,7 +331,6 @@ module Miyako
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
       update_animation_inner(self)
-      @visibles.update_animation
     end
 
     #===変数を参照する
@@ -785,23 +781,6 @@ module Miyako
       Screen.render
     end
 
-    #===別のYukiエンジンを実行する
-    #[[Yukiスクリプトとして利用可能]]
-    #もう一つのYukiエンジンを実行させ、並行実行させることができる
-    #ウインドウの上にウインドウを表示したりするときに、このメソッドを使う
-    #renderメソッドで描画する際は、自分のインスタンスが描画した直後に描画される
-    #自分自身を実行しようとするとMiyakoValueError例外が発生する
-    #_yuki_:: 実行対象のYukiインスタンス(事前にsetupの呼び出しが必要)
-    #_plot_:: プロットインスタンス。すでにsetupなどで登録しているときはnilを渡す
-    #_params_:: プロット実行開始時に、プロットに渡す引数
-    #返却値:: 自分自身を返す
-    def over_exec(yuki, plot, *params)
-      raise MiyakoValueError, "This Yuki engine is same as self!" if yuki.eql?(self)
-      @over_yuki = yuki
-      @over_yuki.start_plot(self, plot, *params)
-      return self
-    end
-
     #===シーンのセットアップ時に実行する処理
     #
     #ブロック引数として、テキストボックスの変更などの処理をブロック内に記述することが出来る。
@@ -884,7 +863,8 @@ module Miyako
     def plot_facade(plot_proc = nil, *params, &plot_block) #:nodoc:
       @plot_result = nil
       exec_plot = @exec_plot
-      @plot_result = plot_proc ? self.instance_exec(*params, &plot_proc) :
+      @plot_result = @base ? self.instance_exec(*params, &@base.plot) :
+                     plot_proc ? self.instance_exec(*params, &plot_proc) :
                      block_given? ? self.instance_exec(*params, &plot_block) :
                      exec_plot ? self.instance_exec(*params, &exec_plot) :
                      raise(MiyakoProcError, "Cannot find plot!")
@@ -1456,4 +1436,6 @@ module Miyako
       @is_outer_height = nil
     end
   end
+
+  InitiativeScenarioEngine = InitiativeYuki
 end

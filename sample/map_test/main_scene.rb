@@ -57,7 +57,7 @@ class MainScene
       if Input.pushed_any?(:btn1) || Input.click?(:left)
         #１ボタンを押したとき、キャラの立ち位置が、イベントの位置にに重なっていればマップイベントを実行、
         #外れていれば、コマンドウィンドウを開く
-        event_flags = @map.events[0].map{|e| e.met?(collision: @chr.collision, pos: @chr.position)}
+        event_flags = @map.events[0].map{|e| e.met?(:collision => @chr.collision, :pos => @chr.position)}
         if event_flags.none?
           #標準のコマンドを表示
           @yuki.vars[:now] = @now

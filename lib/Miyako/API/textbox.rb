@@ -30,7 +30,7 @@ module Miyako
     extend Forwardable
 
     attr_accessor :textarea, :visible
-    attr_accessor :select_type, :waiting, :selecting
+    attr_accessor :waiting, :selecting
     attr_accessor :font, :margin
     attr_reader :wait_cursor, :select_cursor, :choices
     attr_reader :locate, :size, :max_height
@@ -89,7 +89,6 @@ module Miyako
       @pre_attach = false
 
       @waiting = false
-      @select_type = :left
       @selecting = false
 
       @textarea.snap(self)
@@ -98,10 +97,10 @@ module Miyako
       @fiber = nil
 
       if @wait_cursor
-				@wait_cursor.snap(self)
-				@default_wait_cursor_position.call(@wait_cursor, self)
-			end
-			@select_cursor.snap(self) if @select_cursor
+        @wait_cursor.snap(self)
+        @default_wait_cursor_position.call(@wait_cursor, self)
+      end
+      @select_cursor.snap(self) if @select_cursor
 
       @move_list = [
                     [lambda{                       },
@@ -148,7 +147,6 @@ module Miyako
       @choices.left!.top!
 
       @waiting = false
-      @select_type = :left
       @selecting = false
 
       @textarea = @textarea.dup
@@ -156,10 +154,10 @@ module Miyako
       @textarea.centering!
 
       if @wait_cursor
-				@wait_cursor.snap(self)
-				@default_wait_cursor_position.call(@wait_cursor, self)
-			end
-			@select_cursor.snap(self) if @select_cursor
+        @wait_cursor.snap(self)
+        @default_wait_cursor_position.call(@wait_cursor, self)
+      end
+      @select_cursor.snap(self) if @select_cursor
 
       @move_list = @move_list.dup
     end

@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #lambdaの別名として、yuki_plotメソッドを追加
 alias :yuki_plot :lambda
+alias :scenario_plot :lambda
 
 #=シナリオ言語Yuki実装モジュール
 module Miyako
@@ -190,15 +191,22 @@ module Miyako
 
       @valign = :middle
 
-      @release_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) }, lambda{ @mouse_enable && Input.click?(:left) } ]
+      @release_checks_default = [
+        lambda{ Input.pushed_any?(:btn1, :spc) },
+        lambda{ @mouse_enable && Input.click?(:left) }
+      ]
       @release_checks = @release_checks_default.dup
 
-      @ok_checks_default = [lambda{ Input.pushed_any?(:btn1, :spc) },
-        lambda{ @mouse_enable && self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) } ]
+      @ok_checks_default = [
+        lambda{ Input.pushed_any?(:btn1, :spc) },
+        lambda{ @mouse_enable && self.commandbox.attach_any_command?(*Input.get_mouse_position) && Input.click?(:left) }
+      ]
       @ok_checks = @ok_checks_default.dup
 
-      @cancel_checks_default = [lambda{ Input.pushed_any?(:btn2, :esc) },
-                                lambda{ @mouse_enable && Input.click?(:right) } ]
+      @cancel_checks_default = [
+        lambda{ Input.pushed_any?(:btn2, :esc) },
+        lambda{ @mouse_enable && Input.click?(:right) }
+      ]
       @cancel_checks = @cancel_checks_default.dup
 
       @key_amount_proc   = lambda{ Input.pushed_amount }
@@ -224,6 +232,10 @@ module Miyako
 
     def initialize_copy(obj) #:nodoc:
       raise MiyakoCopyError.not_copy("Yuki")
+    end
+
+    def over_engine
+      @over_yuki
     end
 
     #===マウスでの制御を可能にする
@@ -258,7 +270,6 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render
-      @visibles.render if @visible
       @over_yuki.render if @over_yuki && @over_yuki.executing?
       return self
     end
@@ -268,7 +279,6 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render_to(dst)
-      @visibles.render_to(dst) if @visible
       @over_yuki.render_to(dst) if @over_yuki && @over_yuki.executing?
       return self
     end
@@ -278,7 +288,6 @@ module Miyako
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
       @over_yuki.update_animation if @over_yuki && @over_yuki.executing?
-      @visibles.update_animation
     end
 
     #===変数を参照する
@@ -1470,4 +1479,6 @@ module Miyako
       @is_outer_height = nil
     end
   end
+
+  ScenarioEngine = Yuki
 end

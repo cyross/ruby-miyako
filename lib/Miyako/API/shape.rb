@@ -129,7 +129,7 @@ module Miyako
       @margins = []
       @heights = []
       area_size = calc(text_block)
-      @sprite = Sprite.new({size: area_size, type: :ac})
+      @sprite = Sprite.new(:size => area_size, :type => :ac)
       Drawing.fill(@sprite, [0, 0, 0])
       Bitmap.ck_to_ac!(@sprite, [0, 0, 0])
       case @align
@@ -195,7 +195,7 @@ module Miyako
         when :bottom
           vmargin = @size[1] - @heights.inject(:+)
       end
-      @sprite = Sprite.new({size: @size, type: :ac})
+      @sprite = Sprite.new(:size => @size, :type => :ac)
       Drawing.fill(@sprite, [0, 0, 0])
       Bitmap.ck_to_ac!(@sprite, [0, 0, 0])
       @locate = Point.new(@margins.shift, vmargin)
@@ -334,7 +334,7 @@ module Miyako
 
     def box(param) #:nodoc:
       init_parameter(param)
-      s = Sprite.new(size: [w, h], type: :alpha_channel)
+      s = Sprite.new(:size => [w, h], :type => :alpha_channel)
       w = @size[0]
       h = @size[1]
       Drawing.fill(s, [0, 0, 0])
@@ -363,7 +363,7 @@ module Miyako
       init_parameter(param)
       w = @size[0]
       h = @size[1]
-      s = Sprite.new(size: @size, type: :ac)
+      s = Sprite.new(:size => @size, :type => :ac)
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
@@ -377,7 +377,7 @@ module Miyako
 
     def circle(param) #:nodoc:
       init_parameter(param)
-      s = Sprite.new(size: [@ray*2+1, @ray*2+1], type: :alpha_channel)
+      s = Sprite.new(:size => [@ray*2+1, @ray*2+1], :type => :alpha_channel)
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
@@ -396,7 +396,7 @@ module Miyako
       w2 = w * 2 + 1
       h = @size[1]
       h2 = h * 2 + 1
-      s = Sprite.new(size: [w2, h2], type: :alpha_channel)
+      s = Sprite.new(:size => [w2, h2], :type => :alpha_channel)
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
@@ -419,7 +419,7 @@ module Miyako
 
       @vertexes = @vertexes.map{|v| [v[0]-min_x, v[1]-min_y]}
 
-      s = Sprite.new(size: [w, h], type: :alpha_channel)
+      s = Sprite.new(:size => [w, h], :type => :alpha_channel)
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       Drawing.polygon(s, @vertexes, Color.to_rgb(@color), true)

@@ -15,13 +15,13 @@ class Obj
   def initialize(size)
     init_layout
     set_layout_size(*size.to_a)
-  
+
     # スプライトの生成
-    @sprite = Sprite.new(size: size, type: :ac)
-    
+    @sprite = Sprite.new(:size => size, :type => :ac)
+
     # コリジョンの生成
     @collision = Collision.new(Rect.new(0, 0, *size.to_a))
-    
+
     # 位置情報の生成
     @position = Point.new(0, 0)
   end
@@ -33,7 +33,7 @@ class Obj
     @sprite.move!(*pos)
     @position.move_to!(*@layout.pos)
   end
-  
+
   # スプライトとコリジョン間でマージンを設定
   def margin(dx, dy)
     @sprite.move!(dx, dy)
@@ -59,7 +59,7 @@ class Ball < Obj
 
   # 初速度の取得
   attr_reader :v0
-  
+
   def initialize
     size = Size.new(32, 32)
     super(size)
@@ -181,8 +181,8 @@ end
 @font.size = 16
 
 # 情報表示用スプライトの用意
-@speed = Sprite.new(size: Size.new(640, 16), type: :ac)
-@info = Shape.text(font: @font, text: "１ボタンを押せばボールが跳ね上がります")
+@speed = Sprite.new(:size => Size.new(640, 16), :type => :ac)
+@info = Shape.text(:font => @font, :text => "１ボタンを押せばボールが跳ね上がります")
 @info.snap(@speed).left!.outside_bottom!
 
 Miyako.main_loop do

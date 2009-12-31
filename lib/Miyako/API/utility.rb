@@ -163,7 +163,7 @@ module Miyako
       y_array = ((y1 / size[1])..(y2 / size[1])).to_a.map{|e| e * size[1]}
       return x_array.product(y_array)
     end
-    
+
     #===指定の矩形が格子状のどこに重なっているかを返す
     # position(Point([x,y])形式)を基準として、矩形rect(Rect([x,y,w,h])形式)が、格子状の並べた矩形
     # (基準を[0,0]とした、大きさ[size,size]の矩形をタイル状に並べた物)にある場合、
@@ -201,7 +201,7 @@ module Miyako
       y_array = [min] + get_step_array_f(min, y2.to_f, sz, skip_even)
       return x_array.uniq.product(y_array.uniq)
     end
-    
+
     #===指定の矩形が格子状のどこに重なっているかを返す(実数で指定)
     #position(Point([x,y])形式)を基準として、矩形rect(Rect([x,y,w,h])形式)が、格子状の並べた矩形
     #(基準を[0.0,0.0]とした、大きさ[size,size]の矩形をタイル状に並べた物)にある場合、
