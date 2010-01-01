@@ -57,9 +57,6 @@ module Miyako
 
     def waiting_inner(engine)
     end
-
-    def plot
-    end
   end
 
   InitiativeScenarioEngineTemplate = InitiativeYukiTemplate
@@ -154,6 +151,7 @@ module Miyako
     #_params_:: ブロックに渡す引数リスト(ただし、ブロックを渡しているときのみに有効)
     def initialize(*params, &proc)
       @base = nil
+      @over_yuki = nil
       @yuki = { }
       @text_box = nil
       @command_box = nil
@@ -225,50 +223,6 @@ module Miyako
       raise MiyakoCopyError.not_copy("Yuki")
     end
 
-    def render_inner(yuki)
-      @base.render_inner(yuki) if @base
-    end
-
-    def render_to_inner(yuki, dst)
-      @base.render_to_inner(yuki, dst) if @base
-    end
-
-    def update_animation_inner(yuki)
-      @base.update_animation_inner(yuki) if @base
-    end
-
-    def update_inner(yuki)
-      @base.update_inner(yuki) if @base
-    end
-
-    def text_inner(yuki, ch)
-      @base.text_inner(yuki, ch) if @base
-    end
-
-    def cr_inner(yuki)
-      @base.cr_inner(yuki) if @base
-    end
-
-    def clear_inner(yuki)
-      @base.clear_inner(yuki) if @base
-    end
-
-    def input_inner(yuki)
-      @base.input_inner(yuki) if @base
-    end
-
-    def pausing_inner(yuki)
-      @base.pausing_inner(yuki) if @base
-    end
-
-    def selecting_inner(yuki)
-      @base.selecting_inner(yuki) if @base
-    end
-
-    def waiting_inner(yuki)
-      @base.waiting_inner(yuki) if @base
-    end
-
     #===マウスでの制御を可能にする
     #ゲームパッド・キーボードでのコマンド・ポーズ制御を行えるが、
     #それに加えて、マウスでもゲームパッド・キーボードでの制御が行える
@@ -296,13 +250,29 @@ module Miyako
       @mouse_enable
     end
 
+    def render_all
+      self.bgs.render
+      self.visibles.render
+      self.textbox_all.render
+      self.commandbox_all.render unless yuki.box_shared?
+      self.pre_visibles.render
+    end
+
     #===Yuki#showで表示指定した画像を描画する
     #描画順は、showメソッドで指定した順に描画される(先に指定した画像は後ろに表示される)
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render
-      render_inner(self)
+      return @base.render_inner(self) if @base
       return self
+    end
+
+    def render_to_all(dst)
+      self.bgs.render_to(dst)
+      self.visibles.render_to(dst)
+      self.textbox_all.render_to(dst)
+      self.commandbox_all.render_to(dst) unless yuki.box_shared?
+      self.pre_visibles.render_to(dst)
     end
 
     #===Yuki#showで表示指定した画像を描画する
@@ -310,7 +280,7 @@ module Miyako
     #なお、visibleの値がfalseの時は描画されない。
     #返却値:: 自分自身を返す
     def render_to(dst)
-      render_to_inner(self, dst)
+      return @base.render_to_inner(self, dst) if @base
       return self
     end
 
@@ -318,7 +288,7 @@ module Miyako
     #ポーズ中、コマンド選択中、 Yuki#wait メソッドによるウェイトの状態確認を行う。
     #プロット処理の実行確認は出来ない
     def update
-      update_inner(self)
+      @base.update_inner(self) if @base
       @pause_release = false
       @select_ok = false
       @select_cancel = false
@@ -326,11 +296,20 @@ module Miyako
       return nil
     end
 
+    def update_animation_all
+      self.bgs.update_animation
+      self.visibles.update_animation
+      self.textbox_all.update_animation
+      self.commandbox_all.update_animation unless self.box_shared?
+      self.pre_visibles.update_animation
+    end
+
     #===Yuki#showで表示指定した画像のアニメーションを更新する
     #showメソッドで指定した画像のupdate_animationメソッドを呼び出す
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
-      update_animation_inner(self)
+      return @base.update_animation_inner(self) if @base
+      return false
     end
 
     #===変数を参照する
@@ -753,11 +732,9 @@ module Miyako
     #nameで指定した遷移図の処理が終了するまで、プロットを停止する
     #_name_: 遷移図名（シンボル）
     #返却値:: 自分自身を返す
-    def wait_by_finish(name)
+    def wait_by_finish(name, is_clear = true)
       until @parts[name].finish?
-        pre_process
-        @update_inner.call(self)
-        post_process
+        process(is_clear)
       end
       return self
     end
@@ -770,6 +747,7 @@ module Miyako
     def pre_process(is_clear = true)
       Audio.update
       Input.update
+      WaitCounter.update
       self.update_input
       self.update
       self.update_animation
@@ -778,6 +756,8 @@ module Miyako
 
     def post_process
       self.render
+      WaitCounter.post_update
+      Animation.update
       Screen.render
     end
 
@@ -827,7 +807,7 @@ module Miyako
     #
     #3)select_plotメソッドで登録したブロック(Procクラスのインスタンス)
     #
-    #_base_:: プロットの実行部をインスタンス化したオブジェクト。省略時はnil(paramsを指定するときは必ず設定すること)
+    #_base_:: プロット
     #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト。省略時はnil(paramsを指定するときは必ず設定すること)
     #_params_:: プロットに引き渡す引数リスト
     #返却値:: 自分自身を返す
@@ -838,6 +818,27 @@ module Miyako
       raise MiyakoProcError, "Aagument count is not same block parameter count!" if @exec_plot && @exec_plot.arity.abs != params.length
       @base = base
       plot_facade(plot_proc, *params, &plot_block)
+      return self
+    end
+
+    def over_engine
+      @over_yuki
+    end
+
+    #===別のYukiエンジンを実行する
+    #[[Yukiスクリプトとして利用可能]]
+    #もう一つのYukiエンジンを実行させ、並行実行させることができる
+    #ウインドウの上にウインドウを表示したりするときに、このメソッドを使う
+    #renderメソッドで描画する際は、自分のインスタンスが描画した直後に描画される
+    #自分自身を実行しようとするとMiyakoValueError例外が発生する
+    #_yuki_:: 実行対象のYukiインスタンス(事前にsetupの呼び出しが必要)
+    #_plot_:: プロットインスタンス。すでにsetupなどで登録しているときはnilを渡す
+    #_params_:: プロット実行開始時に、プロットに渡す引数
+    #返却値:: 自分自身を返す
+    def over_exec(yuki, base, plot, *params)
+      raise MiyakoValueError, "This Yuki engine is same as self!" if yuki.eql?(self)
+      @over_yuki = yuki
+      @over_yuki.start_plot(base, plot, *params)
       return self
     end
 
@@ -856,15 +857,14 @@ module Miyako
     #プロット処理の場合は、メインスレッドから明示的に呼び出す必要がある
     #返却値:: nil を返す
     def update_input
-      input_inner(self)
+      @base.input_inner(self) if @base
       return nil
     end
 
     def plot_facade(plot_proc = nil, *params, &plot_block) #:nodoc:
       @plot_result = nil
       exec_plot = @exec_plot
-      @plot_result = @base ? self.instance_exec(*params, &@base.plot) :
-                     plot_proc ? self.instance_exec(*params, &plot_proc) :
+      @plot_result = plot_proc ? self.instance_exec(*params, &plot_proc) :
                      block_given? ? self.instance_exec(*params, &plot_block) :
                      exec_plot ? self.instance_exec(*params, &exec_plot) :
                      raise(MiyakoProcError, "Cannot find plot!")
@@ -1101,7 +1101,7 @@ module Miyako
           next nil
         end
         @text_box.draw_text(ch)
-        text_inner(self, ch)
+        @base.text_inner(self, ch) if @base
         post_process
       }
       return self
@@ -1136,7 +1136,7 @@ module Miyako
         end
         @text_box.draw_text(tmp)
         self.cr if use_cr
-        text_inner(self, tmp)
+        @base.text_inner(self, tmp) if @base
         use_cr = false
         post_process
       end
@@ -1224,7 +1224,7 @@ module Miyako
     def cr(tm = 1)
       tm.times{|n|
         @text_box.cr
-        cr_inner(self)
+        @base.cr_inner(self) if @base
       }
       return self
     end
@@ -1235,7 +1235,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def clear
       @text_box.clear
-      clear_inner(self)
+      @base.clear_inner(self) if @base
       return self
     end
 
@@ -1256,7 +1256,7 @@ module Miyako
       pause_release = false
       until pause_release
         pre_process
-        pausing_inner(self)
+        @base.pausing_inner(self) if @base
         pause_release = @release_checks.inject(false){|r, c| r |= c.call }
         post_process
       end
@@ -1310,7 +1310,7 @@ module Miyako
       reset_selecting
       while selecting
         pre_process
-        selecting_inner(self)
+        @base.selecting_inner(self) if @base
         @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
         @select_cancel = true if @cancel_checks.inject(false){|r, c| r |= c.call }
         @select_amount = @key_amount_proc.call
@@ -1380,7 +1380,7 @@ module Miyako
       waiting = true
       while waiting
         pre_process
-        waiting_inner(self)
+        @base.waiting_inner(self) if @base
         waiting = @waiting_timer.waiting?
         post_process
       end

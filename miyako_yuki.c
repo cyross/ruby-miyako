@@ -59,6 +59,7 @@ static const char *str_visible = "@visible";
 static const char *str_visibles = "@visibles";
 static const char *str_o_yuki = "@over_yuki";
 static const char *str_executing = "@executing";
+static const char *str_base = "@base";
 
 /*
 :nodoc:
@@ -120,14 +121,19 @@ static VALUE yuki_render_to(VALUE self, VALUE dst)
 /*
 :nodoc:
 */
-static VALUE iyuki_pre_process(VALUE self)
+static VALUE iyuki_pre_process(int argc, VALUE *argv, VALUE self)
 {
+  VALUE is_clear = Qnil;
+  rb_scan_args(argc, argv, "01", &is_clear);
+  if(argc == 0){ is_clear = Qtrue; }
+
   _miyako_audio_update();
   _miyako_input_update();
+  _miyako_counter_update();
   rb_funcall(self, id_update_input, 0);
   rb_funcall(self, id_update, 0);
   rb_funcall(self, id_update_animation, 0);
-  _miyako_screen_clear();
+  if(is_clear != Qnil && is_clear != Qfalse){ _miyako_screen_clear(); }
   return self;
 }
 
@@ -137,6 +143,8 @@ static VALUE iyuki_pre_process(VALUE self)
 static VALUE iyuki_post_process(VALUE self)
 {
   rb_funcall(self, id_render, 0);
+  _miyako_counter_post_update();
+  _miyako_animation_update();
   _miyako_screen_render();
   return self;
 }
@@ -146,58 +154,16 @@ static VALUE iyuki_post_process(VALUE self)
 */
 static VALUE iyuki_update(VALUE self)
 {
-  VALUE amt;
-  rb_funcall(self, id_update_inner, 1, self);
+  VALUE amt, base;
+  base = rb_iv_get(self, str_base);
+  if(base != Qnil){ rb_funcall(base, id_update_inner, 1, self); }
   rb_iv_set(self, "@pause_release", Qfalse);
   rb_iv_set(self, "@select_ok", Qfalse);
   rb_iv_set(self, "@select_cansel", Qfalse);
   amt = rb_iv_get(self, "@select_amount");
   *(RARRAY_PTR(amt)+0) = nZero;
   *(RARRAY_PTR(amt)+1) = nZero;
-  return self;
-}
-
-/*
-:nodoc:
-*/
-static VALUE iyuki_update_input(VALUE self)
-{
-  rb_funcall(self, id_update_input_inner, 1, self);
-  return self;
-}
-
-/*
-:nodoc:
-*/
-static VALUE iyuki_ua(VALUE self)
-{
-  rb_funcall(self, id_update_animation_inner, 1, self);
-  _miyako_sprite_list_update_animation(rb_iv_get(self, str_visibles));
-  return self;
-}
-
-/*
-:nodoc:
-*/
-static VALUE iyuki_render(VALUE self)
-{
-  if(rb_iv_get(self, str_visible) == Qtrue){
-    _miyako_sprite_list_render(rb_iv_get(self, str_visibles));
-  }
-  rb_funcall(self, id_render_inner, 1, self);
-  return self;
-}
-
-/*
-:nodoc:
-*/
-static VALUE iyuki_render_to(VALUE self, VALUE dst)
-{
-  if(rb_iv_get(self, str_visible) == Qtrue){
-    _miyako_sprite_list_render_to(rb_iv_get(self, str_visibles), dst);
-  }
-  rb_funcall(self, id_render_to_inner, 2, self, dst);
-  return self;
+  return Qnil;
 }
 
 void Init_miyako_yuki()
@@ -235,11 +201,7 @@ void Init_miyako_yuki()
   rb_define_method(cYuki, "update_animation",  yuki_ua,  0);
   rb_define_method(cYuki, "render",  yuki_render,  0);
   rb_define_method(cYuki, "render_to",  yuki_render_to,  1);
-  rb_define_method(cIYuki, "pre_process",  iyuki_pre_process,  0);
+  rb_define_method(cIYuki, "pre_process",  iyuki_pre_process,  -1);
   rb_define_method(cIYuki, "post_process",  iyuki_post_process,  0);
   rb_define_method(cIYuki, "update",  iyuki_update,  0);
-  rb_define_method(cIYuki, "update_input",  iyuki_update_input,  0);
-  rb_define_method(cIYuki, "update_animation",  iyuki_ua,  0);
-  rb_define_method(cIYuki, "render",  iyuki_render,  0);
-  rb_define_method(cIYuki, "render_to",  iyuki_render_to,  1);
 }

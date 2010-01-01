@@ -1,7 +1,7 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.5
+【 バージョン 】　2.1.6
 【   作成日   】　2010/01/01
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
@@ -1515,6 +1515,36 @@ v2.1.5(2010.01.01)
 ・Parts#part_move_to!
 ・TextBox#select_type/selct_type=
 ・InitiativeScenarioEngine#over_exec
+
+v2.1.6(2010.01.01)
+<バグ修正>
+・InitiativeScenarioEngine#pre_process,post_processで一部機能の更新をしていなかったバグを修正
+・InitiativeScenarioEngine#update_animationで一部機能の更新をしていなかったバグを修正
+・InitiativeScenarioEngine#over_execの復活(処理の見直し)
+・InitiativeScenarioEngine#over_execの復活(処理の見直し)
+<機能改善>
+<仕様変更>
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+<モジュール関数廃止>
+・InitiativeYukiTemplate#plot
+<インスタンスメソッド追加>
+・InitiativeScenarioEngine#over_exec
+・InitiativeScenarioEngine#over_engine
+・InitiativeScenarioEngine#render_all
+・InitiativeScenarioEngine#render_to_all
+・InitiativeScenarioEngine#update_animation_all
+<インスタンスメソッド廃止>
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

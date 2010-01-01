@@ -425,7 +425,7 @@ static VALUE sprite_render_rect(VALUE self, VALUE vrect)
 
   src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
   dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
-  
+
   s_p = RSTRUCT_PTR(src_unit);
   srect.x = NUM2INT(*(s_p + 1)) + rect[0];
   srect.y = NUM2INT(*(s_p + 2)) + rect[1];
@@ -471,7 +471,7 @@ static VALUE sprite_render_rect2(VALUE self, VALUE vrect)
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
   int rect[4];
-  
+
   if(rb_iv_get(self, str_visible) == Qfalse) return self;
 
   sprite_get_rect(vrect, &(rect[0]));
@@ -526,7 +526,7 @@ static VALUE sprite_render_rect_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
   int rect[4];
-  
+
   if(rb_iv_get(self, str_visible) == Qfalse) return self;
 
   sprite_get_rect(vrect, &(rect[0]));
@@ -616,7 +616,7 @@ static VALUE sprite_render_rect2_xy_to_sprite(VALUE self, VALUE vdst, VALUE vrec
   MiyakoBitmap src, dst;
   SDL_Surface *scr;
   int rect[4];
-  
+
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   sprite_get_rect(vrect, &(rect[0]));
@@ -796,6 +796,11 @@ static VALUE anim_m_update(VALUE self)
 {
   rb_hash_foreach(rb_iv_get(self, str_ahash), anim_m_hash_update, Qnil);
   return Qnil;
+}
+
+
+void _miyako_animation_update(){
+  anim_m_update(mAnimation);
 }
 
 /*
@@ -1272,7 +1277,7 @@ static VALUE sa_render(VALUE self)
   int num, pos_off, didx;
   MiyakoBitmap src, dst;
   SDL_Surface *scr;
-  
+
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   vsrc = rb_iv_get(self, "@now");
@@ -1315,7 +1320,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
   int num, pos_off, didx;
   MiyakoBitmap src, dst;
   SDL_Surface *scr;
-  
+
   VALUE visible = rb_iv_get(self, str_visible);
   if(visible == Qfalse) return self;
   vsrc = rb_iv_get(self, "@now");

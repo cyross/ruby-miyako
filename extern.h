@@ -27,6 +27,7 @@ extern void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
 extern int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size);
 extern void _miyako_yield_unit_1(MiyakoBitmap *src);
 extern void _miyako_yield_unit_2(MiyakoBitmap *src, MiyakoBitmap *dst);
+extern void _miyako_animation_update();
 extern void _miyako_audio_update();
 extern void _miyako_input_update();
 extern void _miyako_counter_update();
