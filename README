@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.6
-【   作成日   】　2010/01/01
+【 バージョン 】　2.1.7
+【   作成日   】　2010/01/XX
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.5公式リリース版です。
+本バージョンは、2.1.7公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -1544,6 +1544,47 @@ v2.1.6(2010.01.01)
 ・InitiativeScenarioEngine#render_all
 ・InitiativeScenarioEngine#render_to_all
 ・InitiativeScenarioEngine#update_animation_all
+<インスタンスメソッド廃止>
+
+v2.1.7(2010.01.XX)
+<バグ修正>
+・InitiativeScenarioEngine#Command構造体の順番がScenarioEngine#Commandと同期されていなかった問題を修正
+・InitiativeScenarioEngine#CommandEx構造体の順番がScenarioEngine#CommandExと同期されていなかった問題を修正
+・InitiativeScenarioEngine#render_allでエラーを出すバグを修正
+・InitiativeScenarioEngine#render_to_allでエラーを出すバグを修正
+<機能改善>
+<仕様変更>
+・(Initiative)ScenarioEngine#commandで、第2引数にnilを渡すことで、キャンセル操作無効にするようにした(明示的な引数渡しが必要)
+・over_execで使用するシナリオエンジンの事前登録が可能
+・ScenarioEngine#over_execメソッドの仕様を変更(engine,plotが省略可能に)
+・InitiativeScenarioEngine#over_execメソッドの仕様を変更(base,engine,plotが省略可能に)
+<ファイル追加>
+・API/simple_story.rb
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+・SimpleStory
+<モジュール追加>
+・SimpleStory::Scene
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+<モジュール関数廃止>
+<インスタンスメソッド追加>
+・ScenarioEngine#over_engine=
+・ScenarioEngine#under_engine
+・ScenarioEngine#under_engine=
+・ScenarioEngine#render_all
+・ScenarioEngine#render_to_all
+・InitiativeScenarioEngine#over_engine=
+・InitiativeScenarioEngine#under_engine
+・InitiativeScenarioEngine#under_engine=
+・InitiativeScenarioEngine#engine_stack
+・InitiativeScenarioEngine#create_engine_stack
 <インスタンスメソッド廃止>
 
 *******************************************************************************

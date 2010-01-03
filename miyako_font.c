@@ -271,9 +271,9 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   }
   else
   {
-    psrc = (Uint32 *)(ssrc->pixels);
-
     MiyakoSize size;
+
+    psrc = (Uint32 *)(ssrc->pixels);
 
     size.w = dst.rect.w - (src.x < 0 ? 0 : src.x);
     if(size.w <= 0)

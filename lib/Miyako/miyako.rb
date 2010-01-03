@@ -63,7 +63,7 @@ Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
-  VERSION = "2.1.4"
+  VERSION = "2.1.7"
 
   #===アプリケーション実行中に演奏する音楽のサンプリングレートを指定する
   #単位はHz(周波数)
@@ -155,6 +155,7 @@ require 'Miyako/API/map'
 require 'Miyako/API/fixedmap'
 require 'Miyako/API/map_event'
 require 'Miyako/API/story'
+require 'Miyako/API/simple_story'
 require 'Miyako/API/diagram'
 
 module Miyako

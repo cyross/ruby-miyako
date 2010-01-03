@@ -82,7 +82,7 @@ module Miyako
     #_result_:: 選択結果（移動先シーンクラス名、シナリオ（メソッド）名他のオブジェクト）
     #_body_disable_:: 選択不可時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
-    Command = Struct.new(:body, :body_selected, :condition, :result, :body_disable, :enable)
+    Command = Struct.new(:body, :body_selected, :body_disable, :enable, :condition, :result)
 
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
@@ -93,7 +93,7 @@ module Miyako
     #_body_disable_:: 選択不可時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
     #ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはnil
     #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
-    CommandEX = Struct.new(:body, :body_selected, :condition, :result, :end_select_proc, :body_disable, :enable)
+    CommandEX = Struct.new(:body, :body_selected, :condition, :body_disable, :enable, :result, :end_select_proc)
 
     attr_reader :visibles, :pre_visibles, :bgs, :base
     attr_reader :valign
@@ -113,6 +113,11 @@ module Miyako
     #(4)マウスの位置を示す配列([x,y])
     #callメソッドを持つブロックが使用可能。
     attr_reader :selecting_procs
+
+    #over_execを使用したシナリオエンジンのコールスタック
+    #over_execするエンジンを基準に、一番大本のエンジンから順に積み込まれる
+    #自分自身(self)は含まない
+    attr_reader :engine_stack
 
     #===Yukiにメソッドを追加する(すべてのYukiインスタンスに適応)
     #ブロックを渡すことで、Yukiに新しいメソッドを追加できる。
@@ -152,6 +157,7 @@ module Miyako
     def initialize(*params, &proc)
       @base = nil
       @over_yuki = nil
+      @under_yuki = nil
       @yuki = { }
       @text_box = nil
       @command_box = nil
@@ -168,6 +174,7 @@ module Miyako
       @select_ok = false
       @select_cancel = false
       @select_amount = [0, 0]
+      @cencel = nil
       @mouse_amount = nil
 
       @mouse_enable = true
@@ -215,12 +222,21 @@ module Miyako
       @now_page = nil
       @first_page = nil
 
+      @engine_stack = []
+
       raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
 
     def initialize_copy(obj) #:nodoc:
       raise MiyakoCopyError.not_copy("Yuki")
+    end
+
+    #===エンジンスタックを生成する
+    #base:: over_exec呼び出し元のエンジン
+    def create_engine_stack(base)
+      return unless @engine_stack.empty?
+      @engine_stack.push(*base.engine_stack, base)
     end
 
     #===マウスでの制御を可能にする
@@ -254,7 +270,7 @@ module Miyako
       self.bgs.render
       self.visibles.render
       self.textbox_all.render
-      self.commandbox_all.render unless yuki.box_shared?
+      self.commandbox_all.render unless self.box_shared?
       self.pre_visibles.render
     end
 
@@ -271,7 +287,7 @@ module Miyako
       self.bgs.render_to(dst)
       self.visibles.render_to(dst)
       self.textbox_all.render_to(dst)
-      self.commandbox_all.render_to(dst) unless yuki.box_shared?
+      self.commandbox_all.render_to(dst) unless self.box_shared?
       self.pre_visibles.render_to(dst)
     end
 
@@ -825,6 +841,21 @@ module Miyako
       @over_yuki
     end
 
+    def over_engine=(engine)
+      @over_yuki = engine
+      engine.under_engine = self
+      engine.engine_stack.clear
+      engine.create_engine_stack(self)
+    end
+
+    def under_engine
+      @under_yuki
+    end
+
+    def under_engine=(engine)
+      @under_yuki = engine
+    end
+
     #===別のYukiエンジンを実行する
     #[[Yukiスクリプトとして利用可能]]
     #もう一つのYukiエンジンを実行させ、並行実行させることができる
@@ -835,10 +866,11 @@ module Miyako
     #_plot_:: プロットインスタンス。すでにsetupなどで登録しているときはnilを渡す
     #_params_:: プロット実行開始時に、プロットに渡す引数
     #返却値:: 自分自身を返す
-    def over_exec(yuki, base, plot, *params)
+    def over_exec(yuki = nil, base = nil, plot = nil, *params)
       raise MiyakoValueError, "This Yuki engine is same as self!" if yuki.eql?(self)
-      @over_yuki = yuki
-      @over_yuki.start_plot(base, plot, *params)
+      self.over_engine = yuki if yuki
+      @over_yuki.start_plot(base ? base : @over_yuki, plot, *params)
+      yuki.engine_stack.clear if yuki
       return self
     end
 
@@ -1312,7 +1344,7 @@ module Miyako
         pre_process
         @base.selecting_inner(self) if @base
         @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
-        @select_cancel = true if @cancel_checks.inject(false){|r, c| r |= c.call }
+        @select_cancel = true if @cancel && @cancel_checks.inject(false){|r, c| r |= c.call }
         @select_amount = @key_amount_proc.call
         @mouse_amount = @mouse_amount_proc.call
         @selecting_procs.each{|sp|

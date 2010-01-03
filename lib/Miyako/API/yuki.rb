@@ -146,6 +146,7 @@ module Miyako
     def initialize(*params, &proc)
       @yuki = { }
       @over_yuki = nil
+      @under_yuki = nil
       @over_exec = false
       @text_box = nil
       @command_box = nil
@@ -164,6 +165,7 @@ module Miyako
       @select_ok = false
       @select_cancel = false
       @select_amount = [0, 0]
+      @cencel = nil
       @mouse_amount = nil
 
       @mouse_enable = true
@@ -238,6 +240,19 @@ module Miyako
       @over_yuki
     end
 
+    def over_engine=(engine)
+      @over_yuki = engine
+      engine.under_engine = self
+    end
+
+    def under_engine
+      @under_yuki
+    end
+
+    def under_engine=(engine)
+      @under_yuki = engine
+    end
+
     #===マウスでの制御を可能にする
     #ゲームパッド・キーボードでのコマンド・ポーズ制御を行えるが、
     #それに加えて、マウスでもゲームパッド・キーボードでの制御が行える
@@ -281,6 +296,22 @@ module Miyako
     def render_to(dst)
       @over_yuki.render_to(dst) if @over_yuki && @over_yuki.executing?
       return self
+    end
+
+    def render_all
+      self.bgs.render
+      self.visibles.render
+      self.textbox_all.render
+      self.commandbox_all.render unless self.box_shared?
+      self.pre_visibles.render
+    end
+
+    def render_to_all(dst)
+      self.bgs.render_to(dst)
+      self.visibles.render_to(dst)
+      self.textbox_all.render_to(dst)
+      self.commandbox_all.render_to(dst) unless self.box_shared?
+      self.pre_visibles.render_to(dst)
     end
 
     #===Yuki#showで表示指定した画像のアニメーションを更新する
@@ -724,9 +755,9 @@ module Miyako
     #_plot_:: プロットインスタンス。すでにsetupなどで登録しているときはnilを渡す
     #_params_:: プロット実行開始時に、プロットに渡す引数
     #返却値:: 自分自身を返す
-    def over_exec(yuki, plot, *params)
+    def over_exec(yuki = nil, plot = nil, *params)
       raise MiyakoValueError, "This Yuki engine is same as self!" if yuki.eql?(self)
-      @over_yuki = yuki
+      self.over_engine = yuki if yuki
       @over_yuki.start_plot(plot, *params)
       return self
     end
@@ -848,7 +879,7 @@ module Miyako
         @pause_release = true
       elsif @selecting
         @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
-        @select_cancel = true if @cancel_checks.inject(false){|r, c| r |= c.call }
+        @select_cancel = true if @cancel && @cancel_checks.inject(false){|r, c| r |= c.call }
         @select_amount = @key_amount_proc.call
         @mouse_amount = @mouse_amount_proc.call
       end

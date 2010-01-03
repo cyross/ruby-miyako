@@ -151,7 +151,7 @@ module Miyako
       @@scenes = {}
       @@pool = {}
 
-      def Scene.included(c) #:nodoc:
+      def self.included(c) #:nodoc:
         unless c.singleton_methods.include?(:scene_type)
           def c.scene_type
             return :scene
@@ -160,11 +160,11 @@ module Miyako
         @@scenes[c.to_s] = c
       end
 
-      def Scene.scenes #:nodoc:
+      def self.scenes #:nodoc:
         return @@scenes
       end
 
-      def Scene.has_scene?(s) #:nodoc:
+      def self.has_scene?(s) #:nodoc:
         return @@scenes.has_key?(s)
       end
 
@@ -267,7 +267,7 @@ module Miyako
       #リストの内容は、"シーンクラス名(文字列),シーンクラス(ポインタ),
       #解説(noticeメソッドの内容)"という書式で取得できる
       #返却値:: リストアップしたシーンの配列
-      def Scene.listup
+      def self.listup
         list = Array.new
         sns = @@scenes
         sns.keys.sort.each{|k| list.push("#{k}, #{sns[k]}, \"#{sns[k].notice}\"\n") }
@@ -276,7 +276,7 @@ module Miyako
 
       #===Scene.#listupメソッドの内容をCSVファイルに保存する
       #_csvname_:: 保存するCSVファイルパス
-      def Scene.listup2csv(csvfname)
+      def self.listup2csv(csvfname)
         csvfname += ".csv" if csvfname !~ /\.csv$/
         list = self.listup
         File.open(csvfname, "w"){|f| list.each{|l| f.print l } }

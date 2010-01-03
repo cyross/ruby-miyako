@@ -83,7 +83,6 @@ static void get_position(VALUE pos, Sint16 *x, Sint16 *y)
 }
 
 /*
-ポリゴン描画
 */
 static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
 {
@@ -101,7 +100,6 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
 
   rb_scan_args(argc, argv, "32", &vdst, &pairs, &mcolor, &fill, &aa);
 
-  // bitmapメソッドを持っていれば、メソッドの値をvdstとする
   methods = rb_funcall(vdst, rb_intern("methods"), 0);
   if(rb_ary_includes(methods, rb_str_intern(rb_str_new2("to_unit"))) == Qfalse &&
      rb_ary_includes(methods, rb_str_intern(rb_str_new2("bitmap"))) == Qfalse
@@ -112,11 +110,10 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
   vdst = rb_funcall(vdst, rb_intern("bitmap"), 0);
 
   vertexes = RARRAY_LEN(pairs);
-  // 頂点数チェック
+
   if(vertexes > 65536)
     rb_raise(eMiyakoError, "too many pairs. pairs is less than 65536.");
 
-  // 範囲チェック
   for(i=0; i<vertexes; i++)
   {
     VALUE vertex = *(RARRAY_PTR(pairs)+i);
@@ -124,7 +121,7 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
     get_position(vertex, &x, &y);
   }
 
-	dst = GetSurface(vdst)->surface;
+  dst = GetSurface(vdst)->surface;
 
   color = value_2_color(rb_funcall(cColor, rb_intern("to_rgb"), 1, mcolor), dst->format, &alpha);
 
@@ -177,7 +174,6 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
 }
 
 /*
-ポリゴン描画
 */
 static VALUE screen_clear(VALUE self)
 {
