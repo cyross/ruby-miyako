@@ -2,7 +2,7 @@
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
 【 バージョン 】　2.1.7
-【   作成日   】　2010/01/XX
+【   作成日   】　2010/01/03
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -1546,12 +1546,13 @@ v2.1.6(2010.01.01)
 ・InitiativeScenarioEngine#update_animation_all
 <インスタンスメソッド廃止>
 
-v2.1.7(2010.01.XX)
+v2.1.7(2010.01.03)
 <バグ修正>
 ・InitiativeScenarioEngine#Command構造体の順番がScenarioEngine#Commandと同期されていなかった問題を修正
 ・InitiativeScenarioEngine#CommandEx構造体の順番がScenarioEngine#CommandExと同期されていなかった問題を修正
 ・InitiativeScenarioEngine#render_allでエラーを出すバグを修正
 ・InitiativeScenarioEngine#render_to_allでエラーを出すバグを修正
+・InitiativeScenarioEngine#pauseで解除待ちカーソルが消えないバグを修正
 <機能改善>
 <仕様変更>
 ・(Initiative)ScenarioEngine#commandで、第2引数にnilを渡すことで、キャンセル操作無効にするようにした(明示的な引数渡しが必要)

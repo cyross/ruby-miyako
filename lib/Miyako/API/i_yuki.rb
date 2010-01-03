@@ -1292,6 +1292,7 @@ module Miyako
         pause_release = @release_checks.inject(false){|r, c| r |= c.call }
         post_process
       end
+      @text_box.release
       @post_pause.each{|proc| proc.call}
       return self
     end
