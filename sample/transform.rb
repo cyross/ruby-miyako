@@ -36,9 +36,9 @@ Screen.pre_render_array << [:s2, @sprite]
 Screen.center_x = Screen.w/2
 Screen.center_y = Screen.h/2
 
-Miyako.main_loop do
+Miyako.main_loop(false, false) do
   break if Input.quit_or_escape?
-	Screen.pre_render
+  Screen.pre_render
   # 回転
 #  Bitmap.rotate(@sprite, Screen, angle)
   # 拡大/縮小
@@ -46,10 +46,10 @@ Miyako.main_loop do
   # 回転/拡大/縮小
   Bitmap.transform(@sprite, Screen, angle, xscale, yscale)
   # 拡大縮小率の変更
-	xscale -= RATE
-	xscale = MAX if xscale < MIN
-	yscale -= RATE
-	yscale = MAX if yscale < MIN
+  xscale -= RATE
+  xscale = MAX if xscale < MIN
+  yscale -= RATE
+  yscale = MAX if yscale < MIN
   # 回転角度の変更
   angle = (angle + @rate) % (Math::PI*2.0)
 end

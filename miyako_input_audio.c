@@ -116,7 +116,7 @@ static VALUE input_update(VALUE self)
   {
     VALUE e2 = *(ptr + len - i - 1);
     VALUE proc = rb_hash_lookup(process, CLASS_OF(e2));
-    rb_funcall(proc, id_call, 1, e2);
+    if(proc != Qnil){ rb_funcall(proc, id_call, 1, e2); }
     if(rb_hash_lookup(trigger, sy_alt) == nOne &&
        rb_hash_lookup(pushed, sy_ent) == nOne &&
        toggle == Qtrue)

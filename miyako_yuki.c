@@ -55,6 +55,7 @@ static volatile ID id_render_inner = Qnil;
 static volatile ID id_render_to_inner = Qnil;
 static volatile int zero = 0;
 static volatile int one = 1;
+static volatile int gc_enable = 0;
 static const char *str_visible = "@visible";
 static const char *str_visibles = "@visibles";
 static const char *str_o_yuki = "@over_yuki";
@@ -146,6 +147,7 @@ static VALUE iyuki_post_process(VALUE self)
   _miyako_counter_post_update();
   _miyako_animation_update();
   _miyako_screen_render();
+  if(gc_enable){ rb_gc_start(); }
   return self;
 }
 
@@ -164,6 +166,32 @@ static VALUE iyuki_update(VALUE self)
   *(RARRAY_PTR(amt)+0) = nZero;
   *(RARRAY_PTR(amt)+1) = nZero;
   return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE iyuki_gc_enable(VALUE self)
+{
+  gc_enable = 1;
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE iyuki_gc_disable(VALUE self)
+{
+  gc_enable = 0;
+  return Qnil;
+}
+
+/*
+:nodoc:
+*/
+static VALUE iyuki_is_gc_enable(VALUE self)
+{
+  return (gc_enable ? Qtrue : Qfalse);
 }
 
 void Init_miyako_yuki()
@@ -204,4 +232,7 @@ void Init_miyako_yuki()
   rb_define_method(cIYuki, "pre_process",  iyuki_pre_process,  -1);
   rb_define_method(cIYuki, "post_process",  iyuki_post_process,  0);
   rb_define_method(cIYuki, "update",  iyuki_update,  0);
+  rb_define_method(cIYuki, "gc_enable",  iyuki_gc_enable,  0);
+  rb_define_method(cIYuki, "gc_disable",  iyuki_gc_disable,  0);
+  rb_define_method(cIYuki, "gc_enable?",  iyuki_is_gc_enable,  0);
 }

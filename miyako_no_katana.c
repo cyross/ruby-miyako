@@ -101,10 +101,13 @@ static VALUE anim_m_update(VALUE self);
 static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
 {
   VALUE clear = Qnil;
+  VALUE gc = Qnil;
   int is_clear = 0;
+  int use_gc = 0;
   if(argc == 0){ is_clear = 1; }
-  rb_scan_args(argc, argv, "01", &clear);
+  rb_scan_args(argc, argv, "02", &clear, &gc);
   if(clear != Qnil && clear != Qfalse){ is_clear = 1; }
+  if(gc != Qnil && gc != Qfalse){ use_gc = 1; }
   rb_need_block();
   for(;;)
   {
@@ -116,6 +119,7 @@ static VALUE miyako_main_loop(int argc, VALUE *argv, VALUE self)
     _miyako_counter_post_update();
     anim_m_update(mAnimation);
     _miyako_screen_render();
+    if(use_gc){ rb_gc_start(); }
   }
   return Qnil;
 }
