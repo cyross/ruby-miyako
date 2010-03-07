@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.8
-【   作成日   】　2010/01/16
+【 バージョン 】　2.1.9
+【   作成日   】　2010/02/01
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.8公式リリース版です。
+本バージョンは、2.1.9公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -1613,6 +1613,44 @@ v2.1.8(2010.01.16)
 ・InitiativeScenarioEngine#gc_enable
 ・InitiativeScenarioEngine#gc_disable
 ・InitiativeScenarioEngine#gc_enable?
+<インスタンスメソッド廃止>
+
+v2.1.9(2010.03.07)
+<バグ修正>
+・ScenarioEngine#canceled?が正しく動作しない(オブジェクトの参照間違い)バグを修正
+・InitiativeScenarioEngine#canceled?が正しく動作しない(オブジェクトの参照間違い)バグを修正
+・Audio::SE#startの記述ミスを修正
+<機能改善>
+・シーン管理(Story,Scene)に、オブジェクトの引き継ぎ機能を追加
+・シーン終了時、返却値に[次シーン名,オブジェクト]を渡すことで、次シーンでは、全シーンの状態などを受け取ることが可能になった
+・Story#runメソッドの性能改善
+<仕様変更>
+・Story::Scene#.initializeメソッドの引数インタフェースを変更(引き継ぎ変数の導入のため)
+・SimpleStory::Scene#.initializeメソッドの引数インタフェースを変更(引き継ぎ変数の導入のため)
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+・Story#.hand_over
+・Story#.hand_over=
+・Story::Scene#.hand_over
+・Story::Scene#.hand_over=
+・Story::Scene#.clear_hand_over
+・SimpleStory#.hand_over
+・SimpleStory#.hand_over=
+・SimpleStory::Scene#.hand_over
+・SimpleStory::Scene#.hand_over=
+・SimpleStory::Scene#.clear_hand_over
+<モジュール関数廃止>
+<インスタンスメソッド追加>
 <インスタンスメソッド廃止>
 
 *******************************************************************************

@@ -1053,7 +1053,7 @@ module Miyako
     #[[Yukiスクリプトとして利用可能]]
     #返却値:: キャンセルされたときはtrue、されていないときはfalseを返す
     def canceled?
-      return result == @cancel
+      return @result == @cancel
     end
 
     #===ブロックを条件として設定する
@@ -1318,7 +1318,7 @@ module Miyako
     #_cancel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
-    def command(command_list, cancel_to = Canceled, &chain_block)
+    def command(command_list, cancel_to = Miyako::InitiativeYuki::Canceled, &chain_block)
       raise MiyakoValueError, "Yuki Error! Commandbox is not selected!" unless @command_box
       @cancel = cancel_to
 

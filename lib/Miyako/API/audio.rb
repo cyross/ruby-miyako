@@ -41,7 +41,7 @@ module Miyako
     def Audio.initialized?
       @@initialized
     end
-    
+
     #===BGM・効果音の再生情報を更新する
     def Audio.update
       return if $not_use_audio
@@ -96,7 +96,7 @@ module Miyako
       def allow_loop_count_up? #:nodoc:
         @cnt_up_flag
       end
-      
+
       #===インスタンスを生成する
       #_fname_:: 演奏するBGMファイル名。対応ファイルはwav,mp3,ogg,mid等。
       #_loops_:: 演奏の繰り返し回数を指定する。-1を渡すと無限に繰り返す。省略時は-1を渡す。
@@ -117,7 +117,7 @@ module Miyako
       def initialize_copy(obj)
         raise MiyakoCopyError.not_copy("BGM")
       end
-      
+
       #===音の大きさを設定する
       #_v_:: 音の大きさ。0〜255までの整数。255で最大。
       #返却値:: 自分自身を返す
@@ -129,7 +129,7 @@ module Miyako
       end
 
       alias_method(:setVolume, :set_volume)
-      
+
       #===BGMを演奏する。ブロックが渡されている場合、ブロックの評価中のみ演奏する。
       #音の大きさ・繰り返し回数・演奏時間を指定可能
       #_vol_:: 音の大きさ(省略可能)。0〜255の整数を設定する。nilを渡したときは音の大きさを変更しない。
@@ -144,7 +144,7 @@ module Miyako
         end
         return self.play(vol, loops)
       end
-      
+
       #===BGMを演奏する。ブロックが渡されている場合、ブロックの評価中のみ演奏する。
       #音の大きさ・繰り返し回数を指定可能
       #_vol_:: 音の大きさ(省略可能)。0〜255の整数を設定する。nilを渡したときは音の大きさを変更しない。
@@ -195,19 +195,19 @@ module Miyako
       end
 
       alias_method(:fadeIn, :fade_in)
-      
+
       #===演奏中を示すフラグ
       #返却値:: 演奏中はtrue、停止(一時停止)中はfalseを返す
       def playing?
         return false if $not_use_audio
         return (SDL::Mixer.play_music? && self.in_the_loop?) || self.fade_out?
       end
-      
+
       def playing_without_loop? #:nodoc:
         return false if $not_use_audio
         return SDL::Mixer.play_music?
       end
-      
+
       #===演奏停止中を示すフラグ
       #返却値:: 演奏停止中はtrue、演奏中はfalseを返す
       def pausing?
@@ -223,7 +223,7 @@ module Miyako
         SDL::Mixer.pause_music if SDL::Mixer.play_music?
         return self
       end
-      
+
       #==フェードイン中を示すフラグ
       #返却値:: フェードイン中はtrue、そのほかの時はfalseを返す
       def fade_in?
@@ -233,7 +233,7 @@ module Miyako
         # from SDL_Mixer.h
         return SDL::Mixer.fading_music == 2
       end
-      
+
       #==フェードアウト中を示すフラグ
       #返却値:: フェードアウト中はtrue、そのほかの時はfalseを返す
       def fade_out?
@@ -276,7 +276,7 @@ module Miyako
         end
         return self
       end
-      
+
       #===演奏情報を解放する
       #レシーバをdup/deep_dupなどのメソッドで複製したことがある場合、
       #内部データを共有しているため、呼び出すときには注意すること
@@ -285,7 +285,7 @@ module Miyako
         @bgm.destroy
         @bgm = nil
       end
-      
+
       alias_method(:fadeOut, :fade_out)
     end
 
@@ -295,9 +295,9 @@ module Miyako
       @@playings = []
 
       SDL::Mixer.allocate_channels(@@channels)
-      
+
       attr_accessor :priority
-      
+
       #===効果音の再生情報を更新する
       def SE.update
         return if $not_use_audio
@@ -312,19 +312,19 @@ module Miyako
           end
         }
       end
-    
+
       #===何かしらの効果音が再生中かどうかを確認する
       #返却値:: 何かしらの効果音が再生中ならtrue、それ以外はfalse
       def SE.playing_any?
         !@@playings.empty?
       end
-      
+
       #===同時発音数を取得する
       #返却値:: 同時再生数
       def SE.channels
         @@channels
       end
-      
+
       #===現在再生している効果音をすべて停止する
       #_msec_:: 停止する時間をミリ秒で指定(msecミリ秒後に停止)。nilを渡すとすぐに停止する。省略時はnilを渡す。
       def SE.stop(msec = nil)
@@ -334,7 +334,7 @@ module Miyako
         msec ? SDL::Mixer.expire(-1, msec) : SDL::Mixer.halt(-1)
         @@playings.clear
       end
-      
+
       #===同時発音数を変更する
       #同時発音数に0以下を指定するとMiyakoValueErrorが発生する
       #現在同時に発音している音が新しいせっていによりあぶれる場合、あぶれた分を優先度の低い順に停止する
@@ -409,7 +409,7 @@ module Miyako
       def initialize_copy(obj)
         raise MiyakoCopyError.not_copy("SE")
       end
-      
+
       #===効果音を鳴らす
       #音の大きさ・繰り返し回数・演奏時間を指定可能
       #_vol_:: 音の大きさ(省略可能)。0〜255の整数を設定する。nilを渡したときは音の大きさを変更しない。
@@ -421,7 +421,7 @@ module Miyako
           raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
         end
         if time
-          raise MiyakoValueError.over_range(time, 1, nil) unless msec > 1
+          raise MiyakoValueError.over_range(time, 1, nil) unless time > 1
         end
         raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
         return self.play(vol, loops, time)
@@ -470,7 +470,7 @@ module Miyako
         return false if $not_use_audio
         return @channel != -1 ? (SDL::Mixer.play?(@channel) && self.in_the_loop?) || self.fade_out? : false
       end
-      
+
       def playing_without_loop? #:nodoc:
         return false if $not_use_audio
         return @channel != -1 ? SDL::Mixer.play?(@channel) : false
@@ -552,7 +552,7 @@ module Miyako
 #        return SDL::Mixer.fading(@channel) == SDL::Mixer::FADING_IN
         return SDL::Mixer.fading(@channel) == 2
       end
-      
+
       #==フェードアウト中を示すフラグ
       #返却値:: フェードアウト中はtrue、そのほかの時はfalseを返す
       def fade_out?
@@ -574,7 +574,7 @@ module Miyako
         @wave.set_volume(v)
         return self
       end
-      
+
       #===演奏情報を解放する
       #レシーバをdup/deep_dupなどのメソッドで複製したことがある場合、
       #内部データを共有しているため、呼び出すときには注意すること
@@ -582,7 +582,7 @@ module Miyako
         @wave.destroy
         @wave = nil
       end
-      
+
       alias_method(:setVolume, :set_volume)
     end
   end

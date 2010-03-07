@@ -25,6 +25,7 @@ module Miyako
   #==シーン実行クラス
   #用意したシーンインスタンスを実行
   class Story
+    attr_accessor :hand_over
 
     @@sub_scenes = [:sub_scene, :sub_routine]
 
@@ -53,6 +54,7 @@ module Miyako
       @scene_cache_list = Array.new
       @scene_cache_max = 20
 
+      @hand_over = nil
     end
 
     def initialize_copy(obj) #:nodoc:
@@ -82,6 +84,7 @@ module Miyako
       u = nil
       on = nil
       @stack = Array.new # reset
+      @hand_over = nil
       while n != nil
         @prev_label = on
         on = n
@@ -89,15 +92,19 @@ module Miyako
         raise MiyakoValueError, "Illegal Script-label name! : #{n}" unless Scene.has_scene?(n.to_s)
         raise MiyakoValueError, "This scene cannot use for Standard Scene! : #{n}" if n.scene_type != :scene
         u = get_scene(n, @stack.size) if u == nil
+        u.hand_over = @hand_over
+        @hand_over = nil
         u.init_inner(@prev_label, self.upper_label)
         u.setup
 
         Miyako.main_loop do
           bk_n = on
           n = u.update
+          n, @hand_over = n if n and n.kind_of?(Array)
           u.render
           break unless n && on.eql?(n)
         end
+        u.clear_hand_over
         u.next = n
         @next_label = n
         u.final
@@ -125,7 +132,7 @@ module Miyako
     end
 
     #==シーン情報格納のための構造体
-    ScenePool = Struct.new(:story, :prev, :next, :upper)
+    ScenePool = Struct.new(:story, :prev, :next, :upper, :hand_over)
 
     #==シーンモジュール
     #本モジュールをmixinすることにより、シーンを示すインスタンスを作成することができる
@@ -168,9 +175,9 @@ module Miyako
         return @@scenes.has_key?(s)
       end
 
-      def initialize(story, check_only=false) #:nodoc:
+      def initialize(story, handover=nil, check_only=false) #:nodoc:
         return if check_only
-        @@pool[self.object_id] = ScenePool.new(story, nil, nil, nil)
+        @@pool[self.object_id] = ScenePool.new(story, nil, nil, nil, handover)
         @now = self.now_scene
         self.init
       end
@@ -186,6 +193,20 @@ module Miyako
       #返却値:: 前回実行したシーン名(Classクラスインスタンス)
       def story
         return @@pool[self.object_id].story
+      end
+
+      #===前シーンから引き継いだオブジェクトを参照する
+      def hand_over
+        return @@pool[self.object_id].hand_over
+      end
+
+      def hand_over=(obj)
+        @@pool[self.object_id].hand_over = obj
+        @@pool[self.object_id].story.hand_over = obj
+      end
+
+      def clear_hand_over
+        @@pool[self.object_id].hand_over = nil
       end
 
       #===サブルーチンの呼び元シーンを返す
