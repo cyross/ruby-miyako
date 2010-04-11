@@ -47,6 +47,9 @@ class Numeric
 end
 
 module Miyako
+  # for init_layout
+  module Screen
+  end
 
   #==レイアウト情報を示す構造体
   LayoutStruct = Struct.new(:pos, :size, :base, :snap, :on_move)
@@ -74,7 +77,7 @@ module Miyako
       @layout = LayoutStruct.new
       @layout.pos  = Point.new(0, 0)
       @layout.size = Size.new(0, 0)
-      @layout.base = Screen
+      @layout.base = Miyako::Screen
       @layout.snap = LayoutSnapStruct.new(nil, Array.new)
       @layout.on_move = []
     end
@@ -110,162 +113,162 @@ module Miyako
     #  move,move_toの各メソッド。
     #返却値:: ブロック管理配列
     def on_move
-			return @layout.on_move
+      return @layout.on_move
     end
 
     #===mixinしたインスタンスの位置を左端(x軸)に移動させる
-		#設置するとき、基準となる空間の内側に設置される
+    #設置するとき、基準となる空間の内側に設置される
     #ブロックでは、数値を返却することで、左端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def left!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[0]
-			@layout.pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[0]
+      @layout.pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
       @layout.snap.children.each{|c| c.left(&margin) }
       update_layout(@layout.pos[0]-t, 0)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を左端(x軸)に移動させる
-		#設置するとき、基準となる空間の外側に設置される
+    #設置するとき、基準となる空間の外側に設置される
     #ブロックでは、数値を返却することで、左端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def outside_left!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[0]
-			@layout.pos[0] = base[0] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[0]
+      @layout.pos[0] = base[0] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
       update_layout(@layout.pos[0]-t, 0)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を中間(ｘ軸)に移動させる
     #返却値:: 自分自身
     def center!
-			base = @layout.base.rect
-			t = @layout.pos[0]
-			@layout.pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
+      base = @layout.base.rect
+      t = @layout.pos[0]
+      @layout.pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
       update_layout(@layout.pos[0]-t, 0)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させる
-		#設置するとき、基準となる空間の内側に設置される
+    #設置するとき、基準となる空間の内側に設置される
     #ブロックでは、数値を返却することで、右端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def right!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[0]
-			@layout.pos[0] = base[0] + base[2] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[0]
+      @layout.pos[0] = base[0] + base[2] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
       update_layout(@layout.pos[0]-t, 0)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させる
-		#設置するとき、基準となる空間の外側に設置される
+    #設置するとき、基準となる空間の外側に設置される
     #ブロックでは、数値を返却することで、右端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def outside_right!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[0]
-			@layout.pos[0] = base[0] + base[2] + (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[0]
+      @layout.pos[0] = base[0] + base[2] + (margin ? margin[base[2]].to_i : 0)
       update_layout(@layout.pos[0]-t, 0)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を上端(y軸)に移動させる
-		#設置するとき、基準となる空間の内側に設置される
+    #設置するとき、基準となる空間の内側に設置される
     #ブロックでは、数値を返却することで、上端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def top!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[1]
-			@layout.pos[1] = base[1] + (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[1]
+      @layout.pos[1] = base[1] + (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を上端(y軸)に移動させる
-		#設置するとき、基準となる空間の内側に設置される
+    #設置するとき、基準となる空間の内側に設置される
     #ブロックでは、数値を返却することで、上端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def outside_top!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[1]
-			@layout.pos[1] = base[1] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[1]
+      @layout.pos[1] = base[1] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を中間(y軸)に移動させる
     #返却値:: 自分自身
     def middle!
-			base = @layout.base.rect
-			t = @layout.pos[1]
-			@layout.pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
+      base = @layout.base.rect
+      t = @layout.pos[1]
+      @layout.pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
       update_layout(0, @layout.pos[1]-t)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を下端(y軸)に移動させる
-		#設置するとき、基準となる空間の内側に設置される
+    #設置するとき、基準となる空間の内側に設置される
     #ブロックでは、数値を返却することで、下端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def bottom!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[1]
-			@layout.pos[1] = base[1] + base[3] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[1]
+      @layout.pos[1] = base[1] + base[3] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
       }
-			return self
+      return self
     end
 
     #===mixinしたインスタンスの位置を下端(y軸)に移動させる
-		#設置するとき、基準となる空間の外側に設置される
+    #設置するとき、基準となる空間の外側に設置される
     #ブロックでは、数値を返却することで、下端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 自分自身
     def outside_bottom!(&margin)
-			base = @layout.base.rect
-			t = @layout.pos[1]
-			@layout.pos[1] = base[1] + base[3] + (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      t = @layout.pos[1]
+      @layout.pos[1] = base[1] + base[3] + (margin ? margin[base[3]].to_i : 0)
       update_layout(0, @layout.pos[1]-t)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], 0, @layout.pos[1]-t)
       }
-			return self
+      return self
     end
 
     #===インスタンスを画面(スナップ先インスタンス)の中心に移動する
@@ -277,137 +280,137 @@ module Miyako
     end
 
     #===mixinしたインスタンスの位置を左端(x軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の内側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の内側に設置されたとして算出する
     #ブロックでは、数値を返却することで、左端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def left(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を左端(x軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の外側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の外側に設置されたとして算出する
     #ブロックでは、数値を返却することで、左端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def outside_left(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[0] = base[0] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[0] = base[0] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を中間(ｘ軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
     #返却値:: 移動後の位置(Position構造体)
     def center
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
       return pos
     end
 
     #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の内側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の内側に設置されたとして算出する
     #ブロックでは、数値を返却することで、右端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def right(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[0] = base[0] + base[2] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[0] = base[0] + base[2] - @layout.size[0] - (margin ? margin[base[2]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を右端(ｘ軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の外側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の外側に設置されたとして算出する
     #ブロックでは、数値を返却することで、右端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def outside_right(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[0] = base[0] + base[2] + (margin ? margin[base[2]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[0] = base[0] + base[2] + (margin ? margin[base[2]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を上端(y軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の内側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の内側に設置されたとして算出する
     #ブロックでは、数値を返却することで、上端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def top(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[1] = base[1] + (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[1] = base[1] + (margin ? margin[base[3]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を上端(y軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の外側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の外側に設置されたとして算出する
     #ブロックでは、数値を返却することで、上端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def outside_top(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[1] = base[1] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[1] = base[1] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を中間(y軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
     #返却値:: 移動後の位置(Position構造体)
     def middle
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
       return pos
     end
 
     #===mixinしたインスタンスの位置を下端(y軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の内側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の内側に設置されたとして算出する
     #ブロックでは、数値を返却することで、下端からのマージンを設定できる(負の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def bottom(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[1] = base[1] + base[3] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[1] = base[1] + base[3] - @layout.size[1] - (margin ? margin[base[3]].to_i : 0)
       return pos
     end
 
     #===mixinしたインスタンスの位置を下端(y軸)に移動させたときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
-		#基準となる空間の外側に設置されたとして算出する
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #基準となる空間の外側に設置されたとして算出する
     #ブロックでは、数値を返却することで、下端からのマージンを設定できる(正の方向へ移動)
     #ブロック引数は、自分自身の幅
     #返却値:: 移動後の位置(Position構造体)
     def outside_bottom(&margin)
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[1] = base[1] + base[3] + (margin ? margin[base[3]].to_i : 0)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[1] = base[1] + base[3] + (margin ? margin[base[3]].to_i : 0)
       return pos
     end
 
     #===インスタンスを画面(スナップ先インスタンス)の中心に移動したときの位置を返す
-		#但し、移動したときの位置を返すだけで、自身の位置は変わらない
+    #但し、移動したときの位置を返すだけで、自身の位置は変わらない
     #返却値:: 移動後の位置(Position構造体)
     def centering
-			base = @layout.base.rect
-			pos = @layout.pos.dup
-			pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
-			pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
+      base = @layout.base.rect
+      pos = @layout.pos.dup
+      pos[0] = base[0] + (base[2] >> 1) - (@layout.size[0] >> 1)
+      pos[1] = base[1] + (base[3] >> 1) - (@layout.size[1] >> 1)
       return pos
     end
 
@@ -461,7 +464,7 @@ module Miyako
     alias :layout_size :size
 
     #===インスタンスのサイズをレイアウト情報に反映させる
-		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
+    #このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #_w_:: インスタンスの幅(たとえば、Sprite#ow の値)
     #_h_:: インスタンスの幅(たとえば、Sprite#oh の値)
     #返却値:: 自分自身を返す
@@ -508,7 +511,7 @@ module Miyako
     end
 
     #===すべてのインスタンスとの依存関係を解消する
-		#このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
+    #このメソッドが呼び出されると、スナップ先のインスタンスの位置情報がリセットされることに注意
     #返却値:: 自分自身を返す
     def reset_snap
       @layout.snap.sprite = nil
@@ -616,9 +619,9 @@ module Miyako
     # 生成される線分は、x方向が[pos.x,pos.x+ow-1]、y方向が[pos.y,pos.y+oh-1]となる
     #返却値:: 生成したSegments構造体インスタンス
     def segment
-			return Segments.new([@layout.pos[0],
+      return Segments.new([@layout.pos[0],
                           @layout.pos[0]+@layout.size[0]-1],
-			                   [@layout.pos[1],
+                         [@layout.pos[1],
                           @layout.pos[1]+@layout.size[1]-1])
     end
   end

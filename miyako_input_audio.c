@@ -69,9 +69,15 @@ static volatile VALUE sy_ent = Qnil;
 */
 static VALUE input_update(VALUE self)
 {
+#if 0
   int i, len;
   VALUE *ptr;
   VALUE keys, e_list, e;
+#else
+  int i;
+  VALUE *ptr;
+  VALUE keys, e, proc;
+#endif
 
   VALUE btn = rb_iv_get(self, "@@btn");
   VALUE mouse = rb_iv_get(self, "@@mouse");
@@ -102,6 +108,7 @@ static VALUE input_update(VALUE self)
   rb_hash_aset(drop, sy_middle, Qfalse);
   rb_hash_aset(drop, sy_right, Qfalse);
 
+#if 0
   e_list = rb_ary_new();
   e = rb_funcall(cEvent, id_poll, 0);
   while(e != Qnil)
@@ -126,6 +133,23 @@ static VALUE input_update(VALUE self)
       rb_hash_aset(pushed, sy_ent, nZero);
     }
   }
+#else
+  e = rb_funcall(cEvent, id_poll, 0);
+  while(e != Qnil)
+  {
+    proc = rb_hash_lookup(process, CLASS_OF(e));
+    if(proc != Qnil){ rb_funcall(proc, id_call, 1, e); }
+    if(rb_hash_lookup(trigger, sy_alt) == nOne &&
+       rb_hash_lookup(pushed, sy_ent) == nOne &&
+       toggle == Qtrue)
+    {
+      rb_funcall(mScreen, rb_intern("toggle_mode"), 0);
+      rb_hash_aset(trigger, sy_alt, nZero);
+      rb_hash_aset(pushed, sy_ent, nZero);
+    }
+    e = rb_funcall(cEvent, id_poll, 0);
+  }
+#endif
 
   return Qnil;
 }

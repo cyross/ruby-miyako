@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.9
-【   作成日   】　2010/02/01
+【 バージョン 】　2.1.10
+【   作成日   】　2010/04/20
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.9公式リリース版です。
+本バージョンは、2.1.10公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -91,24 +91,21 @@ PAD : BUFFALO BGC-FC802
 OS  : Microsoft WindowsXp SP3
       Microsoft WindowsVista Ultimate(x64) SP1
 DEV : Notepad++ v5.3.1-6
-      mswin32版Ruby 1.9.1-p129 + Ruby/SDL 2.1
+      mingw32版Ruby 1.9.2dev + Ruby/SDL 2.1.1
       MinGW+MSYS(miyako_no_katanaビルド)
-      rcairo-1.8.0(miyako-cairo検証用)
 
 ＜サブ開発PC＞
-Panasonic Let'sNOTE Light R3
-CPU : PentiumM 1.1GHz
-MEM : 784(256+512)MB
+Panasonic Let'sNOTE Light S9
+CPU : Core i5
+MEM : 4GB(2GBx2)
 PAD : SANWA SUPPLY JY-P1W
-OS  : Microsoft WindowsXp SP3
+OS  : Microsoft Windows7 x64
 DEV : Notepad++ v5.3.1-6
-      mswin32版Ruby 1.9.1-p129 + Ruby/SDL 2.1
-      MinGW+MSYS(miyako_no_katanaビルド)
+      mswin32版Ruby 1.9.2dev + Ruby/SDL 2.1.1
 
 【 動作確認環境 】
 
-上記環境に追加して、VMWarePlayer上で動作している
-Ubuntu9.04(x86)+Ruby1.9.1+Ruby/SDL2.1.0で動作確認済み
+上記環境に追加して、Ubuntu9.04(x86)+Ruby1.9.1+Ruby/SDL2.1.1で動作確認済み
 
 【 動作環境  】
 
@@ -121,10 +118,9 @@ WindowsXp Home/Pro、WindowsVista、Linux、MacOSX等、Ruby/SDLが動作する�
 ビデオメモリ　：8MB（32bitカラー対応、64MB以上奨励）
 サウンドカード：必須(出来ればSoundBlaster Live!クラス)
 
-Ruby1.9.1以降
+Ruby1.9.1以降(Ruby1.9.2対応)
 Ruby/SDL 2.1＋対応SDLライブラリ群
 (SDL、SDL_ttf、SDL_image、SDL_Mixer、SGE、smpeg)
-rcairo 1.8.0以降(miyako-cairo使用時)
 
 【 ファイル構成  】
 
@@ -1652,6 +1648,30 @@ v2.1.9(2010.03.07)
 <モジュール関数廃止>
 <インスタンスメソッド追加>
 <インスタンスメソッド廃止>
+
+v2.1.10(2010.04.20)
+<バグ修正>
+・SpriteListクラスのオブジェクトからsnap等のレイアウト関係メソッドを呼び出すとプログラムが墜ちるバグを修正
+・Input.updateメソッドの処理に、イベントを逆順に取得する問題があった箇所を修正
+<機能改善>
+<仕様変更>
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+<モジュール関数廃止>
+<インスタンスメソッド追加>
+<インスタンスメソッド廃止>
+<ドキュメント>
+・リファレンスマニュアルの項目追加
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

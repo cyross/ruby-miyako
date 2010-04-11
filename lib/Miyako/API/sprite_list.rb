@@ -156,6 +156,8 @@ module Miyako
     #_pairs_:: 生成元のインスタンス
     #返却値:: 生成したインスタンス
     def initialize(pairs = nil)
+      init_layout
+      set_layout_size(1,1)
       @list = []
       if pairs.is_a?(Array)
         pairs.each_with_index{|pair, i|
