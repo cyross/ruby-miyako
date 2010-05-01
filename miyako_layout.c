@@ -149,8 +149,8 @@ static VALUE layout_move_to(VALUE self, VALUE x, VALUE y)
   VALUE ty = *poy;
   *pox = x;
   *poy = y;
-	dx = INT2NUM((NUM2INT(x))-(NUM2INT(tx)));
-	dy = INT2NUM((NUM2INT(y))-(NUM2INT(ty)));
+  dx = INT2NUM((NUM2INT(x))-(NUM2INT(tx)));
+  dy = INT2NUM((NUM2INT(y))-(NUM2INT(ty)));
   layout_update_layout(self, dx, dy);
   on_move = *(RSTRUCT_PTR(get_layout(self)) + 4);
   for(i=0; i<RARRAY_LEN(on_move); i++)
@@ -256,10 +256,10 @@ static VALUE layout_snap(int argc, VALUE *argv, VALUE self)
   {
     *base = *sprite;
   }
-	else
-	{
+  else
+  {
     *base = mScreen;
-	}
+  }
   return self;
 }
 
@@ -284,11 +284,11 @@ void Init_miyako_layout()
   rb_define_method(mLayout, "y", layout_y, 0);
   rb_define_method(mLayout, "pos", layout_pos, 0);
   rb_define_method(mLayout, "size", layout_size, 0);
-	rb_define_method(mLayout, "move!", layout_move, 2);
-	rb_define_method(mLayout, "move_to!", layout_move_to, 2);
+  rb_define_method(mLayout, "move!", layout_move, 2);
+  rb_define_method(mLayout, "move_to!", layout_move_to, 2);
   rb_define_method(mLayout, "relative_move_to!", layout_relative_move_to, 2);
-	rb_define_method(mLayout, "update_layout", layout_update_layout, 2);
-	rb_define_method(mLayout, "snap", layout_snap, -1);
-	rb_define_method(mLayout, "add_snap_child", layout_add_snap_child, 1);
-	rb_define_method(mLayout, "delete_snap_child", layout_delete_snap_child, 1);
+  rb_define_method(mLayout, "update_layout", layout_update_layout, 2);
+  rb_define_method(mLayout, "snap", layout_snap, -1);
+  rb_define_method(mLayout, "add_snap_child", layout_add_snap_child, 1);
+  rb_define_method(mLayout, "delete_snap_child", layout_delete_snap_child, 1);
 }

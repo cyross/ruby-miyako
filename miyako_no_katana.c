@@ -1179,7 +1179,7 @@ static VALUE sa_set_pat(VALUE self)
 {
   VALUE num = rb_iv_get(self, "@pnum");
   VALUE plist = rb_iv_get(self, "@plist");
-  VALUE units = rb_iv_get(self, "@units");
+  VALUE units = rb_iv_get(self, "@slist");
   rb_iv_set(self, "@now", *(RARRAY_PTR(units) + NUM2INT(*(RARRAY_PTR(plist) + NUM2INT(num)))));
   return self;
 }
@@ -1565,8 +1565,10 @@ void Init_miyako_no_katana()
   rb_define_method(cSpriteAnimation, "update_frame", sa_update_frame, 0);
   rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);
   rb_define_method(cSpriteAnimation, "set_pat", sa_set_pat, 0);
+#if 0
   rb_define_method(cSpriteAnimation, "render", sa_render, 0);
   rb_define_method(cSpriteAnimation, "render_to", sa_render_to_sprite, 1);
+#endif
 
   rb_define_method(mSpriteBase, "render_xy", sprite_b_render_xy, 2);
   rb_define_method(mSpriteBase, "render_xy_to", sprite_b_render_xy_to_sprite, 3);

@@ -26,6 +26,8 @@ module Miyako
     include Animation
     include Layout
 
+    DIRECTION_LIST = [:up, :down, :left, :right, :base]
+
     attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
 
     def initialize(*params)
@@ -120,6 +122,18 @@ module Miyako
       min_y, max_y = yy.minmax
       return Rect.new(min_x, min_y, max_x-min_x, max_y-min_y)
     end
+
+    #===方向と移動先とを関連づける
+    # _hash_:: (方向)=>(移動先)の関係を持つハッシュ
+    # ハッシュキーは、:up,:down,:left,:right,:baseの5つ
+    #返却値:: 生成された矩形(Rect構造体のインスタンス)
+    def arrow(hash)
+      hash.each{|key, value|
+        raise MiakoValueError, "illegal hash key!" unless DIRECTION_LIST.include?(key)
+        self[key] = value
+      }
+      return self
+    end
   end
 
   #==選択肢構造体
@@ -136,10 +150,10 @@ module Miyako
   #_selected_:: 選択肢が選択されているときはtrue、選択されていないときはfalse
   #_result_:: 選択した結果を示すインスタンス
   #_left_:: 左方向を選択したときに参照するChoice構造体のインスタンス
-  #_right_:: 右方向を選択したときに参照するChoice構造体のインスタンス
   #_up_:: 上方向を選択したときに参照するChoice構造体のインスタンス
+  #_right_:: 右方向を選択したときに参照するChoice構造体のインスタンス
   #_down_:: 下方向を選択したときに参照するChoice構造体のインスタンス
-  #_base_:: 構造体が要素となっている配列
+  #_base_:: 構造体が要素となっているChoices
   #_attribute_:: 属性を示すハッシュ
   #_end_select_proc_:: この選択肢を選択したときに優先的に処理するブロック。
   #ブロックは1つの引数を取る(コマンド選択テキストボックス))。
@@ -147,7 +161,7 @@ module Miyako
   #_name_:: 選択肢の名前。名前を明示的に指定しないときは、オブジェクトIDを文字列化したものが入る
   Choice = ChoiceStruct.new(:body, :body_selected, :body_disable,
                             :condition, :enable, :selected, :result,
-                            :left, :right, :up, :down,
+                            :left, :up, :right, :down,
                             :base, :attribute, :end_select_proc, :name)
 
   #==選択肢を管理するクラス

@@ -519,7 +519,7 @@ module Miyako
     #返却値:: 自分自身を返す
     def command(choices, dx = nil, dy = nil)
       if choices.methods.include?(:start_choice)
-        @choices = choices.dup
+        @choices = choices
         @choices.snap(self)
       else
         @choices.clear

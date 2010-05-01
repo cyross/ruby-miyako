@@ -53,7 +53,7 @@ module Miyako
     #
     #利用できるパラメータは以下の通り
     #
-    #:sprite => sprite|spriteの配列　アニメーションさせるスプライト(インスタンス単体もしくはインスタンスの配列)。必須パラメータ
+    #:sprite/:sprites => sprite|spriteの配列　アニメーションさせるスプライト(インスタンス単体もしくはインスタンスの配列)。必須パラメータ
     #
     #:dir => :h|:v　単体アニメーションのとき、縦方向に位置をずらして表示させる(:h指定時)か、横方向か(:v指定時)を決定する。デフォルトは:h
     #
@@ -65,12 +65,11 @@ module Miyako
     #返却値:: 生成されたインスタンス
     def initialize(hash)
       init_layout
-      @units = Array.new
       @slist = nil
 
       hash[:dir] ||= :h
       @dir   = hash[:dir]
-      s = hash[:sprite]
+      s = hash[:sprite] || hash[:sprites]
       hash[:pattern_list] ||= nil
       @plist = hash[:pattern_list]
       hash[:wait] ||= 0
@@ -91,25 +90,13 @@ module Miyako
 
       @slist = Array.new
       if s.kind_of?(Sprite)
-        @now = s.to_unit unless @now
-        set_layout_size(s.ow, s.oh)
-        move_to!(s.x, s.y)
-        s.snap(self)
-        s.left!.top!
         @pat_len  = @dir == :h ? s.h  : s.w
         @pat_olen = @dir == :h ? s.oh : s.ow
         @chr_len  = @dir == :h ? s.w  : s.h
         @chr_olen = @dir == :h ? s.ow : s.oh
         @pats     = @pat_len / @pat_olen
       elsif s.kind_of?(Array)
-        first = s[0]
-        @now = first.to_unit unless @now
-        set_layout_size(first.ow, first.oh)
-        move_to!(first.x, first.y)
-        @slist = s.map{|ss|
-          ss.snap(self)
-          ss.left!.top!
-        }
+        @slist = s.dup
         @pat_len  = @slist.length
         @pats     = @slist.length
       else
@@ -164,23 +151,18 @@ module Miyako
       end
 
       if @slist.length == 0
-        @slist = Array.new(@pats){|pat| s }
-        @units = Array.new(@pats){|pat|
-          u = @slist[pat].to_unit.dup
+        @slist = Array.new(@pats){|pat|
+          u = s.dup
           px = pat % (@pat_len / @pat_olen)
           if @dir == :h
-            u.oy = @slist[pat].oh * @plist[px]
+            u.oy = u.oh * @plist[px]
           else
-            u.ox = @slist[pat].ow * @plist[px]
+            u.ox = u.ow * @plist[px]
           end
           u
         }
       elsif @slist.length < @pats
-        tmp = @slist
         @slist = @slist.cycle.take(@pats)
-        @units = Array.new(@pats){|pat| @slist[pat].to_unit.dup }
-      else
-        @units = Array.new(@pats){|pat| @slist[pat].to_unit.dup }
       end
 
       if @move_offset.length == 0
@@ -215,7 +197,16 @@ module Miyako
       @exec  = false
       @visible = true
 
-      @now = @units[0]
+      @now = @slist[@plist[@pnum]]
+
+      first = @slist[0]
+      set_layout_size(first.ow, first.oh)
+      move_to!(first.x, first.y)
+      @slist.each{|ss|
+        ss.snap(self)
+        ss.left!.top!
+      }
+
       @now.move_to!(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
                     @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
@@ -224,12 +215,11 @@ module Miyako
     #複写と同時に、本インスタンスに対するスナップの関係を解消するが、
     #新しいパターンスプライトとスナップをやり直す
     def initialize_copy(obj)
-      @units = @units.deep_dup
       @slist = @slist.deep_dup
       @plist = @plist.dup
       @move_offset = @move_offset.dup
       @pos_offset = @pos_offset.dup
-      @now = @units[@plist[@pnum]]
+      @now = @slist[@plist[@pnum]]
       copy_layout
       @slist.each{|s| s.snap(self)}
     end
@@ -261,7 +251,7 @@ module Miyako
     end
 
     def update_layout_position #:nodoc:
-      @units.each{|u| u.move_to!(*@layout.pos)}
+      @slist.each{|u| u.move_to!(*@layout.pos)}
     end
 
     #===現在表示しているスプライトのowを取得する
@@ -298,8 +288,8 @@ module Miyako
     end
 
     #===キャラクター番号を設定する
-		#キャラクター番号(アニメーションさせるときに表示させるパターン群インデックス)
-		#を設定する。範囲外のキャラクター番号が設定された時は何も行わない
+    #キャラクター番号(アニメーションさせるときに表示させるパターン群インデックス)
+    #を設定する。範囲外のキャラクター番号が設定された時は何も行わない
     #_cnum_:: キャラクター番号
     def character=(cnum)
       return self if (cnum < 0 || cnum >= @chrs)
@@ -317,8 +307,8 @@ module Miyako
       return self
     end
 
-		#===現在のキャラクター番号を取得する
-		#返却値:: キャラクター番号（0以上の整数）
+    #===現在のキャラクター番号を取得する
+    #返却値:: キャラクター番号（0以上の整数）
     def character
       return @cnum
     end
@@ -409,11 +399,11 @@ module Miyako
     end
 
     def set_pat #:nodoc:
-      @now = @units[@plist[@pnum]]
+      @now = @slist[@plist[@pnum]]
     end
 
     def set_chr #:nodoc:
-      @units.each{|u|
+      @slist.each{|u|
         if @dir == :h
           u.ox = @chr_olen * @cnum
         else
@@ -460,6 +450,7 @@ module Miyako
     #===現在表示しているスプライトの大きさを矩形で取得する
     #返却値:: 生成された矩形(Rect構造体のインスタンス)
     def rect
+      v = @slist[@plist[@pnum]]
       return Rect.new(@now.x, @now.y, @now.ow, @now.oh)
     end
 
@@ -473,8 +464,6 @@ module Miyako
     #===インスタンスに束縛されているオブジェクトを解放する
     def dispose
       @slist.clear
-      @units.each{|u| u.bitmap = nil}
-      @units.clear
       @waits.clear
       @plist.clear
       @move_offset.clear
@@ -489,6 +478,9 @@ module Miyako
     #ブロックの引数は、|インスタンスのSpriteUnit|となる。
     #visibleメソッドの値がfalseのときは描画されない。
     def render
+      return self unless @now
+      pos = @now.move(*@move_offset[@pnum])
+      @now.render_xy(*pos)
     end
 
     #===アニメーションの現在の画像を画像に描画する
@@ -500,6 +492,9 @@ module Miyako
     #visibleメソッドの値がfalseのときは描画されない。
     #_dst_:: 転送先ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     def render_to(dst)
+      return self unless @now
+      pos = @now.move(*@move_offset[@pnum])
+      @now.render_xy_to(dst, *pos)
     end
   end
 end

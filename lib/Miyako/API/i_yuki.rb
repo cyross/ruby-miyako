@@ -71,6 +71,8 @@ module Miyako
     include SpriteBase
     include Animation
 
+    ALL_TRUE = lambda{ true }
+
     #==キャンセルを示す構造体
     #コマンド選択がキャンセルされたときに生成される構造体
     Canceled = Struct.new(:dummy)
@@ -84,6 +86,43 @@ module Miyako
     #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
     Command = Struct.new(:body, :body_selected, :body_disable, :enable, :condition, :result)
 
+    class Command
+      # Command構造体をChoice構造体に変換する
+      def to_choice(font=Font.sans_serif, size=16, color=Color[:white])
+        org_font_color = font.color
+        org_font_size = font.size
+
+        font.color = color
+        tmp = self[:body]
+        body = tmp.method(:to_sprite).arity == 0 ? tmp.to_sprite : tmp.to_sprite(font)
+
+        font.color = Color[:red]
+        tmp = self[:body_selected]
+        body_selected = tmp ? (tmp.method(:to_sprite).arity == 0 ? tmp.to_sprite : tmp.to_sprite(font)) : body
+
+        font.color = Color[:dark_gray]
+        tmp = self[:body_disable]
+        body_disable= tmp ? (tmp.method(:to_sprite).arity == 0 ? tmp.to_sprite : tmp.to_sprite(font)) : body
+
+        cond = self[:condition] || ALL_TRUE
+
+        choice = Choice.new(body, body_selected, body_disable,
+                            cond, self[:enable], false, self[:result],
+                            nil, nil, nil, nil,
+                            nil, {}, lambda{}, nil)
+        choice.left = choice
+        choice.right = choice
+        choice.up = choice
+        choice.down = choice
+        choice.name = choice.__id__.to_s
+
+        font.color = org_font_color
+        font.size  = org_font_size
+
+        choice
+      end
+    end
+
     #==コマンド構造体
     #_body_:: コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）
     #_body_selected_:: 選択時コマンドの名称（移動する、調べるなど、アイコンなどの画像も可）(省略時は、bodyと同一)
@@ -94,6 +133,43 @@ module Miyako
     #ブロックは1つの引数を取る(コマンド選択テキストボックス))。デフォルトはnil
     #_enabe_:: コマンド選択の時はtrue、選択不可の時はfalseを設定
     CommandEX = Struct.new(:body, :body_selected, :condition, :body_disable, :enable, :result, :end_select_proc)
+
+    class CommandEx
+      # Command構造体をChoice構造体に変換する
+      def to_choice(font=Font.sans_serif, size=16, color=Color[:white])
+        org_font_color = font.color
+        org_font_size = font.size
+
+        font.color = color
+        tmp = self[:body]
+        body = tmp.method(:to_sprite).arity == 0 ? tmp.to_sprite : tmp.to_sprite(font)
+
+        font.color = Color[:red]
+        tmp = self[:body_selected]
+        body_selected = tmp ? (tmp.method(:to_sprite).arity == 0 ? tmp.to_sprite : tmp.to_sprite(font)) : body
+
+        font.color = Color[:dark_gray]
+        tmp = self[:body_disable]
+        body_disable= tmp ? (tmp.method(:to_sprite).arity == 0 ? tmp.to_sprite : tmp.to_sprite(font)) : body
+
+        cond = self[:condition] || ALL_TRUE
+
+        choice = Choice.new(body, body_selected, body_disable,
+                            cond, self[:enable], false, self[:result],
+                            nil, nil, nil, nil,
+                            nil, {}, self[:end_select_proc], nil)
+        choice.left = choice
+        choice.right = choice
+        choice.up = choice
+        choice.down = choice
+        choice.name = choice.__id__.to_s
+
+        font.color = org_font_color
+        font.size  = org_font_size
+
+        choice
+      end
+    end
 
     attr_reader :visibles, :pre_visibles, :bgs, :base
     attr_reader :valign
@@ -224,7 +300,7 @@ module Miyako
 
       @engine_stack = []
 
-      raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
+      raise MiyakoProcError, "Argument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
 
@@ -272,6 +348,38 @@ module Miyako
       self.textbox_all.render
       self.commandbox_all.render unless self.box_shared?
       self.pre_visibles.render
+    end
+
+    def start_all
+      self.bgs.start
+      self.visibles.start
+      self.textbox_all.start
+      self.commandbox_all.start unless self.box_shared?
+      self.pre_visibles.start
+    end
+
+    def stop_all
+      self.bgs.stop
+      self.visibles.stop
+      self.textbox_all.stop
+      self.commandbox_all.stop unless self.box_shared?
+      self.pre_visibles.stop
+    end
+
+    def reset_all
+      self.bgs.reset
+      self.visibles.reset
+      self.textbox_all.reset
+      self.commandbox_all.reset unless self.box_shared?
+      self.pre_visibles.reset
+    end
+
+    def animation_all
+      self.bgs.update_animation
+      self.visibles.update_animation
+      self.textbox_all.update_animation
+      self.commandbox_all.update_animation unless self.box_shared?
+      self.pre_visibles.update_animation
     end
 
     #===Yuki#showで表示指定した画像を描画する
@@ -798,7 +906,7 @@ module Miyako
       @now_page = nil
       @first_page = nil
 
-      raise MiyakoProcError, "Aagument count is not same block parameter count!" if proc && proc.arity.abs != params.length
+      raise MiyakoProcError, "Argument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if proc
 
       return self
@@ -829,9 +937,9 @@ module Miyako
     #返却値:: 自分自身を返す
     def start_plot(base, plot_proc = nil, *params, &plot_block)
       raise MiyakoValueError, "Yuki Error! Textbox is not selected!" unless @text_box
-      raise MiyakoProcError, "Aagument count is not same block parameter count!" if plot_proc && plot_proc.arity.abs != params.length
-      raise MiyakoProcError, "Aagument count is not same block parameter count!" if plot_block && plot_block.arity.abs != params.length
-      raise MiyakoProcError, "Aagument count is not same block parameter count!" if @exec_plot && @exec_plot.arity.abs != params.length
+      raise MiyakoProcError, "Argument count is not same block parameter count!" if plot_proc && plot_proc.arity.abs != params.length
+      raise MiyakoProcError, "Argument count is not same block parameter count!" if plot_block && plot_block.arity.abs != params.length
+      raise MiyakoProcError, "Argument count is not same block parameter count!" if @exec_plot && @exec_plot.arity.abs != params.length
       @base = base
       plot_facade(plot_proc, *params, &plot_block)
       return self
@@ -1314,7 +1422,7 @@ module Miyako
     #引数無しのブロックを渡せば、コマンド選択開始前に、決定判別・キャンセル判別に必要な前処理を施すことが出来る
     #選択中、update_innerメソッドを呼び出し、続けて、処理をYuki#startもしくはYuki#update呼び出し直後に戻す
     #Yuki#updateが呼び出されても選択中の場合は、再び上記の処理を繰り返す
-    #_command_list_:: 表示するコマンド群。各要素はCommand構造体の配列
+    #_command_list_:: 表示するコマンド群。各要素はCommand構造体/CommandEx構造体/Choicesクラスオブジェクトの配列
     #_cancel_to_:: キャンセルボタンを押したときの結果。デフォルトはnil（キャンセル無効）
     #_chain_block_:: コマンドの表示方法。TextBox#create_choices_chainメソッド参照
     #返却値:: 自分自身を返す
@@ -1322,22 +1430,29 @@ module Miyako
       raise MiyakoValueError, "Yuki Error! Commandbox is not selected!" unless @command_box
       @cancel = cancel_to
 
-      choices = []
-      command_list.each{|cm|
-        if (cm[:condition] == nil || cm[:condition].call)
-          cm_array = [cm[:body], cm[:body_selected], cm[:body_disable], cm[:enable], cm[:result]]
-          methods = cm.methods
-          cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : nil)
-          choices.push(cm_array)
-        end
-      }
-      return self if choices.length == 0
+      if command_list.kind_of?(Choices)
+        @pre_command.each{|proc| proc.call}
+        @pre_cancel.each{|proc| proc.call}
+        @command_box_all.show if @command_box_all.object_id != @text_box_all.object_id
+        @command_box.command(command_list)
+      else
+        choices = []
+        command_list.each{|cm|
+          if (cm[:condition] == nil || cm[:condition].call)
+            cm_array = [cm[:body], cm[:body_selected], cm[:body_disable], cm[:enable], cm[:result]]
+            methods = cm.methods
+            cm_array << (methods.include?(:end_select_proc) ? cm[:end_select_proc] : nil)
+            choices.push(cm_array)
+          end
+        }
+        return self if choices.length == 0
 
-      @pre_command.each{|proc| proc.call}
-      @pre_cancel.each{|proc| proc.call}
-      yield if block_given?
-      @command_box_all.show if @command_box_all.object_id != @text_box_all.object_id
-      @command_box.command(@command_box.create_choices_chain(choices, &chain_block))
+        @pre_command.each{|proc| proc.call}
+        @pre_cancel.each{|proc| proc.call}
+        @command_box_all.show if @command_box_all.object_id != @text_box_all.object_id
+        @command_box.command(@command_box.create_choices_chain(choices, &chain_block))
+      end
+
       @result = nil
       selecting = true
       reset_selecting

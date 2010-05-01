@@ -229,7 +229,13 @@ static void sprite_array_inner(VALUE array, ID id)
   int i;
   for(i=0; i<RARRAY_LEN(array); i++)
   {
-    rb_funcall(*(RARRAY_PTR(array)+i), id, 0);
+    VALUE e = *(RARRAY_PTR(array)+i);
+    VALUE c = rb_obj_class(e);
+    if(rb_mod_include_p(c, mSpriteBase) == Qtrue ||
+       rb_mod_include_p(c, mSpriteArray) == Qtrue)
+    {
+      rb_funcall(*(RARRAY_PTR(array)+i), id, 0);
+    }
   }
 }
 
@@ -238,7 +244,7 @@ static void sprite_array_inner(VALUE array, ID id)
 */
 static VALUE sprite_array_start(VALUE self)
 {
-  sprite_array_inner(sprite_array_sprite_only(self), id_start);
+  sprite_array_inner(self, id_start);
   return self;
 }
 
@@ -247,7 +253,7 @@ static VALUE sprite_array_start(VALUE self)
 */
 static VALUE sprite_array_stop(VALUE self)
 {
-  sprite_array_inner(sprite_array_sprite_only(self), id_stop);
+  sprite_array_inner(self, id_stop);
   return self;
 }
 
@@ -256,7 +262,7 @@ static VALUE sprite_array_stop(VALUE self)
 */
 static VALUE sprite_array_reset(VALUE self)
 {
-  sprite_array_inner(sprite_array_sprite_only(self), id_reset);
+  sprite_array_inner(self, id_reset);
   return self;
 }
 
@@ -265,14 +271,20 @@ static VALUE sprite_array_reset(VALUE self)
 */
 static VALUE sprite_array_update_animation(VALUE self)
 {
-  VALUE array = sprite_array_sprite_only(self);
   VALUE ret = rb_ary_new();
   int i;
-  for(i=0; i<RARRAY_LEN(array); i++)
+  for(i=0; i<RARRAY_LEN(self); i++)
   {
-    VALUE v = *(RARRAY_PTR(array)+i);
-    VALUE r = rb_funcall(v, id_update_animation, 0);
-    rb_ary_push(ret, r);
+    VALUE v = *(RARRAY_PTR(self)+i);
+    VALUE c = rb_obj_class(v);
+    if(rb_mod_include_p(c, mSpriteBase) == Qtrue ||
+       rb_mod_include_p(c, mSpriteArray) == Qtrue)
+    {
+      VALUE r = rb_funcall(v, id_update_animation, 0);
+      rb_ary_push(ret, r);
+    }
+    else
+      rb_ary_push(ret, Qfalse);
   }
   return ret;
 }
@@ -282,7 +294,7 @@ static VALUE sprite_array_update_animation(VALUE self)
 */
 static VALUE sprite_array_render(VALUE self)
 {
-  sprite_array_inner(sprite_array_sprite_only(self), id_render);
+  sprite_array_inner(self, id_render);
   return self;
 }
 
@@ -291,12 +303,16 @@ static VALUE sprite_array_render(VALUE self)
 */
 static VALUE sprite_array_render_to(VALUE self, VALUE dst)
 {
-  VALUE array = sprite_array_sprite_only(self);
-
   int i;
-  for(i=0; i<RARRAY_LEN(array); i++)
+  for(i=0; i<RARRAY_LEN(self); i++)
   {
-    rb_funcall(*(RARRAY_PTR(array)+i), id_render_to, 1, dst);
+    VALUE v = *(RARRAY_PTR(self)+i);
+    VALUE c = rb_obj_class(v);
+    if(rb_mod_include_p(c, mSpriteBase) == Qtrue ||
+       rb_mod_include_p(c, mSpriteArray) == Qtrue)
+    {
+      rb_funcall(v, id_render_to, 1, dst);
+    }
   }
 
   return self;
@@ -462,7 +478,7 @@ static VALUE sprite_list_each_index(VALUE self)
 {
 int i;
   VALUE array;
- 
+
   RETURN_ENUMERATOR(self, 0, 0);
 
   array = rb_iv_get(self, str_list);

@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.10
-【   作成日   】　2010/04/20
+【 バージョン 】　2.1.11
+【   作成日   】　2010/05/01
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.10公式リリース版です。
+本バージョンは、2.1.11公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -1669,6 +1669,60 @@ v2.1.10(2010.04.20)
 <モジュール関数追加>
 <モジュール関数廃止>
 <インスタンスメソッド追加>
+<インスタンスメソッド廃止>
+<ドキュメント>
+・リファレンスマニュアルの項目追加
+
+v2.1.11(2010.05.01)
+<バグ修正>
+・エラーメッセージの修正(ScenarioEngine,InitiativeScenarioEngine)
+<機能改善>
+<仕様変更>
+・ScenarioEngine/InitiativeScenarioEngine#commandメソッドの見直し
+　・インタフェース使用に変化なし
+　・配列の中身がChoicesクラスオブジェクト(の配列)のときにも対応した
+・Choice構造体の:rightと:upの順番を入れ替え
+・SpriteAnimation.newメソッドの:sprite引数に加えて、:sprites引数に置き換え可能とした
+・SpriteAnimation#render,render_toの高速化を廃止
+・SpriteAnimation#newに渡すスプライトの範囲を拡大(要素はSpriteBase・Layoutモジュールを取り込んだ物なら何でも良くなった)
+<ファイル追加>
+・lib/EXT/drawer.rb
+・sample/drawer_sample.rb
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+Drawer
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+・SpriteBase#.ox=
+・SpriteBase#.oy=
+・SpriteBase#.ow=
+・SpriteBase#.oh=
+・SpriteArray#.render_xy
+・SpriteArray#.render_xy_to
+<モジュール関数廃止>
+<インスタンスメソッド追加>
+・ScenarioEngine::Command#to_choice
+・ScenarioEngine::CommandEx#to_choice
+・ScenarioEngine#start_all
+・ScenarioEngine#stop_all
+・ScenarioEngine#reset_all
+・ScenarioEngine#animation_all
+・InitiativeScenarioEngine::Command#to_choice
+・InitiativeScenarioEngine::CommandEx#to_choice
+・InitiativeScenarioEngine#start_all
+・InitiativeScenarioEngine#stop_all
+・InitiativeScenarioEngine#reset_all
+・InitiativeScenarioEngine#animation_all
+・Choice#arrow
+・SpriteList#render_xy
+・SpriteList#render_xy_to
 <インスタンスメソッド廃止>
 <ドキュメント>
 ・リファレンスマニュアルの項目追加

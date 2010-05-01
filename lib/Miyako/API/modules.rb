@@ -86,6 +86,18 @@ module Miyako
       return 0
     end
 
+    #=== mixin されたインスタンスの部分矩形開始位置(x軸)を取得する
+    #返却値:: 部分矩形開始位置(デフォルトは0)
+    def ox=(v)
+      v
+    end
+
+    #=== mixin されたインスタンスの部分矩形開始位置(y軸)を取得する
+    #返却値::部分矩形開始位置(デフォルトは0)
+    def oy=(v)
+      v
+    end
+
     #=== mixin されたインスタンスの部分矩形幅を取得する
     #返却値:: インスタンスの幅(デフォルトは0)
     def ow
@@ -96,6 +108,18 @@ module Miyako
     #返却値:: インスタンスの高さ(デフォルトは0)
     def oh
       return 0
+    end
+
+    #=== mixin されたインスタンスの部分矩形幅を取得する
+    #返却値:: インスタンスの幅(デフォルトは0)
+    def ow=(v)
+      v
+    end
+
+    #=== mixin されたインスタンスの部分矩形高を取得する
+    #返却値:: インスタンスの高さ(デフォルトは0)
+    def oh=(v)
+      v
     end
 
     #=== スプライトの部分矩形を返す
@@ -284,7 +308,7 @@ module Miyako
     #_v_:: 設定する値(true/false)
     #返却値:: 自分自身を返す
     def visible=(v)
-      self.sprite_only.each{|e| e.visible = v}
+      self.each{|e| e.visible = v if e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
       return self
     end
 
@@ -308,9 +332,9 @@ module Miyako
     #返却値:: 自分自身を返す
     def move!(dx, dy)
       if block_given?
-        self.sprite_only.each_with_index{|e, i| e.move!(*(yield e, i, dx, dy))}
+        self.each_with_index{|e, i| e.move!(*(yield e, i, dx, dy)) if e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
       else
-        self.sprite_only.each{|e| e.move!(dx, dy)}
+        self.each{|e| e.move!(dx, dy) if e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
       end
       self
     end
@@ -335,9 +359,9 @@ module Miyako
     #返却値:: 自分自身を返す
     def move_to!(x, y)
       if block_given?
-        self.sprite_only.each_with_index{|e, i| e.move_to!(*(yield e, i, x, y))}
+        self.each_with_index{|e, i| e.move_to!(*(yield e, i, x, y)) if  e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
       else
-        self.sprite_only.each{|e| e.move_to!(x, y)}
+        self.each{|e| e.move_to!(x, y) if e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
       end
       self
     end
@@ -346,7 +370,7 @@ module Miyako
     #各要素のstartメソッドを呼び出す
     #返却値:: 自分自身を返す
     def start
-      self.sprite_only.each{|sprite| sprite.start }
+      self.each{|sprite| sprite.start if e.class.include?(SpriteBase) || e.class.include?(SpriteArray) }
       return self
     end
 
@@ -354,7 +378,7 @@ module Miyako
     #各要素のstopメソッドを呼び出す
     #返却値:: 自分自身を返す
     def stop
-      self.sprite_only.each{|sprite| sprite.stop }
+      self.each{|sprite| sprite.stop if e.class.include?(SpriteBase) || e.class.include?(SpriteArray) }
       return self
     end
 
@@ -362,7 +386,7 @@ module Miyako
     #各要素のresetメソッドを呼び出す
     #返却値:: 自分自身を返す
     def reset
-      self.sprite_only.each{|sprite| sprite.reset }
+      self.each{|sprite| sprite.reset if e.class.include?(SpriteBase) || e.class.include?(SpriteArray) }
       return self
     end
 
@@ -370,9 +394,7 @@ module Miyako
     #各要素のupdate_animationメソッドを呼び出す
     #返却値:: 描く画像のupdate_spriteメソッドを呼び出した結果を配列で返す
     def update_animation
-      self.sprite_only.map{|e|
-        e.update_animation
-      }
+      self.map{|e| (e.class.include?(SpriteBase) || e.class.include?(SpriteArray)) ? e.update_animation : false }
     end
 
     #===指定した要素の内容を入れ替える
@@ -393,7 +415,7 @@ module Miyako
     #描画するインスタンスは、SpriteBaseモジュールがmixinされているクラスのみ
     #返却値:: 自分自身を帰す
     def render
-      self.sprite_only.each{|e| e.render }
+      self.each{|e| e.render if  e.class.include?(SpriteBase) || e.class.include?(SpriteArray) }
       return self
     end
 
@@ -402,8 +424,33 @@ module Miyako
     #_dst_:: 描画対象の画像インスタンス
     #返却値:: 自分自身を帰す
     def render_to(dst)
-      self.each{|e| e.render_to(dst) }
+      self.each{|e| e.render_to(dst) if  e.class.include?(SpriteBase) || e.class.include?(SpriteArray) }
       return self
+    end
+
+    #===位置を指定して画面への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrenderメソッドを呼び出す
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_xy(x, y)
+      return self.each{|e| e.render_xy(x, y) if  e.class.include?(SpriteBase) || e.class.include?(SpriteArray) }
+    end
+
+    #===位置を指定して画像への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが、処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrender_toメソッドを呼び出す
+    #_dst_:: 対象の画像
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_xy_to(dst, x, y)
+      return self.each{|e| e.render_xy_to(dst, x, y) if e.class.include?(SpriteBase) || e.class.include?(SpriteArray)}
     end
   end
 

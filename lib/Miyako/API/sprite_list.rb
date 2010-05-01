@@ -1349,6 +1349,40 @@ module Miyako
       return self
     end
 
+
+    #===位置を指定して画面への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrenderメソッドを呼び出す
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_xy(x, y)
+      return self.each{|pair|
+        obj = pair[1]
+        cl  = e.class
+        obj.render_xy(x, y) if cl.include?(SpriteBase) || cl.include?(SpriteArray)
+      }
+    end
+
+    #===位置を指定して画像への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが、処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrender_toメソッドを呼び出す
+    #_dst_:: 対象の画像
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_xy_to(dst, x, y)
+      return self.each{|pair|
+        obj = pair[1]
+        cl  = e.class
+        obj.render_xy_to(dst, x, y) if cl.include?(SpriteBase) || cl.include?(SpriteArray)
+      }
+    end
+
     #===オブジェクトを文字列に変換する
     #いったん、名前とスプライトとの対の配列に変換し、to_sメソッドで文字列化する。
     #例:[[name1, sprite1], [name2, sprite2],...]
