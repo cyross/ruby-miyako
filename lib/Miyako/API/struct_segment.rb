@@ -24,6 +24,10 @@ module Miyako
   #==線分の区間情報のための構造体クラス
   #位置変更メソッドを追加
   class SegmentStruct < Struct
+    def update!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+    end
 
     #===レシーバがotherの範囲内かどうかを求める
     #最小数・最大数ともにotherの範囲内かどうかを確認する

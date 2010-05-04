@@ -24,6 +24,38 @@ module Miyako
   #==矩形情報のための構造体クラス
   #矩形変更メソッドを追加
   class RectStruct < Struct
+    def update!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self[2] = obj[2]
+      self[3] = obj[3]
+      self
+    end
+
+    def update_by_point!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self
+    end
+
+    def update_by_size!(obj)
+      self[2] = obj[0]
+      self[3] = obj[1]
+      self
+    end
+
+    def update_by_rect!(obj)
+      update!(obj)
+    end
+
+    def update_by_square!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self[2] = obj[2] - self[0] + 1
+      self[3] = obj[3] - self[1] + 1
+      self
+    end
+
     #===位置を変更する(変化量を指定)
     # ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_dx_:: 移動量(x方向)。単位はピクセル

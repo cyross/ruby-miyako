@@ -1,7 +1,7 @@
 #encoding: utf-8
 #Drawerクラスサンプル
 #画面に星を表示させる
-#2010.05.01 Cyross Makoto
+#2010.05.03 Cyross Makoto
 
 require 'miyako'
 require 'Miyako/EXT/drawer'
@@ -13,6 +13,8 @@ RadianOffset = 0.2 * Math::PI # inner point (radian of 36deg)
 W = 7
 H = 5
 R = 32
+TIMES = 16
+ROUND_R = 128
 
 def base_line(sprite)
 end
@@ -43,6 +45,18 @@ end
 axis = [Drawer.new(:method=>:line, :rect=>[320,0,1,480], :color=>:white), # y-axis
         Drawer.new(:method=>:line, :rect=>[0,240,640,1], :color=>:white)] # x-axis
 
+# circle
+circle = SpriteAnimation.new(
+  :sprites=>[Drawer.new(:method=>:circle, :r=>48, :point=>[0,0], :color=>:red, :fill=>true)],
+  :wait=>0.05,
+  :move_offset=>TIMES.times.to_a.map{|n|
+    radian = 2*n.to_f/TIMES.to_f*Math::PI
+    [320+ROUND_R*Math.sin(radian),
+     240+ROUND_R*Math.cos(radian)]
+  }
+)
+
+
 # stars
 stars = H.times.to_a.map{|y|
   W.times.to_a.map{|x|
@@ -57,9 +71,13 @@ stars = H.times.to_a.map{|y|
 }
 
 Sprite[:axis] = axis
+Sprite[:circle] = circle
 Sprite[:stars] = stars
 
+Animation[:circle] = circle
 Animation[:stars] = stars
+
+circle.start
 stars.start
 
 Miyako.main_loop do

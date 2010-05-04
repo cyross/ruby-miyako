@@ -637,6 +637,38 @@ static VALUE sprite_render_rect2_xy_to_sprite(VALUE self, VALUE vdst, VALUE vrec
 }
 
 /*
+*/
+static VALUE sprite_render_d(VALUE self, VALUE vdx, VALUE vdy)
+{
+  VALUE src_unit, dst_unit, *s_p, *d_p;
+  SDL_Surface *src, *dst;
+  SDL_Rect srect, drect;
+
+  if(rb_iv_get(self, str_visible) == Qfalse) return self;
+
+  src_unit = rb_iv_get(self, "@unit");
+  dst_unit = rb_iv_get(mScreen, "@@unit");
+
+  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
+  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+
+  s_p = RSTRUCT_PTR(src_unit);
+  srect.x = NUM2INT(*(s_p + 1));
+  srect.y = NUM2INT(*(s_p + 2));
+  srect.w = NUM2INT(*(s_p + 3));
+  srect.h = NUM2INT(*(s_p + 4));
+
+  d_p = RSTRUCT_PTR(dst_unit);
+  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(*(s_p + 5)) + NUM2INT(vdx);
+  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(*(s_p + 6)) + NUM2INT(vdy);
+  drect.w = NUM2INT(*(d_p + 3));
+  drect.h = NUM2INT(*(d_p + 4));
+
+  SDL_BlitSurface(src, &srect, dst, &drect);
+  return self;
+}
+
+/*
 :nodoc:
 */
 static VALUE screen_update_tick(VALUE self)
@@ -1273,6 +1305,7 @@ static VALUE sa_update(VALUE self)
   return is_change;
 }
 
+#if 0
 /*
 */
 static VALUE sa_render(VALUE self)
@@ -1359,6 +1392,7 @@ static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
 
   return Qnil;
 }
+#endif
 
 /*
 */
@@ -1585,6 +1619,7 @@ void Init_miyako_no_katana()
   rb_define_method(cSprite, "render_rect_xy_to", sprite_render_rect_xy_to_sprite, 4);
   rb_define_method(cSprite, "render_rect2_xy", sprite_render_rect2_xy, 3);
   rb_define_method(cSprite, "render_rect2_xy_to", sprite_render_rect2_xy_to_sprite, 4);
+  rb_define_method(cSprite, "render_d", sprite_render_d, 2);
 
   rb_define_method(cPlane, "render", plane_render, 0);
   rb_define_method(cPlane, "render_to", plane_render_to_sprite, 1);

@@ -3,13 +3,13 @@
 #=コンテンツ作成ライブラリMiyako2.1
 #
 #Authors:: サイロス誠
-#Version:: 2.1.11
+#Version:: 2.1.12
 #Copyright:: 2007-2010 Cyross Makoto
 #License:: LGPL2.1
 #
 =begin
 Miyako v2.1
-Copyright (C) 2007-2008  Cyross Makoto
+Copyright (C) 2007-2010  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -63,7 +63,7 @@ Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
-  VERSION = "2.1.11"
+  VERSION = "2.1.12"
 
   #===アプリケーション実行中に演奏する音楽のサンプリングレートを指定する
   #単位はHz(周波数)

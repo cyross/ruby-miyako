@@ -125,7 +125,6 @@ module Miyako
       base = @layout.base.rect
       t = @layout.pos[0]
       @layout.pos[0] = base[0] + (margin ? margin[base[2]].to_i : 0)
-      @layout.snap.children.each{|c| c.left(&margin) }
       update_layout(@layout.pos[0]-t, 0)
       @layout.on_move.each{|block|
         block.call(self, @layout.pos[0], @layout.pos[1], @layout.pos[0]-t, 0)

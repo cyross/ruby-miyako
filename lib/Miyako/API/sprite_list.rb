@@ -1361,7 +1361,7 @@ module Miyako
     def render_xy(x, y)
       return self.each{|pair|
         obj = pair[1]
-        cl  = e.class
+        cl  = obj.class
         obj.render_xy(x, y) if cl.include?(SpriteBase) || cl.include?(SpriteArray)
       }
     end
@@ -1378,8 +1378,24 @@ module Miyako
     def render_xy_to(dst, x, y)
       return self.each{|pair|
         obj = pair[1]
-        cl  = e.class
+        cl  = obj.class
         obj.render_xy_to(dst, x, y) if cl.include?(SpriteBase) || cl.include?(SpriteArray)
+      }
+    end
+
+    #===位置を指定して画面への描画を指示するメソッドのテンプレート
+    #オブジェクトで保持している位置情報ではなく、引数で渡された位置に描画する
+    #基本的に、メソッドのオーバーライドにより機能するが、pos,move_to!メソッドを持っているときは、
+    #これらのメソッドを呼び出して同じ動作を行うが処理速度的に課題あり
+    #ただし、上記のメソッドを持っていない場合は、単純にrenderメソッドを呼び出す
+    #_x_:: 描画位置のx座標
+    #_y_:: 描画位置のy座標
+    #返却値:: 自分自身を返す
+    def render_d(dx, dy)
+      return self.each{|e|
+        obj = pair[1]
+        cl  = obj.class
+        obj.render_d(dx, dy) if  e.class.include?(SpriteBase) || e.class.include?(SpriteArray)
       }
     end
 

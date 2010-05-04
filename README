@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.11
-【   作成日   】　2010/05/01
+【 バージョン 】　2.1.12
+【   作成日   】　2010/05/04
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.11公式リリース版です。
+本バージョンは、2.1.12公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -1726,6 +1726,55 @@ Drawer
 <インスタンスメソッド廃止>
 <ドキュメント>
 ・リファレンスマニュアルの項目追加
+
+v2.1.12(2010.05.04)
+<バグ修正>
+・SpriteAnimation.newで、move_offsetパラメータの値によって表示位置が狂うバグを修正
+・Layout#.left!で、無駄なコードがあったため削除
+<機能改善>
+<仕様変更>
+・SpriteArray(SpriteList)#update_animation返却値を「要素のどれか一つが変更になればtrue」に変更
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+・SpriteBase#.render_d
+・SpriteArray#.render_d
+<モジュール関数廃止>
+<インスタンスメソッド追加>
+・Sprite#render_d
+・SpriteList#render_d
+・Point#update!
+・Point#update_by_point!
+・Point#update_by_size!
+・Point#update_by_rect!
+・Point#update_by_square!
+・Size#update!
+・Size#update_by_point!
+・Size#update_by_size!
+・Size#update_by_rect!
+・Size#update_by_square!
+・Rect#update!
+・Rect#update_by_point!
+・Rect#update_by_size!
+・Rect#update_by_rect!
+・Rect#update_by_square!
+・Square#update!
+・Square#update_by_point!
+・Square#update_by_size!
+・Square#update_by_rect!
+・Square#update_by_square!
+・Segment#update!
+<インスタンスメソッド廃止>
+<ドキュメント>
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

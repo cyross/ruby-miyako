@@ -206,9 +206,6 @@ module Miyako
         ss.snap(self)
         ss.left!.top!
       }
-
-      @now.move_to!(@slist[@plist[@pnum]].x + @move_offset[@pnum][0],
-                    @slist[@plist[@pnum]].y + @move_offset[@pnum][1])
     end
 
     #===複写時に呼び出されるメソッド
@@ -479,8 +476,9 @@ module Miyako
     #visibleメソッドの値がfalseのときは描画されない。
     def render
       return self unless @now
-      pos = @now.move(*@move_offset[@pnum])
-      @now.render_xy(*pos)
+#      pos = @now.move(*@move_offset[@pnum])
+#      @now.render_xy(*pos)
+      @now.render_d(*@move_offset[@pnum])
     end
 
     #===アニメーションの現在の画像を画像に描画する

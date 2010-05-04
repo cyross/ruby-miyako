@@ -271,7 +271,7 @@ static VALUE sprite_array_reset(VALUE self)
 */
 static VALUE sprite_array_update_animation(VALUE self)
 {
-  VALUE ret = rb_ary_new();
+  VALUE ret = Qfalse;
   int i;
   for(i=0; i<RARRAY_LEN(self); i++)
   {
@@ -280,11 +280,9 @@ static VALUE sprite_array_update_animation(VALUE self)
     if(rb_mod_include_p(c, mSpriteBase) == Qtrue ||
        rb_mod_include_p(c, mSpriteArray) == Qtrue)
     {
-      VALUE r = rb_funcall(v, id_update_animation, 0);
-      rb_ary_push(ret, r);
+      VALUE tmp = rb_funcall(v, id_update_animation, 0);
+      if(tmp != Qnil && tmp != Qfalse) ret = Qtrue;
     }
-    else
-      rb_ary_push(ret, Qfalse);
   }
   return ret;
 }
@@ -535,11 +533,12 @@ static VALUE sprite_list_reset(VALUE self)
 static VALUE sprite_list_update_animation(VALUE self)
 {
   VALUE array = rb_iv_get(self, str_list);
-  VALUE ret = rb_ary_new();
+  VALUE ret = Qfalse;
   int i;
   for(i=0; i<RARRAY_LEN(array); i++)
   {
-    rb_ary_push(ret, lps_update_animation(*(RARRAY_PTR(array)+i)));
+    VALUE tmp = lps_update_animation(*(RARRAY_PTR(array)+i));
+    if(tmp != Qnil && tmp != Qfalse) ret = Qtrue;
   }
   return ret;
 }

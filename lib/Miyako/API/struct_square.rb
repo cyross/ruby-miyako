@@ -24,6 +24,42 @@ module Miyako
   #==Square構造体用クラス
   #位置変更メソッドを追加
   class SquareStruct < Struct
+    def update!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self[2] = obj[2]
+      self[3] = obj[3]
+      self
+    end
+
+    def update_by_point!(obj)
+      w = self[2]-self[0]
+      h = self[3]-self[1]
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self[2] = self[0] + w
+      self[3] = self[1] + h
+      self
+    end
+
+    def update_by_size!(obj)
+      self[2] = self[0] + obj[0] - 1
+      self[3] = self[1] + obj[1] - 1
+      self
+    end
+
+    def update_by_rect!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self[2] = self[0] + obj[2] - 1
+      self[3] = self[1] + obj[3] - 1
+      self
+    end
+
+    def update_by_square!(obj)
+      update!(obj)
+    end
+
     #===位置を変更する(変化量を指定)
     # ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_dx_:: 移動量(x方向)。単位はピクセル

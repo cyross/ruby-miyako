@@ -24,6 +24,32 @@ module Miyako
   #==サイズ情報のための構造体クラス
   #サイズ変更メソッドを追加
   class SizeStruct < Struct
+    def update!(obj)
+      self[0] = obj[0]
+      self[1] = obj[1]
+      self
+    end
+
+    def update_by_point!(obj)
+      self
+    end
+
+    def update_by_size!(obj)
+      update!(obj)
+    end
+
+    def update_by_rect!(obj)
+      self[0] = obj[2]
+      self[1] = obj[3]
+      self
+    end
+
+    def update_by_square!(obj)
+      self[0] = obj[2]-obj[0]+1
+      self[1] = obj[3]-obj[1]+1
+      self
+    end
+
     #===サイズを変更する(変化量を指定)
     # ブロックを渡したとき、ブロックの評価した結果、偽になったときは移動させた値を元に戻す
     #_dw_:: 幅変更。単位はピクセル
