@@ -88,6 +88,8 @@ module Miyako
       @chr_len  = 1
       @chr_olen = 1
 
+      @changed  = false
+
       @slist = Array.new
       if s.kind_of?(Sprite)
         @pat_len  = @dir == :h ? s.h  : s.w
@@ -203,8 +205,9 @@ module Miyako
       set_layout_size(first.ow, first.oh)
       move_to!(first.x, first.y)
       @slist.each{|ss|
-        ss.snap(self)
-        ss.left!.top!
+#        ss.snap(self)
+#        ss.left!.top!
+        ss.move_to!(first.x, first.y)
       }
     end
 
@@ -248,7 +251,7 @@ module Miyako
     end
 
     def update_layout_position #:nodoc:
-      @slist.each{|u| u.move_to!(*@layout.pos)}
+      @slist.each{|u| u.move_to!(*@layout.pos) }
     end
 
     #===現在表示しているスプライトのowを取得する
@@ -415,6 +418,12 @@ module Miyako
       @pnum = 0
       @cnt  = 0
       return self
+    end
+
+    #===先の更新でパターンが更新されたかどうかを返す
+    #返却値:: true/false
+    def changed?
+      return @changed
     end
 
     #===アニメーションが実行中かを返す

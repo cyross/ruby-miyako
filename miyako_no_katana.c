@@ -1228,6 +1228,7 @@ static VALUE sa_update_frame(VALUE self)
   if(cnt > 0){
     cnt--;
     rb_iv_set(self, "@cnt", INT2NUM(cnt));
+    rb_iv_set(self, "@changed", Qfalse);
     return Qfalse;
   }
 
@@ -1242,6 +1243,7 @@ static VALUE sa_update_frame(VALUE self)
 
   if(loop == Qfalse && pnum == 0){
     rb_funcall(self, rb_intern("stop"), 0);
+    rb_iv_set(self, "@changed", Qfalse);
     return Qfalse;
   }
 
@@ -1249,6 +1251,7 @@ static VALUE sa_update_frame(VALUE self)
   plist = rb_iv_get(self, "@plist");
   waits = rb_iv_get(self, "@waits");
   rb_iv_set(self, "@cnt", *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum))));
+  rb_iv_set(self, "@changed", Qtrue);
 
   return Qtrue;
 }
@@ -1263,7 +1266,10 @@ static VALUE sa_update_wait_counter(VALUE self)
   VALUE cnt = rb_iv_get(self, "@cnt");
   VALUE waiting = rb_funcall(cnt, rb_intern("waiting?"), 0);
 
-  if(waiting == Qtrue) return Qfalse;
+  if(waiting == Qtrue){
+    rb_iv_set(self, "@changed", Qfalse);
+    return Qfalse;
+  }
 
   num = rb_iv_get(self, "@pnum");
   loop = rb_iv_get(self, "@loop");
@@ -1276,6 +1282,7 @@ static VALUE sa_update_wait_counter(VALUE self)
 
   if(loop == Qfalse && pnum == 0){
     rb_funcall(self, rb_intern("stop"), 0);
+    rb_iv_set(self, "@changed", Qfalse);
     return Qfalse;
   }
 
@@ -1285,6 +1292,7 @@ static VALUE sa_update_wait_counter(VALUE self)
   cnt = *(RARRAY_PTR(waits) + NUM2INT(*(RARRAY_PTR(plist) + pnum)));
   rb_iv_set(self, "@cnt", cnt);
   rb_funcall(cnt, rb_intern("start"), 0);
+  rb_iv_set(self, "@changed", Qtrue);
   return Qtrue;
 }
 

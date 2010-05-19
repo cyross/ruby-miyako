@@ -439,9 +439,15 @@ module Miyako
     #Processor#render メソッドのみを呼び出せる
     #インスタンス生成は、Processor#renderer メソッドを呼び出して行う
     class Renderer
+      include SpriteBase
+      include Animation
+      include Layout
+
       attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
 
       def initialize(obj) #:nodoc:
+        init_layout
+        set_layout_size(1,1)
         @renderer = obj
         @visible = true
       end
@@ -462,6 +468,10 @@ module Miyako
     #==遷移図操作クラス
     #遷移図形式の処理を制御するクラス
     class Processor
+      include SpriteBase
+      include Animation
+      include Layout
+
       #遷移図本体。Manager クラスのインスタンス
       attr_reader :diagram
       attr_accessor :visible #レンダリングの可否(true->描画 false->非描画)
@@ -472,6 +482,8 @@ module Miyako
       #(Manager#add, Manager#add_arrow の各メソッドを参照)
       #返却値:: 生成されたインスタンス
       def initialize
+        init_layout
+        set_layout_size(1,1)
         @states = {:execute => false, :pause => false, :type1 => false }
         @diagram = Miyako::Diagram::Manager.new
         @visible = true
