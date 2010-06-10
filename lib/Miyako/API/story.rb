@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 
 =begin
 --
@@ -79,12 +79,12 @@ module Miyako
     #===Storyの実行を始める
     #"obj.run(MainScene)"と記述すると、SceneモジュールをmixinしたMainSceneクラスのインスタンスを作成し、評価を始める
     #_n_:: 最初に実行するシーン名(クラス名を定数で)
-    def run(n)
+    def run(n, init_ho = nil)
       return nil if n == nil
       u = nil
       on = nil
       @stack = Array.new # reset
-      @hand_over = nil
+      @hand_over = init_ho
       while n != nil
         @prev_label = on
         on = n

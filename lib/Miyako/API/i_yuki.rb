@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -203,7 +203,7 @@ module Miyako
     #
     #_name_:: ブロックに渡す引数リスト
     #_block_:: メソッドとして実行させるブロック
-    def Yuki.add_method(name, &block)
+    def InitiativeYuki.add_method(name, &block)
       name = name.to_sym
       raise MiyakoError, "Already added method! : #{name.to_s}" if self.methods.include?(name)
       define_method(name, block)

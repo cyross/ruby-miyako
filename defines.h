@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <SDL.h>
 #include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #include <SDL_endian.h>
 #include <stdlib.h>
 #include <math.h>
@@ -29,15 +30,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 typedef struct
 {
-	SDL_Surface* surface;
+  SDL_Surface* surface;
 } Surface;
 
 typedef struct
 {
-	Uint32 r;
-	Uint32 g;
-	Uint32 b;
-	Uint32 a;
+  Mix_Music* music;
+} Music;
+
+typedef struct
+{
+  Uint32 r;
+  Uint32 g;
+  Uint32 b;
+  Uint32 a;
 } MiyakoColor;
 
 typedef struct

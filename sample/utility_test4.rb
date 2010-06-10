@@ -1,5 +1,6 @@
+# encoding: utf-8
 # Utility.product_linerサンプル(実数)
-# 2009.4.24 Cyross Makoto
+# 2010.6.11 Cyross Makoto
 
 require 'Miyako/miyako'
 
@@ -30,11 +31,10 @@ def draw_liner(sprite, info)
   array.each{|pos| Miyako::Drawing.rect(sprite, pos+[amount,amount], Colors.next)}
   
   info.dispose if info
-  info = Miyako::Shape.text(
-           :font => Miyako::Font.serif,
-           :text => "square = (#{square[0]}, #{square[1]})-(#{square[2]}, #{square[3]}), amount = #{amount}"
-         )
-         
+  info = Miyako::Shape.text(:font => Miyako::Font.sans_serif.tap{|font| font.size=16}){
+    text("矩形：(#{square[0]}, #{square[1]})-(#{square[2]},#{square[3]})").cr.text("大きさ：#{amount}")
+  }
+
   [sprite, info]
 end
 

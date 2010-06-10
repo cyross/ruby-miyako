@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -44,28 +44,44 @@ module Miyako
 
     @@name_2_font_path = Hash.new
 
+    # check font directory in gem directory
+    base_pathes = []
+    gpath = nil
+    searcher = Gem::GemPathSearcher.new
+    spec = searcher.find("miyako")
+    gpath = spec.full_gem_path if spec
+    if spec && gpath =~ /ruby\-miyako/
+      gpath = gpath + "/lib/Miyako/fonts"
+      base_pathes << gpath if File.exist?(gpath)
+    end
+
+    # check font directory in library(site_ruby) directory
+    lpath = $LOAD_PATH.find{|path| File.exist?(path+"/Miyako/fonts") }
+    base_pathes << (lpath+"/Miyako/fonts") if lpath
+    
     @@font_base_path = Hash.new
-    @@font_base_path["win"] = ENV['SystemRoot'] ? ["./", ENV['SystemRoot'].tr("\\", "/") + "/fonts/"] : ["./"]
-    @@font_base_path["linux"] = ["./", "/usr/share/fonts/", "/usr/X11R6/lib/X11/fonts/"]
-    @@font_base_path["mac_osx"] = ["./", "~/Library/Fonts/", "/Library/Fonts/", "/System/Library/Fonts/",
+    @@font_base_path["win"] = base_pathes + (ENV['SystemRoot'] ? ["./", ENV['SystemRoot'].tr("\\", "/") + "/fonts/"] : ["./"])
+    @@font_base_path["linux"] = base_pathes + ["./", "/usr/share/fonts/", "/usr/X11R6/lib/X11/fonts/"]
+    @@font_base_path["mac_osx"] = base_pathes + ["./",
+                                      "~/Library/Fonts/", "/Library/Fonts/", "/System/Library/Fonts/",
                                       "/ライブラリ/Fonts/", "/システム/ライブラリ/Fonts/"]
 
     @@font_base_name = Hash.new
-    @@font_base_name["win"] = [{:serif=>"msmincho.ttc", :sans_serif=>"msgothic.ttc"},
+    @@font_base_name["win"] = [{:serif=>"ume-tms3.ttf", :sans_serif=>"umeplus-gothic.ttf"},
+                               {:serif=>"msmincho.ttc", :sans_serif=>"msgothic.ttc"},
                                {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"},
-                               {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"},
                                {:serif=>"msmincho.ttc", :sans_serif=>"meiryo.ttc"}]
-    @@font_base_name["linux"] = [{:serif=>"sazanami-mincho.ttf", :sans_serif=>"sazanami-gothic.ttf"},
-                                    {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"},
-                                    {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"}]
-    @@font_base_name["mac_osx"] = [{:serif=>"Hiragino Mincho Pro W3.otf", :sans_serif=>"Hiragino Kaku Gothic Pro W3.otf"},
-                                      {:serif=>"Hiragino Mincho Pro W6.otf", :sans_serif=>"Hiragino Kaku Gothic Pro W6.otf"},
-                                      {:serif=>"ヒラギノ明朝 Pro W3.otf", :sans_serif=>"ヒラギノ角ゴ Pro W3.otf"},
-                                      {:serif=>"ヒラキ゛ノ明朝 Pro W3.otf", :sans_serif=>"ヒラキ゛ノ角コ゛ Pro W3.otf"},
-                                      {:serif=>"ヒラギノ明朝 Pro W6.otf", :sans_serif=>"ヒラギノ角ゴ Pro W6.otf"},
-                                      {:serif=>"ヒラキ゛ノ明朝 Pro W6.otf", :sans_serif=>"ヒラキ゛ノ角コ゛ Pro W6.otf"},
-                                      {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"},
-                                      {:serif=>"umeplus-gothic.ttf", :sans_serif=>"umeplus-gothic.ttf"}]
+    @@font_base_name["linux"] = [{:serif=>"ume-tms3.ttf", :sans_serif=>"umeplus-gothic.ttf"},
+                                 {:serif=>"sazanami-mincho.ttf", :sans_serif=>"sazanami-gothic.ttf"},
+                                 {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"}]
+    @@font_base_name["mac_osx"] = [{:serif=>"ume-tms3.ttf", :sans_serif=>"umeplus-gothic.ttf"},
+                                   {:serif=>"Hiragino Mincho Pro W3.otf", :sans_serif=>"Hiragino Kaku Gothic Pro W3.otf"},
+                                   {:serif=>"Hiragino Mincho Pro W6.otf", :sans_serif=>"Hiragino Kaku Gothic Pro W6.otf"},
+                                   {:serif=>"ヒラギノ明朝 Pro W3.otf", :sans_serif=>"ヒラギノ角ゴ Pro W3.otf"},
+                                   {:serif=>"ヒラキ゛ノ明朝 Pro W3.otf", :sans_serif=>"ヒラキ゛ノ角コ゛ Pro W3.otf"},
+                                   {:serif=>"ヒラギノ明朝 Pro W6.otf", :sans_serif=>"ヒラギノ角ゴ Pro W6.otf"},
+                                   {:serif=>"ヒラキ゛ノ明朝 Pro W6.otf", :sans_serif=>"ヒラキ゛ノ角コ゛ Pro W6.otf"},
+                                   {:serif=>"VL-Gothic-Regular.ttf", :sans_serif=>"VL-Gothic-Regular.ttf"}]
     @@initialized = false
 
     #===フォント関連の初期化処理

@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 # Miyako Extension Raster Scroll
 =begin
 Miyako Extention Library v2.1
@@ -101,6 +101,7 @@ module Miyako
       @fo_size.stop if @fo_size
       @effecting = false
       @fade_out = false
+      return self
     end
 
     #===ラスタスクロールを画面に描画する
@@ -122,6 +123,7 @@ module Miyako
       @src.oy = ty
       @src.oh = th
       @src.move_to!(*pos)
+      return self
     end
 
     #===ラスタスクロールを画像に描画する
@@ -144,6 +146,7 @@ module Miyako
       @src.oy = ty
       @src.oh = th
       @src.move_to!(*pos)
+      return self
     end
 
     #===ラスタスクロールをフェードアウトさせる
@@ -155,6 +158,7 @@ module Miyako
       @fo_wait = fw
       @fo_wait.start
       @fade_out = true
+      return self
     end
   end
 end

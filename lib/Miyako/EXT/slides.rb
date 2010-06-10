@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 # Miyako Extension
 =begin
 Miyako Extention Library v2.1
@@ -39,6 +39,15 @@ module Miyako
       tmp[:color] ||= Color[:white]
       tmp[:empty] ||= false
       return Parts.new(tmp[:size]) if tmp[:empty]
+      if tmp[:file]
+        sprite = Sprite.new(:file=>tmp[:file], :type=>tmp[:type])
+        if params[:size]
+          sprite.ow = size[0]
+          sprite.oh = size[1]
+        end
+        return Parts.new(tmp[:size]).tap{|obj| obj[:___base___] = sprite}
+      end
+      return Parts.new(tmp[:sprite].size).tap{|obj| obj[:___base___] = tmp[:sprite]} if tmp[:sprite]
       return Parts.new(tmp[:size]).tap{|obj| obj[:___base___] = Sprite.new(tmp).fill(tmp[:color])}
     end
 

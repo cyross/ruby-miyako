@@ -1,6 +1,6 @@
 /*
 --
-Miyako v2.0 Extend Library "Miyako no Katana"
+Miyako v2.1 Extend Library "Miyako no Katana"
 Copyright (C) 2008  Cyross Makoto
 
 This library is free software; you can redistribute it and/or
@@ -22,8 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 =miyako_no_katana
 Authors:: Cyross Makoto
-Version:: 2.0
-Copyright:: 2007-2008 Cyross Makoto
+Version:: 2.1
+Copyright:: 2007-2010 Cyross Makoto
 License:: LGPL2.1
  */
 #include "defines.h"

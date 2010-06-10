@@ -29,16 +29,18 @@ License:: LGPL2.1
 #include "defines.h"
 
 static VALUE mSDL = Qnil;
+static VALUE mMixer = Qnil;
 static VALUE mMiyako = Qnil;
 static VALUE mAudio = Qnil;
 static VALUE mInput = Qnil;
 static VALUE mScreen = Qnil;
 static VALUE cJoystick = Qnil;
+static VALUE cMusic = Qnil;
 static VALUE cEvent = Qnil;
 static VALUE cBGM = Qnil;
 static VALUE cSE = Qnil;
-static VALUE nZero = Qnil;
 static VALUE nOne = Qnil;
+static VALUE nZero = Qnil;
 static volatile ID id_update_all = Qnil;
 static volatile ID id_is_playing = Qnil;
 static volatile ID id_is_fade_out = Qnil;
@@ -49,6 +51,8 @@ static volatile ID id_allow_countup = Qnil;
 static volatile ID id_countup = Qnil;
 static volatile ID id_poll = Qnil;
 static volatile ID id_call = Qnil;
+static volatile ID id_reset_ticks = Qnil;
+static volatile ID id_setup_ticks = Qnil;
 static volatile int zero = 0;
 static volatile int one = 1;
 static volatile VALUE sy_pushed = Qnil;
@@ -175,12 +179,16 @@ static VALUE bgm_update(VALUE self)
      rb_funcall(pb, id_in_the_loop, 0) == Qtrue)
   {
     rb_funcall(pb, id_countup, 0);
-    if(rb_funcall(pb, id_in_the_loop, 0) == Qfalse)
+    rb_funcall(pb, id_setup_ticks, 0);
+    if(rb_funcall(pb, id_in_the_loop, 0) == Qfalse){
+      rb_funcall(pb, id_reset_ticks, 0);
       rb_iv_set(self, "@@playin_bgm", Qnil);
+    }
   }
   else if(rb_funcall(pb, id_is_playing, 0) == Qfalse &&
           rb_funcall(pb, id_is_fade_out, 0) == Qfalse)
   {
+    rb_funcall(pb, id_reset_ticks, 0);
     rb_iv_set(self, "@@playin_bgm", Qnil);
   }
   else if(rb_funcall(pb, id_is_allow_countup, 0) == Qfalse)
@@ -243,14 +251,27 @@ void _miyako_audio_update()
   audio_update(mAudio);
 }
 
+/*
+:nodoc:
+*/
+static VALUE bgm_set_offset(VALUE self, VALUE val)
+{
+  double pos = (double)(NUM2INT(val))/1000.0;
+  Mix_SetMusicPosition(pos);
+  rb_iv_set(self, "@offset_ticks", val);
+  return Qnil;
+}
+
 void Init_miyako_input_audio()
 {
   mSDL = rb_define_module("SDL");
+  mMixer = rb_define_module_under(mSDL, "Mixer");
   mMiyako = rb_define_module("Miyako");
   mAudio = rb_define_module_under(mMiyako, "Audio");
   mInput = rb_define_module_under(mMiyako, "Input");
   mScreen = rb_define_module_under(mMiyako, "Screen");
   cJoystick = rb_define_class_under(mSDL, "Joystick", rb_cObject);
+  cMusic = rb_define_class_under(mMixer, "Music", rb_cObject);
   cEvent = rb_define_class_under(mSDL, "Event", rb_cObject);
   cBGM = rb_define_class_under(mAudio, "BGM", rb_cObject);
   cSE = rb_define_class_under(mAudio, "SE", rb_cObject);
@@ -265,6 +286,8 @@ void Init_miyako_input_audio()
   id_is_allow_countup = rb_intern("allow_loop_count_up?");
   id_allow_countup = rb_intern("allow_loop_count_up");
   id_countup = rb_intern("loop_count_up");
+  id_reset_ticks = rb_intern("reset_ticks");
+  id_setup_ticks = rb_intern("setup_ticks");
 
   sy_pushed  = ID2SYM(rb_intern("pushed"));
   sy_pos     = ID2SYM(rb_intern("pos"));
@@ -286,6 +309,9 @@ void Init_miyako_input_audio()
 
   rb_define_singleton_method(mInput, "update", input_update, 0);
   rb_define_singleton_method(mAudio, "update", audio_update, 0);
+  rb_define_singleton_method(mAudio, "update", audio_update, 0);
   rb_define_singleton_method(cBGM, "update", bgm_update, 0);
   rb_define_singleton_method(cSE, "update", se_update, 0);
+
+  rb_define_method(cBGM, "offset=", bgm_set_offset, 1);
 }

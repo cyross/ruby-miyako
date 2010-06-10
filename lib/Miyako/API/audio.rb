@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -110,6 +110,8 @@ module Miyako
         @now_loops = loops
         @loop_cnt = 1
         @cnt_up_flag = false
+        @offset_ticks = 0
+        reset_ticks
       end
 
       #===インスタンスの複写
@@ -162,6 +164,7 @@ module Miyako
         end
         @now_loops = loops ? loops : @loops
         SDL::Mixer.play_music(@bgm, @now_loops)
+        setup_ticks
         @loop_cnt = 1
         if block_given?
           yield self
@@ -189,6 +192,7 @@ module Miyako
         end
         @now_loops = loops ? loops : @loops
         SDL::Mixer.fade_in_music(@bgm, @now_loops)
+        setup_ticks
         @@playing_bgm = self
         @loop_cnt = 1
         return true
@@ -220,7 +224,10 @@ module Miyako
       #返却値:: 自分自身を返す
       def pause
         return self if $not_use_audio
-        SDL::Mixer.pause_music if SDL::Mixer.play_music?
+        if SDL::Mixer.play_music?
+          SDL::Mixer.pause_music
+          @pos_ticks += SDL.get_ticks-@start_tick
+        end
         return self
       end
 
@@ -248,7 +255,10 @@ module Miyako
       #返却値:: 自分自身を返す
       def resume
         return self if $not_use_audio
-        SDL::Mixer.resume_music if SDL::Mixer.pause_music?
+        if SDL::Mixer.pause_music?
+          SDL::Mixer.resume_music
+          @start_tick = SDL.get_ticks
+        end
         return self
       end
 
@@ -257,7 +267,10 @@ module Miyako
       #返却値:: 自分自身を返す
       def stop
         return self if $not_use_audio
-        SDL::Mixer.halt_music if SDL::Mixer.play_music?
+        if SDL::Mixer.play_music?
+          SDL::Mixer.halt_music
+          reset_ticks
+        end
         @loop_cnt = @now_loops + 1
         @@playing_bgm = nil if @@playing_bgm == self
         return self
@@ -284,6 +297,42 @@ module Miyako
         @@playing_bgm = nil if @@playing_bgm == self
         @bgm.destroy
         @bgm = nil
+      end
+
+      def pos
+        return 0 unless @start_tick
+        SDL.get_ticks - @start_tick + @offset_ticks + @pos_ticks
+      end
+
+      def offset
+        @offset_ticks
+      end
+
+      def offset
+        @offset_ticks
+      end
+
+      def offset=(val)
+        @offset_ticks = val
+      end
+
+      def setup_ticks
+        @start_tick = SDL.get_ticks
+        @pos_ticks = 0
+        self.offset = @offset_ticks
+      end
+
+      def reset_ticks
+        @start_tick = nil
+        @pos_ticks = 0
+        self.offset = @offset_ticks
+      end
+
+      def rewind
+        if SDL::Mixer.play_music?
+          SDL::Mixer.rewind_music
+          setup_ticks
+        end
       end
 
       alias_method(:fadeOut, :fade_out)
@@ -421,7 +470,7 @@ module Miyako
           raise MiyakoValueError.over_range(vol, 0, 255) unless (0..255).cover?(vol)
         end
         if time
-          raise MiyakoValueError.over_range(time, 1, nil) unless time > 1
+          raise MiyakoValueError.over_range(time, 1, nil) unless time > 0
         end
         raise MiyakoValueError.over_range(loops, -1, nil) unless loops >= -1
         return self.play(vol, loops, time)
@@ -521,6 +570,8 @@ module Miyako
         lp = @now_loops == -1 ? -1 : @now_loops - 1
         @channel = time ? SDL::Mixer.fade_in_channel_timed(-1, @wave, lp, msec, time) : SDL::Mixer.fade_in_channel(-1, @wave, lp, msec)
         @@playings << self
+        @start_tick = SDL.get_ticks
+        @pos_ticks = 0
         SE.update
         return true
       end

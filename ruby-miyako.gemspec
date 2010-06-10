@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "ruby-miyako"
-  s.version = "2.1.13"
+  s.version = "2.1.14"
 #  s.date = "2009-4-26"
   s.summary = "Game programming library for Ruby"
   s.email = "cyross@po.twin.ne.jp"
@@ -23,6 +23,15 @@ Gem::Specification.new do |s|
 "./img/window.png",
 "./img/win_base.png",
 "./install_miyako.rb",
+"./lib/Miyako/fonts/docs-ume/license.html",
+"./lib/Miyako/fonts/docs-mplus/LICENSE_E",
+"./lib/Miyako/fonts/docs-mplus/LICENSE_J",
+"./lib/Miyako/fonts/docs-mplus/README_E",
+"./lib/Miyako/fonts/docs-mplus/README_J",
+"./lib/Miyako/fonts/README",
+"./lib/Miyako/fonts/ChangeLog",
+"./lib/Miyako/fonts/ume-tms3.ttf",
+"./lib/Miyako/fonts/umeplus-gothic.ttf",
 "./lib/Miyako/API/audio.rb",
 "./lib/Miyako/API/basic_data.rb",
 "./lib/Miyako/API/bitmap.rb",
