@@ -1,0 +1,37 @@
+UmePlus fonts
+
+UmePlus fonts are modified Ume fonts for Japanese.
+http://www.geocities.jp/ep3797/modified_fonts_01.html
+
+I used these fonts for UmePlus:
+Kanji = Ume fonts
+http://horai.topaz.ne.jp/top/font.html
+Alphabet/Hiragana/Katakana, Full width alphabet = M+ fonts
+http://mplus-fonts.sourceforge.jp/mplus-outline-fonts/index.html
+
+THANKS TO
+the authors of the fonts.
+
+License
+Ume fonts, M+ fonts:
+See docs-{ume,mplus}.
+fontforge-scripts:
+Public Domain.
+
+Author
+UTUMI Hirosi <utuhiro78@yahoo.co.jp>
+
+
+How to generate UmePlus
+1. Put these fonts into fontforge-scripts-umeplus
+   ume-tgo4.ttf
+   mplus-1m-regular.ttf
+2. $ ./fix-mplus-*.pe
+   $ ./import-mplus.pe
+
+How to generate UmePlus-P
+1. Put these fonts into fontforge-scripts-umeplus-p
+   ume-pgo4.ttf
+   mplus-1c-regular.ttf
+2. $ ./fix-mplus-*.pe
+   $ ./import-mplus.pe
