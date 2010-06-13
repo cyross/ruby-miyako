@@ -145,6 +145,7 @@ module Miyako
 
     def Yuki.[]=(key, value)
       @@common_use[key] = value
+      value
     end
     
     #===Yuki#update実行中に行わせる処理を実装するテンプレートメソッド
@@ -447,8 +448,9 @@ module Miyako
       @common_use[key] || @@common_use[key]
     end
 
-    def [](key, value)
+    def []=(key, value)
       @common_use[key] = value
+      value
     end
     
     #===変数を参照する

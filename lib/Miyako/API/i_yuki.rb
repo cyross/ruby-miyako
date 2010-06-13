@@ -180,6 +180,7 @@ module Miyako
 
     def InitiativeYuki.[]=(key, value)
       @@common_use[key] = value
+      value
     end
 
     attr_reader :common_use
@@ -454,8 +455,9 @@ module Miyako
       @common_use[key] || @@common_use[key]
     end
 
-    def [](key, value)
+    def []=(key, value)
       @common_use[key] = value
+      value
     end
 
     #===変数を参照する
