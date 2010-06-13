@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -136,6 +136,17 @@ module Miyako
       end
     end
 
+    #外部との共用変数を収めるところ
+    @@common_use = {}
+
+    def Yuki.[](key)
+      @@common_use[key]
+    end
+
+    def Yuki.[]=(key, value)
+      @@common_use[key] = value
+    end
+    
     #===Yuki#update実行中に行わせる処理を実装するテンプレートメソッド
     #但し、メソッド本体は、update_inner=メソッドで設定する必要がある
     #_yuki_:: 実行中のYukiクラスインスタンス
@@ -164,6 +175,7 @@ module Miyako
     def update_clear(yuki)
     end
 
+    attr_reader :common_use
     attr_accessor :visible
     attr_accessor :update_inner, :update_text, :update_cr, :update_clear
     attr_reader :valign, :visibles, :pre_visibles, :bgs
@@ -304,6 +316,8 @@ module Miyako
       @now_page = nil
       @first_page = nil
 
+      @common_use = {}
+
       raise MiyakoProcError, "Argument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
     end
@@ -429,6 +443,14 @@ module Miyako
       @over_yuki.update_animation if @over_yuki && @over_yuki.executing?
     end
 
+    def [](key)
+      @common_use[key] || @@common_use[key]
+    end
+
+    def [](key, value)
+      @common_use[key] = value
+    end
+    
     #===変数を参照する
     #[[Yukiスクリプトとして利用可能]]
     #変数の管理オブジェクトを、ハッシュとして参照する。

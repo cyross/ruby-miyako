@@ -171,6 +171,18 @@ module Miyako
       end
     end
 
+    #外部との共用変数を収めるところ
+    @@common_use = {}
+
+    def InitiativeYuki.[](key)
+      @@common_use[key]
+    end
+
+    def InitiativeYuki.[]=(key, value)
+      @@common_use[key] = value
+    end
+
+    attr_reader :common_use
     attr_reader :visibles, :pre_visibles, :bgs, :base
     attr_reader :valign
     #release_checks:: ポーズ解除を問い合わせるブロックの配列。
@@ -299,6 +311,8 @@ module Miyako
       @first_page = nil
 
       @engine_stack = []
+
+      @common_use = {}
 
       raise MiyakoProcError, "Argument count is not same block parameter count!" if proc && proc.arity.abs != params.length
       instance_exec(*params, &proc) if block_given?
@@ -434,6 +448,14 @@ module Miyako
     def update_animation
       return @base.update_animation_inner(self) if @base
       return false
+    end
+
+    def [](key)
+      @common_use[key] || @@common_use[key]
+    end
+
+    def [](key, value)
+      @common_use[key] = value
     end
 
     #===変数を参照する
