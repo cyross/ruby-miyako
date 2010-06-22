@@ -1833,6 +1833,7 @@ v2.1.14(2010.06.11)
 v2.1.15(2010.06.11)
 <バグ修正>
 <機能改善>
+・Utility.product_liner(_f)の内部アルゴリズムを変更
 <仕様変更>
 <ファイル追加>
 <ファイル削除>
@@ -1848,6 +1849,13 @@ v2.1.15(2010.06.11)
 ・ScenarioEngine.[]=
 ・InitiativeScenarioEngine.[]
 ・InitiativeScenarioEngine.[]=
+・Utility.theta2
+・Utility.radian
+・Utility.radian2
+・Utility.degree
+・Utility.degree2
+・Utility.product_liner_xy
+・Utility.product_liner_xy_f
 <クラス・モジュールメソッド廃止>
 <モジュール関数追加>
 <モジュール関数廃止>

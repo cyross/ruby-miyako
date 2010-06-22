@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -45,17 +45,11 @@ module Miyako
       return steps
     end
 
-    def Utility.product_liner_inner_f(x1, y1, x2, y2, amount) #:nodoc:
-      array = nil
-      step_x = get_step_array_f(x1, x2, amount)
-      step_y = get_step_array_f(y1, y2, amount)
-      dx = x2 - x1
-      dy = y2 - y1
-      a = dx < Float::EPSILON ? dy.to_f : dy.to_f / dx.to_f
-      b = y1.to_f - a * x1.to_f
-      array = [[x1,y1] , [x2,y2]] + step_x.map{|x| [x, (a * x.to_f + b).to_i]}
-      array += step_y.map{|y| [((y.to_f - b) / a).to_i, y]} if (a.abs >= Float::EPSILON)
-      return array.uniq
+    def Utility.product_liner_xy_f(x1, y1, x2, y2, amount)
+      distance = Utility.interval2(x1,y1,x2,y2)
+      degree = Utility.radian2(x1,y1,x2,y2,distance)
+      cos, sin = Math.cos(degree), Math.sin(degree)
+      (0..distance).step(amount).with_object([]){|n, arr| arr << [x1 + n * cos, y1 + n * sin]} << [x2,y2]
     end
 
     #===矩形内の対角線の座標リストを実数で取得する
@@ -77,7 +71,7 @@ module Miyako
       y1 = rect[1]
       x2 = x1 + rect[2] - 1
       y2 = y1 + rect[3] - 1
-      return product_liner_inner_f(x1, y1, x2, y2, amount)
+      return product_liner_xy_f(x1, y1, x2, y2, amount)
     end
 
     #===矩形内の対角線の座標リストを実数で取得する
@@ -95,29 +89,16 @@ module Miyako
     def Utility.product_liner_by_square_f(square, amount = 1.0)
       raise MiyakoValueError, "Illegal amount! #{amount}" if amount < Float::EPSILON
       return [] if (square[2] - square[0]) < Float::EPSILON || (square[3] - square[1]) < Float::EPSILON
-      return product_liner_inner_f(*square, amount)
+      return product_liner_xy_f(*square, amount)
     end
 
-    def Utility.product_liner_inner(x1, y1, x2, y2, amount) #:nodoc:
-      array = nil
-      step_x = []
-      step_y = []
-      dx = x2 - x1
-      dy = y2 - y1
-      a  = 0.0
-      if [x1, y1, x2, y2, amount].all?{|v| v.methods.include?(:step)}
-        step_x = x1 < x2 ? x1.step(x2, amount).to_a : x1.step(x2, -amount).to_a
-        step_y = y1 < y2 ? y1.step(y2, amount).to_a : y1.step(y2, -amount).to_a
-        a = dx == 0 ? dy.to_f : dy.to_f / dx.to_f
-      else
-        step_x = get_step_array_f(x1, x2, amount)
-        step_y = get_step_array_f(y1, y2, amount)
-        a = dx < Float::EPSILON ? dy.to_f : dy.to_f / dx.to_f
-      end
-      b = y1.to_f - a * x1.to_f
-      array = [[x1,y1] , [x2,y2]] + step_x.map{|x| [x, (a * x.to_f + b).to_i]}
-      array += step_y.map{|y| [((y.to_f - b) / a).to_i, y]} if (a.abs >= Float::EPSILON)
-      return array.uniq
+    # ToDo: 線形補完を使う
+    # -> 使った(2010.06.20)
+    def Utility.product_liner_xy(x1, y1, x2, y2, amount) #:nodoc:
+      distance = Utility.interval2(x1,y1,x2,y2)
+      degree = Utility.radian2(x1,y1,x2,y2,distance)
+      cos, sin = Math.cos(degree), Math.sin(degree)
+      (0..distance).step(amount).with_object([]){|n, arr| arr << [x1+(n*cos).to_i, y1+(n*sin).to_i]} << [x2,y2]
     end
 
     #===矩形内の対角線の座標リストを取得する
@@ -138,7 +119,7 @@ module Miyako
       y1 = rect[1]
       x2 = x1 + rect[2] - 1
       y2 = y1 + rect[3] - 1
-      return product_liner_inner(x1, y1, x2, y2, amount)
+      return product_liner_xy(x1, y1, x2, y2, amount)
     end
 
     #===矩形内の対角線の座標リストを取得する
@@ -155,7 +136,7 @@ module Miyako
     def Utility.product_liner_by_square(square, amount = 1)
       raise MiyakoValueError, "Illegal amount! #{amount}" if amount <= 0
       return [] if (square[2] - square[0]) == 0 || (square[3] - square[1]) == 0
-      return product_liner_inner(*square, amount)
+      return product_liner_xy(*square, amount)
     end
 
     def Utility.product_inner(x1, y1, x2, y2, size) #:nodoc:
@@ -244,6 +225,21 @@ module Miyako
       return d < Float::EPSILON ? 0.0 : d
     end
 
+    #===２点間の距離を算出する
+    # ２点(点１、点２)がどの程度離れているかを算出する。
+    # 返ってくる値は、正の実数で返ってくる
+    #_x1_:: 点１の位置(x)
+    #_y1_:: 点１の位置(y)
+    #_x2_:: 点２の位置(x)
+    #_y2_:: 点２の位置(y)
+    #返却値:: 2点間の距離
+    def Utility.interval2(x1, y1, x2, y2)
+      #2点間の距離を求める
+      d = Math.sqrt(((x1.to_f - x2.to_f) ** 2) +
+                    ((y1.to_f - y2.to_f) ** 2))
+      return d < Float::EPSILON ? 0.0 : d
+    end
+
     #===２点間の傾きを角度で算出する
     # ２点(点１、点２)がどの程度傾いているか算出する。傾きの中心は点１とする。
     # 角度の単位は度(0.0<=θ<360.0)
@@ -251,15 +247,89 @@ module Miyako
     #_point1_:: 点１の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
     #_point2_:: 点２の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
     #返却値:: 2点間の傾き
-    def Utility.theta(point1, point2)
+    def Utility.theta(point1, point2, distance = nil)
+      theta = (Utility.radian(point1,point2,distance) / (2 * Math::PI)) * 360.0
+      return theta < Float::EPSILON ? 0.0 : theta
+    end
+
+    #===２点間の傾きを角度で算出する
+    # ２点(点１、点２)がどの程度傾いているか算出する。傾きの中心は点１とする。
+    # 角度の単位は度(0.0<=θ<360.0)
+    # 返ってくる値は、正の実数で返ってくる
+    #_x1_:: 点１の位置(x)
+    #_y1_:: 点１の位置(y)
+    #_x2_:: 点２の位置(x)
+    #_y2_:: 点２の位置(y)
+    #返却値:: 2点間の傾き
+    def Utility.theta2(x1, y1, x2, y2, distance = nil)
+      theta = (Utility.radian2(x1,y1,x2,y2,distance) / (2 * Math::PI)) * 360.0
+      return theta < Float::EPSILON ? 0.0 : theta
+    end
+
+    #===２点間の傾きをラジアンで算出する
+    # ２点(点１、点２)がどの程度傾いているか算出する。傾きの中心は点１とする。
+    # 角度の単位は度(0.0<=θ<360.0)
+    # 返ってくる値は、正の実数で返ってくる
+    #_point1_:: 点１の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_point2_:: 点２の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 2点間の傾き
+    def Utility.radian(point1, point2, distance = nil)
       #2点間の距離を求める
-      d = Math.sqrt(((point1[0].to_f - point2[0].to_f) ** 2) +
-                    ((point1[1].to_f - point2[1].to_f) ** 2))
-      x = point2[0].to_f - point[1].to_f
+      d = distance || Math.sqrt(((point1[0].to_f - point2[0].to_f) ** 2) +
+                                ((point1[1].to_f - point2[1].to_f) ** 2))
+      x = point2[0].to_f - point1[0].to_f
       # 傾き・幅が０のときは傾きは０度
       return 0.0 if (x.abs < Float::EPSILON or d < Float::EPSILON)
-      theta = (Math.acos(x / d) / (2 * Math::PI)) * 360.0
-      return theta < Float::EPSILON ? 0.0 : theta
+      theta = Math.acos(x / d)
+      return theta < Float::EPSILON ? 0.0 : (point2[1]-point1[1]<0 ? 2*Math::PI-theta : theta)
+    end
+
+    #===２点間の傾きをラジアンで算出する
+    # ２点(点１、点２)がどの程度傾いているか算出する。傾きの中心は点１とする。
+    # 角度の単位は度(0.0<=θ<360.0)
+    # 返ってくる値は、正の実数で返ってくる
+    #_x1_:: 点１の位置(x)
+    #_y1_:: 点１の位置(y)
+    #_x2_:: 点２の位置(x)
+    #_y2_:: 点２の位置(y)
+    #返却値:: 2点間の傾き
+    def Utility.radian2(x1, y1, x2, y2, distance = nil)
+      #2点間の距離を求める
+      d = distance || Math.sqrt(((x1.to_f - x2.to_f) ** 2) +
+                                ((y1.to_f - y2.to_f) ** 2))
+      x = x2.to_f - x1.to_f
+      # 傾き・幅が０のときは傾きは０度
+      return 0.0 if (x.abs < Float::EPSILON or d < Float::EPSILON)
+      theta = Math.acos(x / d)
+      return theta < Float::EPSILON ? 0.0 : (y2-y1<0 ? 2*Math::PI-theta : theta)
+    end
+
+    #===２点間の傾きを角度で算出する
+    # ２点(点１、点２)がどの程度傾いているか算出する。傾きの中心は点１とする。
+    # 角度の単位は度(0.0<=θ<360.0)
+    # 返ってくる値は、正の実数で返ってくる
+    #_point1_:: 点１の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #_point2_:: 点２の位置(Point/Rect/Square構造体、2要素以上の配列、もしくはx,yメソッドを持つインスタンス)
+    #返却値:: 2点間の傾き
+    def Utility.degree(point1, point2)
+      return 0.0 if (point2[0].to_f-point1[0].to_f < Float::EPSILON)
+      degree = (point2[1]-point1[1]).to_f/(point2[0]-point1[0]).to_f
+      return degree < Float::EPSILON ? 0.0 : degree
+    end
+
+    #===２点間の傾きを角度で算出する
+    # ２点(点１、点２)がどの程度傾いているか算出する。傾きの中心は点１とする。
+    # 角度の単位は度(0.0<=θ<360.0)
+    # 返ってくる値は、正の実数で返ってくる
+    #_x1_:: 点１の位置(x)
+    #_y1_:: 点１の位置(y)
+    #_x2_:: 点２の位置(x)
+    #_y2_:: 点２の位置(y)
+    #返却値:: 2点間の傾き
+    def Utility.degree2(x1, y1, x2, y2)
+      return 0.0 if (x2.to_f-x1[0].to_f < Float::EPSILON)
+      degree = (y2-y1).to_f/(x2-x1).to_f
+      return degree < Float::EPSILON ? 0.0 : degree
     end
 
     #===小線分を移動させたとき、大線分が範囲内かどうかを判別する
