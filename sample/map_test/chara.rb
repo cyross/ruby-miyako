@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 #キャラクタ管理クラス
 class PChara # Player Character
   extend Forwardable
@@ -27,7 +27,7 @@ class PChara # Player Character
 
   # マップの表示座標と実座標とのマージンを設定
   def margin
-    return Size.new(-@spr.x, -@spr.y)
+    return Size.new(-@anim.x, -@anim.y)
   end
 
   def turn(d)

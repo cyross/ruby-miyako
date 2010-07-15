@@ -1832,6 +1832,8 @@ v2.1.14(2010.06.11)
 
 v2.1.15(2010.06.11)
 <バグ修正>
+・map_testサンプルで、マップと画面とのずれを算出する際に、アニメーションではなくスプライトからずれを算出していた問題を修正
+　・実際にはずれていなかったため、海の上を歩けるなどの問題があった
 <機能改善>
 ・Utility.product_liner(_f)の内部アルゴリズムを変更
 <仕様変更>
@@ -1863,11 +1865,16 @@ v2.1.15(2010.06.11)
 ・ScenarioEngine#[]
 ・ScenarioEngine#[]=
 ・ScenarioEngine#common_use
+・ScenarioEngine#call_plot_params
+・ScenarioEngine#call_plot_block
 ・InitiativeScenarioEngine#[]
 ・InitiativeScenarioEngine#[]=
 ・InitiativeScenarioEngine#common_use
+・InitiativeScenarioEngine#call_plot_params
+・InitiativeScenarioEngine#call_plot_block
 <インスタンスメソッド廃止>
 <ドキュメント>
+・リファレンスマニュアルの反映
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

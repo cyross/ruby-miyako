@@ -1051,6 +1051,32 @@ module Miyako
                          self.instance_exec(&plot_block)
     end
 
+    #===プロット処理中に別のプロットを呼び出す
+    #呼び出し可能なプロットは以下の2種類。(上から優先度が高い順）
+    #
+    #1)引数prot_proc(Procクラスのインスタンス)
+    #
+    #2)引数として渡したブロック
+    #
+    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
+    #返却値:: プロットの実行結果を返す
+    def call_plot_params(plot_proc, *params)
+      return self.instance_exec(*params, &plot_proc)
+    end
+
+    #===プロット処理中に別のプロットを呼び出す
+    #呼び出し可能なプロットは以下の2種類。(上から優先度が高い順）
+    #
+    #1)引数prot_proc(Procクラスのインスタンス)
+    #
+    #2)引数として渡したブロック
+    #
+    #_plot_proc_:: プロットの実行部をインスタンス化したオブジェクト
+    #返却値:: プロットの実行結果を返す
+    def call_plot_block(*params, &plot_block)
+      return self.instance_exec(*params, &plot_block)
+    end
+
     #===ポーズ解除問い合わせメソッド配列を初期状態に戻す
     #返却値:: 自分自身を返す
     def reset_release_checks
