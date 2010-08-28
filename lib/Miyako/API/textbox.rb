@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -592,9 +592,14 @@ module Miyako
         end
       else
         @choices.non_select if @pre_attach
+        @select_cursor.snap(@choices.body) if @select_cursor
       end
       @pre_attach = attach
       return self
+    end
+
+    def attach_cursor?
+      @choices.attach?(Input.mouse_x, Input.mouse_y)
     end
 
     #===マウスカーソルの位置にコマンドがあるかどうかを問い合わせる

@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.15
-【   作成日   】　2010/06/11
+【 バージョン 】　2.1.16
+【   作成日   】　2010/08/30
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.15公式リリース版です。
+本バージョンは、2.1.16公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -91,7 +91,7 @@ PAD : BUFFALO BGC-FC802
 OS  : Microsoft WindowsXp SP3
       Microsoft WindowsVista Ultimate(x64) SP1
 DEV : Notepad++ v5.3.1-6
-      mingw32版Ruby 1.9.2dev + Ruby/SDL 2.1.1
+      mingw32版Ruby 1.9.2-p0 + Ruby/SDL 2.1.1
       MinGW+MSYS(miyako_no_katanaビルド)
 
 ＜サブ開発PC＞
@@ -101,7 +101,7 @@ MEM : 4GB(2GBx2)
 PAD : SANWA SUPPLY JY-P1W
 OS  : Microsoft Windows7 x64
 DEV : Notepad++ v5.3.1-6
-      mswin32版Ruby 1.9.2dev + Ruby/SDL 2.1.1
+      mswin32版Ruby 1.9.2-p0 + Ruby/SDL 2.1.1
 
 【 動作確認環境 】
 
@@ -1830,7 +1830,7 @@ v2.1.14(2010.06.11)
 <インスタンスメソッド廃止>
 <ドキュメント>
 
-v2.1.15(2010.06.11)
+v2.1.15(2010.07.18)
 <バグ修正>
 ・map_testサンプルで、マップと画面とのずれを算出する際に、アニメーションではなくスプライトからずれを算出していた問題を修正
 　・実際にはずれていなかったため、海の上を歩けるなどの問題があった
@@ -1875,6 +1875,49 @@ v2.1.15(2010.06.11)
 <インスタンスメソッド廃止>
 <ドキュメント>
 ・リファレンスマニュアルの反映
+<その他>
+・MiyakoPackはzipファイル→自己解凍型インストーラに変更
+
+v2.1.16(2010.08.30)
+<バグ修正>
+<機能改善>
+<仕様変更>
+・プログラムの起動時と画面のフォーカス直後のマウスクリックはクリックと見なさないように変更
+　(Miyako側では、フォーカスのためのクリックと判断できないために追加した処置)
+・InitiativeScenarioEngine#selecting_innerの呼び出しタイミングを変更(システム内の選択処理を終えた直後)
+・TextBox#attach_cursorの内部処理変更
+<ファイル追加>
+<ファイル削除>
+<グローバル変数追加>
+<定数追加>
+<定数削除>
+<構造体追加>
+<クラス追加>
+<モジュール追加>
+<mixin>
+<クラス・モジュールメソッド追加>
+・Input.mouse_x
+・Input.mouse_y
+・Input.mouse_dx
+・Input.mouse_dy
+・Input.key_focus?
+・Input.window_minimize?
+・Input.mouse_cursor_inner_change?
+・Input.key_focus_change?
+・Input.window_minimize_change?
+・Input.btn_state
+・Input.mouse_state
+<クラス・モジュールメソッド廃止>
+<モジュール関数追加>
+<モジュール関数廃止>
+<インスタンスメソッド追加>
+・TextBox#attach_cursor?
+・InitiativeScenarioEngine#select_mouse_enable?
+・InitiativeScenarioEngine#select_key_enable?
+<インスタンスメソッド廃止>
+<ドキュメント>
+・リファレンスマニュアルの反映
+<その他>
 
 *******************************************************************************
 このReadMeファイルは「れ～どめ～えじた～」によって作成されました。

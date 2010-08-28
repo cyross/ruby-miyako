@@ -53,6 +53,7 @@ static volatile ID id_poll = Qnil;
 static volatile ID id_call = Qnil;
 static volatile ID id_reset_ticks = Qnil;
 static volatile ID id_setup_ticks = Qnil;
+static volatile ID id_after = Qnil;
 static volatile int zero = 0;
 static volatile int one = 1;
 static volatile VALUE sy_pushed = Qnil;
@@ -61,6 +62,9 @@ static volatile VALUE sy_dx = Qnil;
 static volatile VALUE sy_dy = Qnil;
 static volatile VALUE sy_click = Qnil;
 static volatile VALUE sy_drop = Qnil;
+static volatile VALUE sy_inner = Qnil;
+static volatile VALUE sy_focus = Qnil;
+static volatile VALUE sy_mini = Qnil;
 static volatile VALUE sy_left = Qnil;
 static volatile VALUE sy_right = Qnil;
 static volatile VALUE sy_middle = Qnil;
@@ -111,6 +115,9 @@ static VALUE input_update(VALUE self)
   rb_hash_aset(drop, sy_left, Qfalse);
   rb_hash_aset(drop, sy_middle, Qfalse);
   rb_hash_aset(drop, sy_right, Qfalse);
+  rb_hash_aset(mouse, sy_inner, Qfalse);
+  rb_hash_aset(mouse, sy_focus, Qfalse);
+  rb_hash_aset(mouse, sy_mini, Qfalse);
 
 #if 0
   e_list = rb_ary_new();
@@ -154,6 +161,7 @@ static VALUE input_update(VALUE self)
     e = rb_funcall(cEvent, id_poll, 0);
   }
 #endif
+  rb_funcall(self, id_after, 0);
 
   return Qnil;
 }
@@ -288,6 +296,7 @@ void Init_miyako_input_audio()
   id_countup = rb_intern("loop_count_up");
   id_reset_ticks = rb_intern("reset_ticks");
   id_setup_ticks = rb_intern("setup_ticks");
+  id_after = rb_intern("after_exec");
 
   sy_pushed  = ID2SYM(rb_intern("pushed"));
   sy_pos     = ID2SYM(rb_intern("pos"));
@@ -295,6 +304,9 @@ void Init_miyako_input_audio()
   sy_dy      = ID2SYM(rb_intern("dy"));
   sy_click   = ID2SYM(rb_intern("click"));
   sy_drop    = ID2SYM(rb_intern("drop"));
+  sy_inner   = ID2SYM(rb_intern("inner"));
+  sy_focus   = ID2SYM(rb_intern("focus"));
+  sy_mini    = ID2SYM(rb_intern("mini"));
   sy_left    = ID2SYM(rb_intern("left"));
   sy_right   = ID2SYM(rb_intern("right"));
   sy_middle  = ID2SYM(rb_intern("middle"));

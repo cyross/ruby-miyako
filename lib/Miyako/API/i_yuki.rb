@@ -271,6 +271,9 @@ module Miyako
 
       @mouse_enable = true
 
+      @select_mouse_enable = true
+      @select_key_enable = false
+
       @result = nil
       @plot_result = nil
 
@@ -1466,6 +1469,14 @@ module Miyako
       return pause.clear
     end
 
+    def select_mouse_enable?
+      @select_mouse_enable
+    end
+
+    def select_key_enable?
+      @select_key_enable
+    end
+
     #===コマンドを表示する
     #[[Yukiスクリプトとして利用可能]]
     #表示対象のコマンド群をCommand構造体の配列で示す。
@@ -1507,15 +1518,26 @@ module Miyako
       end
 
       @result = nil
+      @select_mouse_enable = true
+      @select_key_enable = false
       selecting = true
       reset_selecting
       while selecting
         pre_process
-        @base.selecting_inner(self) if @base
-        @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
-        @select_cancel = true if @cancel && @cancel_checks.inject(false){|r, c| r |= c.call }
         @select_amount = @key_amount_proc.call
         @mouse_amount = @mouse_amount_proc.call
+        if @select_amount != [0,0]
+          @select_mouse_enable = false
+          @select_key_enable = true
+        elsif Input.mouse_dx != 0 and Input.mouse_dy != 0
+          @select_mouse_enable = true
+          @select_key_enable = false
+        else
+          @select_mouse_enable = false
+          @select_key_enable = false
+        end
+        @select_ok = true if @ok_checks.inject(false){|r, c| r |= c.call }
+        @select_cancel = true if @cancel && @cancel_checks.inject(false){|r, c| r |= c.call }
         @selecting_procs.each{|sp|
           case sp.arity
           when 6
@@ -1548,13 +1570,16 @@ module Miyako
           @text_box.release
           selecting = false
           reset_selecting
-        elsif @select_amount != [0,0]
+        elsif @select_amount != [0,0] and @select_key_enable
           @command_box.move_cursor(*@select_amount)
           reset_selecting
-        elsif @mouse_amount
+        elsif @mouse_amount and @select_mouse_enable
           @command_box.attach_cursor(*@mouse_amount.to_a) if @mouse_enable
           reset_selecting
+        elsif Input.mouse_cursor_inner?
+          @command_box.attach_cursor(Input.mouse_x, Input.mouse_y) if @mouse_enable
         end
+        @base.selecting_inner(self) if @base
         post_process
       end
       @post_cancel.each{|proc| proc.call}

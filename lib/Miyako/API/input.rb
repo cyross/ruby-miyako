@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -108,7 +108,10 @@ module Miyako
                :click => {:left => false, :middle => false, :right => false, :interval => 200},
                :drag  => {:left => false, :middle => false, :right => false, :x => 0, :y => 0},
                :drop  => {:left => false, :middle => false, :right => false, :succeed => true},
-               :inner => true}
+               :inner => false, :focus => false, :mini => false}
+    @@mouse_inner = false
+    @@key_focus = false
+    @@app_minimize = false
 
     @@initialized = false
 
@@ -225,7 +228,7 @@ module Miyako
     def Input::process_mousebuttondown(e) #:nodoc:
       return unless @@enable_mouse
       set_mouse_button(:trigger, e.button)
-      return unless @@mouse[:inner]
+      return unless @@mouse_inner
       click_mouse_button(:click, e.button)
       set_mouse_button(:drag, e.button)
       @@mouse[:drag][:x] = @@mouse[:pos][:x]
@@ -249,8 +252,20 @@ module Miyako
     end
 
     def Input::process_active(e) #:nodoc:
-      return unless @@enable_mouse
-      @@mouse[:inner] = e.gain if e.state == 1
+      if e.state & 1 == 1
+        return unless @@enable_mouse
+        @@mouse[:inner] = true
+        @@mouse_inner = e.gain
+      end
+      if e.state & 2 == 2
+        @@mouse[:focus] = true
+        @@key_focus = e.gain
+        [:left, :middle, :right].each{|key| @@mouse[:click][key] = false }
+      end
+      if e.state & 4 == 4
+        @@mouse[:mini] = true
+        @@app_minimize = !e.gain
+      end
     end
 
     def Input::process_default(e) #:nodoc:
@@ -297,6 +312,9 @@ module Miyako
         @@mouse[:click][e] = false
         @@mouse[:drop][e] = false
       }
+      @@mouse[:inner] = false
+      @@mouse[:focus] = false
+      @@mouse[:mini] = false
       e_list = []
       while e = SDL::Event2.poll
         e_list << e
@@ -309,6 +327,15 @@ module Miyako
           @@btn[:pushed][:ent] = 0
         end
       }
+    end
+
+    def Input::after_exec
+      x = @@mouse[:pos][:x]
+      y = @@mouse[:pos][:y]
+      if (@@mouse[:click][:left] or @@mouse[:click][:middle] or @@mouse[:click][:right]) and !@@key_focus and x>=0 and x<Screen.w and y>=0 and y<Screen.h
+        @@key_focus = true
+        [:left, :middle, :right].each{|key| @@mouse[:click][key] = false }
+      end
     end
 
     #===指定のボタンがすべて押下状態かを問い合わせるメソッド
@@ -414,6 +441,22 @@ module Miyako
       return Point.new(@@mouse[:pos][:x],@@mouse[:pos][:y])
     end
 
+    def Input::mouse_x
+      return @@enable_mouse ? @@mouse[:pos][:x] : -1
+    end
+
+    def Input::mouse_y
+      return @@enable_mouse ? @@mouse[:pos][:y] : -1
+    end
+
+    def Input::mouse_dx
+      return @@enable_mouse ? @@mouse[:pos][:dx] : 0
+    end
+
+    def Input::mouse_dy
+      return @@enable_mouse ? @@mouse[:pos][:dy] : 0
+    end
+
     #===マウスの移動量を取得する
     #求める値は、{:x=>n,:y=>n}で示すハッシュとする
     #移動量は、右下方向を正とする
@@ -499,7 +542,38 @@ module Miyako
     #返却値:: マウスカーソルが画面内ならtrueを返す
     def Input::mouse_cursor_inner?
       return false unless @@enable_mouse
+      return @@mouse_inner
+    end
+
+    #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
+    #返却値:: マウスカーソルが画面内ならtrueを返す
+    def Input::key_focus?
+      return @@key_focus
+    end
+
+    #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
+    #返却値:: マウスカーソルが画面内ならtrueを返す
+    def Input::window_minimize?
+      return @@app_minimize
+    end
+
+    #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
+    #返却値:: マウスカーソルが画面内ならtrueを返す
+    def Input::mouse_cursor_inner_change?
+      return false unless @@enable_mouse
       return @@mouse[:inner]
+    end
+
+    #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
+    #返却値:: マウスカーソルが画面内ならtrueを返す
+    def Input::key_focus_change?
+      return @@mouse[:focus]
+    end
+
+    #===マウスカーソルが画面の内側に有るかどうかを問い合わせる
+    #返却値:: マウスカーソルが画面内ならtrueを返す
+    def Input::window_minimize_change?
+      return @@mouse[:mini]
     end
 
     #===Alt+Enterキーを押したときにフル・ウィンドウモード切り替えの可否を切り替える
@@ -516,6 +590,14 @@ module Miyako
     #返却値:: 切り替えができるときは true を返す
     def Input::toggle_screen_mode?
       return @@toggle_screen_mode
+    end
+
+    def Input::btn_state
+      @@btn
+    end
+
+    def Input::mouse_state
+      @@mouse
     end
   end
 end
