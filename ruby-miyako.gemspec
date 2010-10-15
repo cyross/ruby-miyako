@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "ruby-miyako"
-  s.version = "2.1.16"
+  s.version = "2.1.18"
 #  s.date = "2009-4-26"
   s.summary = "Game programming library for Ruby"
   s.email = "cyross@po.twin.ne.jp"
@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   s.test_files = []
   s.extensions = ["extconf.rb"]
   s.files = [
+"./ChangeLog.txt",
 "./defines.h",
 "./extconf.rb",
 "./extern.h",

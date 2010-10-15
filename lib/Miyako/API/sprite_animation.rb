@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -204,11 +204,7 @@ module Miyako
       first = @slist[0]
       set_layout_size(first.ow, first.oh)
       move_to!(first.x, first.y)
-      @slist.each{|ss|
-#        ss.snap(self)
-#        ss.left!.top!
-        ss.move_to!(first.x, first.y)
-      }
+      @slist.each{|ss| ss.move_to!(first.x, first.y) }
     end
 
     #===複写時に呼び出されるメソッド
@@ -484,9 +480,8 @@ module Miyako
     #ブロックの引数は、|インスタンスのSpriteUnit|となる。
     #visibleメソッドの値がfalseのときは描画されない。
     def render
+      return self unless @visible
       return self unless @now
-#      pos = @now.move(*@move_offset[@pnum])
-#      @now.render_xy(*pos)
       @now.render_d(*@move_offset[@pnum])
     end
 
@@ -502,6 +497,16 @@ module Miyako
       return self unless @now
       pos = @now.move(*@move_offset[@pnum])
       @now.render_xy_to(dst, *pos)
+    end
+
+    def show
+      @visible = true
+      self
+    end
+
+    def hide
+      @visible = false
+      self
     end
   end
 end

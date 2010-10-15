@@ -284,7 +284,9 @@ module Miyako
       @vars = {}
 
       @text_methods = {:char => self.method(:text_by_char),
-                      :string => self.method(:text_by_str) }
+                       :char_rapid => self.method(:text_by_char_rapid),
+                       :string => self.method(:text_by_str),
+                       :string_rapid => self.method(:text_by_str_rapid) }
       @text_method_name = :char
 
       @valign = :middle
@@ -1249,7 +1251,7 @@ module Miyako
     #_mode_:: テキストの表示方法。:charのときは文字ごと、:stringのときは文字列ごとに表示される。それ以外を指定したときは例外が発生
     #返却値:: 自分自身を返す
     def text_method(mode)
-      raise MiyakoValueError, "undefined text_mode! #{mode}" unless [:char,:string].include?(mode)
+      raise MiyakoValueError, "undefined text_mode! #{mode}" unless @text_methods.keys.include?(mode)
       backup = @text_method_name
       @text_method_name = mode
       if block_given?
@@ -1273,8 +1275,6 @@ module Miyako
     #_txt_:: 表示させるテキスト
     #返却値:: 自分自身を返す
     def text(txt)
-      return self if txt.eql?(self)
-      return self if txt.empty?
       return @text_methods[@text_method_name].call(txt)
     end
 
@@ -1286,20 +1286,45 @@ module Miyako
     #_txt_:: 表示させるテキスト
     #返却値:: 自分自身を返す
     def text_by_char(txt)
-      return self if txt.eql?(self)
+      return self unless txt.class.method_defined?("chars")
       txt.chars{|ch|
         pre_process
-        if /[\n\r]/.match(ch)
+        if ch == "\n" || ch == "\r"
           next wait_by_cond(@is_outer_height)
         elsif @text_box.locate.x + @text_box.font.text_size(ch)[0] >= @text_box.textarea.w
           wait_by_cond(@is_outer_height)
-        elsif /[\t\f]/.match(ch)
+        elsif ch == "\t" || ch == "\f"
           next nil
         end
         @text_box.draw_text(ch)
         @base.text_inner(self, ch) if @base
         post_process
       }
+      return self
+    end
+
+    #===テキストボックスに文字を1文字ずつ表示する
+    #[[Yukiスクリプトとして利用可能]]
+    #引数txtの値は、内部で１文字ずつ分割され、１文字描画されるごとに、
+    #update_textメソッドが呼び出され、続けてYuki#start_plotもしくはYuki#updateメソッド呼び出し直後に戻る
+    #注意として、改行が文字列中にあれば改行、タブやフィードが文字列中にあれば、nilを返す。
+    #_txt_:: 表示させるテキスト
+    #返却値:: 自分自身を返す
+    def text_by_char_rapid(txt)
+      return self unless txt.class.method_defined?("chars")
+      pre_process
+      txt.chars{|ch|
+        if ch == "\n" || ch == "\r"
+          next wait_by_cond(@is_outer_height)
+        elsif @text_box.locate.x + @text_box.font.text_size(ch)[0] >= @text_box.textarea.w
+          wait_by_cond(@is_outer_height)
+        elsif ch == "\t" || ch == "\f"
+          next nil
+        end
+        @text_box.draw_text(ch)
+        @base.text_inner(self, ch) if @base
+      }
+      post_process
       return self
     end
 
@@ -1311,17 +1336,17 @@ module Miyako
     #_txt_:: 表示させるテキスト
     #返却値:: 自分自身を返す
     def text_by_str(txt)
-      return self if txt.eql?(self)
+      return self unless txt.class.method_defined?("chars")
       use_cr = false
+      tw = @text_box.textarea.w
       until txt.empty? do
         pre_process
         if /[\n\r]/.match(txt)
           tmp = Regexp.last_match.pre_match
           txt = Regexp.last_match.post_match
           use_cr = true
-        elsif @text_box.locate.x + @text_box.font.text_size(txt)[0] >= @text_box.textarea.w
-          w = (@text_box.textarea.w - @text_box.locate.x) / @text_box.font.size
-          tmp = txt.slice!(0,w)
+        elsif @text_box.locate.x + @text_box.font.text_size(txt)[0] >= tw
+          tmp = txt.slice!(0,(tw - @text_box.locate.x) / @text_box.font.size)
           use_cr = true
         elsif /[\t\f]/.match(txt)
           post_process
@@ -1331,11 +1356,49 @@ module Miyako
           txt = ""
         end
         @text_box.draw_text(tmp)
-        self.cr if use_cr
+        if use_cr
+          self.cr
+          use_cr = false
+        end
         @base.text_inner(self, tmp) if @base
-        use_cr = false
         post_process
       end
+      return self
+    end
+    #===テキストボックスに文字を表示する
+    #[[Yukiスクリプトとして利用可能]]
+    #文字列が描画されるごとに、update_textメソッドが呼び出され、
+    #続けてYuki#start_plotもしくはYuki#updateメソッド呼び出し直後に戻る
+    #注意として、改行が文字列中にあれば改行、タブやフィードが文字列中にあれば、nilを返す。
+    #_txt_:: 表示させるテキスト
+    #返却値:: 自分自身を返す
+    def text_by_str_rapid(txt)
+      return self unless txt.class.method_defined?("chars")
+      use_cr = false
+      tw = @text_box.textarea.w
+      pre_process
+      until txt.empty? do
+        if /[\n\r]/.match(txt)
+          tmp = Regexp.last_match.pre_match
+          txt = Regexp.last_match.post_match
+          use_cr = true
+        elsif @text_box.locate.x + @text_box.font.text_size(txt)[0] >= tw
+          tmp = txt.slice!(0,(tw - @text_box.locate.x) / @text_box.font.size)
+          use_cr = true
+        elsif /[\t\f]/.match(txt)
+          next nil
+        else
+          tmp = txt
+          txt = ""
+        end
+        @text_box.draw_text(tmp)
+        if use_cr
+          self.cr
+          use_cr = false
+        end
+      end
+      @base.text_inner(self, tmp) if @base
+      post_process
       return self
     end
 
