@@ -712,6 +712,9 @@ void _miyako_screen_pre_render()
 */
 static VALUE screen_render(VALUE self)
 {
+  VALUE flag = rb_iv_get(mScreen, "@render_attr");
+  if(flag == Qfalse){ return Qnil; }
+  
   VALUE dst = rb_iv_get(mScreen, "@@unit");
   SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");

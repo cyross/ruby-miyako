@@ -3,7 +3,7 @@
 #=コンテンツ作成ライブラリMiyako2.1
 #
 #Authors:: サイロス誠
-#Version:: 2.1.19
+#Version:: 2.1.20
 #Copyright:: 2007-2010 Cyross Makoto
 #License:: LGPL2.1
 #
@@ -63,7 +63,7 @@ Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
-  VERSION = "2.1.19"
+  VERSION = "2.1.20"
 
   #===アプリケーション実行中に演奏する音楽のサンプリングレートを指定する
   #単位はHz(周波数)

@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+﻿# -*- encoding: utf-8 -*-
 =begin
 --
 Miyako v2.1
@@ -62,6 +62,7 @@ module Miyako
     @@in_the_scene = false
     @@screen = nil
     @@viewport = nil
+    @render_attr = true
 
     @@pre_render_array = SpriteList.new
     @@auto_render_array = SpriteList.new
@@ -343,6 +344,22 @@ module Miyako
     #_src_:: 転送元ビットマップ(to_unitメソッドを呼び出すことが出来る/値がnilではないインスタンス)
     #返却値:: 自分自身を返す
     def Screen::render_screen(src)
+    end
+
+    def Screen::render_attr
+      @render_attr
+    end
+
+    def Screen::render_attr=(value)
+      @render_attr = value ? true : false
+    end
+
+    def Screen::enable_render
+      @render_attr = true
+    end
+
+    def Screen::disable_render
+      @render_attr = false
     end
   end
 end

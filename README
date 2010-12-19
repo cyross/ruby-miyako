@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.19
-【   作成日   】　2010/10/18
+【 バージョン 】　2.1.20
+【   作成日   】　2010/12/20
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.19公式リリース版です。
+本バージョンは、2.1.20公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -90,7 +90,7 @@ PAD : BUFFALO BGC-FC802
       Logicool G-UF13
 OS  : Microsoft WindowsXp SP3
       Microsoft WindowsVista Ultimate(x64) SP1
-DEV : Notepad++ v5.3.1-6
+DEV : xyzzy
       mingw32版Ruby 1.9.2-p0 + Ruby/SDL 2.1.1
       MinGW+MSYS(miyako_no_katanaビルド)
 
@@ -100,8 +100,8 @@ CPU : Core i5
 MEM : 4GB(2GBx2)
 PAD : SANWA SUPPLY JY-P1W
 OS  : Microsoft Windows7 x64
-DEV : Notepad++ v5.3.1-6
-      mswin32版Ruby 1.9.2-p0 + Ruby/SDL 2.1.1
+DEV : xyzzy
+      mingw32版Ruby 1.9.2-p0 + Ruby/SDL 2.1.1
 
 【 動作確認環境 】
 
@@ -150,7 +150,12 @@ Windowsでは、以下のサイトにあるActiveRubyのインストールをお
 「COM Meets Ruby」
 http://arton.hp.infoseek.co.jp/indexj.html
 
+注)ActiveRubyをお使いの方は、Ruby1.9.1をご使用ください。
+   Ruby1.9.2では使用しているコンパイラに変更があった為、バイナリ版が動作しません！
+
 また、Windows用には、後述の「Ruby、SDL、Ruby/SDLパック」というものがあり、これをインストールすると、別途Ruby/SDLをインストールすることなく、RubyとRuby/SDLを利用することが出来ます（但し、Windowsの詳しい操作に慣れていない方には難しい作業が必要になる可能性があります。また、ベースとなっているRuby/SDLがv1.2ですので、MP3ファイルの再生はサポートされておりません）。
+
+他にも、拙作の「MiyakoPack」があり、これですと、Ruby1.9.2、Ruby/SDL、Miyako他、様々なライブラリが同梱されております。
 
 ２．SDLのインストール
 
