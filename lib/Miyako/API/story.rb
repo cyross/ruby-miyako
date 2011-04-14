@@ -90,7 +90,7 @@ module Miyako
         on = n
 
         raise MiyakoValueError, "Illegal Script-label name! : #{n}" unless Scene.has_scene?(n.to_s)
-        raise MiyakoValueError, "This scene cannot use for Standard Scene! : #{n}" if n.scene_type != :scene
+        raise MiyakoValueError, "This scene cannot use for Standard Scene! : #{n}" if n.scene_type != :scene and !@@sub_scenes.include?(n.scene_type)
         u = get_scene(n, @stack.size) if u == nil
         u.hand_over = @hand_over
         @hand_over = nil
