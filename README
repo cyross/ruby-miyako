@@ -1,8 +1,8 @@
 *******************************************************************************
 【   作者名   】　サイロス誠
 【  ソフト名  】　Interactive Media Authoring System "Miyako"
-【 バージョン 】　2.1.20
-【   作成日   】　2010/12/20
+【 バージョン 】　2.1.22
+【   作成日   】　2011/05/15
 【    種別    】　フリーウェア
 【  開発言語  】　Ruby 1.9.1
 【 ランタイム 】　Ruby 1.9.1～,Ruby/SDL 2.1～,SDL
@@ -15,7 +15,7 @@
 
 【 注意事項  】
 
-本バージョンは、2.1.20公式リリース版です。
+本バージョンは、2.1.22公式リリース版です。
 本バージョンでは、ドキュメント・リファレンスは不十分ですが、「サイログ。」内や、サンプルプログラムの紹介等で随時ドキュメントを公開して行きます。
 （RDOC化を進めていますので、我こそはと思う方は是非・・・）
 
@@ -88,8 +88,7 @@ VID : GeForce 8800GT
 S/B : Creative SoundBlaster X-Fi
 PAD : BUFFALO BGC-FC802
       Logicool G-UF13
-OS  : Microsoft WindowsXp SP3
-      Microsoft WindowsVista Ultimate(x64) SP1
+OS  : Microsoft Windows7 Ultimate(x64) SP1 + VMWarePlayer(Microsoft WindowsXp SP3)
 DEV : xyzzy
       mingw32版Ruby 1.9.2-p0 + Ruby/SDL 2.1.1
       MinGW+MSYS(miyako_no_katanaビルド)

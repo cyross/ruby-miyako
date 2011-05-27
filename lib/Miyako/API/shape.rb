@@ -334,9 +334,9 @@ module Miyako
 
     def box(param) #:nodoc:
       init_parameter(param)
-      s = Sprite.new(:size => [w, h], :type => :alpha_channel)
       w = @size[0]
       h = @size[1]
+      s = Sprite.new(:size => [w, h], :type => :alpha_channel)
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
@@ -367,10 +367,10 @@ module Miyako
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
-        roundbox_basic(s, [0, 0, w, h], @ray, Color.to_rgb(@edge[:color]))
-        roundbox_basic(s, [@edge[:width], @edge[:width], w, h], @ray, Color.to_rgb(@color))
+        roundbox_basic(s, 0, 0, w, h, @ray, Color.to_rgb(@edge[:color]))
+        roundbox_basic(s, @edge[:width], @edge[:width], w, h, @ray, Color.to_rgb(@color))
       else
-        roundbox_basic(s, [0, 0, w, h], @ray, Color.to_rgb(@color))
+        roundbox_basic(s, 0, 0, w, h, @ray, Color.to_rgb(@color))
       end
       return s
     end
@@ -381,7 +381,6 @@ module Miyako
       Drawing.fill(s, [0, 0, 0])
       Bitmap.ck_to_ac!(s, [0, 0, 0])
       if @edge
-        et, ec = sp.get_param(:edge)[0..1]
         Drawing.circle(s, [@ray, @ray], @ray, Color.to_rgb(@edge[:color]), true)
         Drawing.circle(s, [@ray, @ray], @ray-@edge[:width], Color.to_rgb(@color), true)
       else
@@ -414,6 +413,8 @@ module Miyako
       min_x, max_x = @vertexes.map{|v| v[0]}.minmax
       min_y, max_y = @vertexes.map{|v| v[1]}.minmax
 
+      raise MiyakoError, "cannot find vertexes!" if min_x.nil? or min_y.nil?
+      
       w = max_x - min_x
       h = max_y - min_y
 
