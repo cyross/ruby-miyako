@@ -81,7 +81,11 @@ module Miyako
     return VERSION
   end
 
-  osn = Config::CONFIG["target_os"].downcase
+  if RUBY_VERSION >= '1.9.3'
+    osn = RbConfig::CONFIG["target_os"].downcase
+  else
+    osn = Config::CONFIG["target_os"].downcase
+  end
   @@osName = "other"
   case osn
   when /mswin|mingw|cygwin|bccwin/
