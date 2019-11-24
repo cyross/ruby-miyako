@@ -72,12 +72,12 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
   isin = (long)(sin(rad)*4096.0);
   icos = (long)(cos(rad)*4096.0);
 
-  px = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+7)));
-  py = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+8)));
+  px = -(NUM2INT(RSTRUCT_GET(src.unit, 7)));
+  py = -(NUM2INT(RSTRUCT_GET(src.unit, 8)));
   pr = src.rect.w + px;
   pb = src.rect.h + py;
-  qx = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+7)));
-  qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
+  qx = -(NUM2INT(RSTRUCT_GET(dst.unit, 7)));
+  qy = -(NUM2INT(RSTRUCT_GET(dst.unit, 8)));
   qr = dst.rect.w + qx;
   qb = dst.rect.h + qy;
 
@@ -112,9 +112,9 @@ static VALUE bitmap_miyako_rotate(VALUE self, VALUE vsrc, VALUE vdst, VALUE radi
       sr = *psrc & 0xff0000;
       sg = *psrc & 0xff00;
       sb = *psrc & 0xff;
-      *tp = ((sr * a1 + dr * a2) & 0xff000000 |
-             (sg * a1 + dg * a2) & 0xff0000   |
-             (sb * a1 + db * a2)) >> 8        |
+      *tp = (((sr * a1 + dr * a2) & 0xff000000) |
+             ((sg * a1 + dg * a2) & 0xff0000)   |
+             ((sb * a1 + db * a2)) >> 8)        |
             0xff000000;
 #else
       dr = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
@@ -182,12 +182,12 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
   off_x = scx < 0 ? 1 : 0;
   off_y = scy < 0 ? 1 : 0;
 
-  px = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+7)));
-  py = -(NUM2INT(*(RSTRUCT_PTR(src.unit)+8)));
+  px = -(NUM2INT(RSTRUCT_GET(src.unit, 7)));
+  py = -(NUM2INT(RSTRUCT_GET(src.unit, 8)));
   pr = src.rect.w + px;
   pb = src.rect.h + py;
-  qx = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+7)));
-  qy = -(NUM2INT(*(RSTRUCT_PTR(dst.unit)+8)));
+  qx = -(NUM2INT(RSTRUCT_GET(dst.unit, 7)));
+  qy = -(NUM2INT(RSTRUCT_GET(dst.unit, 8)));
   qr = dst.rect.w + qx;
   qb = dst.rect.h + qy;
 
@@ -222,9 +222,9 @@ static VALUE bitmap_miyako_scale(VALUE self, VALUE vsrc, VALUE vdst, VALUE xscal
       sr = *psrc & 0xff0000;
       sg = *psrc & 0xff00;
       sb = *psrc & 0xff;
-      *tp = ((sr * a1 + dr * a2) & 0xff000000 |
-             (sg * a1 + dg * a2) & 0xff0000   |
-             (sb * a1 + db * a2)) >> 8        |
+      *tp = (((sr * a1 + dr * a2) & 0xff000000) |
+             ((sg * a1 + dg * a2) & 0xff0000)   |
+             ((sb * a1 + db * a2)) >> 8)        |
             0xff000000;
 #else
       dr = (*tp & dst.fmt->Rmask) >> dst.fmt->Rshift;
@@ -289,12 +289,12 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
   off_x = scx < 0 ? 1 : 0;
   off_y = scy < 0 ? 1 : 0;
 
-  px = -(NUM2INT(*(RSTRUCT_PTR(src->unit)+7)));
-  py = -(NUM2INT(*(RSTRUCT_PTR(src->unit)+8)));
+  px = -(NUM2INT(RSTRUCT_GET(src->unit, 7)));
+  py = -(NUM2INT(RSTRUCT_GET(src->unit, 8)));
   pr = src->rect.w + px;
   pb = src->rect.h + py;
-  qx = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+7)));
-  qy = -(NUM2INT(*(RSTRUCT_PTR(dst->unit)+8)));
+  qx = -(NUM2INT(RSTRUCT_GET(dst->unit, 7)));
+  qy = -(NUM2INT(RSTRUCT_GET(dst->unit, 8)));
   qr = dst->rect.w + qx;
   qb = dst->rect.h + qy;
 
@@ -329,9 +329,9 @@ static void transform_inner(MiyakoBitmap *src, MiyakoBitmap *dst, VALUE radian, 
       sr = *psrc & 0xff0000;
       sg = *psrc & 0xff00;
       sb = *psrc & 0xff;
-      *tp = ((sr * a1 + dr * a2) & 0xff000000 |
-             (sg * a1 + dg * a2) & 0xff0000   |
-             (sb * a1 + db * a2)) >> 8        |
+      *tp = (((sr * a1 + dr * a2) & 0xff000000) |
+             ((sg * a1 + dg * a2) & 0xff0000)   |
+             ((sb * a1 + db * a2)) >> 8)        |
             0xff000000;
 #else
       dr = (*tp & dst->fmt->Rmask) >> dst->fmt->Rshift;

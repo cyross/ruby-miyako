@@ -71,9 +71,8 @@ static void get_position(VALUE pos, Sint16 *x, Sint16 *y)
   case T_STRUCT:
     if(RSTRUCT_LEN(pos) < 2)
       rb_raise(eMiyakoError, "pairs have illegal struct!");
-    tmp = RSTRUCT_PTR(pos);
-    *x = (Sint16)(NUM2INT(*tmp++));
-    *y = (Sint16)(NUM2INT(*tmp));
+    *x = (Sint16)(NUM2INT(RSTRUCT_GET(pos, 0)));
+    *y = (Sint16)(NUM2INT(RSTRUCT_GET(pos, 1)));
     break;
   default:
     *x = (Sint16)(NUM2INT(rb_funcall(pos, rb_intern("x"), 0)));
@@ -178,7 +177,7 @@ static VALUE drawing_draw_polygon(int argc, VALUE *argv, VALUE self)
 static VALUE screen_clear(VALUE self)
 {
   VALUE dst = rb_iv_get(mScreen, "@@unit");
-  SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
+  SDL_Surface *pdst = GetSurface(RSTRUCT_GET(dst, 0))->surface;
 
   sge_ClearSurface(pdst, 0);
 

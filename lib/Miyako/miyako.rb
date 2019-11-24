@@ -31,12 +31,8 @@ if RUBY_VERSION < '1.9.1'
   exit
 end
 
-require 'sdl'
-
-if SDL::VERSION < '2.0'
-  puts 'Sorry. Miyako needs Ruby/SDL 2.0.0 or above...'
-  exit
-end
+require 'rubygems'
+require 'sdl2'
 
 require 'forwardable'
 require 'iconv' if RUBY_VERSION < '1.9.0'
@@ -63,7 +59,7 @@ Thread.abort_on_exception = true
 
 #==Miyako基幹モジュール
 module Miyako
-  VERSION = "2.1.22"
+  VERSION = "3.0.0"
 
   #===アプリケーション実行中に演奏する音楽のサンプリングレートを指定する
   #単位はHz(周波数)
@@ -81,7 +77,7 @@ module Miyako
     return VERSION
   end
 
-  osn = Config::CONFIG["target_os"].downcase
+  osn = RbConfig::CONFIG["target_os"].downcase
   @@osName = "other"
   case osn
   when /mswin|mingw|cygwin|bccwin/

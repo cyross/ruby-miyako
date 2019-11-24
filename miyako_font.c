@@ -88,13 +88,11 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
   fore_color.r = NUM2INT(*(p_font_color+0));
   fore_color.g = NUM2INT(*(p_font_color+1));
   fore_color.b = NUM2INT(*(p_font_color+2));
-  fore_color.unused = 0;
 
   p_shadow_color = RARRAY_PTR(rb_iv_get(self, "@shadow_color"));
   shadow_color.r = NUM2INT(*(p_shadow_color+0));
   shadow_color.g = NUM2INT(*(p_shadow_color+1));
   shadow_color.b = NUM2INT(*(p_shadow_color+2));
-  shadow_color.unused = 0;
 
   font_size = NUM2INT(rb_iv_get(self, "@size"));
   use_shadow = rb_iv_get(self, "@use_shadow");
@@ -216,9 +214,9 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
           sb = *ppsrc2 & 0xff;
           a1 = sa + 1;
           a2 = 256 - sa;
-          *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
-                    (sg * a1 + dg * a2) & 0xff0000   |
-                    (sb * a1 + db * a2)) >> 8        |
+          *ppdst = (((sr * a1 + dr * a2) & 0xff000000) |
+                    ((sg * a1 + dg * a2) & 0xff0000)   |
+                    ((sb * a1 + db * a2)) >> 8)        |
                    0xff000000;
   #endif
   #else
@@ -360,9 +358,9 @@ static VALUE font_draw_text(VALUE self, VALUE vdst, VALUE str, VALUE vx, VALUE v
         sb = *ppsrc & 0xff;
         a1 = sa + 1;
         a2 = 256 - sa;
-        *ppdst = ((sr * a1 + dr * a2) & 0xff000000 |
-                  (sg * a1 + dg * a2) & 0xff0000   |
-                  (sb * a1 + db * a2)) >> 8        |
+        *ppdst = (((sr * a1 + dr * a2) & 0xff000000) |
+                  ((sg * a1 + dg * a2) & 0xff0000)   |
+                  ((sb * a1 + db * a2)) >> 8)        |
                  0xff000000;
 #endif
 #else

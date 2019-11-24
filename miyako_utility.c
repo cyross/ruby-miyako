@@ -39,22 +39,18 @@ static GLOBAL_DEFINE_GET_STRUCT(Surface, GetSurface, cSurface, "SDL::Surface");
 
 void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE x, VALUE y)
 {
-  VALUE *mb_p;
-
   mb->unit = unit;
   if(rb_obj_is_kind_of(mb->unit, sSpriteUnit) == Qfalse){
     mb->unit = rb_funcall(mb->unit, rb_intern("to_unit"), 0);
     if(mb->unit == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }
   }
 
-  mb_p = RSTRUCT_PTR(mb->unit);
+  mb->rect.x = NUM2INT(RSTRUCT_GET(mb->unit, 1));
+  mb->rect.y = NUM2INT(RSTRUCT_GET(mb->unit, 2));
+  mb->rect.w = NUM2INT(RSTRUCT_GET(mb->unit, 3));
+  mb->rect.h = NUM2INT(RSTRUCT_GET(mb->unit, 4));
 
-  mb->rect.x = NUM2INT(*(mb_p + 1));
-  mb->rect.y = NUM2INT(*(mb_p + 2));
-  mb->rect.w = NUM2INT(*(mb_p + 3));
-  mb->rect.h = NUM2INT(*(mb_p + 4));
-
-	mb->surface = GetSurface(*(RSTRUCT_PTR(mb->unit)))->surface;
+	mb->surface = GetSurface(RSTRUCT_GET(mb->unit, 0))->surface;
 	mb->ptr = (Uint32 *)(mb->surface->pixels);
 	mb->fmt = mb->surface->format;
 
@@ -82,8 +78,8 @@ void _miyako_setup_unit(VALUE unit, SDL_Surface *screen, MiyakoBitmap *mb, VALUE
 
   mb->a255 = (mb->surface == screen) ? 0xff : 0;
 
-  mb->x = (x == Qnil ? NUM2INT(*(mb_p + 5)) : NUM2INT(x));
-  mb->y = (y == Qnil ? NUM2INT(*(mb_p+ 6)) : NUM2INT(y));
+  mb->x = (x == Qnil ? NUM2INT(RSTRUCT_GET(mb->unit, 5)) : NUM2INT(x));
+  mb->y = (y == Qnil ? NUM2INT(RSTRUCT_GET(mb->unit, 6)) : NUM2INT(y));
 }
 
 void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
@@ -91,8 +87,6 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
                          MiyakoBitmap *mb_s, MiyakoBitmap *mb_d,
                          VALUE x, VALUE y)
 {
-  VALUE *ms_p, *md_p;
-
   mb_s->unit = unit_s;
   if(rb_obj_is_kind_of(mb_s->unit, sSpriteUnit) == Qfalse){
     mb_s->unit = rb_funcall(mb_s->unit, rb_intern("to_unit"), 0);
@@ -105,17 +99,14 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
     if(mb_d->unit == Qnil){ rb_raise(eMiyakoError, "Source instance has not SpriteUnit!"); }
   }
 
-	mb_s->surface = GetSurface(*(RSTRUCT_PTR(mb_s->unit)))->surface;
+	mb_s->surface = GetSurface(RSTRUCT_GET(mb_s->unit, 0))->surface;
 	mb_s->ptr = (Uint32 *)(mb_s->surface->pixels);
 	mb_s->fmt = mb_s->surface->format;
 
-  ms_p = RSTRUCT_PTR(mb_s->unit);
-  md_p = RSTRUCT_PTR(mb_d->unit);
-
-  mb_s->rect.x = NUM2INT(*(ms_p + 1));
-  mb_s->rect.y = NUM2INT(*(ms_p + 2));
-  mb_s->rect.w = NUM2INT(*(ms_p + 3));
-  mb_s->rect.h = NUM2INT(*(ms_p + 4));
+  mb_s->rect.x = NUM2INT(RSTRUCT_GET(mb_s->unit, 1));
+  mb_s->rect.y = NUM2INT(RSTRUCT_GET(mb_s->unit, 2));
+  mb_s->rect.w = NUM2INT(RSTRUCT_GET(mb_s->unit, 3));
+  mb_s->rect.h = NUM2INT(RSTRUCT_GET(mb_s->unit, 4));
 
   // adjust clip_rect
   if(mb_s->surface == screen)
@@ -141,17 +132,17 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
 
   mb_s->a255 = (mb_s->surface == screen) ? 0xff : 0;
 
-  mb_s->x = (x == Qnil ? NUM2INT(*(ms_p + 5)) : NUM2INT(x));
-  mb_s->y = (y == Qnil ? NUM2INT(*(ms_p + 6)) : NUM2INT(y));
+  mb_s->x = (x == Qnil ? NUM2INT(RSTRUCT_GET(mb_s->unit, 5)) : NUM2INT(x));
+  mb_s->y = (y == Qnil ? NUM2INT(RSTRUCT_GET(mb_s->unit, 6)) : NUM2INT(y));
 
-	mb_d->surface = GetSurface(*(RSTRUCT_PTR(mb_d->unit)))->surface;
+	mb_d->surface = GetSurface(RSTRUCT_GET(mb_d->unit, 0))->surface;
 	mb_d->ptr = (Uint32 *)(mb_d->surface->pixels);
 	mb_d->fmt = mb_d->surface->format;
 
-  mb_d->rect.x = NUM2INT(*(md_p + 1));
-  mb_d->rect.y = NUM2INT(*(md_p + 2));
-  mb_d->rect.w = NUM2INT(*(md_p + 3));
-  mb_d->rect.h = NUM2INT(*(md_p + 4));
+  mb_d->rect.x = NUM2INT(RSTRUCT_GET(mb_d->unit, 1));
+  mb_d->rect.y = NUM2INT(RSTRUCT_GET(mb_d->unit, 2));
+  mb_d->rect.w = NUM2INT(RSTRUCT_GET(mb_d->unit, 3));
+  mb_d->rect.h = NUM2INT(RSTRUCT_GET(mb_d->unit, 4));
 
   // adjust clip_rect
   if(mb_d->surface == screen)
@@ -177,8 +168,8 @@ void _miyako_setup_unit_2(VALUE unit_s, VALUE unit_d,
 
   mb_d->a255 = (mb_d->surface == screen) ? 0xff : 0;
 
-  mb_d->x = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 5));
-  mb_d->y = NUM2INT(*(RSTRUCT_PTR(mb_d->unit) + 6));
+  mb_d->x = NUM2INT(RSTRUCT_GET(mb_d->unit, 5));
+  mb_d->y = NUM2INT(RSTRUCT_GET(mb_d->unit, 6));
 }
 
 int _miyako_init_rect(MiyakoBitmap *src, MiyakoBitmap *dst, MiyakoSize *size)

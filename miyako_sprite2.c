@@ -58,8 +58,8 @@ static char *str_visible = "@visible";
 static VALUE lps_to_ary(VALUE self)
 {
   VALUE array = rb_ary_new();
-  rb_ary_push(array, *(RSTRUCT_PTR(self)+0));
-  rb_ary_push(array, *(RSTRUCT_PTR(self)+1));
+  rb_ary_push(array, RSTRUCT_GET(self, 0));
+  rb_ary_push(array, RSTRUCT_GET(self, 1));
   return array;
 }
 
@@ -68,7 +68,7 @@ static VALUE lps_to_ary(VALUE self)
 */
 static void lps_move_inner(VALUE value, ID id, VALUE x, VALUE y)
 {
-  rb_funcall(*(RSTRUCT_PTR(value)+1), id, 2, x, y);
+  rb_funcall(RSTRUCT_GET(value, 1), id, 2, x, y);
 }
 
 /*
@@ -94,7 +94,7 @@ static VALUE lps_move_to(VALUE self, VALUE x, VALUE y)
 */
 static void lps_inner(VALUE value, ID id)
 {
-  rb_funcall(*(RSTRUCT_PTR(value)+1), id, 0);
+  rb_funcall(RSTRUCT_GET(value, 1), id, 0);
 }
 
 /*
@@ -129,7 +129,7 @@ static VALUE lps_reset(VALUE self)
 */
 static VALUE lps_update_animation(VALUE self)
 {
-  return rb_funcall(*(RSTRUCT_PTR(self)+1), id_update_animation, 0);
+  return rb_funcall(RSTRUCT_GET(self, 1), id_update_animation, 0);
 }
 
 /*
@@ -146,7 +146,7 @@ static VALUE lps_render(VALUE self)
 */
 static VALUE lps_render_to(VALUE self, VALUE dst)
 {
-  rb_funcall(*(RSTRUCT_PTR(self)+1), id_render_to, 1, dst);
+  rb_funcall(RSTRUCT_GET(self, 1), id_render_to, 1, dst);
   return self;
 }
 
@@ -328,9 +328,9 @@ static VALUE sprite_list_sprite_only(VALUE self)
   VALUE *ptr = RARRAY_PTR(list);
   for(i=0; i<RARRAY_LEN(list); i++)
   {
-    VALUE *p2 = RSTRUCT_PTR(*(ptr+i));
-    VALUE n = *(p2+0);
-    VALUE v = *(p2+1);
+    VALUE p2 = *(ptr+i);
+    VALUE n = RSTRUCT_GET(p2, 0);
+    VALUE v = RSTRUCT_GET(p2, 1);
     VALUE c = CLASS_OF(v);
     if(rb_mod_include_p(c, mSpriteBase) == Qtrue ||
        rb_mod_include_p(c, mSpriteArray) == Qtrue)
@@ -364,7 +364,7 @@ static void sprite_list_move_inner(VALUE vlist, ID id, VALUE x, VALUE y)
   {
     for(i=0; i<RARRAY_LEN(list); i++)
     {
-      VALUE v = *(RSTRUCT_PTR(*(ptr+i))+1);
+      VALUE v = RSTRUCT_GET(*(ptr+i), 1);
       rb_funcall(v, id, 2, x, y);
     }
   }
@@ -424,8 +424,8 @@ static VALUE sprite_list_each_pair(VALUE self)
   ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
   {
-    VALUE *sptr = RSTRUCT_PTR(*(ptr+i));
-    rb_yield_values(2, *(sptr+0), *(sptr+1));
+    VALUE sptr = *(ptr+i);
+    rb_yield_values(2, RSTRUCT_GET(sptr, 0), RSTRUCT_GET(sptr, 1));
   }
 
   return self;
@@ -445,7 +445,7 @@ static VALUE sprite_list_each_name(VALUE self)
 
   ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
-    rb_yield_values(1, *(RSTRUCT_PTR(*(ptr+i))+0));
+    rb_yield_values(1, RSTRUCT_GET(*(ptr+i), 0));
 
   return self;
 }
@@ -464,7 +464,7 @@ static VALUE sprite_list_each_value(VALUE self)
 
   ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
-    rb_yield_values(1, *(RSTRUCT_PTR(*(ptr+i))+1));
+    rb_yield_values(1, RSTRUCT_GET(*(ptr+i), 1));
 
   return self;
 }
@@ -584,7 +584,7 @@ static VALUE sprite_list_render_to(VALUE self, VALUE dst)
   for(i=0; i<RARRAY_LEN(array); i++)
   {
     VALUE pair = *(RARRAY_PTR(array)+i);
-    rb_funcall(*(RSTRUCT_PTR(pair)+1), id_render_to, 1, dst);
+    rb_funcall(RSTRUCT_GET(pair, 1), id_render_to, 1, dst);
   }
 
   return self;
@@ -610,7 +610,7 @@ static VALUE sprite_list_map_inner(VALUE self, int idx)
   VALUE *ptr = RARRAY_PTR(array);
   for(i=0; i<RARRAY_LEN(array); i++)
   {
-    rb_ary_push(ret, *(RSTRUCT_PTR(*(ptr+i))+idx));
+    rb_ary_push(ret, RSTRUCT_GET(*(ptr+i), idx));
   }
   return ret;
 }

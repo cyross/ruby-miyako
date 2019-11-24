@@ -49,22 +49,19 @@ static volatile int one = Qnil;
 */
 static VALUE collision_get_position(VALUE pos, VALUE *x, VALUE *y)
 {
-  VALUE *tmp;
   switch(TYPE(pos))
   {
   case T_ARRAY:
     if(RARRAY_LEN(pos) < 2)
       rb_raise(eMiyakoError, "pairs have illegal array!");
-    tmp = RARRAY_PTR(pos);
-    *x = *tmp++;
-    *y = *tmp;
+    *x = RSTRUCT_GET(pos, 0);
+    *y = RSTRUCT_GET(pos, 1);
     break;
   case T_STRUCT:
     if(RSTRUCT_LEN(pos) < 2)
       rb_raise(eMiyakoError, "pairs have illegal struct!");
-    tmp = RSTRUCT_PTR(pos);
-    *x = *tmp++;
-    *y = *tmp;
+    *x = RSTRUCT_GET(pos, 0);
+    *y = RSTRUCT_GET(pos, 1);
     break;
   default:
     *x = rb_funcall(pos, rb_intern("x"), 0);
@@ -79,20 +76,20 @@ static VALUE collision_get_position(VALUE pos, VALUE *x, VALUE *y)
 */
 static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
-  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE prect1 = rb_iv_get(c1, "@rect");
+  VALUE prect2 = rb_iv_get(c2, "@rect");
   VALUE x1, y1, x2, y2;
   double l1, l2, t1, t2, r1, r2, b1, b2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
-  t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
-  r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
-  b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
-  l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
-  t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
-  r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
-  b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+  l1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(prect1, 0));
+  t1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(prect1, 1));
+  r1 = l1 + NUM2DBL(RSTRUCT_GET(prect1, 2)) - 1;
+  b1 = t1 + NUM2DBL(RSTRUCT_GET(prect1, 3)) - 1;
+  l2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(prect2, 0));
+  t2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(prect2, 1));
+  r2 = l2 + NUM2DBL(RSTRUCT_GET(prect2, 2)) - 1;
+  b2 = t2 + NUM2DBL(RSTRUCT_GET(prect2, 3)) - 1;
 
   if(l2 <= r1 && r1 <= r2)
   {
@@ -114,20 +111,20 @@ static VALUE collision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, V
 */
 static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
-  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE prect1 = rb_iv_get(c1, "@rect");
+  VALUE prect2 = rb_iv_get(c2, "@rect");
   VALUE x1, y1, x2, y2;
   double l1, l2, t1, t2, r1, r2, b1, b2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
-  t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
-  r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
-  b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
-  l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
-  t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
-  r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
-  b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+  l1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(prect1, 0));
+  t1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(prect1, 1));
+  r1 = l1 + NUM2DBL(RSTRUCT_GET(prect1, 2)) - 1;
+  b1 = t1 + NUM2DBL(RSTRUCT_GET(prect1, 3)) - 1;
+  l2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(prect2, 0));
+  t2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(prect2, 1));
+  r2 = l2 + NUM2DBL(RSTRUCT_GET(prect2, 2)) - 1;
+  b2 = t2 + NUM2DBL(RSTRUCT_GET(prect2, 3)) - 1;
 
   if(r1 == l2 || b1 == t2 || l1 == r2 || t1 == b2) return Qtrue;
   return Qfalse;
@@ -138,20 +135,20 @@ static VALUE collision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE 
 */
 static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
-  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE prect1 = rb_iv_get(c1, "@rect");
+  VALUE prect2 = rb_iv_get(c2, "@rect");
   double l1, l2, t1, t2, r1, r2, b1, b2;
   VALUE x1, y1, x2, y2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
-  t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
-  r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
-  b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
-  l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
-  t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
-  r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
-  b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+  l1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(prect1, 0));
+  t1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(prect1, 1));
+  r1 = l1 + NUM2DBL(RSTRUCT_GET(prect1, 2)) - 1;
+  b1 = t1 + NUM2DBL(RSTRUCT_GET(prect1, 3)) - 1;
+  l2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(prect2, 0));
+  t2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(prect2, 1));
+  r2 = l2 + NUM2DBL(RSTRUCT_GET(prect2, 2)) - 1;
+  b2 = t2 + NUM2DBL(RSTRUCT_GET(prect2, 3)) - 1;
 
   if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
   if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
@@ -163,20 +160,20 @@ static VALUE collision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE
 */
 static VALUE collision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
-  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE prect1 = rb_iv_get(c1, "@rect");
+  VALUE prect2 = rb_iv_get(c2, "@rect");
   VALUE x1, y1, x2, y2;
   double l1, l2, t1, t2, r1, r2, b1, b2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
-  t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
-  r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
-  b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
-  l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
-  t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
-  r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
-  b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+  l1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(prect1, 0));
+  t1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(prect1, 1));
+  r1 = l1 + NUM2DBL(RSTRUCT_GET(prect1, 2)) - 1;
+  b1 = t1 + NUM2DBL(RSTRUCT_GET(prect1, 3)) - 1;
+  l2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(prect2, 0));
+  t2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(prect2, 1));
+  r2 = l2 + NUM2DBL(RSTRUCT_GET(prect2, 2)) - 1;
+  b2 = t2 + NUM2DBL(RSTRUCT_GET(prect2, 3)) - 1;
 
   if(l1 <= l2 && r1 >= r2 && t1 <= t2 && b1 >= b2) return Qtrue;
   return Qfalse;
@@ -187,20 +184,20 @@ static VALUE collision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALU
 */
 static VALUE collision_c_covered(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *prect1 = RSTRUCT_PTR(rb_iv_get(c1, "@rect"));
-  VALUE *prect2 = RSTRUCT_PTR(rb_iv_get(c2, "@rect"));
+  VALUE prect1 = rb_iv_get(c1, "@rect");
+  VALUE prect2 = rb_iv_get(c2, "@rect");
   VALUE x1, y1, x2, y2;
   double l1, l2, t1, t2, r1, r2, b1, b2;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  l1 = NUM2DBL(x1) + NUM2DBL(*prect1);
-  t1 = NUM2DBL(y1) + NUM2DBL(*(prect1+1));
-  r1 = l1 + NUM2DBL(*(prect1+2)) - 1;
-  b1 = t1 + NUM2DBL(*(prect1+3)) - 1;
-  l2 = NUM2DBL(x2) + NUM2DBL(*prect2);
-  t2 = NUM2DBL(y2) + NUM2DBL(*(prect2+1));
-  r2 = l2 + NUM2DBL(*(prect2+2)) - 1;
-  b2 = t2 + NUM2DBL(*(prect2+3)) - 1;
+  l1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(prect1, 0));
+  t1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(prect1, 1));
+  r1 = l1 + NUM2DBL(RSTRUCT_GET(prect1, 2)) - 1;
+  b1 = t1 + NUM2DBL(RSTRUCT_GET(prect1, 3)) - 1;
+  l2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(prect2, 0));
+  t2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(prect2, 1));
+  r2 = l2 + NUM2DBL(RSTRUCT_GET(prect2, 2)) - 1;
+  b2 = t2 + NUM2DBL(RSTRUCT_GET(prect2, 3)) - 1;
 
   if(l1 >= l2 && r1 <= r2 && t1 >= t2 && b1 <= b2) return Qtrue;
   return Qfalse;
@@ -251,8 +248,8 @@ static VALUE collision_covered(VALUE self, VALUE pos1, VALUE c2, VALUE pos2)
 */
 static VALUE circlecollision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
-  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  VALUE pcenter1 = rb_iv_get(c1, "@center");
+  VALUE pcenter2 = rb_iv_get(c2, "@center");
   double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
   double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
   double r  = (r1 + r2) * (r1 + r2);
@@ -260,10 +257,10 @@ static VALUE circlecollision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE
   double cx1, cy1, cx2, cy2, d;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
-  cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
-  cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
-  cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  cx1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(pcenter1, 0));
+  cy1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(pcenter1, 1));
+  cx2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(pcenter2, 0));
+  cy2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(pcenter2, 1));
   d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(d <= r) return Qtrue;
@@ -275,8 +272,8 @@ static VALUE circlecollision_c_collision(VALUE self, VALUE c1, VALUE pos1, VALUE
 */
 static VALUE circlecollision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
-  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  VALUE pcenter1 = rb_iv_get(c1, "@center");
+  VALUE pcenter2 = rb_iv_get(c2, "@center");
   double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
   double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
   double r  = (r1 + r2) * (r1 + r2);
@@ -284,10 +281,10 @@ static VALUE circlecollision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, 
   double cx1, cy1, cx2, cy2, d;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
-  cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
-  cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
-  cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  cx1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(pcenter1, 0));
+  cy1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(pcenter1, 1));
+  cx2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(pcenter2, 0));
+  cy2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(pcenter2, 1));
   d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(d == r) return Qtrue;
@@ -299,8 +296,8 @@ static VALUE circlecollision_c_meet(VALUE self, VALUE c1, VALUE pos1, VALUE c2, 
 */
 static VALUE circlecollision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
-  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  VALUE pcenter1 = rb_iv_get(c1, "@center");
+  VALUE pcenter2 = rb_iv_get(c2, "@center");
   double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
   double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
   double r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
@@ -308,10 +305,10 @@ static VALUE circlecollision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2,
   double cx1, cy1, cx2, cy2, d;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
-  cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
-  cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
-  cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  cx1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(pcenter1, 0));
+  cy1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(pcenter1, 1));
+  cx2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(pcenter2, 0));
+  cy2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(pcenter2, 1));
   d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(d <= r) return Qtrue;
@@ -323,8 +320,8 @@ static VALUE circlecollision_c_cover(VALUE self, VALUE c1, VALUE pos1, VALUE c2,
 */
 static VALUE circlecollision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
-  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  VALUE pcenter1 = rb_iv_get(c1, "@center");
+  VALUE pcenter2 = rb_iv_get(c2, "@center");
   double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
   double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
   double r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
@@ -332,10 +329,10 @@ static VALUE circlecollision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2
   double cx1, cy1, cx2, cy2, d;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
-  cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
-  cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
-  cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  cx1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(pcenter1, 0));
+  cy1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(pcenter1, 1));
+  cx2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(pcenter2, 0));
+  cy2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(pcenter2, 1));
   d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(r1 >= r2 && d <= r) return Qtrue;
@@ -347,8 +344,8 @@ static VALUE circlecollision_c_covers(VALUE self, VALUE c1, VALUE pos1, VALUE c2
 */
 static VALUE circlecollision_c_covered(VALUE self, VALUE c1, VALUE pos1, VALUE c2, VALUE pos2)
 {
-  VALUE *pcenter1 = RSTRUCT_PTR(rb_iv_get(c1, "@center"));
-  VALUE *pcenter2 = RSTRUCT_PTR(rb_iv_get(c2, "@center"));
+  VALUE pcenter1 = rb_iv_get(c1, "@center");
+  VALUE pcenter2 = rb_iv_get(c2, "@center");
   double r1 = NUM2DBL(rb_iv_get(c1, "@radius"));
   double r2 = NUM2DBL(rb_iv_get(c2, "@radius"));
   double r = (r1 - r2) * (r1 - r2); // y = (x-a)^2 -> y = x^2 - 2ax + a^2
@@ -356,10 +353,10 @@ static VALUE circlecollision_c_covered(VALUE self, VALUE c1, VALUE pos1, VALUE c
   double cx1, cy1, cx2, cy2, d;
   collision_get_position(pos1, &x1, &y1);
   collision_get_position(pos2, &x2, &y2);
-  cx1 = NUM2DBL(x1) + NUM2DBL(*pcenter1);
-  cy1 = NUM2DBL(y1) + NUM2DBL(*(pcenter1+1));
-  cx2 = NUM2DBL(x2) + NUM2DBL(*pcenter2);
-  cy2 = NUM2DBL(y2) + NUM2DBL(*(pcenter2+1));
+  cx1 = NUM2DBL(x1) + NUM2DBL(RSTRUCT_GET(pcenter1, 0));
+  cy1 = NUM2DBL(y1) + NUM2DBL(RSTRUCT_GET(pcenter1, 1));
+  cx2 = NUM2DBL(x2) + NUM2DBL(RSTRUCT_GET(pcenter2, 0));
+  cy2 = NUM2DBL(y2) + NUM2DBL(RSTRUCT_GET(pcenter2, 1));
   d   = (cx1-cx2) * (cx1-cx2) + (cy1-cy2) * (cy1-cy2);
 
   if(r1 <= r2 && d <= r) return Qtrue;

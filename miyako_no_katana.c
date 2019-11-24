@@ -142,8 +142,7 @@ static VALUE sprite_get_rect(VALUE src, int *dst)
   case T_STRUCT:
     if(RSTRUCT_LEN(src) < 4)
       rb_raise(eMiyakoError, "rect needs 4 or much members!");
-    tmp = RSTRUCT_PTR(src);
-    for(i=0; i<4; i++){ *dst++ = NUM2INT(*tmp++); }
+    for(i=0; i<4; i++){ *dst++ = NUM2INT(RSTRUCT_GET(src, i)); }
     break;
   default:
     *(dst+0) = NUM2INT(rb_funcall(src, rb_intern("x"), 0));
@@ -186,9 +185,9 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
       if(src_x < 0 || dst_x < 0){  psrc++; pdst++; src_x++; dst_x++; continue; }
       if(src_x >= sb->surface->w || dst_x >= db->surface->w){ break; }
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-      sb->color.a = (*psrc >> 24) & 0xff | sb->a255;
+      sb->color.a = ((*psrc >> 24) & 0xff) | sb->a255;
       if(sb->color.a == 0){ psrc++; pdst++; src_x++; dst_x++; continue; }
-      db->color.a = (*pdst >> 24) & 0xff | db->a255;
+      db->color.a = ((*pdst >> 24) & 0xff) | db->a255;
       if(db->color.a == 0 || sb->color.a == 255){
         *pdst = *psrc | (sb->a255 << 24);
         psrc++;
@@ -205,9 +204,9 @@ static void render_to_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
       db->color.r = (*pdst >> 16) & 0xff;
       db->color.g = (*pdst >>  8) & 0xff;
       db->color.b = (*pdst      ) & 0xff;
-      *pdst = ((sb->color.r * a1 + db->color.r * a2) >> 8) << 16 |
-              ((sb->color.g * a1 + db->color.g * a2) >> 8) <<  8 |
-              ((sb->color.b * a1 + db->color.b * a2) >> 8)       |
+      *pdst = (((sb->color.r * a1 + db->color.r * a2) >> 8) << 16) |
+              (((sb->color.g * a1 + db->color.g * a2) >> 8) <<  8) |
+              ((sb->color.b * a1 + db->color.b * a2) >> 8)         |
               0xff << 24;
 #else
       sb->color.a = (*psrc & sb->fmt->Amask) | sb->a255;
@@ -258,7 +257,7 @@ static void render_inner(MiyakoBitmap *sb, MiyakoBitmap *db)
 */
 static VALUE sprite_b_render_xy(VALUE self, VALUE vx, VALUE vy)
 {
-  VALUE cls, *p_pos, x, y;
+  VALUE cls, pos, x, y;
   if(rb_iv_get(self, str_visible) == Qfalse) return self;
   cls = rb_obj_class(self);
   if(rb_funcall(cls, id_defined, ID2SYM(id_move_to)) == Qfalse ||
@@ -266,9 +265,9 @@ static VALUE sprite_b_render_xy(VALUE self, VALUE vx, VALUE vy)
     rb_funcall(self, id_render, 0);
     return self;
   }
-  p_pos = RSTRUCT_PTR(_miyako_layout_pos(self));
-  x = *(p_pos + 0);
-  y = *(p_pos + 1);
+  pos = _miyako_layout_pos(self);
+  x = RSTRUCT_GET(pos, 0);
+  y = RSTRUCT_GET(pos, 1);
   _miyako_layout_move_to(self, vx, vy);
   rb_funcall(self, id_render, 0);
   _miyako_layout_move_to(self, x, y);
@@ -279,7 +278,7 @@ static VALUE sprite_b_render_xy(VALUE self, VALUE vx, VALUE vy)
 */
 static VALUE sprite_b_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE vy)
 {
-  VALUE cls, *p_pos, x, y;
+  VALUE cls, pos, x, y;
   if(rb_iv_get(self, str_visible) == Qfalse) return self;
   cls = rb_obj_class(self);
   if(rb_funcall(cls, id_defined, ID2SYM(id_move_to)) == Qfalse ||
@@ -287,9 +286,9 @@ static VALUE sprite_b_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALU
     rb_funcall(self, id_render_to, 1, vdst);
     return self;
   }
-  p_pos = RSTRUCT_PTR(_miyako_layout_pos(self));
-  x = *(p_pos + 0);
-  y = *(p_pos + 1);
+  pos = _miyako_layout_pos(self);
+  x = RSTRUCT_GET(pos, 0);
+  y = RSTRUCT_GET(pos, 1);
   _miyako_layout_move_to(self, vx, vy);
   rb_funcall(self, id_render_to, 1, vdst);
   _miyako_layout_move_to(self, x, y);
@@ -311,7 +310,7 @@ static VALUE sprite_c_render_to_sprite(VALUE self, VALUE vsrc, VALUE vdst)
 */
 static VALUE sprite_render(VALUE self)
 {
-  VALUE src_unit, dst_unit, *s_p, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
 
@@ -320,20 +319,18 @@ static VALUE sprite_render(VALUE self)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
-  s_p = RSTRUCT_PTR(src_unit);
-  srect.x = NUM2INT(*(s_p + 1));
-  srect.y = NUM2INT(*(s_p + 2));
-  srect.w = NUM2INT(*(s_p + 3));
-  srect.h = NUM2INT(*(s_p + 4));
+  srect.x = NUM2INT(RSTRUCT_GET(src_unit, 1));
+  srect.y = NUM2INT(RSTRUCT_GET(src_unit, 2));
+  srect.w = NUM2INT(RSTRUCT_GET(src_unit, 3));
+  srect.h = NUM2INT(RSTRUCT_GET(src_unit, 4));
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(*(s_p + 5));
-  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(*(s_p + 6));
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1)) + NUM2INT(RSTRUCT_GET(src_unit, 5));
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2)) + NUM2INT(RSTRUCT_GET(src_unit, 6));
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -361,7 +358,7 @@ static VALUE sprite_render_to_sprite(VALUE self, VALUE vdst)
 */
 static VALUE sprite_render_xy(VALUE self, VALUE vx, VALUE vy)
 {
-  VALUE src_unit, dst_unit, *s_p, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
 
@@ -370,20 +367,18 @@ static VALUE sprite_render_xy(VALUE self, VALUE vx, VALUE vy)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
-  s_p = RSTRUCT_PTR(src_unit);
-  srect.x = NUM2INT(*(s_p + 1));
-  srect.y = NUM2INT(*(s_p + 2));
-  srect.w = NUM2INT(*(s_p + 3));
-  srect.h = NUM2INT(*(s_p + 4));
+  srect.x = NUM2INT(RSTRUCT_GET(src_unit, 1));
+  srect.y = NUM2INT(RSTRUCT_GET(src_unit, 2));
+  srect.w = NUM2INT(RSTRUCT_GET(src_unit, 3));
+  srect.h = NUM2INT(RSTRUCT_GET(src_unit, 4));
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(vx);
-  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(vy);
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1)) + NUM2INT(vx);
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2)) + NUM2INT(vy);
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -415,7 +410,7 @@ static VALUE sprite_render_xy_to_sprite(VALUE self, VALUE vdst, VALUE vx, VALUE 
 */
 static VALUE sprite_render_rect(VALUE self, VALUE vrect)
 {
-  VALUE src_unit, dst_unit, *s_p, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
   int rect[4];
@@ -427,20 +422,18 @@ static VALUE sprite_render_rect(VALUE self, VALUE vrect)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
-  s_p = RSTRUCT_PTR(src_unit);
-  srect.x = NUM2INT(*(s_p + 1)) + rect[0];
-  srect.y = NUM2INT(*(s_p + 2)) + rect[1];
+  srect.x = NUM2INT(RSTRUCT_GET(src_unit, 1)) + rect[0];
+  srect.y = NUM2INT(RSTRUCT_GET(src_unit, 2)) + rect[1];
   srect.w = rect[2];
   srect.h = rect[3];
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1));
-  drect.y = NUM2INT(*(d_p + 2));
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1));
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2));
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -471,7 +464,7 @@ static VALUE sprite_render_rect_to_sprite(VALUE self, VALUE vdst, VALUE vrect)
 */
 static VALUE sprite_render_rect2(VALUE self, VALUE vrect)
 {
-  VALUE src_unit, dst_unit, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
   int rect[4];
@@ -483,19 +476,18 @@ static VALUE sprite_render_rect2(VALUE self, VALUE vrect)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
   srect.x = rect[0];
   srect.y = rect[1];
   srect.w = rect[2];
   srect.h = rect[3];
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1));
-  drect.y = NUM2INT(*(d_p + 2));
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1));
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2));
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -526,7 +518,7 @@ static VALUE sprite_render_rect2_to_sprite(VALUE self, VALUE vdst, VALUE vrect)
 */
 static VALUE sprite_render_rect_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
 {
-  VALUE src_unit, dst_unit, *s_p, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
   int rect[4];
@@ -538,20 +530,18 @@ static VALUE sprite_render_rect_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
-  s_p = RSTRUCT_PTR(src_unit);
-  srect.x = NUM2INT(*(s_p + 1)) + rect[0];
-  srect.y = NUM2INT(*(s_p + 2)) + rect[1];
+  srect.x = NUM2INT(RSTRUCT_GET(src_unit, 1)) + rect[0];
+  srect.y = NUM2INT(RSTRUCT_GET(src_unit, 2)) + rect[1];
   srect.w = rect[2];
   srect.h = rect[3];
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(vx);
-  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(vy);
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1)) + NUM2INT(vx);
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2)) + NUM2INT(vy);
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -583,7 +573,7 @@ static VALUE sprite_render_rect_xy_to_sprite(VALUE self, VALUE vdst, VALUE vrect
 */
 static VALUE sprite_render_rect2_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
 {
-  VALUE src_unit, dst_unit, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
   int rect[4];
@@ -595,19 +585,18 @@ static VALUE sprite_render_rect2_xy(VALUE self, VALUE vrect, VALUE vx, VALUE vy)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
   srect.x = rect[0];
   srect.y = rect[1];
   srect.w = rect[2];
   srect.h = rect[3];
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(vx);
-  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(vy);
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1)) + NUM2INT(vx);
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2)) + NUM2INT(vy);
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -640,7 +629,7 @@ static VALUE sprite_render_rect2_xy_to_sprite(VALUE self, VALUE vdst, VALUE vrec
 */
 static VALUE sprite_render_d(VALUE self, VALUE vdx, VALUE vdy)
 {
-  VALUE src_unit, dst_unit, *s_p, *d_p;
+  VALUE src_unit, dst_unit;
   SDL_Surface *src, *dst;
   SDL_Rect srect, drect;
 
@@ -649,20 +638,18 @@ static VALUE sprite_render_d(VALUE self, VALUE vdx, VALUE vdy)
   src_unit = rb_iv_get(self, "@unit");
   dst_unit = rb_iv_get(mScreen, "@@unit");
 
-  src = GetSurface(*(RSTRUCT_PTR(src_unit)+0))->surface;
-  dst = GetSurface(*(RSTRUCT_PTR(dst_unit)+0))->surface;
+  src = GetSurface(RSTRUCT_GET(src_unit, 0))->surface;
+  dst = GetSurface(RSTRUCT_GET(dst_unit, 0))->surface;
 
-  s_p = RSTRUCT_PTR(src_unit);
-  srect.x = NUM2INT(*(s_p + 1));
-  srect.y = NUM2INT(*(s_p + 2));
-  srect.w = NUM2INT(*(s_p + 3));
-  srect.h = NUM2INT(*(s_p + 4));
+  srect.x = NUM2INT(RSTRUCT_GET(src_unit, 1));
+  srect.y = NUM2INT(RSTRUCT_GET(src_unit, 2));
+  srect.w = NUM2INT(RSTRUCT_GET(src_unit, 3));
+  srect.h = NUM2INT(RSTRUCT_GET(src_unit, 4));
 
-  d_p = RSTRUCT_PTR(dst_unit);
-  drect.x = NUM2INT(*(d_p + 1)) + NUM2INT(*(s_p + 5)) + NUM2INT(vdx);
-  drect.y = NUM2INT(*(d_p + 2)) + NUM2INT(*(s_p + 6)) + NUM2INT(vdy);
-  drect.w = NUM2INT(*(d_p + 3));
-  drect.h = NUM2INT(*(d_p + 4));
+  drect.x = NUM2INT(RSTRUCT_GET(dst_unit, 1)) + NUM2INT(RSTRUCT_GET(src_unit, 5)) + NUM2INT(vdx);
+  drect.y = NUM2INT(RSTRUCT_GET(dst_unit, 2)) + NUM2INT(RSTRUCT_GET(src_unit, 6)) + NUM2INT(vdy);
+  drect.w = NUM2INT(RSTRUCT_GET(dst_unit, 3));
+  drect.h = NUM2INT(RSTRUCT_GET(dst_unit, 4));
 
   SDL_BlitSurface(src, &srect, dst, &drect);
   return self;
@@ -716,7 +703,7 @@ static VALUE screen_render(VALUE self)
   if(flag == Qfalse){ return Qnil; }
   
   VALUE dst = rb_iv_get(mScreen, "@@unit");
-  SDL_Surface *pdst = GetSurface(*(RSTRUCT_PTR(dst)))->surface;
+  SDL_Surface *pdst = GetSurface(RSTRUCT_GET(dst, 0))->surface;
   VALUE fps_view = rb_iv_get(mScreen, "@@fpsView");
 
   _miyako_sprite_list_render(rb_iv_get(cSprite, "@@sprites"));
@@ -858,21 +845,21 @@ static void maplayer_render_inner(VALUE self, MiyakoBitmap *dst)
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
   VALUE margin = rb_iv_get(self, "@pos");
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(margin) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+  int pos_x = NUM2INT(RSTRUCT_GET(margin, 0));
+  int pos_y = NUM2INT(RSTRUCT_GET(margin, 1));
 
   VALUE size = rb_iv_get(self, "@size");
-  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
-  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+  int size_w = NUM2INT(RSTRUCT_GET(size, 0));
+  int size_h = NUM2INT(RSTRUCT_GET(size, 1));
 
   VALUE real_size = rb_iv_get(self, "@real_size");
-  int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
-  int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
+  int real_size_w = NUM2INT(RSTRUCT_GET(real_size, 0));
+  int real_size_h = NUM2INT(RSTRUCT_GET(real_size, 1));
 
   VALUE param = rb_iv_get(self, "@mapchip");
-  VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
-  int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
-  int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
+  VALUE mc_chip_size = RSTRUCT_GET(param, 3);
+  int mc_chip_size_w = NUM2INT(RSTRUCT_GET(mc_chip_size, 0));
+  int mc_chip_size_h = NUM2INT(RSTRUCT_GET(mc_chip_size, 1));
 
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
@@ -924,12 +911,12 @@ static void fixedmaplayer_render_inner(VALUE self, MiyakoBitmap *dst)
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
   VALUE pos = rb_iv_get(self, "@pos");
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+  int pos_x = NUM2INT(RSTRUCT_GET(pos, 0));
+  int pos_y = NUM2INT(RSTRUCT_GET(pos, 1));
 
   VALUE size = rb_iv_get(self, "@size");
-  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
-  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+  int size_w = NUM2INT(RSTRUCT_GET(size, 0));
+  int size_h = NUM2INT(RSTRUCT_GET(size, 1));
 
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
@@ -973,21 +960,21 @@ static void maplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
   VALUE margin = rb_iv_get(self, "@pos");
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(margin) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(margin) + 1));
+  int pos_x = NUM2INT(RSTRUCT_GET(margin, 0));
+  int pos_y = NUM2INT(RSTRUCT_GET(margin, 1));
 
   VALUE size = rb_iv_get(self, "@size");
-  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
-  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+  int size_w = NUM2INT(RSTRUCT_GET(size, 0));
+  int size_h = NUM2INT(RSTRUCT_GET(size, 1));
 
   VALUE real_size = rb_iv_get(self, "@real_size");
-  int real_size_w = NUM2INT(*(RSTRUCT_PTR(real_size) + 0));
-  int real_size_h = NUM2INT(*(RSTRUCT_PTR(real_size) + 1));
+  int real_size_w = NUM2INT(RSTRUCT_GET(real_size, 0));
+  int real_size_h = NUM2INT(RSTRUCT_GET(real_size, 1));
 
   VALUE param = rb_iv_get(self, "@mapchip");
-  VALUE mc_chip_size = *(RSTRUCT_PTR(param) + 3);
-  int mc_chip_size_w = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 0));
-  int mc_chip_size_h = NUM2INT(*(RSTRUCT_PTR(mc_chip_size) + 1));
+  VALUE mc_chip_size = RSTRUCT_GET(param, 3);
+  int mc_chip_size_w = NUM2INT(RSTRUCT_GET(mc_chip_size, 0));
+  int mc_chip_size_h = NUM2INT(RSTRUCT_GET(mc_chip_size, 1));
 
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
@@ -1036,12 +1023,12 @@ static void fixedmaplayer_render_to_inner(VALUE self, MiyakoBitmap *dst)
   int oh = NUM2INT(rb_iv_get(self, "@oh"));
 
   VALUE pos = rb_iv_get(self, "@pos");
-  int pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
-  int pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
+  int pos_x = NUM2INT(RSTRUCT_GET(pos, 0));
+  int pos_y = NUM2INT(RSTRUCT_GET(pos, 1));
 
   VALUE size = rb_iv_get(self, "@size");
-  int size_w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
-  int size_h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
+  int size_w = NUM2INT(RSTRUCT_GET(size, 0));
+  int size_h = NUM2INT(RSTRUCT_GET(size, 1));
 
   VALUE munits = rb_iv_get(self, "@mapchip_units");
   VALUE mapdat = rb_iv_get(self, "@mapdat");
@@ -1316,94 +1303,6 @@ static VALUE sa_update(VALUE self)
   return is_change;
 }
 
-#if 0
-/*
-*/
-static VALUE sa_render(VALUE self)
-{
-  VALUE vsrc, *runit, polist, dir, *move_off, tmp_oxy, tmp_x, tmp_y;
-  int num, pos_off, didx;
-  MiyakoBitmap src, dst;
-  SDL_Surface *scr;
-
-  VALUE visible = rb_iv_get(self, str_visible);
-  if(visible == Qfalse) return self;
-  vsrc = rb_iv_get(self, "@now");
-  runit = RSTRUCT_PTR(vsrc);
-  polist = rb_iv_get(self, "@pos_offset");
-  dir = rb_iv_get(self, "@dir");
-
-  num = NUM2INT(rb_iv_get(self, "@pnum"));
-
-  move_off = RARRAY_PTR(rb_funcall(*(RARRAY_PTR(rb_iv_get(self, "@move_offset")) + num), id_to_a, 0));
-
-  pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
-
-  didx = (rb_to_id(dir) == rb_intern("h") ? 2 : 1);
-
-  tmp_oxy = *(runit +  didx);
-  tmp_x = *(runit + 5);
-  tmp_y = *(runit + 6);
-
-  *(runit + didx) = INT2NUM(NUM2INT(tmp_oxy) - pos_off);
-  *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(*(move_off+0)));
-  *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(*(move_off+1)));
-
-  scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  _miyako_setup_unit_2(vsrc, mScreen, scr, &src, &dst, Qnil, Qnil, 1);
-  render_inner(&src, &dst);
-
-  *(runit + 5) = tmp_x;
-  *(runit + 6) = tmp_y;
-  *(runit + didx) = tmp_oxy;
-
-  return Qnil;
-}
-
-/*
-*/
-static VALUE sa_render_to_sprite(VALUE self, VALUE vdst)
-{
-  VALUE vsrc, *runit, polist, dir, molist, move_off, tmp_oxy, tmp_x, tmp_y;
-  int num, pos_off, didx;
-  MiyakoBitmap src, dst;
-  SDL_Surface *scr;
-
-  VALUE visible = rb_iv_get(self, str_visible);
-  if(visible == Qfalse) return self;
-  vsrc = rb_iv_get(self, "@now");
-  runit = RSTRUCT_PTR(vsrc);
-  polist = rb_iv_get(self, "@pos_offset");
-  dir = rb_iv_get(self, "@dir");
-
-  num = NUM2INT(rb_iv_get(self, "@pnum"));
-
-  pos_off = NUM2INT(*(RARRAY_PTR(polist) + num));
-
-  molist = rb_iv_get(self, "@move_offset");
-  move_off = *(RARRAY_PTR(molist) + num);
-
-  didx = (rb_to_id(dir) == rb_intern("h") ? 3 : 2);
-
-  tmp_oxy = *(runit +  didx);
-  tmp_x = *(runit + 5);
-  tmp_y = *(runit + 6);
-
-  *(runit + didx) = INT2NUM(NUM2INT(tmp_oxy) - pos_off);
-  *(runit + 5) = INT2NUM(NUM2INT(tmp_x) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nZero)));
-  *(runit + 6) = INT2NUM(NUM2INT(tmp_y) + NUM2INT(rb_funcall(move_off, id_kakko, 1, nOne )));
-
-  scr = GetSurface(rb_iv_get(mScreen, "@@screen"))->surface;
-  _miyako_setup_unit_2(vsrc, vdst, scr, &src, &dst, Qnil, Qnil, 1);
-  render_to_inner(&src, &dst);
-
-  *(runit + 5) = tmp_x;
-  *(runit + 6) = tmp_y;
-  *(runit + didx) = tmp_oxy;
-
-  return Qnil;
-}
-#endif
 
 /*
 */
@@ -1419,12 +1318,12 @@ static VALUE plane_render(VALUE self)
   pos = rb_iv_get(self, "@pos");
   size = rb_iv_get(self, "@size");
   osize = rb_funcall(sprite, rb_intern("layout_size"), 0);
-  w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
-  h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
-  pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
-  pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
-  ow = NUM2INT(*(RSTRUCT_PTR(osize) + 0));
-  oh = NUM2INT(*(RSTRUCT_PTR(osize) + 1));
+  w = NUM2INT(RSTRUCT_GET(size, 0));
+  h = NUM2INT(RSTRUCT_GET(size, 1));
+  pos_x = NUM2INT(RSTRUCT_GET(pos, 0));
+  pos_y = NUM2INT(RSTRUCT_GET(pos, 1));
+  ow = NUM2INT(RSTRUCT_GET(osize, 0));
+  oh = NUM2INT(RSTRUCT_GET(osize, 1));
 
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
@@ -1453,12 +1352,12 @@ static VALUE plane_render_to_sprite(VALUE self, VALUE vdst)
   pos = rb_iv_get(self, "@pos");
   size = rb_iv_get(self, "@size");
   osize = rb_funcall(sprite, rb_intern("layout_size"), 0);
-  w = NUM2INT(*(RSTRUCT_PTR(size) + 0));
-  h = NUM2INT(*(RSTRUCT_PTR(size) + 1));
-  pos_x = NUM2INT(*(RSTRUCT_PTR(pos) + 0));
-  pos_y = NUM2INT(*(RSTRUCT_PTR(pos) + 1));
-  ow = NUM2INT(*(RSTRUCT_PTR(osize) + 0));
-  oh = NUM2INT(*(RSTRUCT_PTR(osize) + 1));
+  w = NUM2INT(RSTRUCT_GET(size, 0));
+  h = NUM2INT(RSTRUCT_GET(size, 1));
+  pos_x = NUM2INT(RSTRUCT_GET(pos, 0));
+  pos_y = NUM2INT(RSTRUCT_GET(pos, 1));
+  ow = NUM2INT(RSTRUCT_GET(osize, 0));
+  oh = NUM2INT(RSTRUCT_GET(osize, 1));
 
   for(y = 0; y < h; y++){
     for(x = 0; x < w; x++){
@@ -1579,7 +1478,6 @@ void Init_miyako_no_katana()
   one = 1;
   nOne = INT2NUM(one);
 
-#if 1
   rb_define_singleton_method(mMiyako, "main_loop", miyako_main_loop, -1);
 
   rb_define_singleton_method(mScreen, "update_tick", screen_update_tick, 0);
@@ -1592,28 +1490,10 @@ void Init_miyako_no_katana()
   rb_define_singleton_method(mAnimation, "reset", anim_m_reset, 0);
   rb_define_singleton_method(mAnimation, "update", anim_m_update, 0);
   rb_define_singleton_method(mAnimation, "update_animation", anim_m_update, 0);
-#else
-  rb_define_module_function(mMiyako, "main_loop", miyako_main_loop, -1);
-
-  rb_define_module_function(mScreen, "update_tick", screen_update_tick, 0);
-  rb_define_module_function(mScreen, "pre_render", screen_pre_render, 0);
-  rb_define_module_function(mScreen, "render", screen_render, 0);
-  rb_define_module_function(mScreen, "render_screen", screen_render_screen, 1);
-
-  rb_define_module_function(mAnimation, "start", anim_m_start, 0);
-  rb_define_module_function(mAnimation, "stop", anim_m_stop, 0);
-  rb_define_module_function(mAnimation, "reset", anim_m_reset, 0);
-  rb_define_module_function(mAnimation, "update", anim_m_update, 0);
-  rb_define_module_function(mAnimation, "update_animation", anim_m_update, 0);
-#endif
   rb_define_method(cSpriteAnimation, "update_animation", sa_update, 0);
   rb_define_method(cSpriteAnimation, "update_frame", sa_update_frame, 0);
   rb_define_method(cSpriteAnimation, "update_wait_counter", sa_update_wait_counter, 0);
   rb_define_method(cSpriteAnimation, "set_pat", sa_set_pat, 0);
-#if 0
-  rb_define_method(cSpriteAnimation, "render", sa_render, 0);
-  rb_define_method(cSpriteAnimation, "render_to", sa_render_to_sprite, 1);
-#endif
 
   rb_define_method(mSpriteBase, "render_xy", sprite_b_render_xy, 2);
   rb_define_method(mSpriteBase, "render_xy_to", sprite_b_render_xy_to_sprite, 3);

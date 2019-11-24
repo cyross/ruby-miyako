@@ -37,7 +37,7 @@ module Miyako
     #フルスクリーンモードを示す値
     FULLSCREEN_MODE = 1
     #ウインドウモード・フルスクリーンモードを切り替える際のフラグを示す配列
-    ScreenFlag = $miyako_use_opengl ? [SDL::OPENGL, SDL::OPENGL | SDL::FULLSCREEN] : [SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT, SDL::HWSURFACE | SDL::DOUBLEBUF | SDL::ANYFORMAT | SDL::FULLSCREEN]
+    ScreenFlag = $miyako_use_opengl ? [SDL2::OPENGL, SDL2::OPENGL | SDL2::FULLSCREEN] : [SDL2::HWSURFACE | SDL2::DOUBLEBUF | SDL2::ANYFORMAT, SDL2::HWSURFACE | SDL2::DOUBLEBUF | SDL2::ANYFORMAT | SDL2::FULLSCREEN]
 
     def Screen::get_fps_count
       return @@fps == 0 ? 0 : FpsMax / @@fps

@@ -41,8 +41,7 @@ module Miyako
     # check font directory in gem directory
     base_pathes = []
     gpath = nil
-    searcher = Gem::GemPathSearcher.new
-    spec = searcher.find("miyako")
+    spec = Gem::Specification.find_by_path("miyako")
     gpath = spec.full_gem_path if spec
     if spec && gpath =~ /ruby\-miyako/
       gpath = File.join(gpath,"lib","Miyako","fonts")

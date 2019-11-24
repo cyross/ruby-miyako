@@ -7,14 +7,10 @@ if RUBY_VERSION < '1.9.1'
 end
 
 begin
-require 'sdl'
+  require 'rubygems'
+  require 'sdl2'
 rescue
   puts 'Sorry. Miyako needs Ruby/SDL...'
-  exit
-end
-
-if SDL::VERSION < '2.1'
-  puts 'Sorry. Miyako needs Ruby/SDL 2.1.0 or above...'
   exit
 end
 
@@ -34,24 +30,24 @@ ARGV.options do |opt|
 end
 
 ext_dir = "./"
-osn = Config::CONFIG["target_os"].downcase
+osn = RbConfig::CONFIG["target_os"].downcase
 if osn =~ /mswin|mingw|cygwin|bccwin/
   ext_dir = "win/"
 elsif osn =~ /darwin/ # Mac OS X
   if ENV['SDL_CONFIG_PATH']
-    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
+    system(RbConfig::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
   else
-    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl-config'; make")
+    system(RbConfig::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl2-config'; make")
   end
 else # linux, U*IX...
   if ENV['SDL_CONFIG_PATH']
-    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
+    system(RbConfig::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='#{ENV['SDL_CONFIG_PATH']}'; make")
   else
-    system(Config::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl-config'; make")
+    system(RbConfig::CONFIG["ruby_install_name"] + " extconf.rb --with-sdl-config='sdl2-config'; make")
   end
 end
 
-baselibdir = Config::CONFIG["sitelibdir"]
+baselibdir = RbConfig::CONFIG["sitelibdir"]
 sitelibdir = baselibdir + "/Miyako"
 apidir = sitelibdir + "/API"
 extdir = sitelibdir + "/EXT"
